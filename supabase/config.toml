@@ -1,0 +1,6 @@
+# Minimal Supabase CLI config. Run `supabase init` to regenerate the full default file,
+# then keep these values.
+project_id = "hms"
+
+[db]
+major_version = 16
