@@ -1,6 +1,6 @@
 # Handoff
 
-Last updated: 2026-10-26. Read this first, then `TODO.md`.
+Last updated: 2026-10-27. Read this first, then `TODO.md`.
 
 ## What this is
 
@@ -41,9 +41,14 @@ of an extra status.
 
 Built and tested locally (PostgreSQL 16 with stand-ins for Supabase's `auth` schema):
 
-- `supabase/migrations/` 001 tenancy, 002 identity and permissions, 003 inventory, 004 claims
-- `supabase/tests/run.sh` runs migrations, `02_claims.sql`, `03_security.sql` and two pgbench races
-  (50 clients for 1 room: exactly 1 wins; 100 clients for 5 rooms: exactly 5 win). All pass.
+- `supabase/migrations/` 001 tenancy, 002 identity and permissions, 003 inventory, 004 claims,
+  005 pricing (rate plans, daily rates, tax rules, versioned policies, `resolve_rate`, `calc_night_tax`),
+  006 guests, reservations, reservation_rooms, reservation_nights, claims FK, deferred tiling trigger,
+  007 audit_logs, idempotency_keys and `create_reservation(property, guest, source, arrival, departure, rooms, idempotency_key)`
+- `supabase/tests/run.sh` runs migrations, `02_claims.sql`, `03_security.sql`, `04_reservations.sql` and four
+  pgbench races: 50 clients for 1 room (1 wins), 100 for 5 rooms (5 win), the same two through
+  `create_reservation`, plus 40 clients each requesting 2 of 5 rooms (exactly 2 win, no partial bookings).
+  Any pgbench client error fails the run. All pass.
 - App shell builds and type-checks: `/` guest placeholder, `/app` (redirects to `/login` when signed out),
   `/login` placeholder, `/platform` placeholder. No sign-in form yet.
 
@@ -56,6 +61,20 @@ Not verified:
   and need checking against current Paystack docs, a tax adviser and a lawyer.
 
 ## Things to know before editing
+
+- **Deadlocks are real.** Without locks, concurrent multi-room bookings deadlocked (36 of 40 clients exhausted
+  three retries). `create_reservation` now takes `pg_advisory_xact_lock` per (property, room type) in sorted
+  order before claiming rooms. Any new function that claims rooms (`transfer_room`, `create_room_block`,
+  online holds) must take the same lock. The exclusion constraint remains the final referee.
+- **create_reservation rules:** staff (`reservation.create`) can book any source except `website`; `website`
+  bookings are only allowed for the system (no JWT user, session user `postgres`/`service_role`) and create a
+  `pending` reservation with a `hold` claim (`hold_minutes` from policy, default 20). Staff bookings are
+  `confirmed` with `stay` claims. There is no client-facing online-booking RPC yet.
+- **Idempotency:** same key and same request returns the stored result; same key with a different request raises
+  `IDEMPOTENCY_MISMATCH`. The key row rolls back with the transaction, so failed calls can be retried.
+- **Tiling trigger** runs at commit as `security definer`, so it sees all claims regardless of the caller's RLS.
+- **Test helpers** `test_rr`, `test_try_claim`, `test_try_reserve` live in `01_seed.sql` (test-only). `04_reservations.sql`
+  depends on users created in `03_security.sql`, so keep the file order.
 
 - **Migration numbering** differs from the design doc's list: claims were built early (004) to prove the
   double-booking protection. Keep filename order = apply order.
@@ -78,6 +97,6 @@ Not verified:
 
 1. Run `npm install` and `npm run db:test` locally to confirm the same results.
 2. Push, confirm CI is green, create a Supabase staging project, apply the four migrations there.
-3. Build guests, reservations, `reservation_rooms`, `reservation_nights`, the claims FK and tiling trigger,
-   then `create_reservation` with the multi-room and deadlock tests from System Design section 3.
+3. Build `create_hold` (public), `transfer_room`, `create_room_block`, `check_in`, `check_out`, `cancel_reservation`,
+   then the money tables and `confirm_payment` (System Design sections 4 and 5).
 4. Continue down `TODO.md` in phase order; do not start online booking before Phase 3 and 4 gates pass.

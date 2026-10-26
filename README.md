@@ -45,7 +45,8 @@ Supabase's `auth` schema, then runs:
 
 - `02_claims.sql`: back-to-back stays, overlaps, stale and live holds, blocks, out-of-service rooms
 - `03_security.sql`: cross-tenant reads and writes, role limits, revoked membership, anon
-- pgbench races: 50 clients for the last room (exactly 1 wins), 100 clients for 5 rooms (exactly 5 win)
+- `04_reservations.sql`: pricing, tax rounding, multi-room, all-or-nothing, idempotency, permissions, online holds, tiling, audit
+- pgbench races: last room (1 of 50 wins), 5 rooms (5 of 100), the same through `create_reservation`, and two-room bookings (2 of 40)
 
 ## Migrations so far
 
@@ -55,10 +56,13 @@ Supabase's `auth` schema, then runs:
 | 002 identity | profiles, platform_admins, memberships, roles, permissions, `has_permission` |
 | 003 inventory | room_types, rooms |
 | 004 inventory_claims | stays, holds and blocks in one table with exclusion constraints; `claim_room` |
+| 005 pricing | rate plans, daily rates, tax rules, versioned policies, `resolve_rate`, `calc_night_tax` |
+| 006 reservations | guests, reservations, reservation rooms and nights, claims FK, deferred tiling trigger |
+| 007 create_reservation | audit_logs (append-only), idempotency_keys, `create_reservation` (single and multi-room) |
 
-File numbers here differ from the design doc's list because claims were built early to prove the
-double-booking protection. Next: pricing and policies, guests, reservations and reservation rooms,
-`create_reservation`, then the money tables. Follow the gates in System Design section 11.
+File numbers differ from the design doc's list because claims were built early to prove the
+double-booking protection. Next: `create_hold`, `transfer_room`, `create_room_block`, check-in and
+check-out, cancellation, then the money tables. Follow the gates in System Design section 11.
 
 ## Status
 

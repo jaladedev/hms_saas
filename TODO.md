@@ -17,17 +17,20 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 ## Phase 1: Inventory proof
 - [x] 001 tenancy, 002 identity and permissions, 003 inventory, 004 room_inventory_claims + `claim_room`
 - [x] Concurrency tests: last-room race, type-level race
-- [ ] Guests, reservations, `reservation_rooms`, `reservation_nights` (add the FK from claims to `reservation_rooms`)
-- [ ] Tiling trigger: stay claims per reservation room must cover `[arrival, departure)` exactly
-- [ ] `create_reservation` (single and multi-room, all-or-nothing) with deadlock retry
-- [ ] `create_hold`, `transfer_room`, `create_room_block` with conflict list
-- [ ] Concurrency tests for multi-room atomicity, transfer race, deadlock retry (System Design section 3 table)
+- [x] Guests, reservations, `reservation_rooms`, `reservation_nights`, FK from claims to `reservation_rooms` (migration 006)
+- [x] Tiling trigger: active stay/hold claims per reservation room must cover `[arrival, departure)` exactly (deferred, 006)
+- [x] `create_reservation` (single and multi-room, all-or-nothing, idempotent, audited) with advisory locks against deadlocks (007)
+- [ ] `create_hold` (public RPC, host-resolved tenant), `transfer_room`, `create_room_block` with conflict list; they must take the same advisory lock as `create_reservation`
+- [x] Concurrency tests: reservation race for the last room, multi-room race (exactly 2 of 40 two-room requests win)
+- [ ] Concurrency tests still missing: transfer race, block-over-stay through the block function
 
 ## Phase 2: Core schema and security
-- [ ] Pricing and policy: rate_plans, daily_rates, tax_rules, property_policies (versioned), `resolve_rate`
+- [x] Pricing and policy: rate_plans, daily_rates, tax_rules (percent and fixed per night), property_policies (versioned), `resolve_rate`, `calc_night_tax` (005)
+- [ ] Stay-level fixed charges and folio taxes in `tax_rules`; `discount.apply` limits
 - [ ] Operations: housekeeping_tasks and history, maintenance_requests, folio_charges
 - [ ] Money: invoices, lines, invoice_sequences, payment_attempts, payments, allocations, refunds, payment_events, provider accounts
-- [ ] `audit_logs` (insert-only), `idempotency_keys`, `outbox_events`, `notifications`, `documents`, `booking_access_tokens`
+- [x] `audit_logs` (insert-only) and `idempotency_keys` (007)
+- [ ] `outbox_events`, `notifications`, `documents`, `booking_access_tokens`; idempotency key expiry job
 - [ ] Operation functions: check_in, check_out, cancel, issue and void invoice, manual payment, verify payment, refund request and approve
 - [ ] Reporting views and `refresh_reservation_payment_status`, `guest_booking_status`
 - [ ] `room_board_view` and `housekeeping_task_view` for roles that must not read rates or guests

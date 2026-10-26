@@ -3,15 +3,15 @@
 
 -- Back-to-back stays: departure day equals next arrival day
 do $$ begin
-  perform claim_room('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', null, '2027-03-01', '2027-03-05', 'stay', gen_random_uuid());
-  perform claim_room('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', null, '2027-03-05', '2027-03-08', 'stay', gen_random_uuid());
+  perform claim_room('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', null, '2027-03-01', '2027-03-05', 'stay', test_rr('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', '2027-03-01', '2027-03-05'));
+  perform claim_room('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', null, '2027-03-05', '2027-03-08', 'stay', test_rr('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', '2027-03-05', '2027-03-08'));
   raise notice 'PASS back-to-back stays';
 end $$;
 
 -- Overlap rejected
 do $$ begin
   begin
-    perform claim_room('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', null, '2027-03-04', '2027-03-06', 'stay', gen_random_uuid());
+    perform claim_room('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', null, '2027-03-04', '2027-03-06', 'stay', test_rr('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', '2027-03-04', '2027-03-06'));
     raise exception 'FAIL overlap was accepted';
   exception when sqlstate 'P0001' then raise notice 'PASS overlap rejected';
   end;
@@ -19,8 +19,8 @@ end $$;
 
 -- Stale hold does not block (cleanup job disabled)
 do $$ declare v_id uuid; begin
-  v_id := claim_room('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', null, '2027-04-01', '2027-04-03', 'hold', gen_random_uuid(), now() - interval '1 minute');
-  perform claim_room('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', null, '2027-04-01', '2027-04-03', 'stay', gen_random_uuid());
+  v_id := claim_room('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', null, '2027-04-01', '2027-04-03', 'hold', test_rr('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', '2027-04-01', '2027-04-03'), now() - interval '1 minute');
+  perform claim_room('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', null, '2027-04-01', '2027-04-03', 'stay', test_rr('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', '2027-04-01', '2027-04-03'));
   if (select status from room_inventory_claims where id = v_id) <> 'expired' then
     raise exception 'FAIL stale hold not expired';
   end if;
@@ -29,9 +29,9 @@ end $$;
 
 -- Live hold blocks
 do $$ begin
-  perform claim_room('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', null, '2027-05-01', '2027-05-03', 'hold', gen_random_uuid(), now() + interval '20 minutes');
+  perform claim_room('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', null, '2027-05-01', '2027-05-03', 'hold', test_rr('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', '2027-05-01', '2027-05-03'), now() + interval '20 minutes');
   begin
-    perform claim_room('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', null, '2027-05-02', '2027-05-04', 'stay', gen_random_uuid());
+    perform claim_room('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', null, '2027-05-02', '2027-05-04', 'stay', test_rr('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', '2027-05-02', '2027-05-04'));
     raise exception 'FAIL live hold did not block';
   exception when sqlstate 'P0001' then raise notice 'PASS live hold blocks';
   end;
@@ -46,7 +46,7 @@ do $$ begin
   end;
   perform claim_room('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', null, '2027-06-01', '2027-06-04', 'block', null, null, 'repairs');
   begin
-    perform claim_room('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', null, '2027-06-02', '2027-06-03', 'stay', gen_random_uuid());
+    perform claim_room('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', null, '2027-06-02', '2027-06-03', 'stay', test_rr('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', '2027-06-02', '2027-06-03'));
     raise exception 'FAIL stay over block accepted';
   exception when sqlstate 'P0001' then raise notice 'PASS stay over block rejected';
   end;
@@ -56,7 +56,7 @@ end $$;
 do $$ begin
   update rooms set operational_status = 'out_of_service' where room_number = '201';
   begin
-    perform claim_room('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', null, '2027-07-01', '2027-07-02', 'stay', gen_random_uuid());
+    perform claim_room('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', null, '2027-07-01', '2027-07-02', 'stay', test_rr('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', '2027-07-01', '2027-07-02'));
     raise exception 'FAIL out-of-service room claimed';
   exception when sqlstate 'P0001' then raise notice 'PASS out-of-service excluded';
   end;
@@ -64,7 +64,7 @@ do $$ begin
 end $$;
 
 -- A reservation room cannot occupy two rooms on the same night
-do $$ declare rr uuid := gen_random_uuid(); begin
+do $$ declare rr uuid := test_rr('00000000-0000-0000-0000-0000000000a2','00000000-0000-0000-0000-0000000000a3','2027-08-01','2027-08-04'); begin
   perform claim_room('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a3', null, '2027-08-01', '2027-08-04', 'stay', rr);
   begin
     perform claim_room('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a3', null, '2027-08-03', '2027-08-05', 'stay', rr);
