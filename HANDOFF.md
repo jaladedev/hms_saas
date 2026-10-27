@@ -1,6 +1,6 @@
 # Handoff
 
-Last updated: 2026-10-27. Read this first, then `TODO.md`.
+Last updated: 2026-10-27 (009 create_hold added). Read this first, then `TODO.md`.
 
 ## What this is
 
@@ -47,10 +47,12 @@ Built and tested locally (PostgreSQL 16 with stand-ins for Supabase's `auth` sch
   007 audit_logs, idempotency_keys and `create_reservation(property, guest, source, arrival, departure, rooms, idempotency_key)`
   008 reservation operations: `cancel_reservation(id, reason, key)`, `check_in(rr, override_reason)`, `check_out(rr, note)`, `transfer_room(rr, target_room, effective_date, reason, key)`, `create_room_block(room, start, end, reason, 'fail'|'move', key)`, `release_room_block(id)`. Helpers: `require_permission`, `property_today`, `idem_begin/finish`, `write_audit`.
   Locking rule: `claim_room` takes `lock_room_types` itself (concurrent inserts into the exclusion constraint can deadlock); any function that claims inventory inherits it.
-  Tests: 05_operations.sql covers all operations. Known gaps: no settlement on cancel or early check-out (needs money tables), no early check-in policy, no transfer race test.
-- `supabase/tests/run.sh` runs migrations, `02_claims.sql`, `03_security.sql`, `04_reservations.sql` and four
+  009 online entry point: `resolve_host(host)` (verified `tenant_domains` only; a tenant-wide domain resolves only if the tenant has exactly one active property) and `create_hold(host, arrival, departure, rooms, guest, key)`. Both are executable by `service_role` only, so the Next.js server must call them with the service-role key from server-only code, passing the real request Host header, and should rate-limit by IP first. `create_hold` finds or creates the guest by email, ignores any `rate_plan_id` from the caller, caps stays at 30 nights, booking horizon at 365 days, 5 rooms per hold and 3 live holds per email, has its own idempotency key, and returns no internal ids. A replayed response is returned as stored, so check `hold_expires_at`.
+  Tests: 05_operations.sql covers all operations; 06_holds.sql covers 009. Known gaps: no settlement on cancel or early check-out (needs money tables), no early check-in policy, no transfer race test, no block-over-stay race test.
+- `supabase/tests/run.sh` runs migrations, `02_claims.sql` to `06_holds.sql` and six
   pgbench races: 50 clients for 1 room (1 wins), 100 for 5 rooms (5 win), the same two through
-  `create_reservation`, plus 40 clients each requesting 2 of 5 rooms (exactly 2 win, no partial bookings).
+  `create_reservation`, plus 40 clients each requesting 2 of 5 rooms (exactly 2 win, no partial bookings);
+  the last room race and the two-room race are repeated through `create_hold`.
   Any pgbench client error fails the run. All pass.
 - App shell builds and type-checks: `/` guest placeholder, `/app` (redirects to `/login` when signed out),
   `/login` placeholder, `/platform` placeholder. No sign-in form yet.
@@ -76,6 +78,9 @@ Not verified:
 - **Idempotency:** same key and same request returns the stored result; same key with a different request raises
   `IDEMPOTENCY_MISMATCH`. The key row rolls back with the transaction, so failed calls can be retried.
 - **Tiling trigger** runs at commit as `security definer`, so it sees all claims regardless of the caller's RLS.
+- **`session_user` is not a safe "is this the server?" test on Supabase.** PostgREST connects as `authenticator` and switches role per request, so `session_user` never equals `service_role`. Use `is_system_caller()` (defined in 007): no signed-in user AND (direct `postgres`/`supabase_admin` session OR verified JWT role claim `service_role`). `06_holds.sql` reproduces the PostgREST shape with `set session authorization authenticator` plus `set role service_role`. Still not tried against a real project.
+- **Lapsed holds:** `release_expired_holds` marks the claim expired when someone next claims overlapping dates, but the reservation row stays `pending`. A sweep that sets it to `expired` is in TODO and needed before the staff UI lists online reservations.
+- **Test dates** in `06_holds.sql` are relative to today (offsets 10 to 140, races at 120 and 130); `05_operations.sql` uses up to +72. Keep new tests clear of those ranges.
 - **Test helpers** `test_rr`, `test_try_claim`, `test_try_reserve` live in `01_seed.sql` (test-only). `04_reservations.sql`
   depends on users created in `03_security.sql`, so keep the file order.
 
@@ -99,7 +104,7 @@ Not verified:
 ## Suggested next steps
 
 1. Run `npm install` and `npm run db:test` locally to confirm the same results.
-2. Push, confirm CI is green, create a Supabase staging project, apply the four migrations there.
-3. Build `create_hold` (public), `transfer_room`, `create_room_block`, `check_in`, `check_out`, `cancel_reservation`,
-   then the money tables and `confirm_payment` (System Design sections 4 and 5).
+2. Push, confirm CI is green, create a Supabase staging project, apply all nine migrations there.
+3. Build the money tables and `confirm_payment` (System Design sections 4 and 5), the hold sweep job, and the two
+   missing race tests (transfer, block over stay).
 4. Continue down `TODO.md` in phase order; do not start online booking before Phase 3 and 4 gates pass.

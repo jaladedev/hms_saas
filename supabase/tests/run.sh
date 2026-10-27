@@ -44,6 +44,10 @@ OPS="$(psql -f "$HERE/05_operations.sql" 2>&1)" || { echo "$OPS"; echo "OPERATIO
 echo "$OPS" | grep -E 'PASS' || true
 if echo "$OPS" | grep -qE 'FAIL|ERROR'; then echo "$OPS"; echo "OPERATION TESTS FAILED"; exit 1; fi
 
+HOLDS="$(psql -f "$HERE/06_holds.sql" 2>&1)" || { echo "$HOLDS"; echo "HOLD TESTS FAILED"; exit 1; }
+echo "$HOLDS" | grep -E 'PASS' || true
+if echo "$HOLDS" | grep -qE 'FAIL|ERROR'; then echo "$HOLDS"; echo "HOLD TESTS FAILED"; exit 1; fi
+
 echo "--- concurrency: last room race (1 room, 50 clients)"
 cat > "$DATA/race_one.sql" <<'SQL'
 select test_try_claim('last_room', '00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', '2027-10-01', '2027-10-03');
@@ -92,5 +96,31 @@ psql -At -c "do \$\$ begin
               on a.room_id = b.room_id and a.id < b.id and a.status='active' and b.status='active'
              and daterange(a.start_date,a.end_date,'[)') && daterange(b.start_date,b.end_date,'[)'))
   then raise exception 'FAIL overlapping claims exist'; end if;
+end \$\$"
+echo "--- concurrency: create_hold, last room (1 room, 50 clients, distinct guests)"
+cat > "$DATA/hold_one.sql" <<'SQL'
+select test_try_hold('hold_one', 120, 2, '[{"room_type_id":"00000000-0000-0000-0000-0000000000a4","adults":2}]'::jsonb);
+SQL
+bench -c 50 -j 10 -t 1 -f "$DATA/hold_one.sql"
+psql -At -c "select 'successes=' || count(*) filter (where ok) || ' failures=' || count(*) filter (where not ok) from test_results where label like 'hold_one%'"
+psql -At -c "do \$\$ begin
+  if (select count(*) from test_results where label = 'hold_one' and ok) <> 1 then raise exception 'FAIL hold race winners'; end if;
+  if (select count(*) from test_results where label like '%gave_up') <> 0 then raise exception 'FAIL deadlock retries exhausted'; end if;
+  if (select count(*) from reservations where source = 'website' and arrival_date = current_date + 120) <> 1 then raise exception 'FAIL orphan hold reservations'; end if;
+  if (select count(*) from guests where full_name = 'Race Guest') <> 1 then raise exception 'FAIL orphan guests'; end if;
+end \$\$"
+
+echo "--- concurrency: two-room holds (5 rooms, 40 clients each asking for 2)"
+cat > "$DATA/hold_multi.sql" <<'SQL'
+select test_try_hold('hold_multi', 130, 2, '[{"room_type_id":"00000000-0000-0000-0000-0000000000a3","adults":2},{"room_type_id":"00000000-0000-0000-0000-0000000000a3","adults":2}]'::jsonb);
+SQL
+bench -c 40 -j 10 -t 1 -f "$DATA/hold_multi.sql"
+psql -At -c "select 'successes=' || count(*) filter (where ok) || ' failures=' || count(*) filter (where not ok) from test_results where label like 'hold_multi%'"
+psql -At -c "do \$\$ begin
+  if (select count(*) from test_results where label = 'hold_multi' and ok) <> 2 then raise exception 'FAIL multi-room hold winners'; end if;
+  if (select count(*) from test_results where label like '%gave_up') <> 0 then raise exception 'FAIL deadlock retries exhausted'; end if;
+  if (select count(*) from room_inventory_claims where start_date = current_date + 130 and claim_type = 'hold' and status = 'active') <> 4 then raise exception 'FAIL hold claim count'; end if;
+  if exists (select 1 from reservations r where r.arrival_date = current_date + 130
+              and (select count(*) from reservation_rooms rr where rr.reservation_id = r.id) <> 2) then raise exception 'FAIL partial multi-room hold'; end if;
 end \$\$"
 echo "ALL TESTS PASSED"

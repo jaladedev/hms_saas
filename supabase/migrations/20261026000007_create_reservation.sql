@@ -2,7 +2,7 @@
 -- all-or-nothing. A repeated call with the same idempotency key and the same request returns the
 -- stored result; the same key with a different request raises IDEMPOTENCY_MISMATCH. Deadlocks
 -- (40P01) are safe to retry because the whole transaction rolls back, key row included.
--- Outbox events arrive with migration 009.
+-- Outbox events arrive in a later migration.
 
 create table audit_logs (
   id            uuid primary key default gen_random_uuid(),
@@ -50,6 +50,19 @@ create function new_booking_reference() returns text language sql volatile as $$
   select 'BK-' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 8))
 $$;
 
+-- True for trusted server-side callers: no signed-in user AND either a direct database session
+-- (postgres, supabase_admin) or a request whose verified JWT carries the service_role claim.
+-- On real Supabase every API call reaches Postgres through PostgREST, where session_user is always
+-- 'authenticator' and the key's role arrives as a JWT claim, so session_user alone never matches.
+create function is_system_caller() returns boolean language sql stable as $$
+  select auth.uid() is null and (
+    session_user in ('postgres', 'service_role', 'supabase_admin')
+    or coalesce(nullif(current_setting('request.jwt.claim.role', true), ''),
+                nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role') = 'service_role'
+  )
+$$;
+revoke all on function is_system_caller() from public, anon, authenticated;
+
 create function create_reservation(
   p_property_id      uuid,
   p_primary_guest_id uuid,
@@ -89,7 +102,7 @@ begin
   select tenant_id, timezone into v_tenant, v_tz from properties where id = p_property_id and status = 'active';
   if v_tenant is null then raise exception 'NOT_FOUND: property' using errcode = 'P0001'; end if;
   if v_actor is null then
-    if session_user not in ('postgres', 'service_role', 'supabase_admin') then
+    if not is_system_caller() then
       raise exception 'FORBIDDEN' using errcode = 'P0001';
     end if;
   elsif not (case when v_online then false else has_permission(p_property_id, 'reservation.create') end) then

@@ -17,7 +17,7 @@ returns uuid language plpgsql stable security definer set search_path = public a
 declare v_actor uuid := auth.uid();
 begin
   if v_actor is null then
-    if session_user in ('postgres', 'service_role', 'supabase_admin') then return null; end if;
+    if is_system_caller() then return null; end if;
     raise exception '%', p_deny_as using errcode = 'P0001';
   end if;
   if not has_permission(p_property, p_permission) then

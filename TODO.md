@@ -21,8 +21,9 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [x] Tiling trigger: active stay/hold claims per reservation room must cover `[arrival, departure)` exactly (deferred, 006)
 - [x] `create_reservation` (single and multi-room, all-or-nothing, idempotent, audited) with advisory locks against deadlocks (007)
 - [x] `transfer_room`, `create_room_block` / `release_room_block` with conflict list and optional move (008); all take the advisory lock via `claim_room`
-- [ ] `create_hold` (public RPC, host-resolved tenant) for the online booking flow
-- [x] Concurrency tests: reservation race for the last room, multi-room race (exactly 2 of 40 two-room requests win)
+- [x] `create_hold` (host-resolved tenant, `service_role` only, own idempotency, caps per email) and `resolve_host` (009); `session_user` check replaced by `is_system_caller()` so it works behind PostgREST
+- [ ] Sweep job for lapsed online holds: the claim is released lazily, but the `pending` reservation stays `pending` until something marks it `expired`
+- [x] Concurrency tests: reservation race for the last room, multi-room race (exactly 2 of 40 two-room requests win), the same two through `create_hold`
 - [ ] Concurrency tests still missing: transfer race, block-over-stay through the block function (functional tests exist in 05_operations.sql)
 
 ## Phase 2: Core schema and security

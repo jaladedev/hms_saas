@@ -46,7 +46,9 @@ Supabase's `auth` schema, then runs:
 - `02_claims.sql`: back-to-back stays, overlaps, stale and live holds, blocks, out-of-service rooms
 - `03_security.sql`: cross-tenant reads and writes, role limits, revoked membership, anon
 - `04_reservations.sql`: pricing, tax rounding, multi-room, all-or-nothing, idempotency, permissions, online holds, tiling, audit
-- pgbench races: last room (1 of 50 wins), 5 rooms (5 of 100), the same through `create_reservation`, and two-room bookings (2 of 40)
+- `05_operations.sql`: check-in, check-out, transfers, blocks, cancellation
+- `06_holds.sql`: host resolution, `create_hold` called the way PostgREST calls it (session `authenticator`, role from the JWT), access limits, validation, idempotency, guest reuse, hold caps, expiry
+- pgbench races: last room (1 of 50 wins), 5 rooms (5 of 100), the same through `create_reservation`, two-room bookings (2 of 40), and the last two through `create_hold`
 
 ## Migrations so far
 
@@ -60,10 +62,11 @@ Supabase's `auth` schema, then runs:
 | 006 reservations | guests, reservations, reservation rooms and nights, claims FK, deferred tiling trigger |
 | 007 create_reservation | audit_logs (append-only), idempotency_keys, `create_reservation` (single and multi-room) |
 | 008 reservation_operations | `cancel_reservation`, `check_in`, `check_out`, `transfer_room`, `create_room_block`, `release_room_block`; `claim_room` now takes the advisory lock itself |
+| 009 create_hold | `resolve_host(host)`, `create_hold(host, arrival, departure, rooms, guest, key)`; both `service_role` only |
 
 File numbers differ from the design doc's list because claims were built early to prove the
-double-booking protection. Next: `create_hold`, `transfer_room`, `create_room_block`, check-in and
-check-out, cancellation, then the money tables. Follow the gates in System Design section 11.
+double-booking protection. Next: the money tables (invoices, payments, refunds, `confirm_payment`),
+then online booking and Paystack. Follow the gates in System Design section 11.
 
 ## Status
 
