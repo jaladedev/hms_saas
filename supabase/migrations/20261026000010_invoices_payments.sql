@@ -251,6 +251,13 @@ end $$;
 revoke all on function refresh_invoice_status(uuid), refresh_reservation_payment_status(uuid),
   allocate_payments_to_invoice(uuid) from public, anon, authenticated;
 
+-- Money currently held for a reservation. Refunds (012) redefine this to subtract succeeded refunds.
+create function reservation_money_held(p_reservation uuid) returns bigint
+language sql stable security definer set search_path = public as $$
+  select coalesce(sum(amount_minor), 0) from payments where reservation_id = p_reservation and payment_status = 'succeeded'
+$$;
+revoke all on function reservation_money_held(uuid) from public, anon, authenticated;
+
 -- ---- issue_invoice ------------------------------------------------------------------------
 create function issue_invoice(p_reservation_id uuid, p_idempotency_key text)
 returns jsonb language plpgsql security definer set search_path = public as $$
@@ -379,8 +386,7 @@ begin
   if r.reservation_status in ('cancelled', 'expired', 'no_show') then
     raise exception 'INVALID_STATE: %', r.reservation_status using errcode = 'P0001';
   end if;
-  select coalesce(sum(amount_minor), 0) into v_paid from payments
-   where reservation_id = r.id and payment_status = 'succeeded';
+  v_paid := reservation_money_held(r.id);
   if v_paid + p_amount_minor > r.total_minor then
     raise exception 'POLICY_VIOLATION: OVERPAYMENT outstanding %', r.total_minor - v_paid using errcode = 'P0001';
   end if;

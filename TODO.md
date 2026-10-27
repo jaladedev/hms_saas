@@ -34,12 +34,13 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [ ] Operations: housekeeping_tasks and history, maintenance_requests, folio_charges
 - [x] Money, staff side: invoices, lines, invoice_sequences, payments, allocations (010)
 - [x] Money, provider side: payment_attempts, payment_events, payment_provider_accounts, `create_payment_attempt`, `confirm_payment` (011)
-- [ ] Refunds (012): request and approve (approver differs from requester), record provider result, reservation `partially_refunded` / `refunded`; payment reversal and credit notes so paid invoices can be voided
+- [x] Refunds and payment reversal (012): two-person approval, caps, manual and provider payouts, `partially_refunded` / `refunded`, refunded invoices can be voided
+- [ ] Settlement on cancellation and no-show (cancellation charge vs refund) is still not built; `cancel_reservation` does not touch money
 - [x] `audit_logs` (insert-only) and `idempotency_keys` (007)
 - [ ] `outbox_events`, `notifications`, `documents`, `booking_access_tokens`; idempotency key expiry job
 - [x] `cancel_reservation` (policy charge, releases inventory), `check_in` (readiness gate with override), `check_out` (early departure frees the room, marks dirty) (008)
 - [x] `issue_invoice`, `void_invoice`, `record_manual_payment` (010)
-- [ ] Operation functions still to build: payment reversal and credit notes (so paid invoices can be voided), verify payment, refund request and approve, early check-in policy, settlement or credit on cancel and early check-out, cancel-resolution for blocks
+- [ ] Operation functions still to build: settlement on cancellation, payment verification workflow, early check-in policy, settlement or credit on cancel and early check-out, cancel-resolution for blocks
 - [x] `refresh_reservation_payment_status` (010)
 - [ ] Reporting views, `guest_booking_status`
 - [ ] `room_board_view` and `housekeeping_task_view` for roles that must not read rates or guests

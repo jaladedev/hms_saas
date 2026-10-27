@@ -129,8 +129,7 @@ begin
     raise exception 'INVALID_STATE: hold lapsed' using errcode = 'P0001';
   end if;
 
-  select coalesce(sum(amount_minor), 0) into v_paid from payments
-   where reservation_id = r.id and payment_status = 'succeeded';
+  v_paid := reservation_money_held(r.id);
   if r.reservation_status = 'pending' then
     v_mode := coalesce(r.policy_snapshot -> 'online_payment' ->> 'mode', 'full');
     v_pct  := coalesce((r.policy_snapshot -> 'online_payment' ->> 'value')::numeric, 100);
@@ -209,8 +208,7 @@ begin
     end if;
     v_result := jsonb_build_object('result', p_status, 'reservation_id', r.id);
   else
-    select coalesce(sum(amount_minor), 0) into v_paid from payments
-     where reservation_id = r.id and payment_status = 'succeeded';
+    v_paid := reservation_money_held(r.id);
     if p_amount_minor is distinct from a.amount_minor or upper(coalesce(p_currency, '')) <> a.currency then
       v_summary := 'amount_or_currency_mismatch';
     elsif v_paid + a.amount_minor > r.total_minor then

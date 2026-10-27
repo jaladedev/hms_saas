@@ -56,6 +56,10 @@ PROV="$(psql -f "$HERE/08_provider_payments.sql" 2>&1)" || { echo "$PROV"; echo 
 echo "$PROV" | grep -E 'PASS' || true
 if echo "$PROV" | grep -qE 'FAIL|ERROR'; then echo "$PROV"; echo "PROVIDER PAYMENT TESTS FAILED"; exit 1; fi
 
+REF="$(psql -f "$HERE/09_refunds.sql" 2>&1)" || { echo "$REF"; echo "REFUND TESTS FAILED"; exit 1; }
+echo "$REF" | grep -E 'PASS' || true
+if echo "$REF" | grep -qE 'FAIL|ERROR'; then echo "$REF"; echo "REFUND TESTS FAILED"; exit 1; fi
+
 echo "--- concurrency: last room race (1 room, 50 clients)"
 cat > "$DATA/race_one.sql" <<'SQL'
 select test_try_claim('last_room', '00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', '2027-10-01', '2027-10-03');
@@ -157,5 +161,16 @@ psql -At -c "do \$\$ declare v_res uuid := (select res from t08_ctx where label 
   if (select count(*) from payment_events where provider_event_id = 'evt-race-1') <> 1 then raise exception 'FAIL event rows'; end if;
   if (select reservation_status from reservations where id = v_res) <> 'confirmed' then raise exception 'FAIL not confirmed'; end if;
   if (select count(*) from room_inventory_claims c join reservation_rooms rr on rr.id = c.reservation_room_id where rr.reservation_id = v_res and c.status = 'active' and c.claim_type = 'stay') <> 1 then raise exception 'FAIL claims after race'; end if;
+end \$\$"
+echo "--- concurrency: refund requests (20 clients ask 600,000 of a 1,000,000 payment)"
+cat > "$DATA/refund_race.sql" <<'SQL'
+select test_try_refund('refund_race');
+SQL
+bench -c 20 -j 10 -t 1 -f "$DATA/refund_race.sql"
+psql -At -c "select 'successes=' || count(*) filter (where ok) || ' failures=' || count(*) filter (where not ok) from test_results where label like 'refund_race%'"
+psql -At -c "do \$\$ declare v_pay uuid := (select c_pay from t09_ctx where label = 'race'); begin
+  if (select count(*) from test_results where label = 'refund_race' and ok) <> 1 then raise exception 'FAIL refund race winners'; end if;
+  if (select count(*) from test_results where label like '%gave_up') <> 0 then raise exception 'FAIL deadlock retries exhausted'; end if;
+  if (select coalesce(sum(amount_minor), 0) from refunds where payment_id = v_pay and refund_status in ('requested','approved','processing','succeeded')) <> 600000 then raise exception 'FAIL refunds exceed or miss'; end if;
 end \$\$"
 echo "ALL TESTS PASSED"
