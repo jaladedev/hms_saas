@@ -132,9 +132,8 @@ begin
   -- two multi-room requests can never wait on each other. The exclusion constraint on claims
   -- stays the final referee (blocks and transfers rely on it directly); the locks only keep
   -- concurrent bookings from deadlocking while they pick rooms.
-  perform pg_advisory_xact_lock(hashtextextended(p_property_id::text || ':' || t.room_type_id, 0))
-    from (select distinct e ->> 'room_type_id' as room_type_id from jsonb_array_elements(p_rooms) e
-           order by 1) t;
+  perform lock_room_types(p_property_id,
+    array(select distinct (e ->> 'room_type_id')::uuid from jsonb_array_elements(p_rooms) e));
 
   v_policy := current_policy(p_property_id, v_today);
   v_hold_min := coalesce((v_policy ->> 'hold_minutes')::integer, 20);

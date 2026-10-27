@@ -59,6 +59,7 @@ Supabase's `auth` schema, then runs:
 | 005 pricing | rate plans, daily rates, tax rules, versioned policies, `resolve_rate`, `calc_night_tax` |
 | 006 reservations | guests, reservations, reservation rooms and nights, claims FK, deferred tiling trigger |
 | 007 create_reservation | audit_logs (append-only), idempotency_keys, `create_reservation` (single and multi-room) |
+| 008 reservation_operations | `cancel_reservation`, `check_in`, `check_out`, `transfer_room`, `create_room_block`, `release_room_block`; `claim_room` now takes the advisory lock itself |
 
 File numbers differ from the design doc's list because claims were built early to prove the
 double-booking protection. Next: `create_hold`, `transfer_room`, `create_room_block`, check-in and

@@ -11,7 +11,7 @@ RUNAS=""
 if [ "$(id -u)" = "0" ]; then RUNAS="su postgres -s /bin/bash -c"; chown postgres "$DATA"; fi
 run() { if [ -n "$RUNAS" ]; then $RUNAS "$*"; else bash -c "$*"; fi; }
 cleanup() { run "$PGBIN/pg_ctl -D $DATA -m immediate stop" >/dev/null 2>&1 || true; rm -rf "$DATA"; }
-trap cleanup EXIT
+[ -n "${KEEP_DB:-}" ] || trap cleanup EXIT
 
 run "$PGBIN/initdb -D $DATA --auth=trust -U postgres" >/dev/null
 run "$PGBIN/pg_ctl -D $DATA -o '-p $PORT -k /tmp -c max_connections=200 -c fsync=off' -l $DATA/log -w start" >/dev/null
@@ -39,6 +39,10 @@ if echo "$SEC" | grep -qE 'FAIL|ERROR'; then echo "$SEC"; echo "SECURITY TESTS F
 RES="$(psql -f "$HERE/04_reservations.sql" 2>&1)" || { echo "$RES"; echo "RESERVATION TESTS FAILED"; exit 1; }
 echo "$RES" | grep -E 'PASS' || true
 if echo "$RES" | grep -qE 'FAIL|ERROR'; then echo "$RES"; echo "RESERVATION TESTS FAILED"; exit 1; fi
+
+OPS="$(psql -f "$HERE/05_operations.sql" 2>&1)" || { echo "$OPS"; echo "OPERATION TESTS FAILED"; exit 1; }
+echo "$OPS" | grep -E 'PASS' || true
+if echo "$OPS" | grep -qE 'FAIL|ERROR'; then echo "$OPS"; echo "OPERATION TESTS FAILED"; exit 1; fi
 
 echo "--- concurrency: last room race (1 room, 50 clients)"
 cat > "$DATA/race_one.sql" <<'SQL'

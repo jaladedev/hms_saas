@@ -20,9 +20,10 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [x] Guests, reservations, `reservation_rooms`, `reservation_nights`, FK from claims to `reservation_rooms` (migration 006)
 - [x] Tiling trigger: active stay/hold claims per reservation room must cover `[arrival, departure)` exactly (deferred, 006)
 - [x] `create_reservation` (single and multi-room, all-or-nothing, idempotent, audited) with advisory locks against deadlocks (007)
-- [ ] `create_hold` (public RPC, host-resolved tenant), `transfer_room`, `create_room_block` with conflict list; they must take the same advisory lock as `create_reservation`
+- [x] `transfer_room`, `create_room_block` / `release_room_block` with conflict list and optional move (008); all take the advisory lock via `claim_room`
+- [ ] `create_hold` (public RPC, host-resolved tenant) for the online booking flow
 - [x] Concurrency tests: reservation race for the last room, multi-room race (exactly 2 of 40 two-room requests win)
-- [ ] Concurrency tests still missing: transfer race, block-over-stay through the block function
+- [ ] Concurrency tests still missing: transfer race, block-over-stay through the block function (functional tests exist in 05_operations.sql)
 
 ## Phase 2: Core schema and security
 - [x] Pricing and policy: rate_plans, daily_rates, tax_rules (percent and fixed per night), property_policies (versioned), `resolve_rate`, `calc_night_tax` (005)
@@ -31,7 +32,8 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [ ] Money: invoices, lines, invoice_sequences, payment_attempts, payments, allocations, refunds, payment_events, provider accounts
 - [x] `audit_logs` (insert-only) and `idempotency_keys` (007)
 - [ ] `outbox_events`, `notifications`, `documents`, `booking_access_tokens`; idempotency key expiry job
-- [ ] Operation functions: check_in, check_out, cancel, issue and void invoice, manual payment, verify payment, refund request and approve
+- [x] `cancel_reservation` (policy charge, releases inventory), `check_in` (readiness gate with override), `check_out` (early departure frees the room, marks dirty) (008)
+- [ ] Operation functions still to build: issue and void invoice, manual payment, verify payment, refund request and approve, early check-in policy, settlement or credit on cancel and early check-out, cancel-resolution for blocks
 - [ ] Reporting views and `refresh_reservation_payment_status`, `guest_booking_status`
 - [ ] `room_board_view` and `housekeeping_task_view` for roles that must not read rates or guests
 - [ ] Full security suite from System Design 6.3, including refund requester != approver and property-scoped roles

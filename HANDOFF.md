@@ -45,6 +45,9 @@ Built and tested locally (PostgreSQL 16 with stand-ins for Supabase's `auth` sch
   005 pricing (rate plans, daily rates, tax rules, versioned policies, `resolve_rate`, `calc_night_tax`),
   006 guests, reservations, reservation_rooms, reservation_nights, claims FK, deferred tiling trigger,
   007 audit_logs, idempotency_keys and `create_reservation(property, guest, source, arrival, departure, rooms, idempotency_key)`
+  008 reservation operations: `cancel_reservation(id, reason, key)`, `check_in(rr, override_reason)`, `check_out(rr, note)`, `transfer_room(rr, target_room, effective_date, reason, key)`, `create_room_block(room, start, end, reason, 'fail'|'move', key)`, `release_room_block(id)`. Helpers: `require_permission`, `property_today`, `idem_begin/finish`, `write_audit`.
+  Locking rule: `claim_room` takes `lock_room_types` itself (concurrent inserts into the exclusion constraint can deadlock); any function that claims inventory inherits it.
+  Tests: 05_operations.sql covers all operations. Known gaps: no settlement on cancel or early check-out (needs money tables), no early check-in policy, no transfer race test.
 - `supabase/tests/run.sh` runs migrations, `02_claims.sql`, `03_security.sql`, `04_reservations.sql` and four
   pgbench races: 50 clients for 1 room (1 wins), 100 for 5 rooms (5 win), the same two through
   `create_reservation`, plus 40 clients each requesting 2 of 5 rooms (exactly 2 win, no partial bookings).

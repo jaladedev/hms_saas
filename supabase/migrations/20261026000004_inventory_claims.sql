@@ -47,6 +47,18 @@ create policy claims_select on room_inventory_claims for select to authenticated
 -- Writes only through the functions below and the operation functions that call them.
 revoke insert, update, delete on room_inventory_claims from authenticated, anon;
 
+-- Serialise bookings that compete for the same room types. Locks are taken in sorted order so
+-- two requests can never wait on each other. claim_room takes it itself, because two concurrent inserts into the exclusion constraint can each wait for the other and Postgres then aborts one with a deadlock error instead of a clean conflict.
+create function lock_room_types(p_property uuid, p_types uuid[]) returns void
+language plpgsql security definer set search_path = public as $$
+declare t uuid;
+begin
+  for t in select distinct x from unnest(p_types) x order by 1 loop
+    perform pg_advisory_xact_lock(hashtextextended(p_property::text || ':' || t::text, 0));
+  end loop;
+end $$;
+revoke all on function lock_room_types(uuid, uuid[]) from public, anon, authenticated;
+
 -- Mark overlapping holds whose time has passed as expired, inside the caller's transaction.
 create function release_expired_holds(p_property_id uuid, p_start date, p_end date)
 returns integer language plpgsql security definer set search_path = public as $$
@@ -86,6 +98,10 @@ begin
   if v_tenant is null then
     raise exception 'NOT_FOUND: property' using errcode = 'P0002';
   end if;
+
+  -- Serialise claimers of the same room type (see lock_room_types above).
+  perform lock_room_types(p_property_id, array[
+    coalesce(p_room_type_id, (select room_type_id from rooms where id = p_requested_room_id))]);
 
   perform release_expired_holds(p_property_id, p_start, p_end);
 
