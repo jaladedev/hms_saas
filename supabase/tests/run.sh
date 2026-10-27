@@ -48,6 +48,10 @@ HOLDS="$(psql -f "$HERE/06_holds.sql" 2>&1)" || { echo "$HOLDS"; echo "HOLD TEST
 echo "$HOLDS" | grep -E 'PASS' || true
 if echo "$HOLDS" | grep -qE 'FAIL|ERROR'; then echo "$HOLDS"; echo "HOLD TESTS FAILED"; exit 1; fi
 
+MONEY="$(psql -f "$HERE/07_money.sql" 2>&1)" || { echo "$MONEY"; echo "MONEY TESTS FAILED"; exit 1; }
+echo "$MONEY" | grep -E 'PASS' || true
+if echo "$MONEY" | grep -qE 'FAIL|ERROR'; then echo "$MONEY"; echo "MONEY TESTS FAILED"; exit 1; fi
+
 echo "--- concurrency: last room race (1 room, 50 clients)"
 cat > "$DATA/race_one.sql" <<'SQL'
 select test_try_claim('last_room', '00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', '2027-10-01', '2027-10-03');
@@ -122,5 +126,19 @@ psql -At -c "do \$\$ begin
   if (select count(*) from room_inventory_claims where start_date = current_date + 130 and claim_type = 'hold' and status = 'active') <> 4 then raise exception 'FAIL hold claim count'; end if;
   if exists (select 1 from reservations r where r.arrival_date = current_date + 130
               and (select count(*) from reservation_rooms rr where rr.reservation_id = r.id) <> 2) then raise exception 'FAIL partial multi-room hold'; end if;
+end \$\$"
+echo "--- concurrency: manual payments (total split in 5, 20 clients, exactly 5 fit)"
+cat > "$DATA/pay_race.sql" <<'SQL'
+select test_try_pay('pay_race', (select id from t07_ctx where label = 'race'),
+  (select r.total_minor / 5 from reservations r join t07_ctx c on c.id = r.id where c.label = 'race'));
+SQL
+bench -c 20 -j 10 -t 1 -f "$DATA/pay_race.sql"
+psql -At -c "select 'successes=' || count(*) filter (where ok) || ' failures=' || count(*) filter (where not ok) from test_results where label like 'pay_race%'"
+psql -At -c "do \$\$ declare v_res uuid := (select id from t07_ctx where label = 'race'); begin
+  if (select count(*) from test_results where label = 'pay_race' and ok) <> 5 then raise exception 'FAIL payment race winners'; end if;
+  if (select count(*) from test_results where label like '%gave_up') <> 0 then raise exception 'FAIL deadlock retries exhausted'; end if;
+  if (select sum(amount_minor) from payments where reservation_id = v_res) <> (select total_minor from reservations where id = v_res) then raise exception 'FAIL payments differ from total'; end if;
+  if (select sum(a.amount_minor) from payment_allocations a join invoices i on i.id = a.invoice_id where i.reservation_id = v_res) <> (select total_minor from reservations where id = v_res) then raise exception 'FAIL allocations differ from total'; end if;
+  if (select payment_status from reservations where id = v_res) <> 'paid' or (select invoice_status from invoices where reservation_id = v_res) <> 'paid' then raise exception 'FAIL statuses after race'; end if;
 end \$\$"
 echo "ALL TESTS PASSED"

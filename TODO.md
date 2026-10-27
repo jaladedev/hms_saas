@@ -30,12 +30,15 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [x] Pricing and policy: rate_plans, daily_rates, tax_rules (percent and fixed per night), property_policies (versioned), `resolve_rate`, `calc_night_tax` (005)
 - [ ] Stay-level fixed charges and folio taxes in `tax_rules`; `discount.apply` limits
 - [ ] Operations: housekeeping_tasks and history, maintenance_requests, folio_charges
-- [ ] Money: invoices, lines, invoice_sequences, payment_attempts, payments, allocations, refunds, payment_events, provider accounts
+- [x] Money, staff side: invoices, lines, invoice_sequences, payments, allocations (010)
+- [ ] Money, provider side: payment_attempts, payment_events, refunds, payment_provider_accounts (011); allow provider values in `payments.payment_method`
 - [x] `audit_logs` (insert-only) and `idempotency_keys` (007)
 - [ ] `outbox_events`, `notifications`, `documents`, `booking_access_tokens`; idempotency key expiry job
 - [x] `cancel_reservation` (policy charge, releases inventory), `check_in` (readiness gate with override), `check_out` (early departure frees the room, marks dirty) (008)
-- [ ] Operation functions still to build: issue and void invoice, manual payment, verify payment, refund request and approve, early check-in policy, settlement or credit on cancel and early check-out, cancel-resolution for blocks
-- [ ] Reporting views and `refresh_reservation_payment_status`, `guest_booking_status`
+- [x] `issue_invoice`, `void_invoice`, `record_manual_payment` (010)
+- [ ] Operation functions still to build: payment reversal and credit notes (so paid invoices can be voided), verify payment, refund request and approve, early check-in policy, settlement or credit on cancel and early check-out, cancel-resolution for blocks
+- [x] `refresh_reservation_payment_status` (010)
+- [ ] Reporting views, `guest_booking_status`
 - [ ] `room_board_view` and `housekeeping_task_view` for roles that must not read rates or guests
 - [ ] Full security suite from System Design 6.3, including refund requester != approver and property-scoped roles
 - [ ] Guard against role escalation: granting requires holding the role's permissions plus `staff.manage`; last owner cannot be removed
@@ -68,7 +71,7 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 
 ## Decisions still open
 - [ ] Hold duration (start 15 to 30 minutes, watch `inventory_lost` count)
-- [ ] Invoice numbering scheme (per property or per tenant, yearly reset)
+- [ ] Invoice numbering scheme: built as per property, yearly reset (`INV-<code>-<year>-<6 digits>`); confirm with the hotel's accountant
 - [ ] Revenue definition shown first on dashboard (earned vs cash; both are built)
 - [ ] Whether guest ID documents are ever stored (default: no)
 - [ ] Theme editor, density settings, bulk actions: in scope or not (default: later)
