@@ -47,6 +47,7 @@ Supabase's `auth` schema, then runs:
 - `03_security.sql`: cross-tenant reads and writes, role limits, revoked membership, anon
 - `04_reservations.sql`: pricing, tax rounding, multi-room, all-or-nothing, idempotency, permissions, online holds, tiling, audit
 - `05_operations.sql`: check-in, check-out, transfers, blocks, cancellation
+- `08_provider_payments.sql`: attempts, `confirm_payment` (success, mismatch, failure, late, expired, room lost, after cancel), sweep, access limits; plus a duplicate-webhook race (20 deliveries, one payment)
 - `07_money.sql`: invoice issue, numbering and immutability, manual payments, allocation, overpayment, void, permissions; plus a payment race (20 clients, exactly 5 fit)
 - `06_holds.sql`: host resolution, `create_hold` called the way PostgREST calls it (session `authenticator`, role from the JWT), access limits, validation, idempotency, guest reuse, hold caps, expiry
 - pgbench races: last room (1 of 50 wins), 5 rooms (5 of 100), the same through `create_reservation`, two-room bookings (2 of 40), and the last two through `create_hold`
@@ -65,10 +66,10 @@ Supabase's `auth` schema, then runs:
 | 008 reservation_operations | `cancel_reservation`, `check_in`, `check_out`, `transfer_room`, `create_room_block`, `release_room_block`; `claim_room` now takes the advisory lock itself |
 | 009 create_hold | `resolve_host(host)`, `create_hold(host, arrival, departure, rooms, guest, key)`; both `service_role` only |
 | 010 invoices_payments | invoices, invoice_lines, invoice_sequences, payments, payment_allocations; `issue_invoice`, `void_invoice`, `record_manual_payment`, status refresh helpers |
+| 011 provider_payments | payment_provider_accounts, payment_attempts, payment_events; `create_payment_attempt`, `confirm_payment`, `expire_lapsed_holds` (all `service_role` only) |
 
 File numbers differ from the design doc's list because claims were built early to prove the
-double-booking protection. Next: provider payments and refunds (payment_attempts, payment_events, `confirm_payment`, refunds),
-then the staff UI and online booking. Follow the gates in System Design section 11.
+double-booking protection. Next: refunds and payment reversal (012), then the Next.js layer (booking site, webhook route, staff UI). Follow the gates in System Design section 11.
 
 ## Status
 

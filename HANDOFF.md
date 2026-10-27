@@ -1,6 +1,6 @@
 # Handoff
 
-Last updated: 2026-10-27 (010 invoices and manual payments added). Read this first, then `TODO.md`.
+Last updated: 2026-10-27 (011 provider payments added). Read this first, then `TODO.md`.
 
 ## What this is
 
@@ -49,11 +49,12 @@ Built and tested locally (PostgreSQL 16 with stand-ins for Supabase's `auth` sch
   Locking rule: `claim_room` takes `lock_room_types` itself (concurrent inserts into the exclusion constraint can deadlock); any function that claims inventory inherits it.
   009 online entry point: `resolve_host(host)` (verified `tenant_domains` only; a tenant-wide domain resolves only if the tenant has exactly one active property) and `create_hold(host, arrival, departure, rooms, guest, key)`. Both are executable by `service_role` only, so the Next.js server must call them with the service-role key from server-only code, passing the real request Host header, and should rate-limit by IP first. `create_hold` finds or creates the guest by email, ignores any `rate_plan_id` from the caller, caps stays at 30 nights, booking horizon at 365 days, 5 rooms per hold and 3 live holds per email, has its own idempotency key, and returns no internal ids. A replayed response is returned as stored, so check `hold_expires_at`.
   010 money, staff side: `issue_invoice(reservation, key)` copies the reservation nights into invoice lines (totals must match the reservation or it raises); `void_invoice(invoice, reason, key)` (`invoice.void`; refused when the invoice has payments, since reversal and credit notes do not exist yet); `record_manual_payment(reservation, amount, method, reference, note, key)` (`payment.record`; methods cash, bank_transfer, pos, other). Payments belong to the reservation, are allocated to the live invoice (oldest payment first) and are picked up when an invoice is issued later. Overpayment is refused; cancelled, expired and no-show reservations refuse payments until settlement exists. Reservation `payment_status` is recomputed from payments, and only moves between unpaid, partially_paid and paid (failed and refund states are left for 011). Every function locks the reservation row, so payments and invoices for one reservation are serialised. Invoices, lines, payments and allocations are immutable to everyone, the table owner included (triggers); clients can read them only with `invoice.issue`, `payment.record` or `report.view`.
-  Tests: 05_operations.sql covers all operations; 06_holds.sql covers 009; 07_money.sql covers 010. Known gaps: no settlement on cancel or early check-out (needs money tables), no early check-in policy, no transfer race test, no block-over-stay race test.
-- `supabase/tests/run.sh` runs migrations, `02_claims.sql` to `07_money.sql` and seven
+  011 provider payments (Paystack), all functions `service_role` only. `create_payment_attempt(reservation, key)` decides the amount itself (pending online reservation: `policy_snapshot.online_payment` deposit percent or the full total, less what is paid; confirmed: the balance), requires an active `payment_provider_accounts` row and a live hold, and does not extend the hold. `confirm_payment(provider, event_id, event_type, reference, status, amount, currency, channel, payload)` must only ever be called with values the webhook route has verified (HMAC-SHA512 signature on the raw body, then Paystack's verify endpoint). It is idempotent per (provider, event id); amount or currency mismatch records no money and sets `needs_attention`; real money is always recorded; a pending or expired reservation is confirmed by converting holds to stays in place or re-claiming the same room, then any room of the type; if none is free the reservation keeps its status with `attention_reason = 'paid_inventory_lost'`; payments after cancellation are flagged `paid_after_cancel`. `expire_lapsed_holds(limit)` expires abandoned online reservations (no live hold, no attempt started in the last 30 minutes) and needs a scheduler.
+  Tests: 05_operations.sql covers all operations; 06_holds.sql covers 009; 07_money.sql covers 010; 08_provider_payments.sql covers 011. Known gaps: no settlement on cancel or early check-out (needs money tables), no early check-in policy, no transfer race test, no block-over-stay race test.
+- `supabase/tests/run.sh` runs migrations, `02_claims.sql` to `08_provider_payments.sql` and eight
   pgbench races: 50 clients for 1 room (1 wins), 100 for 5 rooms (5 win), the same two through
   `create_reservation`, plus 40 clients each requesting 2 of 5 rooms (exactly 2 win, no partial bookings);
-  the last room race and the two-room race are repeated through `create_hold`; and 20 clients paying a fifth of a total (exactly 5 fit).
+  the last room race and the two-room race are repeated through `create_hold`; 20 clients paying a fifth of a total (exactly 5 fit); and one Paystack webhook delivered 20 times at once (one payment).
   Any pgbench client error fails the run. All pass.
 - App shell builds and type-checks: `/` guest placeholder, `/app` (redirects to `/login` when signed out),
   `/login` placeholder, `/platform` placeholder. No sign-in form yet.
@@ -82,6 +83,7 @@ Not verified:
 - **`session_user` is not a safe "is this the server?" test on Supabase.** PostgREST connects as `authenticator` and switches role per request, so `session_user` never equals `service_role`. Use `is_system_caller()` (defined in 007): no signed-in user AND (direct `postgres`/`supabase_admin` session OR verified JWT role claim `service_role`). `06_holds.sql` reproduces the PostgREST shape with `set session authorization authenticator` plus `set role service_role`. Still not tried against a real project.
 - **Lapsed holds:** `release_expired_holds` marks the claim expired when someone next claims overlapping dates, but the reservation row stays `pending`. A sweep that sets it to `expired` is in TODO and needed before the staff UI lists online reservations.
 - **Money decisions made by default, worth confirming:** invoice numbers per property per year; one live invoice per reservation; payments capped at the reservation total.
+- **Paystack facts to check against their docs when writing the route:** signature header name and algorithm, the verify endpoint's response fields (status, amount, currency, channel), and that amounts are in kobo for NGN. The database assumes kobo and takes the verified values as given.
 - **Test dates** in `06_holds.sql` are relative to today (offsets 10 to 140, races at 120 and 130); `05_operations.sql` uses up to +72. Keep new tests clear of those ranges.
 - **Test helpers** `test_rr`, `test_try_claim`, `test_try_reserve` live in `01_seed.sql` (test-only). `04_reservations.sql`
   depends on users created in `03_security.sql`, so keep the file order.
@@ -106,7 +108,7 @@ Not verified:
 ## Suggested next steps
 
 1. Run `npm install` and `npm run db:test` locally to confirm the same results.
-2. Push, confirm CI is green, create a Supabase staging project, apply all ten migrations there.
-3. Build provider payments (`payment_attempts`, `payment_events`, `confirm_payment`) and refunds (System Design sections 4 and 5), the hold sweep job, and the two
+2. Push, confirm CI is green, create a Supabase staging project, apply all eleven migrations there.
+3. Build refunds and payment reversal (012), schedule `expire_lapsed_holds`, and the two
    missing race tests (transfer, block over stay).
 4. Continue down `TODO.md` in phase order; do not start online booking before Phase 3 and 4 gates pass.

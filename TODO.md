@@ -22,7 +22,9 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [x] `create_reservation` (single and multi-room, all-or-nothing, idempotent, audited) with advisory locks against deadlocks (007)
 - [x] `transfer_room`, `create_room_block` / `release_room_block` with conflict list and optional move (008); all take the advisory lock via `claim_room`
 - [x] `create_hold` (host-resolved tenant, `service_role` only, own idempotency, caps per email) and `resolve_host` (009); `session_user` check replaced by `is_system_caller()` so it works behind PostgREST
-- [ ] Sweep job for lapsed online holds: the claim is released lazily, but the `pending` reservation stays `pending` until something marks it `expired`
+- [x] `expire_lapsed_holds` sweep (011); still needs a scheduler (pg_cron or a Supabase scheduled function calling it with the service key)
+- [ ] `booking_access_tokens`: today the server passes the reservation id from `create_hold` straight to `create_payment_attempt`; a guest-facing status or payment page needs a token
+- [ ] Staff queue for reservations with `attention_reason` set (payment_amount_or_currency_mismatch, payment_overpayment, paid_inventory_lost, paid_after_cancel)
 - [x] Concurrency tests: reservation race for the last room, multi-room race (exactly 2 of 40 two-room requests win), the same two through `create_hold`
 - [ ] Concurrency tests still missing: transfer race, block-over-stay through the block function (functional tests exist in 05_operations.sql)
 
@@ -31,7 +33,8 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [ ] Stay-level fixed charges and folio taxes in `tax_rules`; `discount.apply` limits
 - [ ] Operations: housekeeping_tasks and history, maintenance_requests, folio_charges
 - [x] Money, staff side: invoices, lines, invoice_sequences, payments, allocations (010)
-- [ ] Money, provider side: payment_attempts, payment_events, refunds, payment_provider_accounts (011); allow provider values in `payments.payment_method`
+- [x] Money, provider side: payment_attempts, payment_events, payment_provider_accounts, `create_payment_attempt`, `confirm_payment` (011)
+- [ ] Refunds (012): request and approve (approver differs from requester), record provider result, reservation `partially_refunded` / `refunded`; payment reversal and credit notes so paid invoices can be voided
 - [x] `audit_logs` (insert-only) and `idempotency_keys` (007)
 - [ ] `outbox_events`, `notifications`, `documents`, `booking_access_tokens`; idempotency key expiry job
 - [x] `cancel_reservation` (policy charge, releases inventory), `check_in` (readiness gate with override), `check_out` (early departure frees the room, marks dirty) (008)

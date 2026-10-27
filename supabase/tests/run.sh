@@ -52,6 +52,10 @@ MONEY="$(psql -f "$HERE/07_money.sql" 2>&1)" || { echo "$MONEY"; echo "MONEY TES
 echo "$MONEY" | grep -E 'PASS' || true
 if echo "$MONEY" | grep -qE 'FAIL|ERROR'; then echo "$MONEY"; echo "MONEY TESTS FAILED"; exit 1; fi
 
+PROV="$(psql -f "$HERE/08_provider_payments.sql" 2>&1)" || { echo "$PROV"; echo "PROVIDER PAYMENT TESTS FAILED"; exit 1; }
+echo "$PROV" | grep -E 'PASS' || true
+if echo "$PROV" | grep -qE 'FAIL|ERROR'; then echo "$PROV"; echo "PROVIDER PAYMENT TESTS FAILED"; exit 1; fi
+
 echo "--- concurrency: last room race (1 room, 50 clients)"
 cat > "$DATA/race_one.sql" <<'SQL'
 select test_try_claim('last_room', '00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', '2027-10-01', '2027-10-03');
@@ -140,5 +144,18 @@ psql -At -c "do \$\$ declare v_res uuid := (select id from t07_ctx where label =
   if (select sum(amount_minor) from payments where reservation_id = v_res) <> (select total_minor from reservations where id = v_res) then raise exception 'FAIL payments differ from total'; end if;
   if (select sum(a.amount_minor) from payment_allocations a join invoices i on i.id = a.invoice_id where i.reservation_id = v_res) <> (select total_minor from reservations where id = v_res) then raise exception 'FAIL allocations differ from total'; end if;
   if (select payment_status from reservations where id = v_res) <> 'paid' or (select invoice_status from invoices where reservation_id = v_res) <> 'paid' then raise exception 'FAIL statuses after race'; end if;
+end \$\$"
+echo "--- concurrency: the same webhook delivered 20 times at once"
+cat > "$DATA/confirm_race.sql" <<'SQL'
+select test_try_confirm('confirm_race');
+SQL
+bench -c 20 -j 10 -t 1 -f "$DATA/confirm_race.sql"
+psql -At -c "select 'first deliveries=' || count(*) filter (where ok) || ' repeats=' || count(*) filter (where not ok) from test_results where label = 'confirm_race'"
+psql -At -c "do \$\$ declare v_res uuid := (select res from t08_ctx where label = 'race'); begin
+  if (select count(*) from test_results where label = 'confirm_race' and ok) <> 1 then raise exception 'FAIL more than one first delivery'; end if;
+  if (select count(*) from payments where reservation_id = v_res) <> 1 then raise exception 'FAIL duplicate webhook recorded money twice'; end if;
+  if (select count(*) from payment_events where provider_event_id = 'evt-race-1') <> 1 then raise exception 'FAIL event rows'; end if;
+  if (select reservation_status from reservations where id = v_res) <> 'confirmed' then raise exception 'FAIL not confirmed'; end if;
+  if (select count(*) from room_inventory_claims c join reservation_rooms rr on rr.id = c.reservation_room_id where rr.reservation_id = v_res and c.status = 'active' and c.claim_type = 'stay') <> 1 then raise exception 'FAIL claims after race'; end if;
 end \$\$"
 echo "ALL TESTS PASSED"
