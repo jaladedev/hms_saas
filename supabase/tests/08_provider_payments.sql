@@ -219,6 +219,17 @@ do $$ declare v_res uuid; r jsonb; begin
   raise notice 'PASS payment after cancel flagged; unknown reference and bad arguments handled';
 end $$;
 
+-- 10. An event signed by another tenant's account cannot touch this tenant's references
+do $$ declare v_res uuid; r jsonb; v_ref text; v_amt bigint; begin
+  v_res := t08_online('tm1', 216);
+  select ref, amount into v_ref, v_amt from t08_ctx where label = 'tm1';
+  r := confirm_payment('paystack', 'evt-tm1-wrong', 'charge.success', v_ref, 'success', v_amt, 'NGN', 'card', '{}'::jsonb, '00000000-0000-0000-0000-0000000000b1');
+  if r ->> 'result' <> 'ignored' or exists (select 1 from payments where reservation_id = v_res) then raise exception 'FAIL cross-tenant event %', r; end if;
+  r := confirm_payment('paystack', 'evt-tm1-right', 'charge.success', v_ref, 'success', v_amt, 'NGN', 'card', '{}'::jsonb, '00000000-0000-0000-0000-0000000000a1');
+  if r ->> 'result' <> 'confirmed' then raise exception 'FAIL own-tenant event %', r; end if;
+  raise notice 'PASS events are scoped to the tenant whose provider account signed them';
+end $$;
+
 -- Race fixture: the same webhook delivered 20 times at once
 do $$ begin perform t08_online('race', 214); end $$;
 create function test_try_confirm(p_label text) returns boolean language plpgsql as $$

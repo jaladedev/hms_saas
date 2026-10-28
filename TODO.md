@@ -23,7 +23,10 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [x] `transfer_room`, `create_room_block` / `release_room_block` with conflict list and optional move (008); all take the advisory lock via `claim_room`
 - [x] `create_hold` (host-resolved tenant, `service_role` only, own idempotency, caps per email) and `resolve_host` (009); `session_user` check replaced by `is_system_caller()` so it works behind PostgREST
 - [x] `expire_lapsed_holds` sweep (011); still needs a scheduler (pg_cron or a Supabase scheduled function calling it with the service key)
-- [ ] `booking_access_tokens`: today the server passes the reservation id from `create_hold` straight to `create_payment_attempt`; a guest-facing status or payment page needs a token
+- [x] Guest booking tokens: stateless and signed (`lib/booking-token.ts`), no table needed; `guest_booking_status` (013) returns what a guest may see
+- [x] Paystack webhook route with signature check, re-verification and tenant scoping
+- [ ] Booking flow routes and pages: availability search, `create_hold`, `create_payment_attempt` plus Paystack initialize (callback URL), status page opened by token, email with the token link, a way to re-issue a link from booking reference plus email
+- [ ] Refund payout route for staff: `begin_refund_processing`, then Paystack `POST /refund`, then `record_refund_result` (the webhook also reports the result)
 - [ ] Staff queue for reservations with `attention_reason` set (payment_amount_or_currency_mismatch, payment_overpayment, paid_inventory_lost, paid_after_cancel)
 - [x] Concurrency tests: reservation race for the last room, multi-room race (exactly 2 of 40 two-room requests win), the same two through `create_hold`
 - [ ] Concurrency tests still missing: transfer race, block-over-stay through the block function (functional tests exist in 05_operations.sql)

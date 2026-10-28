@@ -158,7 +158,8 @@ end $$;
 -- ---- confirm_payment ----------------------------------------------------------------------
 create function confirm_payment(
   p_provider text, p_event_id text, p_event_type text, p_reference text, p_status text,
-  p_amount_minor bigint, p_currency text, p_channel text, p_payload jsonb default '{}'::jsonb
+  p_amount_minor bigint, p_currency text, p_channel text, p_payload jsonb default '{}'::jsonb,
+  p_tenant_id uuid default null     -- the tenant whose provider account signed the event; other tenants' references are not found
 ) returns jsonb language plpgsql security definer set search_path = public as $$
 declare
   a payment_attempts%rowtype; r reservations%rowtype; v_event uuid; v_prior jsonb;
@@ -184,7 +185,8 @@ begin
     return coalesce(v_prior, '{}'::jsonb) || jsonb_build_object('duplicate', true);
   end if;
 
-  select * into a from payment_attempts where provider = p_provider and reference = p_reference for update;
+  select * into a from payment_attempts
+   where provider = p_provider and reference = p_reference and (p_tenant_id is null or tenant_id = p_tenant_id) for update;
   if not found then
     v_result := jsonb_build_object('result', 'ignored', 'reason', 'unknown reference');
     update payment_events set processing_status = 'ignored', result = v_result, processed_at = now(),
@@ -329,8 +331,8 @@ begin
 end $$;
 
 revoke all on function create_payment_attempt(uuid, text),
-  confirm_payment(text, text, text, text, text, bigint, text, text, jsonb),
+  confirm_payment(text, text, text, text, text, bigint, text, text, jsonb, uuid),
   expire_lapsed_holds(integer) from public, anon, authenticated;
 grant execute on function create_payment_attempt(uuid, text),
-  confirm_payment(text, text, text, text, text, bigint, text, text, jsonb),
+  confirm_payment(text, text, text, text, text, bigint, text, text, jsonb, uuid),
   expire_lapsed_holds(integer) to service_role;

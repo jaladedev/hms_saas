@@ -47,6 +47,7 @@ Supabase's `auth` schema, then runs:
 - `03_security.sql`: cross-tenant reads and writes, role limits, revoked membership, anon
 - `04_reservations.sql`: pricing, tax rounding, multi-room, all-or-nothing, idempotency, permissions, online holds, tiling, audit
 - `05_operations.sql`: check-in, check-out, transfers, blocks, cancellation
+- `10_webhook_support.sql`: provider account lookup for webhook URLs, refund webhook matching, guest booking status, access limits
 - `09_refunds.sql`: refund request and approval (two-person rule), caps, manual and provider payouts, reversal, voiding a refunded invoice, immutability; plus a refund race (20 requests, exactly 1 fits)
 - `08_provider_payments.sql`: attempts, `confirm_payment` (success, mismatch, failure, late, expired, room lost, after cancel), sweep, access limits; plus a duplicate-webhook race (20 deliveries, one payment)
 - `07_money.sql`: invoice issue, numbering and immutability, manual payments, allocation, overpayment, void, permissions; plus a payment race (20 clients, exactly 5 fit)
@@ -69,10 +70,19 @@ Supabase's `auth` schema, then runs:
 | 010 invoices_payments | invoices, invoice_lines, invoice_sequences, payments, payment_allocations; `issue_invoice`, `void_invoice`, `record_manual_payment`, status refresh helpers |
 | 011 provider_payments | payment_provider_accounts, payment_attempts, payment_events; `create_payment_attempt`, `confirm_payment`, `expire_lapsed_holds` (all `service_role` only) |
 | 012 refunds | refunds; `request_refund`, `approve_refund`, `record_manual_refund`, `reverse_payment`; provider side `begin_refund_processing`, `record_refund_result` (`service_role` only); statuses follow money held |
+| 013 webhook_support | `payment_provider_account_for_webhook`, `find_processing_refund`, `guest_booking_status` (`service_role` only); `confirm_payment` gained a tenant scope |
 
 File numbers differ from the design doc's list because claims were built early to prove the
-double-booking protection. Next: the Next.js layer (booking site, Paystack webhook route, staff UI), with `booking_access_tokens` and a scheduler for `expire_lapsed_holds`. Follow the gates in System Design section 11.
+double-booking protection. Next: the booking site (search, hold, pay, status pages), staff UI, and a scheduler for `expire_lapsed_holds`. Built so far on the app side: the Paystack webhook route and guest booking tokens. Follow the gates in System Design section 11.
 
 ## Status
 
 Foundation only. Screens are placeholders; no sign-in form yet.
+
+## App code so far
+
+- `app/api/webhooks/paystack/[account]/route.ts`: one webhook URL per provider account (`.../paystack/<payment_provider_accounts.id>`). Decision logic lives in `lib/webhooks/paystack.ts` (testable without Next.js or Supabase).
+- `lib/paystack.ts`: signature check (HMAC-SHA512 of the raw body) and `verifyTransaction`. Money always comes from Paystack's verify response, never from the webhook body.
+- `lib/booking-token.ts`: stateless signed guest booking tokens (HMAC-SHA256, purpose-prefixed, with expiry).
+- `lib/supabase/service.ts`: service-role client, server only.
+- `npm test` runs the unit tests (vitest); `npm run db:test` runs the database suite.

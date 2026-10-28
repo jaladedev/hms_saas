@@ -60,6 +60,10 @@ REF="$(psql -f "$HERE/09_refunds.sql" 2>&1)" || { echo "$REF"; echo "REFUND TEST
 echo "$REF" | grep -E 'PASS' || true
 if echo "$REF" | grep -qE 'FAIL|ERROR'; then echo "$REF"; echo "REFUND TESTS FAILED"; exit 1; fi
 
+WH="$(psql -f "$HERE/10_webhook_support.sql" 2>&1)" || { echo "$WH"; echo "WEBHOOK SUPPORT TESTS FAILED"; exit 1; }
+echo "$WH" | grep -E 'PASS' || true
+if echo "$WH" | grep -qE 'FAIL|ERROR'; then echo "$WH"; echo "WEBHOOK SUPPORT TESTS FAILED"; exit 1; fi
+
 echo "--- concurrency: last room race (1 room, 50 clients)"
 cat > "$DATA/race_one.sql" <<'SQL'
 select test_try_claim('last_room', '00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', '2027-10-01', '2027-10-03');
