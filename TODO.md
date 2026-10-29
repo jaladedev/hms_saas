@@ -25,7 +25,11 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [x] `expire_lapsed_holds` sweep (011); still needs a scheduler (pg_cron or a Supabase scheduled function calling it with the service key)
 - [x] Guest booking tokens: stateless and signed (`lib/booking-token.ts`), no table needed; `guest_booking_status` (013) returns what a guest may see
 - [x] Paystack webhook route with signature check, re-verification and tenant scoping
-- [ ] Booking flow routes and pages: availability search, `create_hold`, `create_payment_attempt` plus Paystack initialize (callback URL), status page opened by token, email with the token link, a way to re-issue a link from booking reference plus email
+- [x] Guest booking flow: availability search, reserve, hold, pay (Paystack initialize), status page by token, confirmation after webhook (014 and the pages under `app/(site)`), proven by `npm run e2e`
+- [ ] Email the booking link after `create_hold` and after payment, and a way to re-issue a link from booking reference plus email (links expire after 3 days and cannot be revoked)
+- [ ] Rate limiting on the guest actions (hold, pay) by IP: each hold spends inventory for up to the hold time; the per-email cap is the only limit today
+- [ ] Guest site polish: hotel name and branding before a search, photos and amenities for room types, cancellation and payment policy text on the reserve page, a proper not-found page for dead links
+- [ ] Dynamic hold length on the countdown (the page shows minutes left only at render time)
 - [ ] Refund payout route for staff: `begin_refund_processing`, then Paystack `POST /refund`, then `record_refund_result` (the webhook also reports the result)
 - [ ] Staff queue for reservations with `attention_reason` set (payment_amount_or_currency_mismatch, payment_overpayment, paid_inventory_lost, paid_after_cancel)
 - [x] Concurrency tests: reservation race for the last room, multi-room race (exactly 2 of 40 two-room requests win), the same two through `create_hold`

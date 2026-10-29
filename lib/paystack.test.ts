@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createHmac } from "node:crypto";
-import { verifyTransaction, verifyWebhookSignature } from "@/lib/paystack";
+import { initializeTransaction, verifyTransaction, verifyWebhookSignature } from "@/lib/paystack";
 
 const SECRET = "sk_test_abcdef123456";
 const BODY = '{"event":"charge.success","data":{"reference":"HMS-1"}}';
@@ -52,5 +52,26 @@ describe("verifyTransaction", () => {
     await expect(verifyTransaction("x", SECRET, fakeFetch(500, {}))).rejects.toThrow();
     await expect(verifyTransaction("x", SECRET, fakeFetch(429, {}))).rejects.toThrow();
     await expect(verifyTransaction("x", SECRET, fakeFetch(200, { status: true, data: { status: "success", amount: "1" } }))).rejects.toThrow();
+  });
+});
+
+describe("initializeTransaction", () => {
+  const args = { email: "guest@example.com", amountMinor: 250000, currency: "NGN", reference: "HMS-ABC", callbackUrl: "https://book.example/booking/t?paid=1" };
+  it("posts our reference and the kobo amount and returns the checkout URL", async () => {
+    let sent: { url?: string; body?: Record<string, unknown>; auth?: string | null } = {};
+    const f = (async (url: string | URL | Request, init?: RequestInit) => {
+      sent = { url: String(url), body: JSON.parse(String(init?.body)), auth: new Headers(init?.headers).get("authorization") };
+      return new Response(JSON.stringify({ status: true, data: { authorization_url: "https://checkout.paystack.com/abc", access_code: "x", reference: "HMS-ABC" } }), { status: 200 });
+    }) as typeof fetch;
+    const out = await initializeTransaction(args, SECRET, f);
+    expect(out).toEqual({ authorizationUrl: "https://checkout.paystack.com/abc" });
+    expect(sent.url).toBe("https://api.paystack.co/transaction/initialize");
+    expect(sent.auth).toBe(`Bearer ${SECRET}`);
+    expect(sent.body).toEqual({ email: "guest@example.com", amount: 250000, currency: "NGN", reference: "HMS-ABC", callback_url: args.callbackUrl });
+  });
+  it("throws on HTTP errors, bad shapes and a different reference", async () => {
+    await expect(initializeTransaction(args, SECRET, fakeFetch(400, { status: false }))).rejects.toThrow();
+    await expect(initializeTransaction(args, SECRET, fakeFetch(200, { status: true }))).rejects.toThrow();
+    await expect(initializeTransaction(args, SECRET, fakeFetch(200, { status: true, data: { authorization_url: "https://x.test/a", reference: "OTHER" } }))).rejects.toThrow();
   });
 });

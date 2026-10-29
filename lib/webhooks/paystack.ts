@@ -31,9 +31,9 @@ export type WebhookDeps = {
   /** Turns a secret_reference ("env:NAME") into the secret. Throws when it cannot. */
   resolveSecret(secretReference: string): string;
   verifyTransaction(reference: string, secretKey: string): Promise<VerifyResult>;
-  confirmPayment(args: ConfirmPaymentArgs): Promise<{ result?: string }>;
+  confirmPayment(args: ConfirmPaymentArgs): Promise<{ result?: string; duplicate?: boolean }>;
   findProcessingRefund(tenantId: string, transactionReference: string, amountMinor: number): Promise<string | null>;
-  recordRefundResult(tenantId: string, args: RefundResultArgs): Promise<{ result?: string }>;
+  recordRefundResult(tenantId: string, args: RefundResultArgs): Promise<{ result?: string; duplicate?: boolean }>;
   log?(level: "info" | "warn" | "error", message: string, context?: Record<string, unknown>): void;
 };
 
@@ -109,7 +109,7 @@ export async function handlePaystackWebhook(
         payload: { event, reference, amount: tx.amountMinor, currency: tx.currency, channel: tx.channel },
         tenantId: account.tenantId,
       });
-      return { status: 200, body: { received: true, result: outcome.result ?? null } };
+      return { status: 200, body: { received: true, result: outcome.result ?? null, ...(outcome.duplicate ? { duplicate: true } : {}) } };
     }
 
     if (event === "refund.processed" || event === "refund.failed") {
@@ -132,7 +132,7 @@ export async function handlePaystackWebhook(
         failureReason: event === "refund.failed" ? "provider reported refund.failed" : null,
         payload: { event, transaction_reference: txRef, amount },
       });
-      return { status: 200, body: { received: true, result: outcome.result ?? null } };
+      return { status: 200, body: { received: true, result: outcome.result ?? null, ...(outcome.duplicate ? { duplicate: true } : {}) } };
     }
 
     // refund.pending, refund.processing and everything else: acknowledge so Paystack stops retrying.

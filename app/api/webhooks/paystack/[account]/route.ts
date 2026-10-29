@@ -1,21 +1,14 @@
 import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/service";
 import { verifyTransaction } from "@/lib/paystack";
+import { resolveProviderSecret } from "@/lib/provider-secret";
 import { handlePaystackWebhook, type WebhookDeps } from "@/lib/webhooks/paystack";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const MAX_BODY_BYTES = 256 * 1024;
-const accountIdSchema = z.string().uuid();
-
-/** secret_reference is a pointer, not a secret. Supported form: "env:VARIABLE_NAME". */
-function resolveSecret(secretReference: string): string {
-  const match = /^env:([A-Z][A-Z0-9_]*)$/.exec(secretReference);
-  const value = match?.[1] ? process.env[match[1]] : undefined;
-  if (!value || value.length < 8) throw new Error("secret not available");
-  return value;
-}
+const accountIdSchema = z.guid();
 
 function buildDeps(): WebhookDeps {
   const db = createServiceClient();
@@ -26,7 +19,7 @@ function buildDeps(): WebhookDeps {
       const row = Array.isArray(data) ? data[0] : data;
       return row ? { tenantId: row.tenant_id as string, secretReference: row.secret_reference as string } : null;
     },
-    resolveSecret,
+    resolveSecret: (reference) => resolveProviderSecret(reference),
     verifyTransaction: (reference, secret) => verifyTransaction(reference, secret),
     async confirmPayment(a) {
       const { data, error } = await db.rpc("confirm_payment", {
@@ -42,7 +35,8 @@ function buildDeps(): WebhookDeps {
         p_tenant_id: a.tenantId,
       });
       if (error) throw new Error(error.message);
-      return { result: (data as { result?: string } | null)?.result };
+      const out = data as { result?: string; duplicate?: boolean } | null;
+      return { result: out?.result, duplicate: out?.duplicate === true };
     },
     async findProcessingRefund(tenantId, transactionReference, amountMinor) {
       const { data, error } = await db.rpc("find_processing_refund", {
@@ -65,7 +59,8 @@ function buildDeps(): WebhookDeps {
         p_payload: a.payload,
       });
       if (error) throw new Error(error.message);
-      return { result: (data as { result?: string } | null)?.result };
+      const out = data as { result?: string; duplicate?: boolean } | null;
+      return { result: out?.result, duplicate: out?.duplicate === true };
     },
     log(level, message, context) {
       console[level === "info" ? "log" : level](`[paystack-webhook] ${message}`, context ?? {});

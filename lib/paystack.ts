@@ -10,6 +10,11 @@ import { z } from "zod";
  *  - Refund events: refund.pending, refund.processing, refund.processed, refund.failed.
  */
 
+/** Paystack API base. Overridable only so the end-to-end test can point at a fake server. */
+export function paystackBaseUrl(): string {
+  return process.env.PAYSTACK_API_BASE_URL ?? "https://api.paystack.co";
+}
+
 export function verifyWebhookSignature(rawBody: Uint8Array | string, signature: string | null | undefined, secret: string): boolean {
   if (!signature || !secret) return false;
   const expected = Buffer.from(createHmac("sha512", secret).update(rawBody).digest("hex"), "utf8");
@@ -56,7 +61,7 @@ export async function verifyTransaction(
   secretKey: string,
   fetchFn: typeof fetch = fetch,
 ): Promise<VerifyResult> {
-  const res = await fetchFn(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
+  const res = await fetchFn(`${paystackBaseUrl()}/transaction/verify/${encodeURIComponent(reference)}`, {
     method: "GET",
     headers: { Authorization: `Bearer ${secretKey}` },
     cache: "no-store",
@@ -78,4 +83,38 @@ export async function verifyTransaction(
       channel: d.channel ?? null,
     },
   };
+}
+
+const initializeResponseSchema = z.object({
+  status: z.boolean(),
+  data: z.object({ authorization_url: z.string().url(), reference: z.string() }).optional(),
+});
+
+/**
+ * Opens a hosted checkout. `amountMinor` is kobo for NGN, exactly the amount stored on the payment attempt.
+ * The reference is OUR attempt reference, so the webhook and verify call find the attempt later.
+ * Throws on any failure; the caller shows a retry message and the unused attempt expires harmlessly.
+ */
+export async function initializeTransaction(
+  args: { email: string; amountMinor: number; currency: string; reference: string; callbackUrl: string },
+  secretKey: string,
+  fetchFn: typeof fetch = fetch,
+): Promise<{ authorizationUrl: string }> {
+  const res = await fetchFn(`${paystackBaseUrl()}/transaction/initialize`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${secretKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email: args.email,
+      amount: args.amountMinor,
+      currency: args.currency,
+      reference: args.reference,
+      callback_url: args.callbackUrl,
+    }),
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Paystack initialize failed with HTTP ${res.status}`);
+  const parsed = initializeResponseSchema.safeParse(await res.json());
+  if (!parsed.success || !parsed.data.status || !parsed.data.data) throw new Error("Paystack initialize returned an unexpected response");
+  if (parsed.data.data.reference !== args.reference) throw new Error("Paystack initialize returned a different reference");
+  return { authorizationUrl: parsed.data.data.authorization_url };
 }

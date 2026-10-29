@@ -47,6 +47,7 @@ Supabase's `auth` schema, then runs:
 - `03_security.sql`: cross-tenant reads and writes, role limits, revoked membership, anon
 - `04_reservations.sql`: pricing, tax rounding, multi-room, all-or-nothing, idempotency, permissions, online holds, tiling, audit
 - `05_operations.sql`: check-in, check-out, transfers, blocks, cancellation
+- `11_guest_booking.sql`: public availability search (counts, pricing parity with `create_hold`, filters, host isolation), payment start context, access limits
 - `10_webhook_support.sql`: provider account lookup for webhook URLs, refund webhook matching, guest booking status, access limits
 - `09_refunds.sql`: refund request and approval (two-person rule), caps, manual and provider payouts, reversal, voiding a refunded invoice, immutability; plus a refund race (20 requests, exactly 1 fits)
 - `08_provider_payments.sql`: attempts, `confirm_payment` (success, mismatch, failure, late, expired, room lost, after cancel), sweep, access limits; plus a duplicate-webhook race (20 deliveries, one payment)
@@ -71,6 +72,7 @@ Supabase's `auth` schema, then runs:
 | 011 provider_payments | payment_provider_accounts, payment_attempts, payment_events; `create_payment_attempt`, `confirm_payment`, `expire_lapsed_holds` (all `service_role` only) |
 | 012 refunds | refunds; `request_refund`, `approve_refund`, `record_manual_refund`, `reverse_payment`; provider side `begin_refund_processing`, `record_refund_result` (`service_role` only); statuses follow money held |
 | 013 webhook_support | `payment_provider_account_for_webhook`, `find_processing_refund`, `guest_booking_status` (`service_role` only); `confirm_payment` gained a tenant scope |
+| 014 guest_booking_support | `search_availability(host, arrival, departure, adults, children)`, `payment_start_context(reservation)` (`service_role` only) |
 
 File numbers differ from the design doc's list because claims were built early to prove the
 double-booking protection. Next: the booking site (search, hold, pay, status pages), staff UI, and a scheduler for `expire_lapsed_holds`. Built so far on the app side: the Paystack webhook route and guest booking tokens. Follow the gates in System Design section 11.
@@ -81,8 +83,10 @@ Foundation only. Screens are placeholders; no sign-in form yet.
 
 ## App code so far
 
-- `app/api/webhooks/paystack/[account]/route.ts`: one webhook URL per provider account (`.../paystack/<payment_provider_accounts.id>`). Decision logic lives in `lib/webhooks/paystack.ts` (testable without Next.js or Supabase).
-- `lib/paystack.ts`: signature check (HMAC-SHA512 of the raw body) and `verifyTransaction`. Money always comes from Paystack's verify response, never from the webhook body.
-- `lib/booking-token.ts`: stateless signed guest booking tokens (HMAC-SHA256, purpose-prefixed, with expiry).
-- `lib/supabase/service.ts`: service-role client, server only.
-- `npm test` runs the unit tests (vitest); `npm run db:test` runs the database suite.
+Guest booking site (host decides the hotel; nothing tenant-related comes from the browser):
+- `/` search by dates and guests, priced room types with how many are left.
+- `/reserve` quote and guest details; the server action calls `create_hold` and redirects to `/booking/<token>`.
+- `/booking/<token>` booking status, hold countdown, **Pay now** (server action: `create_payment_attempt`, then Paystack initialize, then redirect to checkout). Returning from checkout shows a "confirming your payment" page that refreshes until the webhook has confirmed the booking.
+- `app/api/webhooks/paystack/[account]/route.ts`: one webhook URL per provider account. Decision logic lives in `lib/webhooks/paystack.ts` (testable without Next.js or Supabase).
+- `lib/paystack.ts` (signature check, verify, initialize), `lib/booking-token.ts` (stateless signed links), `lib/provider-secret.ts` (`env:NAME` pointers), `lib/guest-site/*` (formatting, parameters, friendly errors, server calls).
+- `npm test` runs the unit tests (vitest). `npm run db:test` runs the database suite. `npm run e2e` runs the whole guest flow against a real Postgres, real PostgREST (signed JWTs) and a fake Paystack; it needs PostgreSQL 16 server binaries and downloads the PostgREST binary to `/tmp` on first run.

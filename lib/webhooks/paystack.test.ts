@@ -60,6 +60,12 @@ describe("paystack webhook handler", () => {
     expect(JSON.stringify(args.payload)).not.toContain("USD");
   });
 
+  it("passes the database's duplicate flag through so repeats are visible in logs", async () => {
+    const d = deps({ confirmPayment: vi.fn(async () => ({ result: "confirmed", duplicate: true })) });
+    const out = await handlePaystackWebhook(d, request(charge()));
+    expect(out).toEqual({ status: 200, body: { received: true, result: "confirmed", duplicate: true } });
+  });
+
   it("ignores a reference Paystack does not know, and a verification that contradicts the event", async () => {
     const unknown = deps({ verifyTransaction: vi.fn(async (): Promise<VerifyResult> => ({ ok: false, reason: "not_found" })) });
     expect((await handlePaystackWebhook(unknown, request(charge()))).body).toMatchObject({ result: "ignored_unverified" });

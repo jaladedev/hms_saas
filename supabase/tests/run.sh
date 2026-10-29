@@ -64,6 +64,10 @@ WH="$(psql -f "$HERE/10_webhook_support.sql" 2>&1)" || { echo "$WH"; echo "WEBHO
 echo "$WH" | grep -E 'PASS' || true
 if echo "$WH" | grep -qE 'FAIL|ERROR'; then echo "$WH"; echo "WEBHOOK SUPPORT TESTS FAILED"; exit 1; fi
 
+GB="$(psql -f "$HERE/11_guest_booking.sql" 2>&1)" || { echo "$GB"; echo "GUEST BOOKING TESTS FAILED"; exit 1; }
+echo "$GB" | grep -E 'PASS' || true
+if echo "$GB" | grep -qE 'FAIL|ERROR'; then echo "$GB"; echo "GUEST BOOKING TESTS FAILED"; exit 1; fi
+
 echo "--- concurrency: last room race (1 room, 50 clients)"
 cat > "$DATA/race_one.sql" <<'SQL'
 select test_try_claim('last_room', '00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', '2027-10-01', '2027-10-03');

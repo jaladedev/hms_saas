@@ -9,8 +9,9 @@
 -- create_hold wraps create_reservation (source 'website'), which already creates a pending
 -- reservation with a 'hold' claim per room. On top of it, create_hold:
 --   * finds or creates the guest (matched by email within the tenant, never modified),
---   * ignores any rate_plan_id from the caller (guests get the property's default plan; there is
---     no public/private flag on rate plans yet),
+--   * ignores any rate_plan_id or requested_room_id from the caller (guests get the property's default
+--     plan and the system picks the room; there is no public/private flag on rate plans yet),
+--   * accepts only public, active room types,
 --   * limits stay length, booking horizon, rooms per hold and active holds per email,
 --   * has its own idempotency key, so a retry cannot create a second guest or reservation.
 -- A replayed response is returned as stored: the caller must check hold_expires_at, because the
@@ -56,7 +57,7 @@ create function create_hold(
   p_host            text,
   p_arrival         date,
   p_departure       date,
-  p_rooms           jsonb,     -- [{"room_type_id":..., "requested_room_id":null, "adults":2, "children":0}]
+  p_rooms           jsonb,     -- [{"room_type_id":..., "adults":2, "children":0}]
   p_guest           jsonb,     -- {"full_name":..., "email":..., "phone":...}
   p_idempotency_key text
 ) returns jsonb language plpgsql security definer set search_path = public as $$
@@ -120,7 +121,6 @@ begin
   begin
     select jsonb_agg(jsonb_build_object(
              'room_type_id',      (e.value ->> 'room_type_id')::uuid,
-             'requested_room_id', nullif(e.value ->> 'requested_room_id', '')::uuid,
              'adults',            coalesce((e.value ->> 'adults')::integer, 0),
              'children',          coalesce((e.value ->> 'children')::integer, 0))
            order by e.ordinality)
@@ -130,6 +130,13 @@ begin
     raise exception 'POLICY_VIOLATION: rooms' using errcode = 'P0001';
   end;
   if v_rooms is null then raise exception 'POLICY_VIOLATION: rooms' using errcode = 'P0001'; end if;
+  -- Online guests book public, active room types of this property only, and never choose a physical room.
+  if exists (select 1 from jsonb_array_elements(v_rooms) e
+              left join room_types rt on rt.id = (e ->> 'room_type_id')::uuid and rt.property_id = v_property
+                                     and rt.is_public and rt.status = 'active'
+             where rt.id is null) then
+    raise exception 'NOT_FOUND: room type' using errcode = 'P0001';
+  end if;
 
   -- idempotency before any write
   v_hash := md5(concat_ws('|', v_property, p_arrival, p_departure, v_rooms::text, v_name, v_email, coalesce(v_phone, '')));

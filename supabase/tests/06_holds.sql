@@ -155,6 +155,14 @@ do $$ begin
   -- another hotel's room type through this hotel's host, and ours through theirs
   perform t06_expect_err($q$select t06_hold(p_rooms => '[{"room_type_id":"00000000-0000-0000-0000-0000000000b3","adults":1}]'::jsonb)$q$, 'NOT_FOUND: room type%');
   perform t06_expect_err($q$select t06_hold(p_host => 'hotel-b.test')$q$, 'NOT_FOUND: room type%');
+  -- non-public room types cannot be booked online, and a chosen physical room is ignored
+  update room_types set is_public = false where id = '00000000-0000-0000-0000-0000000000a3';
+  perform t06_expect_err($q$select t06_hold()$q$, 'NOT_FOUND: room type%');
+  update room_types set is_public = true where id = '00000000-0000-0000-0000-0000000000a3';
+  perform t06_hold(p_off => 13, p_rooms => ('[{"room_type_id":"00000000-0000-0000-0000-0000000000a3","adults":1,"requested_room_id":"' || (select id from rooms where room_type_id = '00000000-0000-0000-0000-0000000000a3' order by room_number desc limit 1) || '"}]')::jsonb,
+                  p_guest => '{"full_name":"Room Picker","email":"picker@example.com"}'::jsonb);
+  if (select requested_room_id from reservation_rooms rr join reservations r on r.id = rr.reservation_id join guests g on g.id = r.primary_guest_id where g.email = 'picker@example.com') is not null
+    then raise exception 'FAIL guest chose a physical room'; end if;
   -- refused late (arrival in the past, caught inside create_reservation): the guest row rolls back too
   perform t06_expect_err($q$select t06_hold(p_off => -3, p_guest => '{"full_name":"Late Guest","email":"late@example.com"}'::jsonb)$q$, 'POLICY_VIOLATION: arrival in the past%');
   if exists (select 1 from guests where email = 'late@example.com') then raise exception 'FAIL refused hold left a guest behind'; end if;

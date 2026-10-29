@@ -8,7 +8,8 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "db:test": "bash supabase/tests/run.sh",
-    "test": "vitest run"
+    "test": "vitest run",
+    "e2e": "bash e2e/run.sh"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
