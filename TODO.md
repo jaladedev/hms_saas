@@ -44,7 +44,12 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [x] Money, staff side: invoices, lines, invoice_sequences, payments, allocations (010)
 - [x] Money, provider side: payment_attempts, payment_events, payment_provider_accounts, `create_payment_attempt`, `confirm_payment` (011)
 - [x] Refunds and payment reversal (012): two-person approval, caps, manual and provider payouts, `partially_refunded` / `refunded`, refunded invoices can be voided
-- [ ] Settlement on cancellation and no-show (cancellation charge vs refund) is still not built; `cancel_reservation` does not touch money
+- [x] Settlement on cancellation (016): stay invoice voided, cancellation-charge invoice, refund requests for the surplus, unpaid charge flagged and collectable
+- [x] Refund payout route (`/api/staff/refunds/<id>/payout`), at most one Paystack call per refund; unknown outcomes are flagged and listed by maintenance
+- [ ] No-show settlement: `no_show` is not settled the way `cancelled` is (no charge, invoice or refund handling); decide the rule with the hotel
+- [ ] Resolve Paystack `refund.needs-attention`: the refund is only noted; completing it needs Paystack's retry-with-customer-details endpoint and a staff screen to collect bank details
+- [ ] Staff screens for money: refund queue (request, approve, payout, attention), settlement summary per cancelled booking, cancellation-charge collection
+- [ ] Guests cannot cancel their own booking (staff cancel on their behalf); a guest-facing cancel needs the same settlement preview before they confirm
 - [x] `audit_logs` (insert-only) and `idempotency_keys` (007)
 - [ ] `outbox_events`, `notifications`, `documents`, `booking_access_tokens`; idempotency key expiry job
 - [x] `cancel_reservation` (policy charge, releases inventory), `check_in` (readiness gate with override), `check_out` (early departure frees the room, marks dirty) (008)

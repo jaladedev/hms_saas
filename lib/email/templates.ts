@@ -1,7 +1,7 @@
 import { formatDate, formatMoney, formatTime } from "@/lib/guest-site/format";
 import type { BookingStatus } from "@/lib/guest-site/server";
 
-export type EmailKind = "booking_held" | "booking_confirmed" | "booking_link" | "refund_processed";
+export type EmailKind = "booking_held" | "booking_confirmed" | "booking_link" | "refund_processed" | "booking_cancelled";
 export type RenderedEmail = { subject: string; text: string; html: string };
 
 export function escapeHtml(value: string): string {
@@ -62,6 +62,19 @@ export function renderEmail(input: {
       button = "View your booking";
       lines.push(amount !== null ? `We have refunded ${formatMoney(amount, currency)} for your booking at ${b.property_name}.` : `We have processed a refund for your booking at ${b.property_name}.`);
       lines.push("It can take a few days to appear, depending on your bank or card.");
+      break;
+    }
+    case "booking_cancelled": {
+      const charge = typeof input.payload?.charge_minor === "number" ? input.payload.charge_minor : 0;
+      const refundDue = typeof input.payload?.refund_due_minor === "number" ? input.payload.refund_due_minor : 0;
+      const currency = typeof input.payload?.currency === "string" ? input.payload.currency : b.currency;
+      subject = `Your booking ${b.booking_reference} has been cancelled`;
+      heading = "Your booking has been cancelled";
+      button = "View your booking";
+      lines.push(`Your booking at ${b.property_name} for ${stay} has been cancelled.`);
+      if (charge > 0) lines.push(`A cancellation charge of ${formatMoney(charge, currency)} applies under the booking terms.`);
+      if (refundDue > 0) lines.push(`Any refund due to you (${formatMoney(refundDue, currency)}) will be processed by the hotel, and you will get a separate email when it is paid out.`);
+      if (charge === 0 && refundDue === 0) lines.push("No charge applies.");
       break;
     }
     case "booking_link":

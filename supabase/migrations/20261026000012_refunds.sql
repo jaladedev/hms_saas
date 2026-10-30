@@ -36,6 +36,10 @@ create table refunds (
   provider_refund_id text,
   payout_reference   text,
   failure_reason     text,
+  -- Paystack's refund API has no idempotency key, so the provider is called at most once per refund.
+  -- provider_call_started_at is set the first time a caller is told it may call; later callers are refused.
+  provider_call_started_at timestamptz,
+  attention_note     text,
   created_at         timestamptz not null default now(),
   updated_at         timestamptz not null default now(),
   completed_at       timestamptz,
@@ -96,15 +100,17 @@ end $$;
 
 create or replace function refresh_reservation_payment_status(p_reservation uuid) returns void
 language plpgsql security definer set search_path = public as $$
-declare r reservations%rowtype; v_held bigint; v_refunded bigint;
+declare r reservations%rowtype; v_held bigint; v_refunded bigint; v_target bigint;
 begin
   select * into r from reservations where id = p_reservation;
   if r.payment_status = 'payment_failed' then return; end if;   -- cleared by confirm_payment on success
   v_held := reservation_money_held(p_reservation);
+  -- once cancelled, "paid" means the cancellation charge is covered, not the whole stay
+  v_target := case when r.reservation_status = 'cancelled' then r.cancellation_charge_minor else r.total_minor end;
   select coalesce(sum(amount_minor), 0) into v_refunded from refunds
    where reservation_id = p_reservation and refund_status = 'succeeded';
   update reservations set payment_status =
-    case when v_held >= r.total_minor and v_held > 0 then 'paid'
+    case when v_held >= v_target and v_held > 0 then 'paid'
          when v_held > 0 and v_refunded > 0 then 'partially_refunded'
          when v_held > 0 then 'partially_paid'
          when v_refunded > 0 then 'refunded'
@@ -272,9 +278,10 @@ end $$;
 
 -- ---- provider refunds (service_role) -------------------------------------------------------
 -- Step 1: mark an approved provider refund as processing and hand back what the provider call needs.
+-- call_allowed is true for exactly one caller, the one that moved it from approved to processing.
 create function begin_refund_processing(p_refund_id uuid) returns jsonb
 language plpgsql security definer set search_path = public as $$
-declare f refunds%rowtype; pay payments%rowtype;
+declare f refunds%rowtype; pay payments%rowtype; v_call boolean := false;
 begin
   if not is_system_caller() then raise exception 'FORBIDDEN' using errcode = 'P0001'; end if;
   select * into f from refunds where id = p_refund_id;
@@ -286,14 +293,17 @@ begin
     raise exception 'POLICY_VIOLATION: manual payments are refunded by staff' using errcode = 'P0001';
   end if;
   if f.refund_status = 'approved' then
-    update refunds set refund_status = 'processing' where id = f.id;
+    update refunds set refund_status = 'processing', provider_call_started_at = now() where id = f.id;
     perform write_audit(f.tenant_id, f.property_id, null, 'refund.processing', 'refund', f.id, null, '{}'::jsonb);
-  elsif f.refund_status <> 'processing' then
+    v_call := true;
+  elsif f.refund_status = 'processing' then
+    v_call := false;                 -- the provider was already called (or is being called): never call twice
+  else
     raise exception 'INVALID_STATE: %', f.refund_status using errcode = 'P0001';
   end if;
   return jsonb_build_object('refund_id', f.id, 'internal_reference', f.internal_reference, 'provider', pay.payment_provider,
                             'payment_provider_reference', pay.provider_reference, 'amount_minor', f.amount_minor,
-                            'currency', f.currency);
+                            'currency', f.currency, 'call_allowed', v_call);
 end $$;
 
 -- Step 2: the verified outcome from the provider. Idempotent per (provider, event id).

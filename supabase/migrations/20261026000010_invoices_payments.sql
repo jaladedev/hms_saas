@@ -365,7 +365,7 @@ create function record_manual_payment(
   p_idempotency_key text
 ) returns jsonb language plpgsql security definer set search_path = public as $$
 declare
-  r reservations%rowtype; v_actor uuid; v_idem record; v_hash text; v_paid bigint; v_pay uuid := gen_random_uuid();
+  r reservations%rowtype; v_actor uuid; v_idem record; v_hash text; v_paid bigint; v_cap bigint; v_pay uuid := gen_random_uuid();
   v_ref text; v_inv uuid; v_alloc bigint := 0; v_out bigint; v_result jsonb; v_status text;
 begin
   select * into r from reservations where id = p_reservation_id;
@@ -383,12 +383,15 @@ begin
   if not v_idem.out_is_new then return v_idem.out_response; end if;
 
   select * into r from reservations where id = p_reservation_id for update;
-  if r.reservation_status in ('cancelled', 'expired', 'no_show') then
+  v_paid := reservation_money_held(r.id);
+  v_cap := r.total_minor;
+  if r.reservation_status = 'cancelled' and r.cancellation_charge_minor > v_paid then
+    v_cap := r.cancellation_charge_minor;      -- an unpaid cancellation charge can still be collected
+  elsif r.reservation_status in ('cancelled', 'expired', 'no_show') then
     raise exception 'INVALID_STATE: %', r.reservation_status using errcode = 'P0001';
   end if;
-  v_paid := reservation_money_held(r.id);
-  if v_paid + p_amount_minor > r.total_minor then
-    raise exception 'POLICY_VIOLATION: OVERPAYMENT outstanding %', r.total_minor - v_paid using errcode = 'P0001';
+  if v_paid + p_amount_minor > v_cap then
+    raise exception 'POLICY_VIOLATION: OVERPAYMENT outstanding %', v_cap - v_paid using errcode = 'P0001';
   end if;
 
   loop
@@ -401,16 +404,13 @@ begin
           p_amount_minor, r.currency, nullif(trim(p_note), ''), v_actor);
 
   select id into v_inv from invoices where reservation_id = r.id and invoice_status <> 'void';
-  if v_inv is not null then
-    v_alloc := allocate_payments_to_invoice(v_inv);
-    perform refresh_invoice_status(v_inv);
-  end if;
-  perform refresh_reservation_payment_status(r.id);
+  if v_inv is not null then v_alloc := allocate_payments_to_invoice(v_inv); end if;
+  perform refresh_money_state(r.id);       -- invoice and reservation status, and the cancellation-charge flag (012, 016)
   select payment_status into v_status from reservations where id = r.id;
 
   v_result := jsonb_build_object('payment_id', v_pay, 'internal_reference', v_ref, 'amount_minor', p_amount_minor,
                                  'invoice_id', v_inv, 'allocated_minor', v_alloc,
-                                 'payment_status', v_status, 'outstanding_minor', r.total_minor - v_paid - p_amount_minor);
+                                 'payment_status', v_status, 'outstanding_minor', v_cap - v_paid - p_amount_minor);
   perform idem_finish(r.tenant_id, 'record_manual_payment', p_idempotency_key, v_result);
   perform write_audit(r.tenant_id, r.property_id, v_actor, 'payment.recorded', 'payment', v_pay, p_idempotency_key,
                       jsonb_build_object('reservation_id', r.id, 'amount_minor', p_amount_minor, 'method', p_method,

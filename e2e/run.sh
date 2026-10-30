@@ -45,6 +45,13 @@ values ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000
 insert into payment_provider_accounts (tenant_id, provider, mode, account_label, secret_reference, status)
 values ('00000000-0000-0000-0000-0000000000a1', 'paystack', 'test', 'Hotel A e2e', 'env:PAYSTACK_SECRET_E2E', 'active');
 alter role authenticator login;
+insert into auth.users (id) values ('00000000-0000-0000-0000-00000000aa01'), ('00000000-0000-0000-0000-00000000aa05');
+insert into tenant_memberships (id, tenant_id, user_id, status) values
+  ('00000000-0000-0000-0000-0000000aaa01', '00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-00000000aa01', 'active'),
+  ('00000000-0000-0000-0000-0000000aaa05', '00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-00000000aa05', 'active');
+insert into membership_roles (membership_id, role_id)
+  select '00000000-0000-0000-0000-0000000aaa01'::uuid, id from roles where key = 'owner'
+  union all select '00000000-0000-0000-0000-0000000aaa05'::uuid, id from roles where key = 'accountant';
 SQL
 export ACCOUNT_ID="$("$PGBIN/psql" -At -c "select id from payment_provider_accounts limit 1")"
 

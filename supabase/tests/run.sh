@@ -72,6 +72,10 @@ EM="$(psql -f "$HERE/12_email_rate_limits.sql" 2>&1)" || { echo "$EM"; echo "EMA
 echo "$EM" | grep -E 'PASS' || true
 if echo "$EM" | grep -qE 'FAIL|ERROR'; then echo "$EM"; echo "EMAIL TESTS FAILED"; exit 1; fi
 
+ST="$(psql -f "$HERE/13_settlement.sql" 2>&1)" || { echo "$ST"; echo "SETTLEMENT TESTS FAILED"; exit 1; }
+echo "$ST" | grep -E 'PASS' || true
+if echo "$ST" | grep -qE 'FAIL|ERROR'; then echo "$ST"; echo "SETTLEMENT TESTS FAILED"; exit 1; fi
+
 echo "--- concurrency: last room race (1 room, 50 clients)"
 cat > "$DATA/race_one.sql" <<'SQL'
 select test_try_claim('last_room', '00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', '2027-10-01', '2027-10-03');

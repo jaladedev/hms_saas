@@ -34,6 +34,7 @@ export type WebhookDeps = {
   confirmPayment(args: ConfirmPaymentArgs): Promise<{ result?: string; duplicate?: boolean }>;
   findProcessingRefund(tenantId: string, transactionReference: string, amountMinor: number): Promise<string | null>;
   recordRefundResult(tenantId: string, args: RefundResultArgs): Promise<{ result?: string; duplicate?: boolean }>;
+  noteRefundAttention(refundId: string, note: string): Promise<void>;
   log?(level: "info" | "warn" | "error", message: string, context?: Record<string, unknown>): void;
 };
 
@@ -44,8 +45,16 @@ const PENDING_LIKE = new Set(["pending", "ongoing", "processing", "queued"]);
 function str(v: unknown): string | null {
   return typeof v === "string" && v.length > 0 ? v : null;
 }
+/** Paystack sends refund amounts as strings ("10000"); accept both. */
 function int(v: unknown): number | null {
-  return typeof v === "number" && Number.isInteger(v) ? v : null;
+  if (typeof v === "number" && Number.isInteger(v)) return v;
+  if (typeof v === "string" && /^\d{1,15}$/.test(v)) return Number(v);
+  return null;
+}
+function idLike(v: unknown): string | null {
+  if (typeof v === "string" && v.length > 0) return v;
+  if (typeof v === "number" && Number.isFinite(v)) return String(v);
+  return null;
 }
 
 export async function handlePaystackWebhook(
@@ -112,8 +121,9 @@ export async function handlePaystackWebhook(
       return { status: 200, body: { received: true, result: outcome.result ?? null, ...(outcome.duplicate ? { duplicate: true } : {}) } };
     }
 
-    if (event === "refund.processed" || event === "refund.failed") {
-      // Payload shape taken from third-party documentation: confirm in Paystack test mode (see HANDOFF).
+    if (event === "refund.processed" || event === "refund.failed" || event === "refund.needs-attention") {
+      // Payload per Paystack's refund docs: data.transaction_reference, data.refund_reference (null while pending),
+      // data.amount as a string, data.currency, data.status.
       const transaction = typeof data.transaction === "object" && data.transaction !== null ? (data.transaction as Record<string, unknown>) : {};
       const txRef = str(data.transaction_reference) ?? str(transaction.reference);
       const amount = int(data.amount);
@@ -123,7 +133,11 @@ export async function handlePaystackWebhook(
         log("warn", "refund webhook with no matching refund in processing", { accountId: input.accountId, event });
         return { status: 200, body: { received: true, result: "ignored_no_match" } };
       }
-      const providerRefundId = data.id !== undefined && data.id !== null ? String(data.id) : null;
+      if (event === "refund.needs-attention") {
+        await deps.noteRefundAttention(refundId, "Paystack needs the customer's bank details to complete this refund (refund.needs-attention)");
+        return { status: 200, body: { received: true, result: "noted_attention" } };
+      }
+      const providerRefundId = idLike(data.refund_reference) ?? idLike(data.id);
       const outcome = await deps.recordRefundResult(account.tenantId, {
         providerEventId: `${event}:${providerRefundId ?? `${txRef}:${amount}`}`,
         refundId,

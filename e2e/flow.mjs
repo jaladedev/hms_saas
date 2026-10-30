@@ -32,9 +32,9 @@ function hiddenInputs(html, scope) {
 }
 const decode = (s) => s.replace(/&amp;/g, "&").replace(/&#x27;/g, "'");
 
-function jwt(role, secret = JWT_SECRET) {
+function jwt(role, secret = JWT_SECRET, sub) {
   const b = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
-  const head = b({ alg: "HS256", typ: "JWT" }), body = b({ role, iss: "e2e", exp: Math.floor(Date.now() / 1000) + 3600 });
+  const head = b({ alg: "HS256", typ: "JWT" }), body = b({ role, iss: "e2e", exp: Math.floor(Date.now() / 1000) + 3600, ...(sub ? { sub } : {}) });
   return `${head}.${body}.${createHmac("sha256", secret).update(`${head}.${body}`).digest("base64url")}`;
 }
 const rpc = (fn, args, token) => fetch(`${REST}/rpc/${fn}`, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${token}` }, body: JSON.stringify(args) });
@@ -198,6 +198,57 @@ html = await res.text();
 check("other addresses are not affected by that limit", res.status === 200 && html.includes("Find a room") && !html.includes("Too many attempts"));
 res = await site(`/?arrival=${arrival}&departure=${departure}&adults=2&children=0`, { headers: { "x-forwarded-for": "198.51.100.77" } });
 check("the limited address still browses (search has its own, larger limit)", res.status === 200 && !(await res.text()).includes("Too many attempts"));
+
+// 9f. Cancellation, settlement and a refund, driven by two staff identities over PostgREST,
+//     finished by Paystack's real refund webhook shape (amount as a string, refund_reference)
+const OWNER = jwt("authenticated", JWT_SECRET, "00000000-0000-0000-0000-00000000aa01");
+const ACCOUNTANT = jwt("authenticated", JWT_SECRET, "00000000-0000-0000-0000-00000000aa05");
+const call = async (fn, args, token) => { const r = await rpc(fn, args, token); return { status: r.status, body: await r.json().catch(() => null) }; };
+const maint = () => fetch(`${SITE}/api/cron/maintenance`, { headers: { authorization: `Bearer ${CRON_SECRET}` } }).then((r) => r.json());
+
+let c = await call("cancel_reservation", { p_reservation_id: reservationId, p_reason: "guest asked to cancel", p_idempotency_key: "e2e-cancel-1" }, OWNER);
+check("owner cancels the paid booking", c.status === 200 && c.body?.status === "cancelled", JSON.stringify(c));
+res = await fetch(`${REST}/refunds?reservation_id=eq.${reservationId}&select=id,refund_status,amount_minor,requested_by`, { headers: { authorization: `Bearer ${ACCOUNTANT}` } });
+const refunds = await res.json();
+check("cancellation requested a refund for everything paid, in the canceller's name", refunds.length === 1 && refunds[0].refund_status === "requested" && refunds[0].amount_minor === 5000000 && refunds[0].requested_by === "00000000-0000-0000-0000-00000000aa01", JSON.stringify(refunds));
+const refundId = refunds[0]?.id;
+c = await call("approve_refund", { p_refund_id: refundId, p_approve: true, p_note: null, p_idempotency_key: "e2e-approve-1" }, OWNER);
+check("the canceller cannot approve their own refund", c.status >= 400 && JSON.stringify(c.body).includes("SELF_APPROVAL"), JSON.stringify(c));
+c = await call("approve_refund", { p_refund_id: refundId, p_approve: true, p_note: null, p_idempotency_key: "e2e-approve-2" }, ACCOUNTANT);
+check("a second person approves it", c.status === 200 && c.body?.status === "approved", JSON.stringify(c));
+c = await call("start_refund_payout", { p_refund_id: refundId }, OWNER);
+check("payout may be started once (call_allowed)", c.status === 200 && c.body?.call_allowed === true && c.body?.payment_provider_reference === attemptRef && c.body?.amount_minor === 5000000, JSON.stringify(c));
+c = await call("start_refund_payout", { p_refund_id: refundId }, OWNER);
+check("a second payout start is refused (call_allowed false)", c.status === 200 && c.body?.call_allowed === false, JSON.stringify(c));
+c = await call("start_refund_payout", { p_refund_id: refundId }, jwt("authenticated", JWT_SECRET, "00000000-0000-0000-0000-00000000dead"));
+check("someone without refund rights cannot start a payout", c.status >= 400, JSON.stringify(c));
+
+const refundHook = (data, event = "refund.processed") => {
+  const b = JSON.stringify({ event, data });
+  return fetch(`${SITE}/api/webhooks/paystack/${ACCOUNT_ID}`, { method: "POST", headers: { "content-type": "application/json", "x-paystack-signature": sign(b) }, body: b });
+};
+const refundData = { status: "processed", transaction_reference: attemptRef, refund_reference: "rf_e2e_1", amount: "5000000", currency: "NGN" };
+res = await refundHook({ ...refundData, amount: "4999999" });
+out = await res.json();
+check("a refund event for the wrong amount matches nothing", res.status === 200 && out.result === "ignored_no_match", JSON.stringify(out));
+res = await refundHook(refundData);
+out = await res.json();
+check("Paystack's refund.processed (string amount) completes the refund", res.status === 200 && out.result === "succeeded", JSON.stringify(out));
+res = await refundHook(refundData);
+out = await res.json();
+check("a repeated refund event is harmless", res.status === 200 && (out.duplicate === true || out.result === "ignored_no_match"), JSON.stringify(out));
+res = await rpc("guest_booking_status", { p_reservation_id: reservationId }, jwt("service_role"));
+const after = await res.json();
+check("the books are settled: cancelled, nothing held", after.status === "cancelled" && after.paid_minor === 0, JSON.stringify(after));
+res = await fetch(`${REST}/rpc/reservation_settlement`, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${ACCOUNTANT}` }, body: JSON.stringify({ p_reservation_id: reservationId }) });
+const settlement = await res.json();
+check("reservation_settlement reports it settled", settlement.settled === true && settlement.refunded_minor === 5000000, JSON.stringify(settlement));
+await maint();
+const cancelMail = await waitForEmail((m) => m.to[0] === "ada.e2e@example.com" && m.subject.includes("has been cancelled"));
+const refundMail = await waitForEmail((m) => m.to[0] === "ada.e2e@example.com" && m.subject.startsWith("Refund processed"));
+check("the guest got a cancellation email and a refund email", !!cancelMail && !!refundMail && refundMail.text.includes("50,000.00"), JSON.stringify((await emails()).map((m) => m.subject)));
+const stale = await maint();
+check("maintenance reports no refunds stuck in processing", stale.staleRefunds?.ok === true && stale.staleRefunds.result.count === 0, JSON.stringify(stale.staleRefunds));
 
 // 10. PostgREST access control with real signed JWTs
 const args = { p_host: HOST, p_arrival: arrival, p_departure: departure, p_adults: 2, p_children: 0 };

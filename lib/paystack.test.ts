@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createHmac } from "node:crypto";
-import { initializeTransaction, verifyTransaction, verifyWebhookSignature } from "@/lib/paystack";
+import { createRefund, initializeTransaction, verifyTransaction, verifyWebhookSignature } from "@/lib/paystack";
 
 const SECRET = "sk_test_abcdef123456";
 const BODY = '{"event":"charge.success","data":{"reference":"HMS-1"}}';
@@ -73,5 +73,34 @@ describe("initializeTransaction", () => {
     await expect(initializeTransaction(args, SECRET, fakeFetch(400, { status: false }))).rejects.toThrow();
     await expect(initializeTransaction(args, SECRET, fakeFetch(200, { status: true }))).rejects.toThrow();
     await expect(initializeTransaction(args, SECRET, fakeFetch(200, { status: true, data: { authorization_url: "https://x.test/a", reference: "OTHER" } }))).rejects.toThrow();
+  });
+});
+
+describe("createRefund", () => {
+  const args = { transactionReference: "HMS-ABC", amountMinor: 250000, currency: "NGN", merchantNote: "Refund RF-1" };
+  it("posts the transaction, kobo amount and currency, and reports what Paystack accepted", async () => {
+    let sent: { url?: string; body?: Record<string, unknown>; auth?: string | null } = {};
+    const f = (async (url: string | URL | Request, init?: RequestInit) => {
+      sent = { url: String(url), body: JSON.parse(String(init?.body)), auth: new Headers(init?.headers).get("authorization") };
+      return new Response(JSON.stringify({ status: true, message: "Refund has been queued for processing", data: { id: 3018, status: "pending", amount: 250000 } }), { status: 200 });
+    }) as typeof fetch;
+    const out = await createRefund(args, SECRET, f);
+    expect(out).toEqual({ kind: "accepted", providerStatus: "pending", providerRefundId: "3018" });
+    expect(sent.url).toBe("https://api.paystack.co/refund");
+    expect(sent.auth).toBe(`Bearer ${SECRET}`);
+    expect(sent.body).toEqual({ transaction: "HMS-ABC", amount: 250000, currency: "NGN", merchant_note: "Refund RF-1" });
+  });
+  it("treats a 4xx (not 429) as a definite refusal with Paystack's message", async () => {
+    const out = await createRefund(args, SECRET, fakeFetch(400, { status: false, message: "Transaction has been fully reversed" }));
+    expect(out).toEqual({ kind: "rejected", httpStatus: 400, message: "Transaction has been fully reversed" });
+    expect(await createRefund(args, SECRET, fakeFetch(401, "oops"))).toMatchObject({ kind: "rejected", httpStatus: 401 });
+  });
+  it("throws when the outcome is unknown: 429, 5xx, bad shapes", async () => {
+    await expect(createRefund(args, SECRET, fakeFetch(429, {}))).rejects.toThrow();
+    await expect(createRefund(args, SECRET, fakeFetch(500, {}))).rejects.toThrow();
+    await expect(createRefund(args, SECRET, fakeFetch(502, {}))).rejects.toThrow();
+    await expect(createRefund(args, SECRET, fakeFetch(200, { status: true }))).rejects.toThrow();
+    const boom = (async () => { throw new Error("socket hang up"); }) as typeof fetch;
+    await expect(createRefund(args, SECRET, boom)).rejects.toThrow("socket hang up");
   });
 });

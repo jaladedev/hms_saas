@@ -151,8 +151,9 @@ do $$ declare res uuid; pay uuid; r jsonb; ref uuid; ref2 uuid; b1 jsonb; b2 jso
 
   b1 := begin_refund_processing(ref);
   b2 := begin_refund_processing(ref);
-  if b1 <> b2 or b1 ->> 'provider' <> 'paystack' or (b1 ->> 'payment_provider_reference') is null or (b1 ->> 'amount_minor')::bigint <> amt
-    then raise exception 'FAIL begin %', b1; end if;
+  if (b1 - 'call_allowed') <> (b2 - 'call_allowed') or b1 ->> 'provider' <> 'paystack' or (b1 ->> 'payment_provider_reference') is null
+     or (b1 ->> 'amount_minor')::bigint <> amt then raise exception 'FAIL begin %', b1; end if;
+  if (b1 ->> 'call_allowed') <> 'true' or (b2 ->> 'call_allowed') <> 'false' then raise exception 'FAIL provider may be called exactly once % %', b1, b2; end if;
   if (select refund_status from refunds where id = ref) <> 'processing' then raise exception 'FAIL not processing'; end if;
   r := record_refund_result('paystack', 'evt-rf1-r1', ref, 'failed', null, 'insufficient balance');
   if r ->> 'result' <> 'failed' or (select refund_status from refunds where id = ref) <> 'failed'

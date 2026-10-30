@@ -47,6 +47,7 @@ Supabase's `auth` schema, then runs:
 - `03_security.sql`: cross-tenant reads and writes, role limits, revoked membership, anon
 - `04_reservations.sql`: pricing, tax rounding, multi-room, all-or-nothing, idempotency, permissions, online holds, tiling, audit
 - `05_operations.sql`: check-in, check-out, transfers, blocks, cancellation
+- `13_settlement.sql`: cancellation settlement (fee invoice, stay invoice void, refund requests newest payment first, unpaid charge flag and collection), cancellation email, the one-call refund payout guard
 - `12_email_rate_limits.sql`: email outbox (triggers, claim, retry, stuck-worker recovery), link re-issue, rate limits, purge, access limits; plus a claim race (30 workers, 20 emails, each claimed once)
 - `11_guest_booking.sql`: public availability search (counts, pricing parity with `create_hold`, filters, host isolation), payment start context, access limits
 - `10_webhook_support.sql`: provider account lookup for webhook URLs, refund webhook matching, guest booking status, access limits
@@ -75,6 +76,7 @@ Supabase's `auth` schema, then runs:
 | 013 webhook_support | `payment_provider_account_for_webhook`, `find_processing_refund`, `guest_booking_status` (`service_role` only); `confirm_payment` gained a tenant scope |
 | 014 guest_booking_support | `search_availability(host, arrival, departure, adults, children)`, `payment_start_context(reservation)` (`service_role` only) |
 | 015 email_and_rate_limits | `email_outbox` filled by triggers, `claim_emails`, `mark_email_result`, `request_booking_link`, `consume_rate_limit`, `purge_old_operational_data` (`service_role` only) |
+| 016 settlement_and_payout | cancellation settlement trigger, `reservation_settlement`, `start_refund_payout`, `refund_payout_context`, `note_refund_attention`, `stale_processing_refunds` |
 
 File numbers differ from the design doc's list because claims were built early to prove the
 double-booking protection. Next: the booking site (search, hold, pay, status pages), staff UI, and a scheduler for `expire_lapsed_holds`. Built so far on the app side: the Paystack webhook route and guest booking tokens. Follow the gates in System Design section 11.
@@ -89,6 +91,7 @@ Guest booking site (host decides the hotel; nothing tenant-related comes from th
 - `/` search by dates and guests, priced room types with how many are left.
 - `/reserve` quote and guest details; the server action calls `create_hold` and redirects to `/booking/<token>`.
 - `/booking/find` asks for booking reference plus email and emails a fresh link (the answer is the same whether or not anything matched).
+- `POST /api/staff/refunds/<id>/payout`: staff (refund.approve, signed-in session, same-origin only) pays an approved provider refund out through Paystack, at most once (`lib/refunds/payout.ts`). There is no staff screen for it yet.
 - `/booking/<token>` booking status, hold countdown, **Pay now** (server action: `create_payment_attempt`, then Paystack initialize, then redirect to checkout). Returning from checkout shows a "confirming your payment" page that refreshes until the webhook has confirmed the booking.
 - `app/api/webhooks/paystack/[account]/route.ts`: one webhook URL per provider account. Decision logic lives in `lib/webhooks/paystack.ts` (testable without Next.js or Supabase).
 - `lib/email/*` (templates, Resend mailer, outbox drain), `lib/rate-limit.ts`, `lib/maintenance.ts`, and `app/api/cron/maintenance/route.ts` (hold expiry, email backstop, cleanup; call it every few minutes with `Authorization: Bearer $CRON_SECRET`).

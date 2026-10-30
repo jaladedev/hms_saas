@@ -22,6 +22,12 @@ async function handle(request: Request) {
       return data as number;
     },
     drainEmails: drainNow,
+    async staleRefunds() {
+      const { data, error } = await db.rpc("stale_processing_refunds", { p_older_than_minutes: 120 });
+      if (error) throw new Error(error.message);
+      return (data ?? []) as unknown[];
+    },
+    log: (level, message, context) => console[level](`[maintenance] ${message}`, context ?? {}),
     async purgeOldData() {
       const { data, error } = await db.rpc("purge_old_operational_data");
       if (error) throw new Error(error.message);

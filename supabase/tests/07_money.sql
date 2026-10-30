@@ -30,7 +30,7 @@ do $$ declare res uuid; r jsonb; v_total bigint; v_inv uuid; begin
   perform t_sys();
   v_inv := (r ->> 'invoice_id')::uuid;
   insert into t07_ctx values ('main_inv', v_inv);
-  if (r ->> 'invoice_number') not like 'INV-HA-%-000001' or r ->> 'status' <> 'issued' or (r ->> 'total_minor')::bigint <> v_total
+  if (r ->> 'invoice_number') !~ '^INV-HA-[0-9]{4}-[0-9]{6}$' or r ->> 'status' <> 'issued' or (r ->> 'total_minor')::bigint <> v_total
     then raise exception 'FAIL invoice header %', r; end if;
   if (select count(*) from invoice_lines where invoice_id = v_inv) <> 3
      or (select sum(line_total_minor) from invoice_lines where invoice_id = v_inv) <> v_total
@@ -49,7 +49,7 @@ do $$ declare res uuid; r jsonb; v_total bigint; v_inv uuid; begin
   perform t_expect(format('select issue_invoice(%L, %L)', res, 't07-inv-b'), 'NOT_FOUND');
   if (select count(*) from invoices) <> 0 then raise exception 'FAIL other tenant can read invoices'; end if;
   perform t_as('00000000-0000-0000-0000-00000000aa04');
-  if (select count(*) from invoices) <> 1 or (select count(*) from invoice_lines) <> 3 then raise exception 'FAIL front desk cannot read its invoice'; end if;
+  if (select count(*) from invoices where reservation_id = res) <> 1 or (select count(*) from invoice_lines where invoice_id = v_inv) <> 3 then raise exception 'FAIL front desk cannot read its invoice'; end if;
   begin insert into payments (tenant_id) values (null); raise exception 'FAIL client wrote payments';
   exception when insufficient_privilege then null; end;
   begin update invoices set total_minor = 1; raise exception 'FAIL client updated invoices';

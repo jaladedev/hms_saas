@@ -4,6 +4,9 @@ export type MaintenanceDeps = {
   expireLapsedHolds(limit: number): Promise<number>;
   drainEmails(limit: number): Promise<unknown>;
   purgeOldData(): Promise<unknown>;
+  /** Refunds stuck in processing (an unknown payout outcome, or a webhook that never came). */
+  staleRefunds(): Promise<unknown[]>;
+  log?(level: "warn", message: string, context?: Record<string, unknown>): void;
 };
 export type StepResult = { ok: true; result: unknown } | { ok: false; error: string };
 
@@ -20,6 +23,11 @@ export async function runMaintenance(deps: MaintenanceDeps): Promise<Record<stri
     expiredHolds: await step(() => deps.expireLapsedHolds(200)),
     emails: await step(() => deps.drainEmails(25)),
     purge: await step(() => deps.purgeOldData()),
+    staleRefunds: await step(async () => {
+      const stale = await deps.staleRefunds();
+      if (stale.length > 0) deps.log?.("warn", "refunds stuck in processing need a person", { count: stale.length, refunds: stale });
+      return { count: stale.length, refunds: stale };
+    }),
   };
 }
 

@@ -39,6 +39,16 @@ describe("email templates", () => {
     expect(r.text).toContain("25,000.00");
     expect(renderEmail({ kind: "refund_processed", booking: paid, link: LINK }).text).toContain("processed a refund");
   });
+  it("cancelled: states the charge and the refund due, and promises no payout date", () => {
+    const e = renderEmail({ kind: "booking_cancelled", booking, link: LINK, payload: { charge_minor: 1500000, refund_due_minor: 3500000, currency: "NGN" } });
+    expect(e.subject).toBe("Your booking BK-ABC123 has been cancelled");
+    expect(e.text).toContain("cancellation charge of");
+    expect(e.text).toContain("15,000.00");
+    expect(e.text).toContain("35,000.00");
+    expect(e.text).toContain("separate email");
+    expect(renderEmail({ kind: "booking_cancelled", booking, link: LINK, payload: { charge_minor: 0, refund_due_minor: 0 } }).text).toContain("No charge applies");
+    expect(renderEmail({ kind: "booking_cancelled", booking, link: LINK }).text).toContain("No charge applies");
+  });
   it("escapes all HTML-significant characters", () => {
     expect(escapeHtml(`<a href="x">&'</a>`)).toBe("&lt;a href=&quot;x&quot;&gt;&amp;&#39;&lt;/a&gt;");
   });

@@ -19,6 +19,7 @@ function deps(overrides: Partial<WebhookDeps> = {}) {
     confirmPayment: vi.fn(async () => ({ result: "confirmed" })),
     findProcessingRefund: vi.fn(async () => "refund-1" as string | null),
     recordRefundResult: vi.fn(async () => ({ result: "succeeded" })),
+    noteRefundAttention: vi.fn(async () => {}),
     log: vi.fn(),
     ...overrides,
   };
@@ -115,6 +116,26 @@ describe("paystack webhook handler", () => {
     await handlePaystackWebhook(failed, request({ event: "refund.failed", data: { id: 556, amount: 100, transaction: { reference: "HMS-2" } } }));
     expect(failed.findProcessingRefund).toHaveBeenCalledWith(TENANT, "HMS-2", 100);
     expect(failed.recordRefundResult).toHaveBeenCalledWith(TENANT, expect.objectContaining({ status: "failed", failureReason: expect.any(String) }));
+  });
+
+  it("handles Paystack's real refund payload: amount as a string, refund_reference as the id", async () => {
+    const d = deps();
+    const out = await handlePaystackWebhook(d, request({ event: "refund.processed", data: { status: "processed", transaction_reference: "HMS-7", refund_reference: "rf_abc", amount: "250000", currency: "NGN" } }));
+    expect(out.status).toBe(200);
+    expect(d.findProcessingRefund).toHaveBeenCalledWith(TENANT, "HMS-7", 250000);
+    expect(d.recordRefundResult).toHaveBeenCalledWith(TENANT, expect.objectContaining({ providerEventId: "refund.processed:rf_abc", providerRefundId: "rf_abc", status: "succeeded" }));
+    for (const bad of ["25.5", "-1", "abc", "", "1".repeat(20)]) {
+      const r = await handlePaystackWebhook(deps(), request({ event: "refund.processed", data: { transaction_reference: "HMS-7", amount: bad } }));
+      expect(r.status).toBe(400);
+    }
+  });
+
+  it("notes refund.needs-attention on the refund instead of failing or completing it", async () => {
+    const d = deps();
+    const out = await handlePaystackWebhook(d, request({ event: "refund.needs-attention", data: { transaction_reference: "HMS-7", amount: "250000" } }));
+    expect(out).toEqual({ status: 200, body: { received: true, result: "noted_attention" } });
+    expect(d.noteRefundAttention).toHaveBeenCalledWith("refund-1", expect.stringContaining("bank details"));
+    expect(d.recordRefundResult).not.toHaveBeenCalled();
   });
 
   it("acknowledges refund events that match nothing, and events it does not act on", async () => {

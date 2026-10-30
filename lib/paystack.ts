@@ -118,3 +118,47 @@ export async function initializeTransaction(
   if (parsed.data.data.reference !== args.reference) throw new Error("Paystack initialize returned a different reference");
   return { authorizationUrl: parsed.data.data.authorization_url };
 }
+
+const refundResponseSchema = z.object({
+  status: z.boolean(),
+  data: z.object({ id: z.union([z.number(), z.string()]).optional(), status: z.string() }).optional(),
+});
+
+export type CreateRefundResult =
+  | { kind: "accepted"; providerStatus: string; providerRefundId: string | null }
+  | { kind: "rejected"; httpStatus: number; message: string };
+
+/**
+ * Asks Paystack to refund part or all of a transaction (`POST /refund`: transaction reference, optional
+ * amount in subunits, currency, merchant note). The API has NO idempotency key, so a duplicate call can refund twice:
+ * callers must call at most once per refund and never retry after an unknown outcome.
+ *  - accepted: Paystack took it; providerStatus is pending, processing, processed, failed or needs-attention.
+ *  - rejected: a 4xx other than 429, so no refund exists and the refund can safely be marked failed.
+ *  - throws: 429, 5xx, network errors and unexpected shapes. The outcome is UNKNOWN: a person must check Paystack.
+ */
+export async function createRefund(
+  args: { transactionReference: string; amountMinor: number; currency: string; merchantNote: string },
+  secretKey: string,
+  fetchFn: typeof fetch = fetch,
+): Promise<CreateRefundResult> {
+  const res = await fetchFn(`${paystackBaseUrl()}/refund`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${secretKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ transaction: args.transactionReference, amount: args.amountMinor, currency: args.currency, merchant_note: args.merchantNote }),
+    cache: "no-store",
+  });
+  if (res.status >= 400 && res.status < 500 && res.status !== 429) {
+    let message = `Paystack refused the refund (HTTP ${res.status})`;
+    try {
+      const body = (await res.json()) as { message?: unknown };
+      if (typeof body.message === "string" && body.message) message = body.message.slice(0, 200);
+    } catch {
+      /* not JSON */
+    }
+    return { kind: "rejected", httpStatus: res.status, message };
+  }
+  if (!res.ok) throw new Error(`Paystack refund call failed with HTTP ${res.status}`);
+  const parsed = refundResponseSchema.safeParse(await res.json());
+  if (!parsed.success || !parsed.data.status || !parsed.data.data) throw new Error("Paystack refund returned an unexpected response");
+  return { kind: "accepted", providerStatus: parsed.data.data.status, providerRefundId: parsed.data.data.id !== undefined ? String(parsed.data.data.id) : null };
+}
