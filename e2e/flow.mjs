@@ -5,6 +5,8 @@ const SITE = process.env.SITE_URL ?? "http://127.0.0.1:3100";
 const FAKE = process.env.FAKE_PAYSTACK_URL ?? "http://127.0.0.1:4010";
 const REST = process.env.POSTGREST_URL ?? "http://127.0.0.1:3001";
 const HOST = "book.hotel-a.test";
+const RESEND = process.env.FAKE_RESEND_URL ?? "http://127.0.0.1:4011";
+const CRON_SECRET = process.env.CRON_SECRET;
 const SECRET = process.env.PAYSTACK_SECRET_E2E;
 const ACCOUNT_ID = process.env.ACCOUNT_ID;
 const JWT_SECRET = process.env.PGRST_JWT_SECRET;
@@ -36,6 +38,19 @@ function jwt(role, secret = JWT_SECRET) {
   return `${head}.${body}.${createHmac("sha256", secret).update(`${head}.${body}`).digest("base64url")}`;
 }
 const rpc = (fn, args, token) => fetch(`${REST}/rpc/${fn}`, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${token}` }, body: JSON.stringify(args) });
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+async function emails() { return (await fetch(`${RESEND}/_sent`)).json(); }
+async function waitForEmail(match, ms = 10000) {
+  const end = Date.now() + ms;
+  while (Date.now() < end) {
+    const found = (await emails()).find(match);
+    if (found) return found;
+    await sleep(300);
+  }
+  return null;
+}
+const linkIn = (email) => /(http:\/\/book\.hotel-a\.test)(\/booking\/[\w.-]+)/.exec(email.text)?.[2];
 
 const day = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
 const arrival = day(40), departure = day(42);
@@ -115,6 +130,74 @@ check("after the replay the booking holds exactly one payment", status.paid_mino
 res = await site(bookingPath);
 html = await res.text();
 check("booking page shows confirmed and paid", html.includes("Your booking is confirmed") && !html.includes("Pay now"), "");
+
+// 9b. Emails: held (sent right after the reserve action) and confirmed (after the webhook), with working links
+const heldMail = await waitForEmail((m) => m.to[0] === "ada.e2e@example.com" && m.subject.includes("Complete your booking") && m.subject.includes(reference));
+check("hold email was sent to the guest with the booking reference", heldMail !== null, JSON.stringify((await emails()).map((m) => m.subject)));
+const heldPath = heldMail ? linkIn(heldMail) : undefined;
+check("the emailed link opens the booking", !!heldPath && (await (await site(heldPath)).text()).includes(reference), String(heldPath));
+check("email html escapes and carries the button link", !!heldMail && heldMail.html.includes(`href="http://book.hotel-a.test${heldPath}"`));
+const confirmedMail = await waitForEmail((m) => m.to[0] === "ada.e2e@example.com" && m.subject.startsWith("Booking confirmed") && m.subject.includes(reference));
+check("confirmation email was sent after the webhook", confirmedMail !== null);
+check("no email was sent twice", new Set((await emails()).map((m) => m.idem)).size === (await emails()).length);
+
+// 9c. Maintenance route: protected, and it runs its steps
+res = await fetch(`${SITE}/api/cron/maintenance`);
+check("maintenance route refuses a missing secret", res.status === 401, `status ${res.status}`);
+res = await fetch(`${SITE}/api/cron/maintenance`, { headers: { authorization: "Bearer wrong" } });
+check("maintenance route refuses a wrong secret", res.status === 401, `status ${res.status}`);
+res = await fetch(`${SITE}/api/cron/maintenance`, { headers: { authorization: `Bearer ${CRON_SECRET}` } });
+out = await res.json();
+check("maintenance route runs hold expiry, emails and purge", res.status === 200 && out.expiredHolds?.ok && out.emails?.ok && out.purge?.ok, JSON.stringify(out));
+
+// 9d. Link re-issue: same answer whether or not anything matched, email only on a match
+res = await site("/booking/find");
+html = await res.text();
+const findFields = hiddenInputs(html, "<form");
+const submitFind = async (referenceText, email, ip) => {
+  const f = new FormData();
+  for (const [k, v] of findFields) f.append(k, v);
+  f.set("reference", referenceText); f.set("email", email);
+  const r = await site("/booking/find", { method: "POST", body: f, headers: ip ? { "x-forwarded-for": ip } : {} });
+  return r.headers.get("location") ?? "";
+};
+const before = (await emails()).length;
+let loc = await submitFind(reference.toLowerCase(), "  ADA.E2E@example.com ");
+check("matching link request redirects to the generic confirmation", loc === "/booking/find?sent=1", loc);
+const linkMail = await waitForEmail((m) => m.subject.startsWith("Your booking link for") && m.to[0] === "ada.e2e@example.com");
+check("matching link request emails a fresh working link", !!linkMail && !!linkIn(linkMail) && (await (await site(linkIn(linkMail))).text()).includes(reference));
+loc = await submitFind(reference, "someone.else@example.com");
+check("a wrong email gets the same generic answer", loc === "/booking/find?sent=1", loc);
+await sleep(1500); await (await fetch(`${SITE}/api/cron/maintenance`, { headers: { authorization: `Bearer ${CRON_SECRET}` } })).text();
+check("a wrong email sends nothing", (await emails()).filter((m) => m.to[0] === "someone.else@example.com").length === 0 && (await emails()).length === before + 1);
+
+// 9e. Rate limits (distinct client addresses so the earlier steps are unaffected)
+const linkIp = "203.0.113.50";
+const outcomes = [];
+for (let i = 0; i < 6; i++) outcomes.push(await submitFind(reference, `probe${i}@example.com`, linkIp));
+check("link requests are limited per address (5 allowed, then refused)",
+  outcomes.slice(0, 5).every((l) => l === "/booking/find?sent=1") && outcomes[5] === "/booking/find?error=rate_limited", JSON.stringify(outcomes));
+html = await (await site("/booking/find?error=rate_limited")).text();
+check("the limit message is friendly", html.includes("Too many attempts"));
+
+res = await site(reserveHref);
+html = await res.text();
+const reserveFields = hiddenInputs(html, "<form");
+const holdOutcomes = [];
+for (let i = 0; i < 11; i++) {
+  const f = new FormData();
+  for (const [k, v] of reserveFields) f.append(k, v);
+  f.set("quantity", "1"); f.set("full_name", "Rate Tester"); f.set("email", `rate${i}@example.com`); f.set("key", `rate-key-${i}-${Date.now()}`);
+  const r = await site(reserveHref, { method: "POST", body: f, headers: { "x-forwarded-for": "198.51.100.77" } });
+  holdOutcomes.push(r.headers.get("location") ?? "");
+}
+check("holds are limited per address: ten attempts counted, the eleventh refused",
+  holdOutcomes.slice(0, 10).every((l) => !l.includes("error=rate_limited")) && holdOutcomes[10].includes("error=rate_limited"), JSON.stringify(holdOutcomes.map((l) => l.split("error=")[1] ?? "ok")));
+res = await site(`/?arrival=${arrival}&departure=${departure}&adults=2&children=0`, { headers: { "x-forwarded-for": "192.0.2.200" } });
+html = await res.text();
+check("other addresses are not affected by that limit", res.status === 200 && html.includes("Find a room") && !html.includes("Too many attempts"));
+res = await site(`/?arrival=${arrival}&departure=${departure}&adults=2&children=0`, { headers: { "x-forwarded-for": "198.51.100.77" } });
+check("the limited address still browses (search has its own, larger limit)", res.status === 200 && !(await res.text()).includes("Too many attempts"));
 
 // 10. PostgREST access control with real signed JWTs
 const args = { p_host: HOST, p_arrival: arrival, p_departure: departure, p_adults: 2, p_children: 0 };

@@ -103,3 +103,7 @@ export function createPaymentAttempt(reservationId: string, idempotencyKey: stri
   return call<{ attempt_id: string; reference: string; amount_minor: number; currency: string }>(
     "create_payment_attempt", { p_reservation_id: reservationId, p_idempotency_key: idempotencyKey });
 }
+
+export function requestBookingLink(host: string, reference: string, email: string) {
+  return call<boolean>("request_booking_link", { p_host: host, p_reference: reference, p_email: email });
+}

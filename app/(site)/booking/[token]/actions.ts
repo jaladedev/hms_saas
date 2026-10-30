@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { verifyBookingToken } from "@/lib/booking-token";
 import { serverEnv } from "@/lib/env";
+import { checkGuestLimits } from "@/lib/guest-site/limits";
 import { createPaymentAttempt, paymentStartContext, requestOrigin } from "@/lib/guest-site/server";
 import { initializeTransaction } from "@/lib/paystack";
 import { resolveProviderSecret } from "@/lib/provider-secret";
@@ -22,6 +23,9 @@ export async function payAction(formData: FormData): Promise<void> {
   const reservationId = verifyBookingToken(token, serverEnv().BOOKING_TOKEN_SECRET);
   if (!reservationId) redirect("/?error=bad_request");
   const back = `/booking/${token}`;
+
+  const limit = await checkGuestLimits({ ip: ["pay"], keyed: [{ rule: "payReservation", value: reservationId }] });
+  if (!limit.allowed) redirect(`${back}?error=rate_limited`);
 
   const context = await paymentStartContext(reservationId);
   if (!context.ok) redirect(`${back}?error=${context.error.code === "unknown" ? "payment_unavailable" : context.error.code}`);

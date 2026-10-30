@@ -53,6 +53,8 @@ PGRST_DB_URI="postgres://authenticator@/hms_e2e?host=/tmp&port=$PORT" PGRST_DB_S
 PIDS+=($!)
 node "$ROOT/e2e/proxy.mjs" >/tmp/e2e-proxy.log 2>&1 & PIDS+=($!)
 node "$ROOT/e2e/fake-paystack.mjs" >/tmp/e2e-fake.log 2>&1 & PIDS+=($!)
+export RESEND_API_KEY_E2E="re_e2e_test_key" FAKE_RESEND_PORT=4011
+node "$ROOT/e2e/fake-resend.mjs" >/tmp/e2e-resend.log 2>&1 & PIDS+=($!)
 
 SERVICE_KEY="$(node -e '
 const c=require("node:crypto");const b=o=>Buffer.from(JSON.stringify(o)).toString("base64url");
@@ -63,6 +65,8 @@ export NEXT_DIST_DIR=.next-e2e
 export NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:3002 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=e2e-anon-placeholder
 export SUPABASE_SERVICE_ROLE_KEY="$SERVICE_KEY" BOOKING_TOKEN_SECRET="e2e-booking-token-secret-at-least-32-chars"
 export PAYSTACK_API_BASE_URL=http://127.0.0.1:4010
+export RESEND_API_KEY="$RESEND_API_KEY_E2E" EMAIL_FROM="Hotel A <bookings@hotel-a.test>" RESEND_API_BASE_URL=http://127.0.0.1:4011 EMAIL_LINK_SCHEME=http
+export CRON_SECRET="e2e-cron-secret-e2e-cron-secret-e2e-cron-secret"
 (cd "$ROOT" && npx next build >/tmp/e2e-build.log 2>&1) || { tail -30 /tmp/e2e-build.log; exit 1; }
 (cd "$ROOT" && npx next start -p 3100 >/tmp/e2e-next.log 2>&1) & PIDS+=($!)
 

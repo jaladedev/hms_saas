@@ -22,12 +22,14 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [x] `create_reservation` (single and multi-room, all-or-nothing, idempotent, audited) with advisory locks against deadlocks (007)
 - [x] `transfer_room`, `create_room_block` / `release_room_block` with conflict list and optional move (008); all take the advisory lock via `claim_room`
 - [x] `create_hold` (host-resolved tenant, `service_role` only, own idempotency, caps per email) and `resolve_host` (009); `session_user` check replaced by `is_system_caller()` so it works behind PostgREST
-- [x] `expire_lapsed_holds` sweep (011); still needs a scheduler (pg_cron or a Supabase scheduled function calling it with the service key)
+- [x] `expire_lapsed_holds` sweep (011), now called by `/api/cron/maintenance`; a scheduler must still be configured to call that route
 - [x] Guest booking tokens: stateless and signed (`lib/booking-token.ts`), no table needed; `guest_booking_status` (013) returns what a guest may see
 - [x] Paystack webhook route with signature check, re-verification and tenant scoping
 - [x] Guest booking flow: availability search, reserve, hold, pay (Paystack initialize), status page by token, confirmation after webhook (014 and the pages under `app/(site)`), proven by `npm run e2e`
-- [ ] Email the booking link after `create_hold` and after payment, and a way to re-issue a link from booking reference plus email (links expire after 3 days and cannot be revoked)
-- [ ] Rate limiting on the guest actions (hold, pay) by IP: each hold spends inventory for up to the hold time; the per-email cap is the only limit today
+- [x] Guest emails: hold, confirmation, refund processed and re-issued link, through a durable outbox (015) sent by `lib/email` with Resend; link re-issue at `/booking/find`
+- [ ] Staff view of the email outbox (failed emails after 5 attempts need a person) and a resend button
+- [ ] Email for cancellation by the hotel, and for a booking flagged `paid_inventory_lost` (the guest is owed an explanation); neither is queued today
+- [x] Rate limiting on guest actions (search, hold, pay, link requests) by keyed hash of address, email or reservation (015)
 - [ ] Guest site polish: hotel name and branding before a search, photos and amenities for room types, cancellation and payment policy text on the reserve page, a proper not-found page for dead links
 - [ ] Dynamic hold length on the countdown (the page shows minutes left only at render time)
 - [ ] Refund payout route for staff: `begin_refund_processing`, then Paystack `POST /refund`, then `record_refund_result` (the webhook also reports the result)

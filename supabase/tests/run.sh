@@ -68,6 +68,10 @@ GB="$(psql -f "$HERE/11_guest_booking.sql" 2>&1)" || { echo "$GB"; echo "GUEST B
 echo "$GB" | grep -E 'PASS' || true
 if echo "$GB" | grep -qE 'FAIL|ERROR'; then echo "$GB"; echo "GUEST BOOKING TESTS FAILED"; exit 1; fi
 
+EM="$(psql -f "$HERE/12_email_rate_limits.sql" 2>&1)" || { echo "$EM"; echo "EMAIL TESTS FAILED"; exit 1; }
+echo "$EM" | grep -E 'PASS' || true
+if echo "$EM" | grep -qE 'FAIL|ERROR'; then echo "$EM"; echo "EMAIL TESTS FAILED"; exit 1; fi
+
 echo "--- concurrency: last room race (1 room, 50 clients)"
 cat > "$DATA/race_one.sql" <<'SQL'
 select test_try_claim('last_room', '00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', '2027-10-01', '2027-10-03');
@@ -180,5 +184,17 @@ psql -At -c "do \$\$ declare v_pay uuid := (select c_pay from t09_ctx where labe
   if (select count(*) from test_results where label = 'refund_race' and ok) <> 1 then raise exception 'FAIL refund race winners'; end if;
   if (select count(*) from test_results where label like '%gave_up') <> 0 then raise exception 'FAIL deadlock retries exhausted'; end if;
   if (select coalesce(sum(amount_minor), 0) from refunds where payment_id = v_pay and refund_status in ('requested','approved','processing','succeeded')) <> 600000 then raise exception 'FAIL refunds exceed or miss'; end if;
+end \$\$"
+echo "--- concurrency: email workers (20 pending emails, 30 workers claiming one each)"
+# earlier races create website holds, which queue their own emails: leave only the 20 fixture rows claimable
+psql -c "update email_outbox set status = 'sent', sent_at = now() where status = 'pending' and (dedupe_key is null or dedupe_key not like 'race-%')"
+cat > "$DATA/claim_race.sql" <<'SQL'
+select test_try_claim('claim_race');
+SQL
+bench -c 30 -j 10 -t 1 -f "$DATA/claim_race.sql"
+psql -At -c "select 'claimed=' || count(*) filter (where ok) || ' empty=' || count(*) filter (where not ok) from test_results where label = 'claim_race'"
+psql -At -c "do \$\$ begin
+  if (select count(*) from t12_claims) <> 20 or (select count(distinct email_id) from t12_claims) <> 20 then raise exception 'FAIL an email was claimed twice or missed'; end if;
+  if (select count(*) from email_outbox where status = 'sending' and dedupe_key like 'race-%') <> 20 then raise exception 'FAIL claimed rows not marked sending'; end if;
 end \$\$"
 echo "ALL TESTS PASSED"

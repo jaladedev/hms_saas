@@ -47,6 +47,7 @@ Supabase's `auth` schema, then runs:
 - `03_security.sql`: cross-tenant reads and writes, role limits, revoked membership, anon
 - `04_reservations.sql`: pricing, tax rounding, multi-room, all-or-nothing, idempotency, permissions, online holds, tiling, audit
 - `05_operations.sql`: check-in, check-out, transfers, blocks, cancellation
+- `12_email_rate_limits.sql`: email outbox (triggers, claim, retry, stuck-worker recovery), link re-issue, rate limits, purge, access limits; plus a claim race (30 workers, 20 emails, each claimed once)
 - `11_guest_booking.sql`: public availability search (counts, pricing parity with `create_hold`, filters, host isolation), payment start context, access limits
 - `10_webhook_support.sql`: provider account lookup for webhook URLs, refund webhook matching, guest booking status, access limits
 - `09_refunds.sql`: refund request and approval (two-person rule), caps, manual and provider payouts, reversal, voiding a refunded invoice, immutability; plus a refund race (20 requests, exactly 1 fits)
@@ -73,6 +74,7 @@ Supabase's `auth` schema, then runs:
 | 012 refunds | refunds; `request_refund`, `approve_refund`, `record_manual_refund`, `reverse_payment`; provider side `begin_refund_processing`, `record_refund_result` (`service_role` only); statuses follow money held |
 | 013 webhook_support | `payment_provider_account_for_webhook`, `find_processing_refund`, `guest_booking_status` (`service_role` only); `confirm_payment` gained a tenant scope |
 | 014 guest_booking_support | `search_availability(host, arrival, departure, adults, children)`, `payment_start_context(reservation)` (`service_role` only) |
+| 015 email_and_rate_limits | `email_outbox` filled by triggers, `claim_emails`, `mark_email_result`, `request_booking_link`, `consume_rate_limit`, `purge_old_operational_data` (`service_role` only) |
 
 File numbers differ from the design doc's list because claims were built early to prove the
 double-booking protection. Next: the booking site (search, hold, pay, status pages), staff UI, and a scheduler for `expire_lapsed_holds`. Built so far on the app side: the Paystack webhook route and guest booking tokens. Follow the gates in System Design section 11.
@@ -86,7 +88,9 @@ Foundation only. Screens are placeholders; no sign-in form yet.
 Guest booking site (host decides the hotel; nothing tenant-related comes from the browser):
 - `/` search by dates and guests, priced room types with how many are left.
 - `/reserve` quote and guest details; the server action calls `create_hold` and redirects to `/booking/<token>`.
+- `/booking/find` asks for booking reference plus email and emails a fresh link (the answer is the same whether or not anything matched).
 - `/booking/<token>` booking status, hold countdown, **Pay now** (server action: `create_payment_attempt`, then Paystack initialize, then redirect to checkout). Returning from checkout shows a "confirming your payment" page that refreshes until the webhook has confirmed the booking.
 - `app/api/webhooks/paystack/[account]/route.ts`: one webhook URL per provider account. Decision logic lives in `lib/webhooks/paystack.ts` (testable without Next.js or Supabase).
+- `lib/email/*` (templates, Resend mailer, outbox drain), `lib/rate-limit.ts`, `lib/maintenance.ts`, and `app/api/cron/maintenance/route.ts` (hold expiry, email backstop, cleanup; call it every few minutes with `Authorization: Bearer $CRON_SECRET`).
 - `lib/paystack.ts` (signature check, verify, initialize), `lib/booking-token.ts` (stateless signed links), `lib/provider-secret.ts` (`env:NAME` pointers), `lib/guest-site/*` (formatting, parameters, friendly errors, server calls).
 - `npm test` runs the unit tests (vitest). `npm run db:test` runs the database suite. `npm run e2e` runs the whole guest flow against a real Postgres, real PostgREST (signed JWTs) and a fake Paystack; it needs PostgreSQL 16 server binaries and downloads the PostgREST binary to `/tmp` on first run.

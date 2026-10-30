@@ -1,10 +1,13 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { z } from "zod";
 import { createBookingToken } from "@/lib/booking-token";
 import { serverEnv } from "@/lib/env";
 import { guestSchema, parseStayParams, stayQuery, uuidSchema } from "@/lib/guest-site/params";
+import { drainNow } from "@/lib/email/server";
+import { checkGuestLimits } from "@/lib/guest-site/limits";
 import { createHold, requestHost } from "@/lib/guest-site/server";
 
 const BOOKING_LINK_TTL_SECONDS = 3 * 24 * 60 * 60;
@@ -24,6 +27,9 @@ export async function reserveAction(formData: FormData): Promise<void> {
   const guest = guestSchema.safeParse(fields);
   if (!input.success || !guest.success) redirect(`${base}&error=bad_request`);
 
+  const limit = await checkGuestLimits({ ip: ["hold"], keyed: [{ rule: "holdEmail", value: guest.data.email }] });
+  if (!limit.allowed) redirect(`${base}&error=rate_limited`);
+
   const result = await createHold({
     host: await requestHost(),
     stay,
@@ -34,6 +40,7 @@ export async function reserveAction(formData: FormData): Promise<void> {
   });
   if (!result.ok) redirect(`${base}&error=${result.error.code}`);
 
+  after(() => { drainNow(5).catch(() => {}); });   // quick send; the maintenance route is the backstop
   const token = createBookingToken(result.data.reservation_id, serverEnv().BOOKING_TOKEN_SECRET, BOOKING_LINK_TTL_SECONDS);
   redirect(`/booking/${token}`);
 }

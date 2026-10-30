@@ -1,6 +1,7 @@
 import { formatMoney } from "@/lib/guest-site/format";
 import { messageForCode } from "@/lib/guest-site/errors";
 import { parseStayParams, stayQuery } from "@/lib/guest-site/params";
+import { checkGuestLimits } from "@/lib/guest-site/limits";
 import { requestHost, searchAvailability } from "@/lib/guest-site/server";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +11,8 @@ type Props = { searchParams: Promise<Record<string, string | string[] | undefine
 export default async function GuestHome({ searchParams }: Props) {
   const raw = await searchParams;
   const stay = parseStayParams(raw);
-  const result = stay ? await searchAvailability(await requestHost(), stay) : null;
+  const limited = stay ? !(await checkGuestLimits({ ip: ["search"] })).allowed : false;
+  const result = stay && !limited ? await searchAvailability(await requestHost(), stay) : null;
   const today = new Date().toISOString().slice(0, 10);
   const notice = typeof raw.error === "string" ? messageForCode(raw.error) : null;
 
@@ -35,6 +37,7 @@ export default async function GuestHome({ searchParams }: Props) {
         <button type="submit" className="col-span-2 rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-strong sm:col-span-4">Search</button>
       </form>
 
+      {limited ? <p role="alert" className="mt-6 text-critical">{messageForCode("rate_limited")}</p> : null}
       {raw.arrival && !stay ? <p className="mt-6 text-critical">Please check your dates and guest numbers.</p> : null}
       {result && !result.ok ? <p role="alert" className="mt-6 text-critical">{result.error.message}</p> : null}
 

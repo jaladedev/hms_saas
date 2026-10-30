@@ -22,6 +22,7 @@ export function friendlyError(message: string | undefined | null): GuestError {
 const BY_CODE = new Map(RULES.map(([, e]) => [e.code, e]));
 BY_CODE.set("unknown", { code: "unknown", message: "Something went wrong on our side. Please try again in a moment." });
 BY_CODE.set("payment_unavailable", { code: "payment_unavailable", message: "We could not open the payment page. Please try again." });
+BY_CODE.set("rate_limited", { code: "rate_limited", message: "Too many attempts. Please wait a few minutes and try again." });
 BY_CODE.set("bad_request", { code: "bad_request", message: "Please check the details you entered." });
 
 /** Looks up a message for a code carried in a redirect URL. Unknown codes are not echoed back. */
