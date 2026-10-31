@@ -17,13 +17,19 @@ const key = z.string().min(8).max(100);
 const uuid = z.guid();
 
 export async function setHousekeeping(formData: FormData) {
-  const parsed = z.object({ roomId: uuid, status: z.enum(HOUSEKEEPING_STATUSES) }).safeParse(Object.fromEntries(formData));
+  // The room board and the housekeeping worklist both use this; only those two pages may be returned to.
+  const parsed = z.object({
+    roomId: uuid, status: z.enum(HOUSEKEEPING_STATUSES),
+    returnTo: z.enum([BOARD, "/app/housekeeping"]).default(BOARD),
+  }).safeParse(Object.fromEntries(formData));
   if (!parsed.success) return back(BOARD, { err: "bad_request" });
+  const page = parsed.data.returnTo;
   const supabase = await staffClient();
   const { error } = await supabase.rpc("set_housekeeping_status", { p_room_id: parsed.data.roomId, p_status: parsed.data.status });
-  if (error) return fail(BOARD, error.message);
+  if (error) return fail(page, error.message);
   revalidatePath(BOARD);
-  return ok(BOARD, "housekeeping_set");
+  revalidatePath("/app/housekeeping");
+  return ok(page, "housekeeping_set");
 }
 
 export async function blockRoom(formData: FormData) {
