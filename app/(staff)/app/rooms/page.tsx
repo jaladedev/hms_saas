@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { buttonDanger, buttonPrimary, buttonQuiet, inputClass, Notice } from "@/components/staff/ui";
 import { formatDate } from "@/lib/guest-site/format";
-import { compareRoomNumbers, countStates, roomViews, STATE_LABEL, type BoardClaim, type BoardRoom, type RoomState } from "@/lib/staff/room-board";
+import { compareRoomNumbers, countStates, HOUSEKEEPING_STATUSES, roomViews, STATE_LABEL, type BoardClaim, type BoardRoom, type RoomState } from "@/lib/staff/room-board";
+import { blockRoom, releaseBlock, setHousekeeping } from "@/lib/staff/room-actions";
 import { todayIn } from "@/lib/staff/reservations";
 import { createClient } from "@/lib/supabase/server";
 
@@ -17,7 +19,8 @@ const CHIP: Record<RoomState, string> = {
 };
 const HOUSEKEEPING: Record<string, string> = { clean: "Clean", dirty: "Dirty", in_progress: "Being cleaned", inspected: "Inspected" };
 
-export default async function RoomBoardPage() {
+export default async function RoomBoardPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const search = await searchParams;
   const supabase = await createClient();
   const [roomQ, propQ] = await Promise.all([
     supabase.from("rooms").select("id, property_id, room_type_id, room_number, floor, operational_status, housekeeping_status").limit(1000),
@@ -33,7 +36,7 @@ export default async function RoomBoardPage() {
   // Claims that end today or later, so what is on each room now and next is known.
   const claimQ = rooms.length && horizon
     ? await supabase.from("room_inventory_claims")
-        .select("room_id, claim_type, start_date, end_date, reservation_room_id, block_reason")
+        .select("id, room_id, claim_type, start_date, end_date, reservation_room_id, block_reason")
         .eq("status", "active").gt("end_date", horizon).limit(5000)
     : { data: [] };
   const claims = (claimQ.data ?? []) as BoardClaim[];
@@ -56,6 +59,16 @@ export default async function RoomBoardPage() {
   const typeQ = typeIds.length ? await supabase.from("room_types").select("id, name").in("id", typeIds) : { data: [] };
   const typeNames = new Map(((typeQ.data ?? []) as { id: string; name: string }[]).map((t) => [t.id, t.name]));
 
+  // What the viewer may do at each property; the database checks again on every action.
+  const can = new Map<string, { housekeeping: boolean; block: boolean }>();
+  await Promise.all(properties.map(async (p) => {
+    const [h, b] = await Promise.all([
+      supabase.rpc("has_permission", { p_property: p.id, p_permission: "housekeeping.update" }),
+      supabase.rpc("has_permission", { p_property: p.id, p_permission: "room.block" }),
+    ]);
+    can.set(p.id, { housekeeping: h.data === true, block: b.data === true });
+  }));
+
   const views = roomViews(rooms, claims, checkedIn, today)
     .sort((a, b) => compareRoomNumbers(a.room.room_number, b.room.room_number));
   const counts = countStates(views);
@@ -73,6 +86,7 @@ export default async function RoomBoardPage() {
       <h1 className="font-display text-3xl">Rooms</h1>
       <p className="mt-2 max-w-prose text-muted">What every room is doing today. Open a booking to check someone in or out.</p>
 
+      <div className="mt-6"><Notice search={search} currency="NGN" /></div>
       {loadError && <p role="alert" className="mt-6 border-l-4 border-critical bg-critical/5 px-4 py-3 text-sm text-critical">The rooms could not be loaded. Reload the page.</p>}
 
       {views.length > 0 && (
@@ -120,6 +134,47 @@ export default async function RoomBoardPage() {
                         <>{nextRes ? <Link href={`/app/reservations/${nextRes.id}`} className="underline underline-offset-2">{nextRes.booking_reference}</Link> : "booking"} from {formatDate(v.next.start_date)}</>
                       )}
                     </p>
+                  )}
+                  {(can.get(v.room.property_id)?.housekeeping || can.get(v.room.property_id)?.block) && v.state !== "retired" && (
+                    <details className="mt-3 border-t border-line pt-2">
+                      <summary className="cursor-pointer text-xs font-medium text-primary-strong">Manage</summary>
+                      {can.get(v.room.property_id)?.housekeeping && (
+                        <form action={setHousekeeping} className="mt-2 flex flex-wrap items-center gap-2">
+                          <input type="hidden" name="roomId" value={v.room.id} />
+                          <label htmlFor={`hk-${v.room.id}`} className="text-xs text-muted">Cleaning</label>
+                          <select id={`hk-${v.room.id}`} name="status" defaultValue={v.room.housekeeping_status} className={`${inputClass} w-auto`}>
+                            {HOUSEKEEPING_STATUSES.map((st) => <option key={st} value={st}>{HOUSEKEEPING[st]}</option>)}
+                          </select>
+                          <button type="submit" className={buttonQuiet}>Save</button>
+                        </form>
+                      )}
+                      {can.get(v.room.property_id)?.block && v.state === "blocked" && v.current && (
+                        <form action={releaseBlock} className="mt-3">
+                          <input type="hidden" name="blockId" value={v.current.id} />
+                          <button type="submit" className={buttonDanger}>Remove this block</button>
+                        </form>
+                      )}
+                      {can.get(v.room.property_id)?.block && (
+                        <form action={blockRoom} className="mt-3 grid gap-2">
+                          <input type="hidden" name="roomId" value={v.room.id} />
+                          <input type="hidden" name="idempotencyKey" value={crypto.randomUUID()} />
+                          <p className="text-xs font-medium">Block this room</p>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label htmlFor={`bs-${v.room.id}`} className="block text-xs text-muted">From</label>
+                              <input id={`bs-${v.room.id}`} name="start" type="date" required min={today.get(v.room.property_id)} defaultValue={today.get(v.room.property_id)} className={inputClass} />
+                            </div>
+                            <div>
+                              <label htmlFor={`be-${v.room.id}`} className="block text-xs text-muted">Until (free again on)</label>
+                              <input id={`be-${v.room.id}`} name="end" type="date" required className={inputClass} />
+                            </div>
+                          </div>
+                          <label htmlFor={`br-${v.room.id}`} className="block text-xs text-muted">Reason</label>
+                          <input id={`br-${v.room.id}`} name="reason" required maxLength={500} className={inputClass} />
+                          <div><button type="submit" className={buttonPrimary}>Block room</button></div>
+                        </form>
+                      )}
+                    </details>
                   )}
                 </li>
               );

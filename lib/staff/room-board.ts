@@ -5,9 +5,11 @@ export type BoardRoom = {
   operational_status: string; housekeeping_status: string;
 };
 export type BoardClaim = {
-  room_id: string; claim_type: string; start_date: string; end_date: string;
+  id: string; room_id: string; claim_type: string; start_date: string; end_date: string;
   reservation_room_id: string | null; block_reason: string | null;
 };
+
+export const HOUSEKEEPING_STATUSES = ["clean", "dirty", "in_progress", "inspected"] as const;
 
 export type RoomState = "retired" | "out_of_service" | "occupied" | "arriving" | "held" | "blocked" | "vacant";
 

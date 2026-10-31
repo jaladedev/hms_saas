@@ -7,7 +7,7 @@ function room(id: string, over: Partial<BoardRoom> = {}): BoardRoom {
   return { id, property_id: "p1", room_type_id: "t1", room_number: id, floor: 1, operational_status: "active", housekeeping_status: "clean", ...over };
 }
 function claim(room_id: string, start: string, end: string, over: Partial<BoardClaim> = {}): BoardClaim {
-  return { room_id, claim_type: "stay", start_date: start, end_date: end, reservation_room_id: `rr-${room_id}-${start}`, block_reason: null, ...over };
+  return { id: `c-${room_id}-${start}`, room_id, claim_type: "stay", start_date: start, end_date: end, reservation_room_id: `rr-${room_id}-${start}`, block_reason: null, ...over };
 }
 const stateOf = (views: ReturnType<typeof roomViews>, id: string) => views.find((v) => v.room.id === id)?.state;
 
@@ -61,5 +61,17 @@ describe("countStates and compareRoomNumbers", () => {
   });
   it("orders room numbers naturally", () => {
     expect(["10", "2", "101", "1", "101A"].sort(compareRoomNumbers)).toEqual(["1", "2", "10", "101", "101A"]);
+  });
+});
+
+describe("block conflicts and housekeeping wording", () => {
+  it("words the new refusals and carries the clash count", async () => {
+    const { classifyRpcError, errorMessage } = await import("./refunds");
+    expect(classifyRpcError("POLICY_VIOLATION: block cannot start in the past").code).toBe("block_past");
+    expect(classifyRpcError("POLICY_VIOLATION: invalid block request").code).toBe("block_invalid");
+    expect(classifyRpcError("INVALID_STATE: room retired").code).toBe("room_retired");
+    expect(errorMessage("block_conflict", 1, String)).toMatch(/1 booking is already/);
+    expect(errorMessage("block_conflict", 3, String)).toMatch(/3 bookings are already/);
+    expect(errorMessage("block_conflict", null, String)).toMatch(/Bookings are already/);
   });
 });

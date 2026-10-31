@@ -105,7 +105,8 @@ export type ErrorCode =
   | "room_not_ready" | "room_not_active" | "payment_required" | "early_checkin" | "stay_ended" | "no_stay_claim"
   | "overpayment" | "method_invalid" | "not_cancellable"
   | "room_unavailable" | "capacity" | "rate_missing" | "forbidden" | "arrival_past" | "dates_invalid"
-  | "guest_name_required" | "too_long_stay" | "room_type_missing" | "guest_failed";
+  | "guest_name_required" | "too_long_stay" | "room_type_missing" | "guest_failed"
+  | "block_conflict" | "block_past" | "block_invalid" | "room_retired";
 
 /**
  * Maps a database error message to a code, and an amount when the database reports one. The amount
@@ -130,6 +131,10 @@ export function classifyRpcError(message: string): { code: ErrorCode; refundable
   if (/EARLY_CHECKIN_NOT_SUPPORTED/.test(message)) return { code: "early_checkin" };
   if (/stay already ended/.test(message)) return { code: "stay_ended" };
   if (/no stay claim for today/.test(message)) return { code: "no_stay_claim" };
+  if (/block cannot start in the past/.test(message)) return { code: "block_past" };
+  if (/invalid block request/.test(message)) return { code: "block_invalid" };
+  if (/room retired/.test(message)) return { code: "room_retired" };
+  if (/housekeeping status/.test(message)) return { code: "bad_request" };
   if (/ROOM_UNAVAILABLE/.test(message)) return { code: "room_unavailable" };
   if (/CAPACITY_EXCEEDED/.test(message)) return { code: "capacity" };
   if (/RATE_MISSING/.test(message)) return { code: "rate_missing" };
@@ -153,6 +158,9 @@ export const OK_MESSAGES = {
   checked_out: "Room checked out. It is now marked dirty for housekeeping.",
   payment_recorded: "Payment recorded.",
   created: "Reservation created and confirmed. The room is held for the guest.",
+  housekeeping_set: "Room status updated.",
+  blocked: "Room blocked for those dates.",
+  block_released: "Block removed. The room can be booked again.",
 } as const;
 export type OkCode = keyof typeof OK_MESSAGES;
 
@@ -185,6 +193,10 @@ export function errorMessage(code: string, refundable: number | null, formatMino
     case "guest_name_required": return "Enter the guest's name.";
     case "room_type_missing": return "That room type or property is no longer available. Reload the form.";
     case "guest_failed": return "The guest could not be saved. Check the email and phone number and try again.";
+    case "block_conflict": return refundable !== null ? `${refundable} ${refundable === 1 ? "booking is" : "bookings are"} already on that room for those dates, so it was not blocked. Move ${refundable === 1 ? "it" : "them"} first.` : "Bookings are already on that room for those dates, so it was not blocked.";
+    case "block_past": return "A block cannot start in the past. Choose today or a later date.";
+    case "block_invalid": return "Enter a reason and an end date after the start date.";
+    case "room_retired": return "That room is retired, so it cannot be changed.";
     case "provider_payment": return "Card and online payments are paid out through the provider, not recorded by hand.";
     case "bad_request": return "The form was incomplete. Reload the page and try again.";
     default: return "Something went wrong. Nothing was changed; try again, and tell a developer if it keeps happening.";

@@ -69,7 +69,7 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [ ] Multi-room create, a chosen physical room, edit dates and guests, staff-created holds that wait for payment
 - [ ] Room transfer screen (the `transfer_room` function exists, no UI), invoice issue and void buttons on the details page
 - [x] Front desk board (`/app/front-desk`: arrivals, departures, in house, overdue departures, late arrivals; each links to the booking)
-- [x] Room board (`/app/rooms`, read-only: state of every room today, occupant, blocks, next booking; blocking and housekeeping changes have no screen yet)
+- [x] Room board (`/app/rooms`, read-only: state of every room today, occupant, blocks, next booking; each room card can set its cleaning status (migration 018) and block or unblock it; a block that would clash with a booking is refused and the booking has to be moved first)
 - [ ] Guests, invoices, housekeeping, staff and permissions
 - [ ] Hotel runs one full real day in staging with no spreadsheet fallback
 
