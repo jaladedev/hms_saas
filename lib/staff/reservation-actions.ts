@@ -6,7 +6,7 @@ import { back, fail, ok, staffClient } from "./action-helpers";
 import { parseAmountToMinor } from "./money-input";
 import { classifyRpcError } from "./refunds";
 import { roomsPayload, validateNewReservation } from "./new-reservation";
-import { isPaymentMethod } from "./reservations";
+import { isPaymentMethod, parseIsoDate } from "./reservations";
 
 /**
  * Staff reservation actions. Like the refund actions, each runs as the signed-in person (never the
@@ -158,4 +158,34 @@ export async function voidInvoice(formData: FormData) {
   if (error) return fail(page, error.message);
   refresh(parsed.data.reservationId);
   return ok(page, "invoice_voided");
+}
+
+/**
+ * Moves the rest of a guest's stay, from a chosen date, to another room of the same type (a chosen room, or the
+ * first free one when none is named). All or nothing: if the new room is taken, the guest keeps the old one.
+ */
+export async function transferRoom(formData: FormData) {
+  const parsed = z.object({
+    reservationId: uuid, reservationRoomId: uuid, idempotencyKey: key, newRoomId: z.union([uuid, z.literal("")]),
+    effective: z.string().max(10), reason: z.string().max(500),
+  }).safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return back(LIST, { err: "bad_request" });
+  const page = pageFor(parsed.data.reservationId);
+  const effective = parseIsoDate(parsed.data.effective);
+  if (!effective) return back(page, { err: "bad_request" });
+  if (!parsed.data.reason.trim()) return back(page, { err: "reason_required" });
+
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("transfer_room", {
+    p_reservation_room_id: parsed.data.reservationRoomId, p_new_room_id: parsed.data.newRoomId || null,
+    p_effective: effective, p_reason: parsed.data.reason.trim(), p_idempotency_key: parsed.data.idempotencyKey,
+  });
+  if (error) {
+    // Here "unavailable" means the guest stays where they are, not that a booking failed.
+    return classifyRpcError(error.message).code === "room_unavailable" ? back(page, { err: "transfer_unavailable" }) : fail(page, error.message);
+  }
+  refresh(parsed.data.reservationId);
+  revalidatePath("/app/rooms");
+  revalidatePath("/app/front-desk");
+  return ok(page, "transferred");
 }

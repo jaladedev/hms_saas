@@ -4,10 +4,11 @@ import { z } from "zod";
 import { buttonDanger, buttonPrimary, buttonQuiet, inputClass, Notice, PaymentChip, ReservationChip } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { formatDateTime } from "@/lib/staff/format";
-import { cancelReservation, checkInRoom, checkOutRoom, issueInvoice, recordPayment, voidInvoice } from "@/lib/staff/reservation-actions";
+import { cancelReservation, checkInRoom, checkOutRoom, issueInvoice, recordPayment, transferRoom, voidInvoice } from "@/lib/staff/reservation-actions";
 import {
   attentionText, detailActions, invoiceActions, type InvoiceRow, nightsBetween, PAYMENT_METHODS, SOURCE_LABEL, todayIn,
 } from "@/lib/staff/reservations";
+import { candidateRooms, canTransfer, transferWindow, type CandidateRoom, type ClaimSpan } from "@/lib/staff/transfer";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -47,14 +48,14 @@ export default async function ReservationPage({
   const res = resRow as Reservation;
 
   const can = (permission: string) => supabase.rpc("has_permission", { p_property: res.property_id, p_permission: permission });
-  const [roomsQ, guestQ, propQ, settleQ, cCancel, cIn, cOut, cPay, invQ, cIssue, cVoid] = await Promise.all([
+  const [roomsQ, guestQ, propQ, settleQ, cCancel, cIn, cOut, cPay, invQ, cIssue, cVoid, cAssign] = await Promise.all([
     supabase.from("reservation_rooms").select("id, room_type_id, room_status, adults, children, checked_in_at, checked_out_at").eq("reservation_id", id).order("created_at"),
     supabase.from("guests").select("full_name, email, phone").eq("id", res.primary_guest_id).maybeSingle(),
     supabase.from("properties").select("name, timezone").eq("id", res.property_id).maybeSingle(),
     supabase.rpc("reservation_settlement", { p_reservation_id: id }),
     can("reservation.cancel"), can("reservation.checkin"), can("reservation.checkout"), can("payment.record"),
     supabase.from("invoices").select("id, invoice_number, invoice_status, total_minor").eq("reservation_id", id).order("created_at"),
-    can("invoice.issue"), can("invoice.void"),
+    can("invoice.issue"), can("invoice.void"), can("room.assign"),
   ]);
 
   const resRooms = (roomsQ.data ?? []) as ResRoom[];
@@ -70,6 +71,17 @@ export default async function ReservationPage({
   const nights = (nightsQ.data ?? []) as Night[];
   const claims = (claimQ.data ?? []) as Claim[];
   const physicalQ = claims.length ? await supabase.from("rooms").select("id, room_number, housekeeping_status, operational_status").in("id", [...new Set(claims.map((c) => c.room_id))]) : { data: [] };
+  // Rooms a guest could be moved to, and what is already claimed on them. Only read when a move can be offered.
+  const mayMove = cAssign.data === true && resRooms.some((r) => canTransfer(r.room_status, res.reservation_status, true));
+  const moveTypes = mayMove ? [...new Set(resRooms.map((r) => r.room_type_id))] : [];
+  const sameTypeQ = moveTypes.length
+    ? await supabase.from("rooms").select("id, room_number, room_type_id, operational_status").eq("property_id", res.property_id).in("room_type_id", moveTypes).eq("operational_status", "active")
+    : { data: [] };
+  const sameTypeRooms = (sameTypeQ.data ?? []) as CandidateRoom[];
+  const claimSpansQ = sameTypeRooms.length
+    ? await supabase.from("room_inventory_claims").select("room_id, start_date, end_date").in("room_id", sameTypeRooms.map((r) => r.id)).eq("status", "active").gt("end_date", res.arrival_date).lt("start_date", res.departure_date)
+    : { data: [] };
+  const spans = (claimSpansQ.data ?? []) as ClaimSpan[];
   const typeNames = new Map(((typeQ.data ?? []) as { id: string; name: string }[]).map((t) => [t.id, t.name]));
   const physical = new Map(((physicalQ.data ?? []) as Room[]).map((r) => [r.id, r]));
 
@@ -175,6 +187,41 @@ export default async function ReservationPage({
                         </details>
                       </form>
                     )}
+                    {(() => {
+                      const win = canTransfer(rr.room_status, res.reservation_status, cAssign.data === true) ? transferWindow(res.arrival_date, res.departure_date, today) : null;
+                      if (!win) return null;
+                      const here = mine.find((c) => c.start_date <= win.initial && c.end_date > win.initial);
+                      const options = candidateRooms(sameTypeRooms, rr.room_type_id, new Set(here ? [here.room_id] : []), win.initial, res.departure_date, spans);
+                      return (
+                        <details>
+                          <summary className="cursor-pointer text-sm font-medium text-primary-strong">Move to another room</summary>
+                          <form action={transferRoom} className="mt-3 space-y-3">
+                            <input type="hidden" name="reservationId" value={res.id} />
+                            <input type="hidden" name="reservationRoomId" value={rr.id} />
+                            <input type="hidden" name="idempotencyKey" value={crypto.randomUUID()} />
+                            <div>
+                              <label htmlFor={`to-${rr.id}`} className="block text-sm">New room</label>
+                              <select id={`to-${rr.id}`} name="newRoomId" defaultValue="" className={inputClass}>
+                                <option value="">Any free room of this type</option>
+                                {options.map((o) => <option key={o.id} value={o.id}>Room {o.room_number}{o.busy ? " (taken for part of this stay)" : ""}</option>)}
+                              </select>
+                            </div>
+                            <div>
+                              <label htmlFor={`on-${rr.id}`} className="block text-sm">Move on</label>
+                              <input id={`on-${rr.id}`} name="effective" type="date" required min={win.min} max={win.max} defaultValue={win.initial} className={inputClass} />
+                            </div>
+                            <div>
+                              <label htmlFor={`why-${rr.id}`} className="block text-sm">Reason</label>
+                              <textarea id={`why-${rr.id}`} name="reason" required maxLength={500} rows={2} className={inputClass} />
+                            </div>
+                            <button type="submit" className={buttonQuiet}>Move guest</button>
+                            <p className="max-w-xs text-xs text-muted">
+                              Same room type only, so the price stays the same. The stay from that date to {formatDate(res.departure_date)} moves; earlier nights stay in the current room. If the new room is taken, nothing changes.
+                            </p>
+                          </form>
+                        </details>
+                      );
+                    })()}
                     {act.checkOut(rr) && (
                       <form action={checkOutRoom} className="space-y-2">
                         <input type="hidden" name="reservationId" value={res.id} />
