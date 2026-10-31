@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { buttonPrimary, inputClass, Notice } from "@/components/staff/ui";
 import { createManualReservation } from "@/lib/staff/reservation-actions";
-import { MANUAL_SOURCES, MAX_NIGHTS } from "@/lib/staff/new-reservation";
+import { MANUAL_SOURCES, MAX_NIGHTS, MAX_ROOMS } from "@/lib/staff/new-reservation";
 import { todayIn } from "@/lib/staff/reservations";
 import { createClient } from "@/lib/supabase/server";
 
@@ -28,7 +28,7 @@ export default async function NewReservationPage({ searchParams }: { searchParam
     <main className="max-w-2xl">
       <p className="text-sm"><Link href="/app/reservations" className="text-primary-strong underline underline-offset-2">Reservations</Link></p>
       <h1 className="mt-2 font-display text-3xl">New reservation</h1>
-      <p className="mt-2 max-w-prose text-muted">For guests who walk in or book by phone. The room is held and the booking is confirmed straight away; record any payment on the booking afterwards.</p>
+      <p className="mt-2 max-w-prose text-muted">For guests who walk in or book by phone. The rooms are held and the booking is confirmed straight away; record any payment on the booking afterwards.</p>
 
       <div className="mt-6"><Notice search={search} currency="NGN" /></div>
 
@@ -50,19 +50,6 @@ export default async function NewReservationPage({ searchParams }: { searchParam
                 </select>
               </div>
             )}
-            <div className="sm:col-span-2">
-              <label htmlFor="roomTypeId" className="block text-sm">Room type</label>
-              <select id="roomTypeId" name="roomTypeId" required defaultValue="" className={inputClass}>
-                <option value="" disabled>Choose…</option>
-                {allowed.map((p) => (
-                  <optgroup key={p.id} label={many ? p.name : "Room types"}>
-                    {types.filter((t) => t.property_id === p.id).map((t) => (
-                      <option key={t.id} value={t.id}>{t.name} (up to {t.max_adults} adults{t.max_children > 0 ? `, ${t.max_children} children` : ""})</option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
-            </div>
             <div>
               <label htmlFor="arrival" className="block text-sm">Arrival</label>
               <input id="arrival" name="arrival" type="date" required min={today} defaultValue={today} className={inputClass} />
@@ -72,14 +59,39 @@ export default async function NewReservationPage({ searchParams }: { searchParam
               <input id="departure" name="departure" type="date" required min={today} className={inputClass} />
               <p className="mt-1 text-xs text-muted">Up to {MAX_NIGHTS} nights. The guest leaves on this day.</p>
             </div>
-            <div>
-              <label htmlFor="adults" className="block text-sm">Adults</label>
-              <input id="adults" name="adults" type="number" inputMode="numeric" min={1} max={20} required defaultValue={1} className={inputClass} />
-            </div>
-            <div>
-              <label htmlFor="children" className="block text-sm">Children</label>
-              <input id="children" name="children" type="number" inputMode="numeric" min={0} max={20} defaultValue={0} className={inputClass} />
-            </div>
+          </fieldset>
+
+          <fieldset className="grid gap-4 rounded border border-line bg-white p-4">
+            <legend className="px-1 text-sm font-medium">Rooms</legend>
+            <p className="text-xs text-muted">Book up to {MAX_ROOMS} rooms together. Leave the extra rows empty for a single room. If any room is unavailable, none are booked.</p>
+            {Array.from({ length: MAX_ROOMS }, (_, n) => n + 1).map((i) => {
+              const sfx = i === 1 ? "" : `_${i}`;
+              return (
+                <div key={i} className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_6rem_6rem]">
+                  <div>
+                    <label htmlFor={`roomTypeId${sfx}`} className="block text-sm">Room {i}{i > 1 ? " (optional)" : ""}</label>
+                    <select id={`roomTypeId${sfx}`} name={`roomTypeId${sfx}`} required={i === 1} defaultValue="" className={inputClass}>
+                      <option value="">{i === 1 ? "Choose…" : "None"}</option>
+                      {allowed.map((p) => (
+                        <optgroup key={p.id} label={many ? p.name : "Room types"}>
+                          {types.filter((t) => t.property_id === p.id).map((t) => (
+                            <option key={t.id} value={t.id}>{t.name} (up to {t.max_adults} adults{t.max_children > 0 ? `, ${t.max_children} children` : ""})</option>
+                          ))}
+                        </optgroup>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor={`adults${sfx}`} className="block text-sm">Adults</label>
+                    <input id={`adults${sfx}`} name={`adults${sfx}`} type="number" inputMode="numeric" min={1} max={20} defaultValue={i === 1 ? 1 : ""} placeholder="1" required={i === 1} className={inputClass} />
+                  </div>
+                  <div>
+                    <label htmlFor={`children${sfx}`} className="block text-sm">Children</label>
+                    <input id={`children${sfx}`} name={`children${sfx}`} type="number" inputMode="numeric" min={0} max={20} defaultValue={i === 1 ? 0 : ""} placeholder="0" className={inputClass} />
+                  </div>
+                </div>
+              );
+            })}
           </fieldset>
 
           <fieldset className="grid gap-4 rounded border border-line bg-white p-4 sm:grid-cols-2">

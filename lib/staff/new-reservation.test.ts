@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { classifyRpcError, errorMessage } from "./refunds";
-import { roomsPayload, validateNewReservation } from "./new-reservation";
+import { MAX_ROOMS, roomsPayload, validateNewReservation } from "./new-reservation";
 
 const P = "11111111-1111-4111-8111-111111111111";
 const T = "22222222-2222-4222-8222-222222222222";
@@ -11,7 +11,7 @@ describe("validateNewReservation", () => {
   it("accepts a good form and cleans it", () => {
     const r = validateNewReservation({ ...base, guestEmail: " ADE@Example.com ", guestPhone: "+234 803 000 0000" });
     expect(r).toEqual({ ok: true, value: {
-      propertyId: P, roomTypeId: T, arrival: "2026-11-05", departure: "2026-11-07", adults: 2, children: 1, source: "walk_in",
+      propertyId: P, rooms: [{ roomTypeId: T, adults: 2, children: 1 }], arrival: "2026-11-05", departure: "2026-11-07", source: "walk_in",
       guest: { name: "Ade Bello", email: "ade@example.com", phone: "+234 803 000 0000" },
     } });
   });
@@ -37,7 +37,36 @@ describe("validateNewReservation", () => {
   });
   it("defaults children to none", () => {
     const r = validateNewReservation({ ...base, children: undefined });
-    expect(r.ok && r.value.children).toBe(0);
+    expect(r.ok && r.value.rooms[0]?.children).toBe(0);
+  });
+});
+
+describe("several rooms", () => {
+  const T2 = "33333333-3333-4333-8333-333333333333";
+  it("reads rooms 2 to 5 from the suffixed fields and skips empty slots", () => {
+    const r = validateNewReservation({ ...base, roomTypeId_2: T2, adults_2: "1", roomTypeId_3: "", adults_3: "5", roomTypeId_4: T, adults_4: "3", children_4: "2" });
+    expect(r.ok && r.value.rooms).toEqual([
+      { roomTypeId: T, adults: 2, children: 1 }, { roomTypeId: T2, adults: 1, children: 0 }, { roomTypeId: T, adults: 3, children: 2 },
+    ]);
+  });
+  it("defaults a later room to one adult and no children", () => {
+    const r = validateNewReservation({ ...base, roomTypeId_2: T2 });
+    expect(r.ok && r.value.rooms[1]).toEqual({ roomTypeId: T2, adults: 1, children: 0 });
+  });
+  it("refuses a bad later room with a specific code", () => {
+    expect(bad({ roomTypeId_2: "nope" })).toBe("room_type_missing");
+    expect(bad({ roomTypeId_2: T2, adults_2: "0" })).toBe("capacity");
+    expect(bad({ roomTypeId_2: T2, children_2: "x" })).toBe("capacity");
+  });
+  it("allows up to the maximum and builds one payload entry per room", () => {
+    const five = Object.fromEntries([2, 3, 4, 5].map((i) => [`roomTypeId_${i}`, T2]));
+    const r = validateNewReservation({ ...base, ...five });
+    expect(r.ok && r.value.rooms).toHaveLength(MAX_ROOMS);
+    expect(r.ok && roomsPayload(r.value).map((x) => x.room_type_id)).toEqual([T, T2, T2, T2, T2]);
+  });
+  it("ignores a sixth room slot", () => {
+    const r = validateNewReservation({ ...base, roomTypeId_6: T2 });
+    expect(r.ok && r.value.rooms).toHaveLength(1);
   });
 });
 

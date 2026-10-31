@@ -11,9 +11,13 @@ export type ManualSource = (typeof MANUAL_SOURCES)[number]["value"];
 
 export const MAX_NIGHTS = 30;
 
+export const MAX_ROOMS = 5;
+
+export type RoomRequest = { roomTypeId: string; adults: number; children: number };
+
 export type NewReservation = {
-  propertyId: string; roomTypeId: string; arrival: string; departure: string;
-  adults: number; children: number; source: ManualSource;
+  propertyId: string; rooms: RoomRequest[]; arrival: string; departure: string;
+  source: ManualSource;
   guest: { name: string; email: string | null; phone: string | null };
 };
 
@@ -29,8 +33,7 @@ const wholeNumber = (v: unknown, min: number, max: number): number | null => {
 /** The first thing wrong with the form as an error code, or the cleaned values. */
 export function validateNewReservation(raw: Record<string, unknown>): { ok: true; value: NewReservation } | { ok: false; code: ErrorCode } {
   const propertyId = clean(raw.propertyId, 40);
-  const roomTypeId = clean(raw.roomTypeId, 40);
-  if (!GUID.test(propertyId) || !GUID.test(roomTypeId)) return { ok: false, code: "bad_request" };
+  if (!GUID.test(propertyId)) return { ok: false, code: "bad_request" };
 
   const name = clean(raw.guestName, 120);
   if (!name) return { ok: false, code: "guest_name_required" };
@@ -44,17 +47,27 @@ export function validateNewReservation(raw: Record<string, unknown>): { ok: true
   if (!arrival || !departure || departure <= arrival) return { ok: false, code: "dates_invalid" };
   if (nightsBetween(arrival, departure) > MAX_NIGHTS) return { ok: false, code: "too_long_stay" };
 
-  const adults = wholeNumber(raw.adults, 1, 20);
-  const children = wholeNumber(raw.children ?? "0", 0, 20);
-  if (adults === null || children === null) return { ok: false, code: "capacity" };
+  // Room 1 uses roomTypeId / adults / children; rooms 2 to MAX_ROOMS use the same names with _2 ... _5.
+  // A later slot with no room type is simply unused. Room 1 is required.
+  const rooms: RoomRequest[] = [];
+  for (let i = 1; i <= MAX_ROOMS; i++) {
+    const sfx = i === 1 ? "" : `_${i}`;
+    const roomTypeId = clean(raw[`roomTypeId${sfx}`], 40);
+    if (i > 1 && roomTypeId === "") continue;
+    if (!GUID.test(roomTypeId)) return { ok: false, code: i === 1 ? "bad_request" : "room_type_missing" };
+    const adults = wholeNumber(raw[`adults${sfx}`] ?? (i > 1 ? "1" : undefined), 1, 20);
+    const children = wholeNumber(raw[`children${sfx}`] ?? "0", 0, 20);
+    if (adults === null || children === null) return { ok: false, code: "capacity" };
+    rooms.push({ roomTypeId, adults, children });
+  }
 
   const source = MANUAL_SOURCES.find((s) => s.value === raw.source)?.value;
   if (!source) return { ok: false, code: "bad_request" };
 
-  return { ok: true, value: { propertyId, roomTypeId, arrival, departure, adults, children, source, guest: { name, email: email || null, phone: phone || null } } };
+  return { ok: true, value: { propertyId, rooms, arrival, departure, source, guest: { name, email: email || null, phone: phone || null } } };
 }
 
 /** The `p_rooms` argument for create_reservation. The rate plan is left null so the property's default applies. */
 export function roomsPayload(v: NewReservation) {
-  return [{ room_type_id: v.roomTypeId, requested_room_id: null, rate_plan_id: null, adults: v.adults, children: v.children }];
+  return v.rooms.map((r) => ({ room_type_id: r.roomTypeId, requested_room_id: null, rate_plan_id: null, adults: r.adults, children: r.children }));
 }
