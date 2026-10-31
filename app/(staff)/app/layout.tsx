@@ -1,7 +1,23 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
+
+// Items without an href are placeholders until their phase lands.
+const NAV: { label: string; href?: string }[] = [
+  { label: "Overview", href: "/app" },
+  { label: "Front Desk" },
+  { label: "Reservations" },
+  { label: "Room Management" },
+  { label: "Guests" },
+  { label: "Housekeeping" },
+  { label: "Payments & Billing" },
+  { label: "Refunds", href: "/app/refunds" },
+  { label: "Reports" },
+  { label: "Staff & Permissions" },
+  { label: "Settings" },
+];
 
 // Every /app route requires a signed-in user. Permission checks happen again in the
 // database (RLS and has_permission); this redirect is only the first layer.
@@ -15,10 +31,13 @@ export default async function StaffLayout({ children }: { children: React.ReactN
       <aside className="w-60 shrink-0 bg-navy-900 p-4 text-sm text-white">
         <div className="font-display text-xl">HMS</div>
         <nav className="mt-6 space-y-2 text-white/80">
-          {["Overview", "Front Desk", "Reservations", "Room Management", "Guests", "Housekeeping",
-            "Payments & Billing", "Reports", "Staff & Permissions", "Settings"].map((item) => (
-            <div key={item}>{item}</div>
-          ))}
+          {NAV.map((item) =>
+            item.href ? (
+              <Link key={item.label} href={item.href} className="block text-white focus-visible:outline-2 focus-visible:outline-white">{item.label}</Link>
+            ) : (
+              <div key={item.label}>{item.label}</div>
+            ),
+          )}
         </nav>
       </aside>
       <div className="flex-1 p-6">{children}</div>
