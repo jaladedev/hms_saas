@@ -65,7 +65,8 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [x] Sign in, forgot and reset password
 - [x] Staff and permissions (`/app/staff`, owner only): list with roles, invite by email (Supabase invite for new people), add or remove a role per property, suspend, restore, remove. Not built: custom roles, editing a role's permissions, a staff member's own profile page, platform-admin tools
 - [x] Room types and rooms setup (`/app/settings/rooms`: add types and rooms, put a room in or out of service or retire it; direct writes under row-level security, not audited)
-- [ ] Rates (daily rates, seasonal plans), tax rules, cancellation and payment policies, editing and deactivating room types, first-run wizard
+- [x] Rates setup (`/app/settings/rates`: create the standard rate plan, set or clear a nightly price for a date range per room type)
+- [ ] Tax rules, cancellation and payment policies, editing and deactivating room types, first-run wizard
 - [x] Reservation list (`/app/reservations`: search by reference, guest name, email or phone; status, attention and arrival-date filters; paged) and details (`/app/reservations/[id]`: rooms with assigned room number and cleanliness, money summary, cancel, per-room check-in with override reason, per-room check-out, manual payment)
 - [x] Reservation create for walk-in and phone bookings (`/app/reservations/new`, one room per booking, default rate plan, confirmed at once)
 - [ ] Multi-room create, a chosen physical room, edit dates and guests, staff-created holds that wait for payment

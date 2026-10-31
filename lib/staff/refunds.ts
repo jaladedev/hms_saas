@@ -111,6 +111,7 @@ export type ErrorCode =
   | "transfer_unavailable" | "transfer_past" | "transfer_outside" | "transfer_bad_room"
   | "guest_name" | "guest_email" | "guest_country" | "guest_field"
   | "role_escalation" | "self_change" | "last_owner" | "staff_suspended" | "staff_revoked" | "staff_property" | "invite_failed" | "email_invalid"
+  | "rate_range_invalid" | "rate_range_long" | "rate_forbidden" | "rate_no_plan"
   | "setup_invalid" | "setup_duplicate_code" | "setup_duplicate_name" | "setup_duplicate_room" | "setup_forbidden" | "room_has_bookings";
 
 /**
@@ -185,6 +186,9 @@ export const OK_MESSAGES = {
   block_released: "Block removed. The room can be booked again.",
   invoice_issued: "Invoice issued.",
   invoice_voided: "Invoice voided.",
+  rate_plan_created: "Standard rate plan created. Bookings can now be made.",
+  rates_set: "Nightly prices saved.",
+  rates_cleared: "Those dates now use the room type's standard price.",
   room_type_created: "Room type added. Add its rooms below, then set its rates.",
   room_added: "Room added.",
   room_status_changed: "Room status updated.",
@@ -227,6 +231,10 @@ export function errorMessage(code: string, refundable: number | null, formatMino
     case "guest_name_required": return "Enter the guest's name.";
     case "room_type_missing": return "That room type or property is no longer available. Reload the form.";
     case "guest_failed": return "The guest could not be saved. Check the email and phone number and try again.";
+    case "rate_range_invalid": return "Choose a first and last night (the last on or after the first) and a price above zero.";
+    case "rate_range_long": return "A price change can cover at most 366 nights at a time. Split it into smaller ranges.";
+    case "rate_forbidden": return "You do not have permission to change rates.";
+    case "rate_no_plan": return "This hotel has no standard rate plan yet. Create one first.";
     case "setup_invalid": return "Some of the details are not valid. Check the capacity numbers, the code and the price, and try again.";
     case "setup_duplicate_code": return "Another room type at this property already uses that code. Choose a different one.";
     case "setup_duplicate_name": return "Another room type at this property has a name that is too similar. Choose a different name.";

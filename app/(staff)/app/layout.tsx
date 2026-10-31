@@ -18,7 +18,7 @@ const NAV: { label: string; href?: string }[] = [
   { label: "Guest emails", href: "/app/emails" },
   { label: "Reports" },
   { label: "Staff & Permissions", href: "/app/staff" },
-  { label: "Settings", href: "/app/settings/rooms" },
+  { label: "Settings", href: "/app/settings" },
 ];
 
 // Every /app route requires a signed-in user. Permission checks happen again in the
