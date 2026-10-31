@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { signOut } from "@/lib/staff/auth-actions";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -40,6 +41,12 @@ export default async function StaffLayout({ children }: { children: React.ReactN
             ),
           )}
         </nav>
+        <div className="mt-10 border-t border-white/15 pt-4">
+          <p className="truncate text-white/70" title={data.user.email ?? undefined}>{data.user.email}</p>
+          <form action={signOut} className="mt-2">
+            <button type="submit" className="text-white underline underline-offset-2 hover:text-white/80 focus-visible:outline-2 focus-visible:outline-white">Sign out</button>
+          </form>
+        </div>
       </aside>
       <div className="flex-1 p-6">{children}</div>
     </div>

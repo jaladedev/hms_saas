@@ -67,8 +67,11 @@ Built and tested locally (PostgreSQL 16 with stand-ins for Supabase's `auth` sch
   `create_reservation`, plus 40 clients each requesting 2 of 5 rooms (exactly 2 win, no partial bookings);
   the last room race and the two-room race are repeated through `create_hold`; 20 clients paying a fifth of a total (exactly 5 fit); one Paystack webhook delivered 20 times at once (one payment); 20 refund requests against one payment (exactly one fits); and 30 email workers over 20 pending emails (each claimed exactly once).
   Any pgbench client error fails the run. All pass.
-- App shell builds and type-checks: `/` guest placeholder, `/app` (redirects to `/login` when signed out),
-  `/login` placeholder, `/platform` placeholder. No sign-in form yet.
+- App shell builds and type-checks: `/` guest placeholder, `/platform` placeholder. Staff sign-in works in code:
+  `/login` (email and password through Supabase Auth, `lib/staff/auth-actions.ts`), sign-out in the `/app` sidebar, and
+  `proxy.ts` refreshes the session cookie and sends signed-out visitors to `/login?next=...` (`next` is limited to `/app` paths).
+  A correct password also needs an active `tenant_memberships` row. Checked on a real build: the redirect, the page and the
+  open-redirect guard. NOT checked against a live Supabase Auth project; forgot/reset password pages do not exist yet.
 
 Not verified:
 
