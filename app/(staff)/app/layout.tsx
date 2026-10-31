@@ -17,7 +17,7 @@ const NAV: { label: string; href?: string }[] = [
   { label: "Refunds", href: "/app/refunds" },
   { label: "Guest emails", href: "/app/emails" },
   { label: "Reports" },
-  { label: "Staff & Permissions" },
+  { label: "Staff & Permissions", href: "/app/staff" },
   { label: "Settings" },
 ];
 

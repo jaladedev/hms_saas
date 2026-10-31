@@ -84,6 +84,10 @@ HK="$(psql -f "$HERE/15_housekeeping.sql" 2>&1)" || { echo "$HK"; echo "HOUSEKEE
 echo "$HK" | grep -E 'PASS' || true
 if echo "$HK" | grep -qE 'FAIL|ERROR'; then echo "$HK"; echo "HOUSEKEEPING TESTS FAILED"; exit 1; fi
 
+SM="$(psql -f "$HERE/16_staff_management.sql" 2>&1)" || { echo "$SM"; echo "STAFF MANAGEMENT TESTS FAILED"; exit 1; }
+echo "$SM" | grep -E 'PASS' || true
+if echo "$SM" | grep -qE 'FAIL|ERROR'; then echo "$SM"; echo "STAFF MANAGEMENT TESTS FAILED"; exit 1; fi
+
 echo "--- concurrency: last room race (1 room, 50 clients)"
 cat > "$DATA/race_one.sql" <<'SQL'
 select test_try_claim('last_room', '00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', '2027-10-01', '2027-10-03');

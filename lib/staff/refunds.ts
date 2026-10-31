@@ -108,7 +108,8 @@ export type ErrorCode =
   | "guest_name_required" | "too_long_stay" | "room_type_missing" | "guest_failed"
   | "block_conflict" | "block_past" | "block_invalid" | "room_retired"
   | "invoice_exists" | "invoice_has_payments" | "invoice_void"
-  | "transfer_unavailable" | "transfer_past" | "transfer_outside" | "transfer_bad_room";
+  | "transfer_unavailable" | "transfer_past" | "transfer_outside" | "transfer_bad_room"
+  | "role_escalation" | "self_change" | "last_owner" | "staff_suspended" | "staff_revoked" | "staff_property" | "invite_failed" | "email_invalid";
 
 /**
  * Maps a database error message to a code, and an amount when the database reports one. The amount
@@ -149,6 +150,13 @@ export function classifyRpcError(message: string): { code: ErrorCode; refundable
   if (/NOT_FOUND: room type|NOT_FOUND: property/.test(message)) return { code: "room_type_missing" };
   if (/invoice exists/.test(message)) return { code: "invoice_exists" };
   if (/invoice has payments/.test(message)) return { code: "invoice_has_payments" };
+  if (/ROLE_ESCALATION/.test(message)) return { code: "role_escalation" };
+  if (/SELF_CHANGE/.test(message)) return { code: "self_change" };
+  if (/LAST_OWNER/.test(message)) return { code: "last_owner" };
+  if (/INVALID_STATE: suspended/.test(message)) return { code: "staff_suspended" };
+  if (/INVALID_STATE: revoked/.test(message)) return { code: "staff_revoked" };
+  if (/POLICY_VIOLATION: property/.test(message)) return { code: "staff_property" };
+  if (/POLICY_VIOLATION: status/.test(message)) return { code: "bad_request" };
   if (/INVALID_STATE: void/.test(message)) return { code: "invoice_void" };
   if (/INVALID_STATE/.test(message)) return { code: "invalid_state" };
   if (/NOT_FOUND/.test(message)) return { code: "not_found" };
@@ -171,6 +179,11 @@ export const OK_MESSAGES = {
   block_released: "Block removed. The room can be booked again.",
   invoice_issued: "Invoice issued.",
   invoice_voided: "Invoice voided.",
+  staff_added: "Access granted. A new person gets an email to choose a password; someone who already has an account just signs in as usual.",
+  staff_role_removed: "Role removed.",
+  staff_suspended_ok: "Access suspended. They can no longer see or change anything until you restore it.",
+  staff_reinstated: "Access restored.",
+  staff_revoked_ok: "Access revoked and their roles cleared. To bring them back, add them again.",
   transferred: "Room changed. The booking shows the new room below. If the guest was in the old room, it is now marked dirty.",
 } as const;
 export type OkCode = keyof typeof OK_MESSAGES;
@@ -211,6 +224,14 @@ export function errorMessage(code: string, refundable: number | null, formatMino
     case "transfer_past": return "The move cannot start before today.";
     case "transfer_outside": return "That date is outside this room's stay. Choose a night the guest is booked in.";
     case "transfer_bad_room": return "That room cannot be used for this move. Choose a different room.";
+    case "role_escalation": return "You can only give or take roles whose permissions you hold yourself, for the places you hold them.";
+    case "self_change": return "You cannot change your own access. Ask another owner.";
+    case "last_owner": return "That would leave the hotel with no active owner. Make someone else an owner first.";
+    case "staff_suspended": return "This person is suspended. Restore their access before changing their roles.";
+    case "staff_revoked": return "Access was revoked. Add the person again with the form at the top to bring them back.";
+    case "staff_property": return "That property does not belong to this hotel group.";
+    case "invite_failed": return "The invitation could not be sent, so nobody was added. Check the address and try again in a few minutes.";
+    case "email_invalid": return "Enter a valid email address.";
     case "block_conflict": return refundable !== null ? `${refundable} ${refundable === 1 ? "booking is" : "bookings are"} already on that room for those dates, so it was not blocked. Move ${refundable === 1 ? "it" : "them"} first.` : "Bookings are already on that room for those dates, so it was not blocked.";
     case "block_past": return "A block cannot start in the past. Choose today or a later date.";
     case "block_invalid": return "Enter a reason and an end date after the start date.";

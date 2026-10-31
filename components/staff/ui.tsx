@@ -81,3 +81,10 @@ export const buttonDanger =
   "rounded border border-critical/40 bg-white px-3 py-1.5 text-sm font-medium text-critical hover:bg-critical/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-critical";
 export const inputClass =
   "w-full rounded border border-line bg-white px-2.5 py-1.5 text-sm focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary";
+
+const MEMBER_CHIP: Record<string, string> = {
+  active: "bg-primary/10 text-primary-strong", suspended: "bg-pending/10 text-pending", revoked: "bg-ink/10 text-muted", invited: "bg-navy-800/10 text-navy-800",
+};
+export function MemberStatusChip({ status }: { status: string }) {
+  return <span className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${MEMBER_CHIP[status] ?? "bg-ink/10 text-muted"}`}>{status}</span>;
+}

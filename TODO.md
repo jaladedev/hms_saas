@@ -59,10 +59,11 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [ ] Reporting views, `guest_booking_status`
 - [ ] `room_board_view` and `housekeeping_task_view` for roles that must not read rates or guests
 - [ ] Full security suite from System Design 6.3, including refund requester != approver and property-scoped roles
-- [ ] Guard against role escalation: granting requires holding the role's permissions plus `staff.manage`; last owner cannot be removed
+- [x] Guard against role escalation (migration 019): giving, removing or suspending needs every permission of the role at a covering scope plus tenant-wide `staff.manage`; nobody changes their own access; the last active owner cannot be removed or suspended; revoking clears roles
 
 ## Phase 3: Staff MVP (UI)
-- [ ] Sign in, forgot and reset password, staff invitation
+- [x] Sign in, forgot and reset password
+- [x] Staff and permissions (`/app/staff`, owner only): list with roles, invite by email (Supabase invite for new people), add or remove a role per property, suspend, restore, remove. Not built: custom roles, editing a role's permissions, a staff member's own profile page, platform-admin tools
 - [ ] Setup wizard, room types and rooms, rates and policies
 - [x] Reservation list (`/app/reservations`: search by reference, guest name, email or phone; status, attention and arrival-date filters; paged) and details (`/app/reservations/[id]`: rooms with assigned room number and cleanliness, money summary, cancel, per-room check-in with override reason, per-room check-out, manual payment)
 - [x] Reservation create for walk-in and phone bookings (`/app/reservations/new`, one room per booking, default rate plan, confirmed at once)
@@ -72,7 +73,7 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [x] Overview (`/app`: arriving, departing and in-house counts for today, then a "needs a person" list that links to the right screen: overdue departures, flagged reservations, stuck refund payouts, refunds to approve or pay out, failed guest emails, late arrivals; nothing at zero is shown)
 - [x] Front desk board (`/app/front-desk`: arrivals, departures, in house, overdue departures, late arrivals; each links to the booking)
 - [x] Room board (`/app/rooms`, read-only: state of every room today, occupant, blocks, next booking; each room card can set its cleaning status (migration 018) and block or unblock it; a block that would clash with a booking is refused and the booking has to be moved first)
-- [ ] Guests, invoices, housekeeping, staff and permissions
+- [ ] Guests and housekeeping task screens
 - [ ] Hotel runs one full real day in staging with no spreadsheet fallback
 
 ## Phase 4: Hardening and launch
