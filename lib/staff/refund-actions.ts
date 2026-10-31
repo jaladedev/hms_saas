@@ -1,11 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { back, fail, ok, staffClient } from "./action-helpers";
 import { parseAmountToMinor } from "./money-input";
-import { classifyRpcError, type OkCode } from "./refunds";
 
 /**
  * Staff refund actions. Each runs as the signed-in person (never the service role), so the database
@@ -19,23 +17,6 @@ import { classifyRpcError, type OkCode } from "./refunds";
 const REFUNDS_PAGE = "/app/refunds";
 const key = z.string().min(8).max(100);
 const uuid = z.guid();
-
-function back(path: string, params: Record<string, string | number>): never {
-  const qs = new URLSearchParams(Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)])));
-  redirect(`${path}?${qs.toString()}`);
-}
-const ok = (path: string, code: OkCode): never => back(path, { ok: code });
-function fail(path: string, message: string): never {
-  const c = classifyRpcError(message);
-  return back(path, c.refundableMinor !== undefined ? { err: c.code, n: c.refundableMinor } : { err: c.code });
-}
-
-async function staffClient() {
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getUser();
-  if (!data.user) redirect("/login");
-  return supabase;
-}
 
 export async function decideRefund(formData: FormData) {
   const parsed = z.object({

@@ -76,6 +76,10 @@ ST="$(psql -f "$HERE/13_settlement.sql" 2>&1)" || { echo "$ST"; echo "SETTLEMENT
 echo "$ST" | grep -E 'PASS' || true
 if echo "$ST" | grep -qE 'FAIL|ERROR'; then echo "$ST"; echo "SETTLEMENT TESTS FAILED"; exit 1; fi
 
+SE="$(psql -f "$HERE/14_staff_email.sql" 2>&1)" || { echo "$SE"; echo "STAFF EMAIL TESTS FAILED"; exit 1; }
+echo "$SE" | grep -E 'PASS' || true
+if echo "$SE" | grep -qE 'FAIL|ERROR'; then echo "$SE"; echo "STAFF EMAIL TESTS FAILED"; exit 1; fi
+
 echo "--- concurrency: last room race (1 room, 50 clients)"
 cat > "$DATA/race_one.sql" <<'SQL'
 select test_try_claim('last_room', '00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', '2027-10-01', '2027-10-03');

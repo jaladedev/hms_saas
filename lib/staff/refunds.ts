@@ -101,7 +101,7 @@ export function refundableMinor(paymentAmountMinor: number, refunds: Pick<Refund
 /** Short codes carried in the redirect URL after an action; the page turns them into sentences. */
 export type ErrorCode =
   | "self_approval" | "exceeds" | "invalid_state" | "not_found" | "reason_required" | "note_required"
-  | "amount_invalid" | "provider_payment" | "bad_request" | "unknown";
+  | "amount_invalid" | "provider_payment" | "hold_inactive" | "bad_request" | "unknown";
 
 /** Maps a database error message to a code, and the refundable amount when the database reports one. */
 export function classifyRpcError(message: string): { code: ErrorCode; refundableMinor?: number } {
@@ -112,6 +112,7 @@ export function classifyRpcError(message: string): { code: ErrorCode; refundable
   if (/reason required/.test(message)) return { code: "reason_required" };
   if (/amount must be positive/.test(message)) return { code: "amount_invalid" };
   if (/refunded through the provider|provider payments/.test(message)) return { code: "provider_payment" };
+  if (/hold is no longer active/.test(message)) return { code: "hold_inactive" };
   if (/INVALID_STATE/.test(message)) return { code: "invalid_state" };
   if (/NOT_FOUND/.test(message)) return { code: "not_found" };
   return { code: "unknown" };
@@ -122,6 +123,7 @@ export const OK_MESSAGES = {
   rejected: "Refund rejected.",
   paid_out: "Payout recorded. The reservation's balance has been updated.",
   requested: "Refund requested. A second person with approval rights must now approve it.",
+  resent: "Email put back in the queue and a send was started. Reload in a minute to see whether it went through.",
 } as const;
 export type OkCode = keyof typeof OK_MESSAGES;
 
@@ -129,11 +131,12 @@ export function errorMessage(code: string, refundable: number | null, formatMino
   switch (code as ErrorCode) {
     case "self_approval": return "You requested this refund, so someone else has to decide it.";
     case "exceeds": return refundable !== null ? `That is more than can be refunded on this payment. At most ${formatMinor(refundable)} is left.` : "That is more than can be refunded on this payment.";
-    case "invalid_state": return "This refund has already moved on. The page now shows where it stands.";
-    case "not_found": return "That refund or payment was not found, or you do not have access to it.";
+    case "invalid_state": return "That item has already moved on. The page now shows where it stands.";
+    case "not_found": return "That item was not found, or you do not have access to it.";
     case "reason_required": return "A reason is required.";
     case "note_required": return "A note is required when rejecting a refund.";
     case "amount_invalid": return "Enter an amount such as 12,500 or 12500.50.";
+    case "hold_inactive": return "This room is no longer on hold, so telling the guest it is would be wrong. The email was not resent.";
     case "provider_payment": return "Card and online payments are paid out through the provider, not recorded by hand.";
     case "bad_request": return "The form was incomplete. Reload the page and try again.";
     default: return "Something went wrong. Nothing was changed; try again, and tell a developer if it keeps happening.";
