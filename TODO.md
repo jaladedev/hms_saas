@@ -33,7 +33,7 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [ ] Guest site polish: hotel name and branding before a search, photos and amenities for room types, cancellation and payment policy text on the reserve page, a proper not-found page for dead links
 - [ ] Dynamic hold length on the countdown (the page shows minutes left only at render time)
 - [ ] Refund payout route for staff: `begin_refund_processing`, then Paystack `POST /refund`, then `record_refund_result` (the webhook also reports the result)
-- [ ] Staff queue for reservations with `attention_reason` set (payment_amount_or_currency_mismatch, payment_overpayment, paid_inventory_lost, paid_after_cancel)
+- [x] Staff queue for reservations with `attention_reason` set (payment_amount_or_currency_mismatch, payment_overpayment, paid_inventory_lost, paid_after_cancel): "Needs attention" filter on `/app/reservations`, a badge per row, the explanation on the booking page, and a count on the overview that links to the filtered list
 - [x] Concurrency tests: reservation race for the last room, multi-room race (exactly 2 of 40 two-room requests win), the same two through `create_hold`
 - [x] Concurrency tests for transfers (4 guests into the last free room; 8 clients moving 4 guests) and for blocks (12 clients on a free room; 12 clients on a room with a guest, resolution `move`). `run.sh` now also fails when a `pgbench` client aborts on an unhandled error, which it used to ignore. Still missing: a race between a block and a new hold or reservation on the same room
 
@@ -76,7 +76,7 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [x] Front desk board (`/app/front-desk`: arrivals, departures, in house, overdue departures, late arrivals; each links to the booking)
 - [x] Room board (`/app/rooms`, read-only: state of every room today, occupant, blocks, next booking; each room card can set its cleaning status (migration 018) and block or unblock it; a block that would clash with a booking is refused and the booking has to be moved first)
 - [x] Guests (`/app/guests`: search by name, email or phone; guest page with stay history and an audited contact-details edit, migration 020). Not built: merging duplicate guests, guest notes or preferences, a guest's invoices and payments in one view
-- [ ] Housekeeping task screens
+- [x] Housekeeping screen (`/app/housekeeping`: rooms to clean, most urgent first, one button per room; reads only rooms and claims, so it works for roles that cannot see guests or rates; now linked from the sidebar). It works from room status, not task records: assignment to a housekeeper, task history and maintenance requests still wait on the `housekeeping_tasks` table (Phase 2)
 - [ ] Hotel runs one full real day in staging with no spreadsheet fallback
 
 ## Phase 4: Hardening and launch
