@@ -1,7 +1,7 @@
 import { formatDate, formatMoney, formatTime } from "@/lib/guest-site/format";
 import type { BookingStatus } from "@/lib/guest-site/server";
 
-export type EmailKind = "booking_held" | "booking_confirmed" | "booking_link" | "refund_processed" | "booking_cancelled";
+export type EmailKind = "booking_held" | "booking_confirmed" | "booking_link" | "refund_processed" | "booking_cancelled" | "payment_no_room";
 export type RenderedEmail = { subject: string; text: string; html: string };
 
 export function escapeHtml(value: string): string {
@@ -75,6 +75,18 @@ export function renderEmail(input: {
       if (charge > 0) lines.push(`A cancellation charge of ${formatMoney(charge, currency)} applies under the booking terms.`);
       if (refundDue > 0) lines.push(`Any refund due to you (${formatMoney(refundDue, currency)}) will be processed by the hotel, and you will get a separate email when it is paid out.`);
       if (charge === 0 && refundDue === 0) lines.push("No charge applies.");
+      break;
+    }
+    case "payment_no_room": {
+      const paid = typeof input.payload?.paid_minor === "number" ? input.payload.paid_minor : 0;
+      const currency = typeof input.payload?.currency === "string" ? input.payload.currency : b.currency;
+      subject = `About your payment for booking ${b.booking_reference}`;
+      heading = "We received your payment, but your room is no longer available";
+      button = "View your booking";
+      lines.push(paid > 0
+        ? `We received your payment of ${formatMoney(paid, currency)} for booking ${b.booking_reference} at ${b.property_name} (${stay}). Unfortunately the room had been taken by the time it reached us.`
+        : `We received your payment for booking ${b.booking_reference} at ${b.property_name} (${stay}). Unfortunately the room had been taken by the time it reached us.`);
+      lines.push("You do not need to pay again. The hotel will contact you to arrange either another room for your dates or a full refund of what you paid.");
       break;
     }
     case "booking_link":

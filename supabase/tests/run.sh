@@ -92,6 +92,10 @@ GU="$(psql -f "$HERE/17_guest_update.sql" 2>&1)" || { echo "$GU"; echo "GUEST UP
 echo "$GU" | grep -E 'PASS' || true
 if echo "$GU" | grep -qE 'FAIL|ERROR'; then echo "$GU"; echo "GUEST UPDATE TESTS FAILED"; exit 1; fi
 
+LR="$(psql -f "$HERE/18_lost_room_email.sql" 2>&1)" || { echo "$LR"; echo "LOST ROOM EMAIL TESTS FAILED"; exit 1; }
+echo "$LR" | grep -E 'PASS' || true
+if echo "$LR" | grep -qE 'FAIL|ERROR'; then echo "$LR"; echo "LOST ROOM EMAIL TESTS FAILED"; exit 1; fi
+
 echo "--- concurrency: last room race (1 room, 50 clients)"
 cat > "$DATA/race_one.sql" <<'SQL'
 select test_try_claim('last_room', '00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', '2027-10-01', '2027-10-03');

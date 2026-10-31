@@ -133,4 +133,16 @@ describe("drainOutbox", () => {
     expect(await drainOutbox(deps, 10)).toEqual({ claimed: 0, sent: 0, failed: 0 });
     expect(send).not.toHaveBeenCalled();
   });
+
+  it("explains a payment that arrived after the room was gone, and promises only what the hotel will do", () => {
+    const e = renderEmail({ kind: "payment_no_room", booking, link: LINK, payload: { paid_minor: 5000000, currency: "NGN" } });
+    expect(e.subject).toContain(booking.booking_reference);
+    expect(e.text).toContain("received your payment of");
+    expect(e.text).toContain("You do not need to pay again");
+    expect(e.text).toContain("another room for your dates or a full refund");
+    expect(e.html).not.toContain("<script");
+    const bare = renderEmail({ kind: "payment_no_room", booking, link: LINK });
+    expect(bare.text).toContain("We received your payment for booking");
+    expect(bare.text).not.toContain("payment of");
+  });
 });

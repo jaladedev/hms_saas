@@ -27,8 +27,8 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [x] Paystack webhook route with signature check, re-verification and tenant scoping
 - [x] Guest booking flow: availability search, reserve, hold, pay (Paystack initialize), status page by token, confirmation after webhook (014 and the pages under `app/(site)`), proven by `npm run e2e`
 - [x] Guest emails: hold, confirmation, refund processed and re-issued link, through a durable outbox (015) sent by `lib/email` with Resend; link re-issue at `/booking/find`
-- [ ] Staff view of the email outbox (failed emails after 5 attempts need a person) and a resend button
-- [ ] Email for cancellation by the hotel, and for a booking flagged `paid_inventory_lost` (the guest is owed an explanation); neither is queued today
+- [x] Staff view of the email outbox (`/app/emails`: failed and retrying emails, resend; migration 017)
+- [x] Email for cancellation by the hotel (016) and for a booking flagged `paid_inventory_lost` (021, `payment_no_room`: payment received, no need to pay again, the hotel will arrange another room or a full refund). Not emailed: `paid_after_cancel`
 - [x] Rate limiting on guest actions (search, hold, pay, link requests) by keyed hash of address, email or reservation (015)
 - [ ] Guest site polish: hotel name and branding before a search, photos and amenities for room types, cancellation and payment policy text on the reserve page, a proper not-found page for dead links
 - [ ] Dynamic hold length on the countdown (the page shows minutes left only at render time)
