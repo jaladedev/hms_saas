@@ -4,6 +4,9 @@
 -- aa02 housekeeping A (no reservation access), bb01 owner of Hotel B. Offsets 280 to 285.
 \set ON_ERROR_STOP on
 
+-- The 'race-' rows from 12 are the fixtures for run.sh's email claim race at the end. These tests need an empty
+-- queue, so clear it, but remember those rows and put them back as pending when this file is done.
+create temp table t14_race_fixtures as select id from email_outbox where status = 'pending' and dedupe_key like 'race-%';
 update email_outbox set status = 'sent', sent_at = now() where status <> 'sent';
 
 create function t14_fail(p_email text) returns uuid language plpgsql as $$
@@ -94,3 +97,6 @@ do $$ declare h uuid; v_res uuid; k uuid; begin
   perform t_sys();
   raise notice 'PASS stale held-room emails are refused; other kinds can be resent';
 end $$;
+
+-- Hand the claim-race fixtures back untouched for run.sh.
+update email_outbox set status = 'pending', sent_at = null where id in (select id from t14_race_fixtures);

@@ -134,15 +134,24 @@ psql -At -c "do \$\$ begin
   then raise exception 'FAIL overlapping claims exist'; end if;
 end \$\$"
 echo "--- concurrency: create_hold, last room (1 room, 50 clients, distinct guests)"
-cat > "$DATA/hold_one.sql" <<'SQL'
-select test_try_hold('hold_one', 120, 2, '[{"room_type_id":"00000000-0000-0000-0000-0000000000a4","adults":2}]'::jsonb);
+# Other tests book the solo room (201) on fixed calendar dates, so a fixed offset from today collides with them
+# on some days of the year. Take the first offset whose two nights are free on that room and have no website booking.
+HOLD_OFF="$(psql -At -c "select o from generate_series(100, 330) o
+  where not exists (select 1 from room_inventory_claims c join rooms r on r.id = c.room_id
+                     where r.room_number = '201' and c.status = 'active'
+                       and daterange(c.start_date, c.end_date, '[)') && daterange(current_date + o, current_date + o + 2, '[)'))
+    and not exists (select 1 from reservations where source = 'website' and arrival_date = current_date + o)
+  order by o limit 1")"
+[ -n "$HOLD_OFF" ] || { echo "no free window for the hold race"; exit 1; }
+cat > "$DATA/hold_one.sql" <<SQL
+select test_try_hold('hold_one', $HOLD_OFF, 2, '[{"room_type_id":"00000000-0000-0000-0000-0000000000a4","adults":2}]'::jsonb);
 SQL
 bench -c 50 -j 10 -t 1 -f "$DATA/hold_one.sql"
 psql -At -c "select 'successes=' || count(*) filter (where ok) || ' failures=' || count(*) filter (where not ok) from test_results where label like 'hold_one%'"
 psql -At -c "do \$\$ begin
   if (select count(*) from test_results where label = 'hold_one' and ok) <> 1 then raise exception 'FAIL hold race winners'; end if;
   if (select count(*) from test_results where label like '%gave_up') <> 0 then raise exception 'FAIL deadlock retries exhausted'; end if;
-  if (select count(*) from reservations where source = 'website' and arrival_date = current_date + 120) <> 1 then raise exception 'FAIL orphan hold reservations'; end if;
+  if (select count(*) from reservations where source = 'website' and arrival_date = current_date + $HOLD_OFF) <> 1 then raise exception 'FAIL orphan hold reservations'; end if;
   if (select count(*) from guests where full_name = 'Race Guest') <> 1 then raise exception 'FAIL orphan guests'; end if;
 end \$\$"
 
