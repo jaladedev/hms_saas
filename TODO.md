@@ -73,7 +73,8 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [x] Overview (`/app`: arriving, departing and in-house counts for today, then a "needs a person" list that links to the right screen: overdue departures, flagged reservations, stuck refund payouts, refunds to approve or pay out, failed guest emails, late arrivals; nothing at zero is shown)
 - [x] Front desk board (`/app/front-desk`: arrivals, departures, in house, overdue departures, late arrivals; each links to the booking)
 - [x] Room board (`/app/rooms`, read-only: state of every room today, occupant, blocks, next booking; each room card can set its cleaning status (migration 018) and block or unblock it; a block that would clash with a booking is refused and the booking has to be moved first)
-- [ ] Guests and housekeeping task screens
+- [x] Guests (`/app/guests`: search by name, email or phone; guest page with stay history and an audited contact-details edit, migration 020). Not built: merging duplicate guests, guest notes or preferences, a guest's invoices and payments in one view
+- [ ] Housekeeping task screens
 - [ ] Hotel runs one full real day in staging with no spreadsheet fallback
 
 ## Phase 4: Hardening and launch

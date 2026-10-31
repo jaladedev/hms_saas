@@ -110,7 +110,7 @@ export default async function ReservationPage({
       <p className="text-sm"><Link href="/app/reservations" className="text-primary-strong underline underline-offset-2">Reservations</Link></p>
       <h1 className="mt-2 font-display text-3xl">{res.booking_reference}</h1>
       <p className="mt-1 text-muted">
-        {guest?.full_name ?? "Guest not visible to you"}{propertyName ? `, ${propertyName}` : ""}
+        {guest ? <Link href={`/app/guests/${res.primary_guest_id}`} className="underline underline-offset-2">{guest.full_name}</Link> : "Guest not visible to you"}{propertyName ? `, ${propertyName}` : ""}
       </p>
       <p className="mt-2 flex flex-wrap gap-2"><ReservationChip status={res.reservation_status} /><PaymentChip status={res.payment_status} /></p>
 

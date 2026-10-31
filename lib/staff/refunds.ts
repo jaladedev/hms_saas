@@ -109,6 +109,7 @@ export type ErrorCode =
   | "block_conflict" | "block_past" | "block_invalid" | "room_retired"
   | "invoice_exists" | "invoice_has_payments" | "invoice_void"
   | "transfer_unavailable" | "transfer_past" | "transfer_outside" | "transfer_bad_room"
+  | "guest_name" | "guest_email" | "guest_country" | "guest_field"
   | "role_escalation" | "self_change" | "last_owner" | "staff_suspended" | "staff_revoked" | "staff_property" | "invite_failed" | "email_invalid";
 
 /**
@@ -150,6 +151,10 @@ export function classifyRpcError(message: string): { code: ErrorCode; refundable
   if (/NOT_FOUND: room type|NOT_FOUND: property/.test(message)) return { code: "room_type_missing" };
   if (/invoice exists/.test(message)) return { code: "invoice_exists" };
   if (/invoice has payments/.test(message)) return { code: "invoice_has_payments" };
+  if (/POLICY_VIOLATION: name/.test(message)) return { code: "guest_name" };
+  if (/POLICY_VIOLATION: email/.test(message)) return { code: "guest_email" };
+  if (/POLICY_VIOLATION: country/.test(message)) return { code: "guest_country" };
+  if (/POLICY_VIOLATION: too long/.test(message)) return { code: "guest_field" };
   if (/ROLE_ESCALATION/.test(message)) return { code: "role_escalation" };
   if (/SELF_CHANGE/.test(message)) return { code: "self_change" };
   if (/LAST_OWNER/.test(message)) return { code: "last_owner" };
@@ -179,6 +184,7 @@ export const OK_MESSAGES = {
   block_released: "Block removed. The room can be booked again.",
   invoice_issued: "Invoice issued.",
   invoice_voided: "Invoice voided.",
+  guest_updated: "Guest details saved.",
   staff_added: "Access granted. A new person gets an email to choose a password; someone who already has an account just signs in as usual.",
   staff_role_removed: "Role removed.",
   staff_suspended_ok: "Access suspended. They can no longer see or change anything until you restore it.",
@@ -224,6 +230,10 @@ export function errorMessage(code: string, refundable: number | null, formatMino
     case "transfer_past": return "The move cannot start before today.";
     case "transfer_outside": return "That date is outside this room's stay. Choose a night the guest is booked in.";
     case "transfer_bad_room": return "That room cannot be used for this move. Choose a different room.";
+    case "guest_name": return "A name is required (up to 200 characters).";
+    case "guest_email": return "That does not look like an email address. Leave it empty if there is none.";
+    case "guest_country": return "Use the two-letter country code, such as NG, or leave it empty.";
+    case "guest_field": return "The phone number (40 characters) or address (500) is too long.";
     case "role_escalation": return "You can only give or take roles whose permissions you hold yourself, for the places you hold them.";
     case "self_change": return "You cannot change your own access. Ask another owner.";
     case "last_owner": return "That would leave the hotel with no active owner. Make someone else an owner first.";
