@@ -22,7 +22,8 @@ psql() { "$PGBIN/psql" -q -v ON_ERROR_STOP=1 "$@"; }
 # Run pgbench and fail if any client hit an unhandled error (for example an unretried deadlock).
 bench() {
   local out; out="$("$PGBIN/pgbench" -n --verbose-errors "$@" 2>&1)" || true
-  if echo "$out" | grep -qE 'failed transactions: [1-9]'; then echo "$out" | grep -E 'ERROR|failed' | sort | uniq -c | head; echo "BENCH FAILED"; exit 1; fi
+  # A client that hits an unhandled error is aborted, which pgbench does not count as a failed transaction.
+  if echo "$out" | grep -qE 'failed transactions: [1-9]|aborted in command|Run was aborted'; then echo "$out" | grep -E 'ERROR|failed|aborted' | sort | uniq -c | head; echo "BENCH FAILED"; exit 1; fi
 }
 
 psql -f "$HERE/00_stub_auth.sql"
@@ -229,5 +230,94 @@ psql -At -c "select 'claimed=' || count(*) filter (where ok) || ' empty=' || cou
 psql -At -c "do \$\$ begin
   if (select count(*) from t12_claims) <> 20 or (select count(distinct email_id) from t12_claims) <> 20 then raise exception 'FAIL an email was claimed twice or missed'; end if;
   if (select count(*) from email_outbox where status = 'sending' and dedupe_key like 'race-%') <> 20 then raise exception 'FAIL claimed rows not marked sending'; end if;
+end \$\$"
+echo "--- concurrency: transfers and blocks over the same rooms"
+psql -f "$HERE/19_race_fixtures.sql"
+# first window (two nights) from $1 on in which no STD room has any active claim
+free_std_window() {
+  psql -At -c "select o from generate_series($1, 340) o
+    where not exists (select 1 from room_inventory_claims c join rooms r on r.id = c.room_id
+                       where r.room_type_id = '00000000-0000-0000-0000-0000000000a3' and c.status = 'active'
+                         and daterange(c.start_date, c.end_date, '[)') && daterange(property_today('00000000-0000-0000-0000-0000000000a2') + o, property_today('00000000-0000-0000-0000-0000000000a2') + o + 2, '[)'))
+    order by o limit 1"
+}
+W1="$(free_std_window 150)"; [ -n "$W1" ] || { echo "no free window for the transfer race"; exit 1; }
+psql -c "select t19_setup('xfer_race', $W1, 4)"
+W2="$(free_std_window $((W1 + 3)))"; [ -n "$W2" ] || { echo "no free window for the auto transfer race"; exit 1; }
+psql -c "select t19_setup('xfer_auto', $W2, 4)"
+W3="$(free_std_window $((W2 + 3)))"; [ -n "$W3" ] || { echo "no free window for the block race"; exit 1; }
+W4="$(free_std_window $((W3 + 3)))"; [ -n "$W4" ] || { echo "no free window for the block-and-move race"; exit 1; }
+psql -c "select t19_setup('block_move', $W4, 1)"
+
+echo "--- 4 guests all move into the one free room (105) at once: exactly one gets it, the others keep theirs"
+cat > "$DATA/xfer_race.sql" <<'SQL'
+select t19_try_transfer('xfer_race', :client_id, '105', 0);
+SQL
+bench -c 4 -j 4 -t 1 -f "$DATA/xfer_race.sql"
+psql -At -c "select 'successes=' || count(*) filter (where ok) || ' failures=' || count(*) filter (where not ok) from test_results where label like 'xfer_race%'"
+psql -At -c "do \$\$ declare t date := property_today('00000000-0000-0000-0000-0000000000a2'); begin
+  if (select count(*) from test_results where label = 'xfer_race' and ok) <> 1 then raise exception 'FAIL transfer race winners'; end if;
+  if (select count(*) from test_results where label = 'xfer_race') <> 4 then raise exception 'FAIL a client got no clean answer'; end if;
+  if (select count(*) from test_results where label like '%gave_up') <> 0 then raise exception 'FAIL deadlock retries exhausted'; end if;
+  if (select count(*) from room_inventory_claims c join rooms r on r.id = c.room_id where r.room_number = '105' and c.status = 'active' and c.claim_type = 'stay'
+        and c.start_date = t + $W1) <> 1 then raise exception 'FAIL room 105 claimed by more or fewer than one stay'; end if;
+  if exists (select 1 from t19_rr x where x.label = 'xfer_race'
+              and (select count(*) from room_inventory_claims c where c.reservation_room_id = x.rr and c.status = 'active') <> 1) then
+    raise exception 'FAIL a guest lost their room or holds two';
+  end if;
+  if (select count(distinct c.room_id) from room_inventory_claims c join t19_rr x on x.rr = c.reservation_room_id
+       where x.label = 'xfer_race' and c.status = 'active') <> 4 then raise exception 'FAIL two guests share a room'; end if;
+end \$\$"
+
+echo "--- 8 clients move 4 guests to any free room from the second night (two clients per guest): nobody loses a night, no room is shared"
+cat > "$DATA/xfer_auto.sql" <<'SQL'
+select t19_try_transfer('xfer_auto', :client_id, null, 1);
+SQL
+bench -c 8 -j 8 -t 1 -f "$DATA/xfer_auto.sql"
+psql -At -c "select 'moved=' || count(*) filter (where ok) || ' refused_stale_duplicate=' || count(*) filter (where label = 'xfer_auto_stale') from test_results where label like 'xfer_auto%'"
+psql -At -c "do \$\$ begin
+  if (select count(*) from test_results where label like '%gave_up') <> 0 then raise exception 'FAIL deadlock retries exhausted'; end if;
+  if exists (select 1 from t19_rr x where x.label = 'xfer_auto'
+              and (select coalesce(sum(c.end_date - c.start_date), 0) from room_inventory_claims c where c.reservation_room_id = x.rr and c.status = 'active') <> 2) then
+    raise exception 'FAIL a guest lost or doubled a night';
+  end if;
+  if exists (select 1 from room_inventory_claims c join generate_series(c.start_date, c.end_date - 1, interval '1 day') n on true
+              where c.status = 'active' and c.claim_type in ('stay','hold','block') and c.start_date >= property_today('00000000-0000-0000-0000-0000000000a2') + $W2 and c.start_date < property_today('00000000-0000-0000-0000-0000000000a2') + $W2 + 2
+              group by c.room_id, n having count(*) > 1) then raise exception 'FAIL a room is claimed twice on one night'; end if;
+  if (select count(*) from test_results where label like 'xfer_auto%' and label not like '%gave_up') <> 8 then raise exception 'FAIL a client got no clean answer'; end if;
+  if (select count(*) from test_results where label = 'xfer_auto' and ok) < 4 then raise exception 'FAIL fewer successful moves than guests'; end if;
+end \$\$"
+
+echo "--- 12 clients block the same free room at once: exactly one block"
+cat > "$DATA/block_fail.sql" <<SQL
+select t19_try_block('block_fail', '105', $W3, 'fail');
+SQL
+bench -c 12 -j 6 -t 1 -f "$DATA/block_fail.sql"
+psql -At -c "select 'created=' || count(*) filter (where ok) || ' reported_conflict=' || count(*) filter (where not ok) from test_results where label like 'block_fail%'"
+psql -At -c "do \$\$ begin
+  if (select count(*) from test_results where label = 'block_fail' and ok) <> 1 then raise exception 'FAIL block race winners'; end if;
+  if (select count(*) from test_results where label = 'block_fail') <> 12 then raise exception 'FAIL a client got no clean answer'; end if;
+  if (select count(*) from test_results where label like '%gave_up') <> 0 then raise exception 'FAIL deadlock retries exhausted'; end if;
+  if (select count(*) from room_inventory_claims c join rooms r on r.id = c.room_id where r.room_number = '105' and c.claim_type = 'block' and c.status = 'active'
+        and c.start_date = property_today('00000000-0000-0000-0000-0000000000a2') + $W3) <> 1 then raise exception 'FAIL block count'; end if;
+end \$\$"
+
+echo "--- 12 clients block a room that has a guest in it, asking to move the guest: one block, the guest moved once, no loss"
+cat > "$DATA/block_move.sql" <<SQL
+select t19_try_block('block_move', '101', $W4, 'move');
+SQL
+bench -c 12 -j 6 -t 1 -f "$DATA/block_move.sql"
+psql -At -c "select 'created=' || count(*) filter (where ok) || ' reported_conflict=' || count(*) filter (where not ok) from test_results where label like 'block_move%'"
+psql -At -c "do \$\$ declare v_rr uuid := (select rr from t19_rr where label = 'block_move' and n = 0); begin
+  if (select count(*) from test_results where label = 'block_move' and ok) <> 1 then raise exception 'FAIL block-and-move winners'; end if;
+  if (select count(*) from test_results where label = 'block_move') <> 12 then raise exception 'FAIL a client got no clean answer'; end if;
+  if (select count(*) from test_results where label like '%gave_up') <> 0 then raise exception 'FAIL deadlock retries exhausted'; end if;
+  if (select count(*) from room_inventory_claims c join rooms r on r.id = c.room_id where r.room_number = '101' and c.claim_type = 'block' and c.status = 'active'
+        and c.start_date = property_today('00000000-0000-0000-0000-0000000000a2') + $W4) <> 1 then raise exception 'FAIL block count'; end if;
+  if (select coalesce(sum(end_date - start_date), 0) from room_inventory_claims where reservation_room_id = v_rr and status = 'active') <> 2 then raise exception 'FAIL guest lost a night'; end if;
+  if exists (select 1 from room_inventory_claims c join rooms r on r.id = c.room_id where c.reservation_room_id = v_rr and c.status = 'active' and r.room_number = '101') then
+    raise exception 'FAIL guest still in the blocked room';
+  end if;
+  if (select count(*) from room_inventory_claims where reservation_room_id = v_rr and status = 'active') <> 1 then raise exception 'FAIL guest claims'; end if;
 end \$\$"
 echo "ALL TESTS PASSED"

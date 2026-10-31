@@ -35,7 +35,7 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [ ] Refund payout route for staff: `begin_refund_processing`, then Paystack `POST /refund`, then `record_refund_result` (the webhook also reports the result)
 - [ ] Staff queue for reservations with `attention_reason` set (payment_amount_or_currency_mismatch, payment_overpayment, paid_inventory_lost, paid_after_cancel)
 - [x] Concurrency tests: reservation race for the last room, multi-room race (exactly 2 of 40 two-room requests win), the same two through `create_hold`
-- [ ] Concurrency tests still missing: transfer race, block-over-stay through the block function (functional tests exist in 05_operations.sql)
+- [x] Concurrency tests for transfers (4 guests into the last free room; 8 clients moving 4 guests) and for blocks (12 clients on a free room; 12 clients on a room with a guest, resolution `move`). `run.sh` now also fails when a `pgbench` client aborts on an unhandled error, which it used to ignore. Still missing: a race between a block and a new hold or reservation on the same room
 
 ## Phase 2: Core schema and security
 - [x] Pricing and policy: rate_plans, daily_rates, tax_rules (percent and fixed per night), property_policies (versioned), `resolve_rate`, `calc_night_tax` (005)
