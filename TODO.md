@@ -64,9 +64,11 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 ## Phase 3: Staff MVP (UI)
 - [ ] Sign in, forgot and reset password, staff invitation
 - [ ] Setup wizard, room types and rooms, rates and policies
-- [ ] Reservation list, create (single and multi-room), details, walk-in
-- [ ] Front desk, room board, check-in and check-out, room transfer
-- [ ] Guests, manual payments, invoices, housekeeping, staff and permissions
+- [x] Reservation list (`/app/reservations`: search by reference, guest name, email or phone; status, attention and arrival-date filters; paged) and details (`/app/reservations/[id]`: rooms with assigned room number and cleanliness, money summary, cancel, per-room check-in with override reason, per-room check-out, manual payment)
+- [ ] Reservation create (single and multi-room), walk-in, edit dates and guests
+- [ ] Room transfer screen (the `transfer_room` function exists, no UI), invoice issue and void buttons on the details page
+- [ ] Front desk (today's arrivals, departures, in house), room board
+- [ ] Guests, invoices, housekeeping, staff and permissions
 - [ ] Hotel runs one full real day in staging with no spreadsheet fallback
 
 ## Phase 4: Hardening and launch

@@ -101,9 +101,15 @@ export function refundableMinor(paymentAmountMinor: number, refunds: Pick<Refund
 /** Short codes carried in the redirect URL after an action; the page turns them into sentences. */
 export type ErrorCode =
   | "self_approval" | "exceeds" | "invalid_state" | "not_found" | "reason_required" | "note_required"
-  | "amount_invalid" | "provider_payment" | "hold_inactive" | "bad_request" | "unknown";
+  | "amount_invalid" | "provider_payment" | "hold_inactive" | "bad_request" | "unknown"
+  | "room_not_ready" | "room_not_active" | "payment_required" | "early_checkin" | "stay_ended" | "no_stay_claim"
+  | "overpayment" | "method_invalid" | "not_cancellable";
 
-/** Maps a database error message to a code, and the refundable amount when the database reports one. */
+/**
+ * Maps a database error message to a code, and an amount when the database reports one. The amount
+ * rides in `refundableMinor` for both refunds (what is left to refund) and overpayments (what is
+ * still outstanding); the code tells the page which sentence to use.
+ */
 export function classifyRpcError(message: string): { code: ErrorCode; refundableMinor?: number } {
   if (/SELF_APPROVAL/.test(message)) return { code: "self_approval" };
   const exceeds = /REFUND_EXCEEDS_PAYMENT refundable (\d+)/.exec(message);
@@ -113,6 +119,15 @@ export function classifyRpcError(message: string): { code: ErrorCode; refundable
   if (/amount must be positive/.test(message)) return { code: "amount_invalid" };
   if (/refunded through the provider|provider payments/.test(message)) return { code: "provider_payment" };
   if (/hold is no longer active/.test(message)) return { code: "hold_inactive" };
+  const over = /OVERPAYMENT outstanding (\d+)/.exec(message);
+  if (over) return { code: "overpayment", refundableMinor: Number(over[1]) };
+  if (/payment method/.test(message)) return { code: "method_invalid" };
+  if (/ROOM_NOT_READY/.test(message)) return { code: "room_not_ready" };
+  if (/ROOM_NOT_ACTIVE/.test(message)) return { code: "room_not_active" };
+  if (/PAYMENT_REQUIRED/.test(message)) return { code: "payment_required" };
+  if (/EARLY_CHECKIN_NOT_SUPPORTED/.test(message)) return { code: "early_checkin" };
+  if (/stay already ended/.test(message)) return { code: "stay_ended" };
+  if (/no stay claim for today/.test(message)) return { code: "no_stay_claim" };
   if (/INVALID_STATE/.test(message)) return { code: "invalid_state" };
   if (/NOT_FOUND/.test(message)) return { code: "not_found" };
   return { code: "unknown" };
@@ -124,6 +139,10 @@ export const OK_MESSAGES = {
   paid_out: "Payout recorded. The reservation's balance has been updated.",
   requested: "Refund requested. A second person with approval rights must now approve it.",
   resent: "Email put back in the queue and a send was started. Reload in a minute to see whether it went through.",
+  cancelled: "Reservation cancelled. The rooms are free again and any money held has been settled below.",
+  checked_in: "Room checked in.",
+  checked_out: "Room checked out. It is now marked dirty for housekeeping.",
+  payment_recorded: "Payment recorded.",
 } as const;
 export type OkCode = keyof typeof OK_MESSAGES;
 
@@ -137,6 +156,15 @@ export function errorMessage(code: string, refundable: number | null, formatMino
     case "note_required": return "A note is required when rejecting a refund.";
     case "amount_invalid": return "Enter an amount such as 12,500 or 12500.50.";
     case "hold_inactive": return "This room is no longer on hold, so telling the guest it is would be wrong. The email was not resent.";
+    case "room_not_ready": return "The room is not clean yet. Check the guest in anyway only with an override reason.";
+    case "room_not_active": return "That room is out of service. Move the guest to another room first.";
+    case "payment_required": return "This booking must be paid in full before check-in. A person with payment approval rights can override it with a reason.";
+    case "early_checkin": return "The guest cannot be checked in before the arrival date yet.";
+    case "stay_ended": return "The departure date has passed, so this room cannot be checked in.";
+    case "no_stay_claim": return "No room is assigned for tonight. Check the room assignment first.";
+    case "overpayment": return refundable !== null ? `That is more than is owed. At most ${formatMinor(refundable)} is outstanding.` : "That is more than is owed on this reservation.";
+    case "method_invalid": return "Choose how the money was received.";
+    case "not_cancellable": return "This reservation can no longer be cancelled because a guest has already checked in or it has ended.";
     case "provider_payment": return "Card and online payments are paid out through the provider, not recorded by hand.";
     case "bad_request": return "The form was incomplete. Reload the page and try again.";
     default: return "Something went wrong. Nothing was changed; try again, and tell a developer if it keeps happening.";

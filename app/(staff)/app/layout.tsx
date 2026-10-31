@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 const NAV: { label: string; href?: string }[] = [
   { label: "Overview", href: "/app" },
   { label: "Front Desk" },
-  { label: "Reservations" },
+  { label: "Reservations", href: "/app/reservations" },
   { label: "Room Management" },
   { label: "Guests" },
   { label: "Housekeeping" },
