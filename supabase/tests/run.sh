@@ -101,6 +101,10 @@ RB="$(psql -f "$HERE/20_refund_bank_details.sql" 2>&1)" || { echo "$RB"; echo "R
 echo "$RB" | grep -E 'PASS' || true
 if echo "$RB" | grep -qE 'FAIL|ERROR'; then echo "$RB"; echo "REFUND BANK DETAILS TESTS FAILED"; exit 1; fi
 
+HT="$(psql -f "$HERE/21_housekeeping_tasks.sql" 2>&1)" || { echo "$HT"; echo "HOUSEKEEPING TASK TESTS FAILED"; exit 1; }
+echo "$HT" | grep -E 'PASS' || true
+if echo "$HT" | grep -qE 'FAIL|ERROR'; then echo "$HT"; echo "HOUSEKEEPING TASK TESTS FAILED"; exit 1; fi
+
 echo "--- concurrency: last room race (1 room, 50 clients)"
 cat > "$DATA/race_one.sql" <<'SQL'
 select test_try_claim('last_room', '00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', '2027-10-01', '2027-10-03');
@@ -323,5 +327,36 @@ psql -At -c "do \$\$ declare v_rr uuid := (select rr from t19_rr where label = '
     raise exception 'FAIL guest still in the blocked room';
   end if;
   if (select count(*) from room_inventory_claims where reservation_room_id = v_rr and status = 'active') <> 1 then raise exception 'FAIL guest claims'; end if;
+end \$\$"
+echo "--- concurrency: housekeeping task claimed by two housekeepers at once (20 clients): exactly one of them gets it"
+psql -c "select t21_race_setup()"
+cat > "$DATA/hk_claim.sql" <<'SQL'
+select t21_try_claim('hk_claim', :client_id);
+SQL
+bench -c 20 -j 10 -t 1 -f "$DATA/hk_claim.sql"
+psql -At -c "select 'housekeeper A ok=' || count(*) filter (where label = 'hk_claim_a' and ok) || ' B ok=' || count(*) filter (where label = 'hk_claim_b' and ok) from test_results where label like 'hk_claim%'"
+psql -At -c "do \$\$ declare v_t uuid := (select id from t21_ctx where label = 'claim'); begin
+  if (select count(*) from test_results where label like 'hk_claim%') <> 20 then raise exception 'FAIL a client got no clean answer'; end if;
+  if (select count(*) from test_results where label = 'hk_claim_a' and ok) > 0 and (select count(*) from test_results where label = 'hk_claim_b' and ok) > 0 then raise exception 'FAIL both housekeepers got the task'; end if;
+  if (select count(*) from test_results where label like 'hk_claim%' and ok) = 0 then raise exception 'FAIL nobody got the task'; end if;
+  if (select assigned_to from housekeeping_tasks where id = v_t) not in ('00000000-0000-0000-0000-00000000aa02', '00000000-0000-0000-0000-00000000aa06') then raise exception 'FAIL task not assigned'; end if;
+  if (select count(*) from audit_logs where action = 'housekeeping.task_assigned' and entity_id = v_t) <> 1 then raise exception 'FAIL claim audit rows'; end if;
+end \$\$"
+
+echo "--- concurrency: one room, 16 clients mixing room status changes and task start/complete (no deadlock, task and room agree)"
+cat > "$DATA/hk_mix.sql" <<'SQL'
+\set w random(0, 4)
+select t21_mix('hk_mix', :w);
+SQL
+bench -c 16 -j 8 -t 25 -f "$DATA/hk_mix.sql"
+psql -At -c "select 'ok=' || count(*) filter (where ok) || ' refused=' || count(*) filter (where not ok) from test_results where label = 'hk_mix'"
+psql -At -c "do \$\$ declare v_room uuid := t21_room('103'); v_status text; v_live integer; begin
+  select housekeeping_status into v_status from rooms where id = v_room;
+  select count(*) into v_live from housekeeping_tasks where room_id = v_room and task_type = 'cleaning' and status in ('open', 'in_progress');
+  if (select count(*) from test_results where label = 'hk_mix') <> 400 then raise exception 'FAIL a client got no clean answer'; end if;
+  if v_live > 1 then raise exception 'FAIL % live cleaning tasks for one room', v_live; end if;
+  if v_status in ('clean', 'inspected') and v_live <> 0 then raise exception 'FAIL room % but a cleaning task is still live', v_status; end if;
+  if v_status = 'dirty' and v_live <> 1 then raise exception 'FAIL dirty room without exactly one live task (%)', v_live; end if;
+  if exists (select 1 from housekeeping_tasks where room_id = v_room and status = 'in_progress' and started_at is null) then raise exception 'FAIL started task without a start time'; end if;
 end \$\$"
 echo "ALL TESTS PASSED"

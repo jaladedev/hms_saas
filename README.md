@@ -47,6 +47,7 @@ Supabase's `auth` schema, then runs:
 - `03_security.sql`: cross-tenant reads and writes, role limits, revoked membership, anon
 - `04_reservations.sql`: pricing, tax rounding, multi-room, all-or-nothing, idempotency, permissions, online holds, tiling, audit
 - `05_operations.sql`: check-in, check-out, transfers, blocks, cancellation
+- `21_housekeeping_tasks.sql`: tasks follow the room status, check-out opens one, read access (housekeeping.view), no direct writes, frozen history, create/claim/assign/start/complete/cancel rules, retired rooms, the assignment picker, closed internals; plus two races (20 clients claiming one task: one housekeeper wins; 16 clients mixing room status changes with task start/complete: no deadlock, room and task agree)
 - `13_settlement.sql`: cancellation settlement (fee invoice, stay invoice void, refund requests newest payment first, unpaid charge flag and collection), cancellation email, the one-call refund payout guard
 - `12_email_rate_limits.sql`: email outbox (triggers, claim, retry, stuck-worker recovery), link re-issue, rate limits, purge, access limits; plus a claim race (30 workers, 20 emails, each claimed once)
 - `11_guest_booking.sql`: public availability search (counts, pricing parity with `create_hold`, filters, host isolation), payment start context, access limits
@@ -77,6 +78,7 @@ Supabase's `auth` schema, then runs:
 | 014 guest_booking_support | `search_availability(host, arrival, departure, adults, children)`, `payment_start_context(reservation)` (`service_role` only) |
 | 015 email_and_rate_limits | `email_outbox` filled by triggers, `claim_emails`, `mark_email_result`, `request_booking_link`, `consume_rate_limit`, `purge_old_operational_data` (`service_role` only) |
 | 016 settlement_and_payout | cancellation settlement trigger, `reservation_settlement`, `start_refund_payout`, `refund_payout_context`, `note_refund_attention`, `stale_processing_refunds` |
+| 023 housekeeping_tasks | `housekeeping_tasks` (read under RLS, written only by functions, rows never deleted), permission `housekeeping.assign`; `create_housekeeping_task`, `claim_housekeeping_task`, `assign_housekeeping_task`, `start_housekeeping_task`, `complete_housekeeping_task`, `cancel_housekeeping_task`, `list_housekeeping_staff`; a trigger on `rooms` keeps tasks in step with the cleaning status |
 
 File numbers differ from the design doc's list because claims were built early to prove the
 double-booking protection. Next: the booking site (search, hold, pay, status pages), staff UI, and a scheduler for `expire_lapsed_holds`. Built so far on the app side: the Paystack webhook route and guest booking tokens. Follow the gates in System Design section 11.
