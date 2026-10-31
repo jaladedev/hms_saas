@@ -1,14 +1,12 @@
 import Link from "next/link";
 import { PaymentChip, ReservationChip } from "@/components/staff/ui";
 import { formatDate } from "@/lib/guest-site/format";
+import { loadDeskRows, type DeskReservation } from "@/lib/staff/desk-query";
 import { bucketFrontDesk, deskFlag, type DeskRow } from "@/lib/staff/front-desk";
 import { nightsBetween, todayIn } from "@/lib/staff/reservations";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
-
-const COLUMNS = "id, property_id, booking_reference, primary_guest_id, reservation_status, payment_status, arrival_date, departure_date, attention_reason";
-type Row = DeskRow & { primary_guest_id: string };
 
 export default async function FrontDeskPage() {
   const supabase = await createClient();
@@ -21,19 +19,12 @@ export default async function FrontDeskPage() {
   const earliest = dates[0];
   const latest = dates[dates.length - 1];
 
-  let rows: Row[] = [];
+  let rows: DeskReservation[] = [];
   let loadError = Boolean(propError);
   if (earliest && latest) {
-    // Everyone who is in house or confirmed and could be arriving, late, or already here.
-    const { data, error } = await supabase
-      .from("reservations").select(COLUMNS)
-      .in("reservation_status", ["confirmed", "checked_in"])
-      .lte("arrival_date", latest)
-      // In-house guests are always wanted (an overdue one has a past departure); confirmed ones only if they have not already ended.
-      .or(`reservation_status.eq.checked_in,departure_date.gte.${earliest}`)
-      .order("booking_reference").limit(500);
-    loadError = loadError || Boolean(error);
-    rows = (data ?? []) as Row[];
+    const loaded = await loadDeskRows(supabase, earliest, latest);
+    loadError = loadError || Boolean(loaded.error);
+    rows = loaded.rows;
   }
 
   const guestIds = [...new Set(rows.map((r) => r.primary_guest_id))];
