@@ -103,7 +103,9 @@ export type ErrorCode =
   | "self_approval" | "exceeds" | "invalid_state" | "not_found" | "reason_required" | "note_required"
   | "amount_invalid" | "provider_payment" | "hold_inactive" | "bad_request" | "unknown"
   | "room_not_ready" | "room_not_active" | "payment_required" | "early_checkin" | "stay_ended" | "no_stay_claim"
-  | "overpayment" | "method_invalid" | "not_cancellable";
+  | "overpayment" | "method_invalid" | "not_cancellable"
+  | "room_unavailable" | "capacity" | "rate_missing" | "forbidden" | "arrival_past" | "dates_invalid"
+  | "guest_name_required" | "too_long_stay" | "room_type_missing" | "guest_failed";
 
 /**
  * Maps a database error message to a code, and an amount when the database reports one. The amount
@@ -128,6 +130,13 @@ export function classifyRpcError(message: string): { code: ErrorCode; refundable
   if (/EARLY_CHECKIN_NOT_SUPPORTED/.test(message)) return { code: "early_checkin" };
   if (/stay already ended/.test(message)) return { code: "stay_ended" };
   if (/no stay claim for today/.test(message)) return { code: "no_stay_claim" };
+  if (/ROOM_UNAVAILABLE/.test(message)) return { code: "room_unavailable" };
+  if (/CAPACITY_EXCEEDED/.test(message)) return { code: "capacity" };
+  if (/RATE_MISSING/.test(message)) return { code: "rate_missing" };
+  if (/FORBIDDEN/.test(message)) return { code: "forbidden" };
+  if (/arrival in the past/.test(message)) return { code: "arrival_past" };
+  if (/departure must follow/.test(message)) return { code: "dates_invalid" };
+  if (/NOT_FOUND: room type|NOT_FOUND: property/.test(message)) return { code: "room_type_missing" };
   if (/INVALID_STATE/.test(message)) return { code: "invalid_state" };
   if (/NOT_FOUND/.test(message)) return { code: "not_found" };
   return { code: "unknown" };
@@ -143,6 +152,7 @@ export const OK_MESSAGES = {
   checked_in: "Room checked in.",
   checked_out: "Room checked out. It is now marked dirty for housekeeping.",
   payment_recorded: "Payment recorded.",
+  created: "Reservation created and confirmed. The room is held for the guest.",
 } as const;
 export type OkCode = keyof typeof OK_MESSAGES;
 
@@ -165,6 +175,16 @@ export function errorMessage(code: string, refundable: number | null, formatMino
     case "overpayment": return refundable !== null ? `That is more than is owed. At most ${formatMinor(refundable)} is outstanding.` : "That is more than is owed on this reservation.";
     case "method_invalid": return "Choose how the money was received.";
     case "not_cancellable": return "This reservation can no longer be cancelled because a guest has already checked in or it has ended.";
+    case "room_unavailable": return "No room of that type is free for all of those nights. Try other dates or another room type.";
+    case "capacity": return "That room type cannot take that many adults and children.";
+    case "rate_missing": return "There is no rate set for those dates, so the price cannot be worked out. Set the rates first.";
+    case "forbidden": return "You do not have permission to create reservations at this property.";
+    case "arrival_past": return "The arrival date is already past. Choose today or a later date.";
+    case "dates_invalid": return "The departure date must be after the arrival date.";
+    case "too_long_stay": return "Stays are limited to 30 nights. Create a shorter booking and extend it later.";
+    case "guest_name_required": return "Enter the guest's name.";
+    case "room_type_missing": return "That room type or property is no longer available. Reload the form.";
+    case "guest_failed": return "The guest could not be saved. Check the email and phone number and try again.";
     case "provider_payment": return "Card and online payments are paid out through the provider, not recorded by hand.";
     case "bad_request": return "The form was incomplete. Reload the page and try again.";
     default: return "Something went wrong. Nothing was changed; try again, and tell a developer if it keeps happening.";

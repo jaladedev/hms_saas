@@ -10,7 +10,7 @@ const NAV: { label: string; href?: string }[] = [
   { label: "Overview", href: "/app" },
   { label: "Front Desk", href: "/app/front-desk" },
   { label: "Reservations", href: "/app/reservations" },
-  { label: "Room Management" },
+  { label: "Room Management", href: "/app/rooms" },
   { label: "Guests" },
   { label: "Housekeeping" },
   { label: "Payments & Billing" },

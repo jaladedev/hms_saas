@@ -65,10 +65,11 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [ ] Sign in, forgot and reset password, staff invitation
 - [ ] Setup wizard, room types and rooms, rates and policies
 - [x] Reservation list (`/app/reservations`: search by reference, guest name, email or phone; status, attention and arrival-date filters; paged) and details (`/app/reservations/[id]`: rooms with assigned room number and cleanliness, money summary, cancel, per-room check-in with override reason, per-room check-out, manual payment)
-- [ ] Reservation create (single and multi-room), walk-in, edit dates and guests
+- [x] Reservation create for walk-in and phone bookings (`/app/reservations/new`, one room per booking, default rate plan, confirmed at once)
+- [ ] Multi-room create, a chosen physical room, edit dates and guests, staff-created holds that wait for payment
 - [ ] Room transfer screen (the `transfer_room` function exists, no UI), invoice issue and void buttons on the details page
 - [x] Front desk board (`/app/front-desk`: arrivals, departures, in house, overdue departures, late arrivals; each links to the booking)
-- [ ] Room board
+- [x] Room board (`/app/rooms`, read-only: state of every room today, occupant, blocks, next booking; blocking and housekeeping changes have no screen yet)
 - [ ] Guests, invoices, housekeeping, staff and permissions
 - [ ] Hotel runs one full real day in staging with no spreadsheet fallback
 

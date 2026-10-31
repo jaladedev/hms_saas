@@ -81,8 +81,13 @@ export default async function ReservationsPage({ searchParams }: { searchParams:
 
   return (
     <main className="max-w-5xl">
-      <h1 className="font-display text-3xl">Reservations</h1>
-      <p className="mt-2 max-w-prose text-muted">Find a booking, then open it to check guests in and out, take a payment or cancel.</p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="font-display text-3xl">Reservations</h1>
+          <p className="mt-2 max-w-prose text-muted">Find a booking, then open it to check guests in and out, take a payment or cancel.</p>
+        </div>
+        <Link href="/app/reservations/new" className={buttonPrimary}>New reservation</Link>
+      </div>
 
       <form method="get" className="mt-6 grid gap-3 rounded border border-line bg-white p-4 md:grid-cols-[minmax(0,2fr)_minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end">
         <div>

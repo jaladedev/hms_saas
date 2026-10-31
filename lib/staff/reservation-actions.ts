@@ -5,6 +5,7 @@ import { z } from "zod";
 import { back, fail, ok, staffClient } from "./action-helpers";
 import { parseAmountToMinor } from "./money-input";
 import { classifyRpcError } from "./refunds";
+import { roomsPayload, validateNewReservation } from "./new-reservation";
 import { isPaymentMethod } from "./reservations";
 
 /**
@@ -93,4 +94,43 @@ export async function recordPayment(formData: FormData) {
   if (error) return fail(page, error.message);
   refresh(parsed.data.reservationId);
   return ok(page, "payment_recorded");
+}
+
+export async function createManualReservation(formData: FormData) {
+  const raw = Object.fromEntries(formData);
+  const NEW = `${LIST}/new`;
+  const v = validateNewReservation(raw);
+  if (!v.ok) return back(NEW, { err: v.code });
+  const idempotencyKey = key.safeParse(raw.idempotencyKey);
+  if (!idempotencyKey.success) return back(NEW, { err: "bad_request" });
+  const { value } = v;
+
+  const supabase = await staffClient();
+  const { data: prop } = await supabase.from("properties").select("tenant_id").eq("id", value.propertyId).maybeSingle();
+  if (!prop) return back(NEW, { err: "room_type_missing" });
+
+  // Reuse the guest with the same email so repeat visitors keep one record; otherwise add a new one.
+  let guestId: string | null = null;
+  if (value.guest.email) {
+    const { data: found } = await supabase.from("guests").select("id").eq("tenant_id", prop.tenant_id).ilike("email", value.guest.email).order("created_at").limit(1).maybeSingle();
+    guestId = found?.id ?? null;
+  }
+  if (!guestId) {
+    const { data: created, error: guestError } = await supabase.from("guests")
+      .insert({ tenant_id: prop.tenant_id, full_name: value.guest.name, email: value.guest.email, phone: value.guest.phone })
+      .select("id").single();
+    if (guestError || !created) return back(NEW, { err: "guest_failed" });
+    guestId = created.id;
+  }
+
+  const { data, error } = await supabase.rpc("create_reservation", {
+    p_property_id: value.propertyId, p_primary_guest_id: guestId, p_source: value.source,
+    p_arrival: value.arrival, p_departure: value.departure, p_rooms: roomsPayload(value),
+    p_idempotency_key: idempotencyKey.data,
+  });
+  if (error) return fail(NEW, error.message);
+  const reservationId = (data as { reservation_id?: string } | null)?.reservation_id;
+  revalidatePath(LIST);
+  if (!reservationId) return back(LIST, { ok: "created" });
+  return ok(pageFor(reservationId), "created");
 }
