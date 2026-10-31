@@ -19,7 +19,7 @@ function deps(overrides: Partial<WebhookDeps> = {}) {
     confirmPayment: vi.fn(async () => ({ result: "confirmed" })),
     findProcessingRefund: vi.fn(async () => "refund-1" as string | null),
     recordRefundResult: vi.fn(async () => ({ result: "succeeded" })),
-    noteRefundAttention: vi.fn(async () => {}),
+    markRefundNeedsDetails: vi.fn(async () => {}),
     log: vi.fn(),
     ...overrides,
   };
@@ -132,9 +132,9 @@ describe("paystack webhook handler", () => {
 
   it("notes refund.needs-attention on the refund instead of failing or completing it", async () => {
     const d = deps();
-    const out = await handlePaystackWebhook(d, request({ event: "refund.needs-attention", data: { transaction_reference: "HMS-7", amount: "250000" } }));
+    const out = await handlePaystackWebhook(d, request({ event: "refund.needs-attention", data: { id: 3018, transaction_reference: "HMS-7", amount: "250000" } }));
     expect(out).toEqual({ status: 200, body: { received: true, result: "noted_attention" } });
-    expect(d.noteRefundAttention).toHaveBeenCalledWith("refund-1", expect.stringContaining("bank details"));
+    expect(d.markRefundNeedsDetails).toHaveBeenCalledWith("refund-1", "3018", expect.stringContaining("bank details"));
     expect(d.recordRefundResult).not.toHaveBeenCalled();
   });
 

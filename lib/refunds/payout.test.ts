@@ -11,6 +11,7 @@ function deps(over: Partial<PayoutDeps> = {}) {
     createRefund: vi.fn(async (): Promise<CreateRefundResult> => ({ kind: "accepted", providerStatus: "pending", providerRefundId: "3018" })),
     recordResult: vi.fn(async () => {}),
     noteAttention: vi.fn(async () => {}),
+    markNeedsDetails: vi.fn(async () => {}),
     log: vi.fn(),
     ...over,
   };
@@ -62,7 +63,8 @@ describe("payoutRefund", () => {
   it("flags needs-attention answers for a person", async () => {
     const d = deps({ createRefund: vi.fn(async (): Promise<CreateRefundResult> => ({ kind: "accepted", providerStatus: "needs-attention", providerRefundId: "5" })) });
     expect(await payoutRefund(d, "r1")).toEqual({ status: "submitted", providerStatus: "needs-attention" });
-    expect(d.noteAttention).toHaveBeenCalledWith("r1", expect.stringContaining("bank details"));
+    expect(d.markNeedsDetails).toHaveBeenCalledWith("r1", "5", expect.stringContaining("bank details"));
+    expect(d.noteAttention).not.toHaveBeenCalled();
   });
 
   it("fails the refund, without calling the provider, when no secret is available", async () => {

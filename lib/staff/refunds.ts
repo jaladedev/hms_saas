@@ -19,6 +19,9 @@ export type RefundRow = {
   failure_reason: string | null;
   attention_note: string | null;
   provider_call_started_at: string | null;
+  /** Paystack asked for the customer's bank details (migration 022). Optional: not every query selects it. */
+  needs_bank_details?: boolean;
+  details_retry_started_at?: string | null;
   created_at: string;
   completed_at: string | null;
 };
@@ -72,6 +75,7 @@ export type RefundAction =
   | { kind: "own_request" }         // the viewer asked for it, so someone else must decide
   | { kind: "manual_payout" }       // staff paid cash / transfer / POS back and record it
   | { kind: "provider_payout" }     // pay out through the provider
+  | { kind: "bank_details" }        // Paystack needs the customer's bank details to finish the refund
   | { kind: "wait" }                // provider call in flight, nothing for staff to do
   | { kind: "none" };
 
@@ -86,7 +90,11 @@ export function availableAction(r: RefundRow, paymentProvider: string | null, vi
   if (r.refund_status === "approved") {
     return paymentProvider === "manual" ? { kind: "manual_payout" } : { kind: "provider_payout" };
   }
-  if (r.refund_status === "processing") return { kind: "wait" };
+  if (r.refund_status === "processing") {
+    // Once the details were sent, a person only waits (or checks Paystack when the answer was unclear).
+    if (r.needs_bank_details === true && !r.details_retry_started_at) return { kind: "bank_details" };
+    return { kind: "wait" };
+  }
   return { kind: "none" };
 }
 

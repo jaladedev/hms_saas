@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PayoutButton } from "@/components/staff/payout-button";
+import { RefundDetailsForm } from "@/components/staff/refund-details-form";
 import { buttonDanger, buttonPrimary, inputClass, Notice, StatusChip } from "@/components/staff/ui";
 import { formatMoney } from "@/lib/guest-site/format";
 import { decideRefund, recordManualPayout } from "@/lib/staff/refund-actions";
@@ -10,7 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 const COLUMNS =
-  "id, reservation_id, payment_id, internal_reference, amount_minor, currency, refund_status, reason, requested_by, decided_by, decided_at, decision_note, payout_reference, failure_reason, attention_note, provider_call_started_at, created_at, completed_at";
+  "id, reservation_id, payment_id, internal_reference, amount_minor, currency, refund_status, reason, requested_by, decided_by, decided_at, decision_note, payout_reference, failure_reason, attention_note, provider_call_started_at, needs_bank_details, details_retry_started_at, created_at, completed_at";
 
 type ResInfo = { id: string; property_id: string; booking_reference: string; primary_guest_id: string };
 type PayInfo = { id: string; payment_provider: string; payment_method: string };
@@ -97,7 +98,9 @@ export default async function RefundsPage({ searchParams }: { searchParams: Prom
             <div className="mt-3 max-w-prose border-l-4 border-critical bg-critical/5 px-3 py-2 text-sm">
               {r.attention_note && <p className="text-critical">{r.attention_note}</p>}
               <p className="mt-1 text-ink">
-                Open this refund on the Paystack dashboard. When Paystack reports a result, the webhook closes it here by itself; do not start a second payout.
+                {action.kind === "bank_details"
+                  ? "Paystack could not find a bank account to pay this refund to. Ask the guest for the details of a bank account in their name and enter them here. Do not start a second payout."
+                  : "Open this refund on the Paystack dashboard. When Paystack reports a result, the webhook closes it here by itself; do not start a second payout."}
               </p>
             </div>
           )}
@@ -139,6 +142,7 @@ export default async function RefundsPage({ searchParams }: { searchParams: Prom
             </form>
           )}
           {action.kind === "provider_payout" && <PayoutButton refundId={r.id} amountLabel={money} />}
+          {action.kind === "bank_details" && <RefundDetailsForm refundId={r.id} />}
           {action.kind === "wait" && !attention && <p className="max-w-xs text-sm text-muted">With Paystack. This page updates when Paystack confirms.</p>}
         </div>
       </li>

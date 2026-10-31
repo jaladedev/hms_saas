@@ -162,3 +162,78 @@ export async function createRefund(
   if (!parsed.success || !parsed.data.status || !parsed.data.data) throw new Error("Paystack refund returned an unexpected response");
   return { kind: "accepted", providerStatus: parsed.data.data.status, providerRefundId: parsed.data.data.id !== undefined ? String(parsed.data.data.id) : null };
 }
+
+const banksResponseSchema = z.object({
+  status: z.boolean(),
+  data: z.array(z.object({ id: z.union([z.number(), z.string()]), name: z.string().min(1) }).passthrough()).optional(),
+  meta: z.object({ next: z.string().nullable().optional() }).passthrough().optional(),
+});
+
+export type Bank = { id: string; name: string };
+
+/**
+ * The banks Paystack can pay a refund to (`GET /bank`, cursor pages of up to 100). Used to fill the bank list on the
+ * "bank details needed" form; `id` is what the retry endpoint calls bank_id. Throws on any failure (the form shows a
+ * plain "could not load banks"): nothing here moves money. Capped at 10 pages so a misbehaving cursor cannot loop.
+ */
+export async function listBanks(currency: string, secretKey: string, fetchFn: typeof fetch = fetch): Promise<Bank[]> {
+  const banks = new Map<string, Bank>();
+  let cursor: string | null = null;
+  for (let page = 0; page < 10; page++) {
+    const params = new URLSearchParams({ currency, perPage: "100", use_cursor: "true" });
+    if (currency === "NGN") params.set("country", "nigeria");
+    if (cursor) params.set("next", cursor);
+    const res = await fetchFn(`${paystackBaseUrl()}/bank?${params.toString()}`, {
+      headers: { Authorization: `Bearer ${secretKey}` },
+      cache: "no-store",
+    });
+    if (!res.ok) throw new Error(`Paystack bank list failed with HTTP ${res.status}`);
+    const parsed = banksResponseSchema.safeParse(await res.json());
+    if (!parsed.success || !parsed.data.status || !parsed.data.data) throw new Error("Paystack bank list returned an unexpected response");
+    for (const b of parsed.data.data) banks.set(String(b.id), { id: String(b.id), name: b.name });
+    cursor = parsed.data.meta?.next ?? null;
+    if (!cursor) break;
+  }
+  return [...banks.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export type RetryRefundResult =
+  | { kind: "accepted" }
+  | { kind: "rejected"; httpStatus: number; message: string };
+
+/**
+ * Completes a refund Paystack reported as needs-attention (`POST /refund/retry_with_customer_details/:id`, body
+ * `refund_account_details`: currency, account_number, bank_id). Paystack answers 422 unless it has just sent
+ * refund.needs-attention. Like createRefund it has no idempotency key, so callers send it at most once per
+ * attempt:
+ *  - accepted: Paystack took the details; refund.processed or refund.failed follows by webhook.
+ *  - rejected: a 4xx other than 429, so nothing was sent and the staff member may try other details.
+ *  - throws: 429, 5xx, network errors, odd shapes. The outcome is UNKNOWN and must not be retried blindly.
+ * The account number is only ever in the request body: it is never logged, returned or put in an error message.
+ */
+export async function retryRefundWithCustomerDetails(
+  args: { providerRefundId: string; currency: string; accountNumber: string; bankId: string },
+  secretKey: string,
+  fetchFn: typeof fetch = fetch,
+): Promise<RetryRefundResult> {
+  const res = await fetchFn(`${paystackBaseUrl()}/refund/retry_with_customer_details/${encodeURIComponent(args.providerRefundId)}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${secretKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ refund_account_details: { currency: args.currency, account_number: args.accountNumber, bank_id: args.bankId } }),
+    cache: "no-store",
+  });
+  if (res.status >= 400 && res.status < 500 && res.status !== 429) {
+    let message = `Paystack refused the bank details (HTTP ${res.status})`;
+    try {
+      const body = (await res.json()) as { message?: unknown };
+      if (typeof body.message === "string" && body.message) message = body.message.slice(0, 200).split(args.accountNumber).join("…");
+    } catch {
+      /* not JSON */
+    }
+    return { kind: "rejected", httpStatus: res.status, message };
+  }
+  if (!res.ok) throw new Error(`Paystack refund retry failed with HTTP ${res.status}`);
+  const parsed = z.object({ status: z.boolean() }).passthrough().safeParse(await res.json());
+  if (!parsed.success || !parsed.data.status) throw new Error("Paystack refund retry returned an unexpected response");
+  return { kind: "accepted" };
+}

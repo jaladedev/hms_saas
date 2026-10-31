@@ -60,6 +60,10 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
           const { error } = await service.rpc("note_refund_attention", { p_refund_id: refundId, p_note: note });
           if (error) throw new Error(error.message);
         },
+        async markNeedsDetails(refundId, providerRefundId, note) {
+          const { error } = await service.rpc("mark_refund_needs_details", { p_refund_id: refundId, p_provider_refund_id: providerRefundId, p_note: note });
+          if (error) throw new Error(error.message);
+        },
         log: (level, message, ctx) => console[level === "info" ? "log" : level](`[refund-payout] ${message}`, ctx ?? {}),
       },
       id,

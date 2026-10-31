@@ -30,7 +30,7 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [x] Staff view of the email outbox (`/app/emails`: failed and retrying emails, resend; migration 017)
 - [x] Email for cancellation by the hotel (016) and for a booking flagged `paid_inventory_lost` (021, `payment_no_room`: payment received, no need to pay again, the hotel will arrange another room or a full refund). Not emailed: `paid_after_cancel`
 - [x] Rate limiting on guest actions (search, hold, pay, link requests) by keyed hash of address, email or reservation (015)
-- [ ] Guest site polish: hotel name and branding before a search, photos and amenities for room types, cancellation and payment policy text on the reserve page, a proper not-found page for dead links
+- [ ] Guest site polish: hotel name and branding before a search, photos and amenities for room types, cancellation and payment policy text on the reserve page. Done: a not-found page for dead booking links (`app/(site)/not-found.tsx`)
 - [ ] Dynamic hold length on the countdown (the page shows minutes left only at render time)
 - [ ] Refund payout route for staff: `begin_refund_processing`, then Paystack `POST /refund`, then `record_refund_result` (the webhook also reports the result)
 - [x] Staff queue for reservations with `attention_reason` set (payment_amount_or_currency_mismatch, payment_overpayment, paid_inventory_lost, paid_after_cancel): "Needs attention" filter on `/app/reservations`, a badge per row, the explanation on the booking page, and a count on the overview that links to the filtered list
@@ -47,8 +47,9 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [x] Settlement on cancellation (016): stay invoice voided, cancellation-charge invoice, refund requests for the surplus, unpaid charge flagged and collectable
 - [x] Refund payout route (`/api/staff/refunds/<id>/payout`), at most one Paystack call per refund; unknown outcomes are flagged and listed by maintenance
 - [ ] No-show settlement: `no_show` is not settled the way `cancelled` is (no charge, invoice or refund handling); decide the rule with the hotel
-- [ ] Resolve Paystack `refund.needs-attention`: the refund is only noted; completing it needs Paystack's retry-with-customer-details endpoint and a staff screen to collect bank details
-- [ ] Staff screens for money: refund queue (request, approve, payout, attention), settlement summary per cancelled booking, cancellation-charge collection
+- [x] Resolve Paystack `refund.needs-attention` (migration 022): the refund is marked and its Paystack refund id kept; `/app/refunds` shows an "Enter bank details" form (bank list from Paystack, account number reviewed before sending); the details go to `POST /refund/retry_with_customer_details/<id>` at most once per attempt (a refusal frees it, an unclear answer keeps it used); the account number is never stored, logged or returned
+- [ ] Check the bank-details retry against Paystack TEST mode before using it with real money: the bank list response (`id`, `name`) and the `bank_id` the retry expects were taken from Paystack's docs and not confirmed with a live call; add a case to `npm run e2e` with the fake Paystack
+- [x] Staff screens for money: refund queue (`/app/refunds`: request, approve or reject, manual and Paystack payout, needs-a-person list), settlement summary per cancelled booking (`/app/reservations/<id>/settlement`), and cancellation-charge collection (the charge due shows as the outstanding amount on the booking page, where a payment is recorded).
 - [ ] Guests cannot cancel their own booking (staff cancel on their behalf); a guest-facing cancel needs the same settlement preview before they confirm
 - [x] `audit_logs` (insert-only) and `idempotency_keys` (007)
 - [ ] `outbox_events`, `notifications`, `documents`, `booking_access_tokens`; idempotency key expiry job

@@ -34,7 +34,8 @@ export type WebhookDeps = {
   confirmPayment(args: ConfirmPaymentArgs): Promise<{ result?: string; duplicate?: boolean }>;
   findProcessingRefund(tenantId: string, transactionReference: string, amountMinor: number): Promise<string | null>;
   recordRefundResult(tenantId: string, args: RefundResultArgs): Promise<{ result?: string; duplicate?: boolean }>;
-  noteRefundAttention(refundId: string, note: string): Promise<void>;
+  /** refund.needs-attention: keep Paystack's refund id and open the bank-details retry for staff. */
+  markRefundNeedsDetails(refundId: string, providerRefundId: string | null, note: string): Promise<void>;
   log?(level: "info" | "warn" | "error", message: string, context?: Record<string, unknown>): void;
 };
 
@@ -134,7 +135,8 @@ export async function handlePaystackWebhook(
         return { status: 200, body: { received: true, result: "ignored_no_match" } };
       }
       if (event === "refund.needs-attention") {
-        await deps.noteRefundAttention(refundId, "Paystack needs the customer's bank details to complete this refund (refund.needs-attention)");
+        // data.id is Paystack's own refund id, which the retry endpoint is addressed by (refund_reference is the bank's).
+        await deps.markRefundNeedsDetails(refundId, idLike(data.id), "Paystack needs the customer's bank details to complete this refund (refund.needs-attention)");
         return { status: 200, body: { received: true, result: "noted_attention" } };
       }
       const providerRefundId = idLike(data.refund_reference) ?? idLike(data.id);

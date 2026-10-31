@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createHmac } from "node:crypto";
-import { createRefund, initializeTransaction, verifyTransaction, verifyWebhookSignature } from "@/lib/paystack";
+import { createRefund, initializeTransaction, listBanks, retryRefundWithCustomerDetails, verifyTransaction, verifyWebhookSignature } from "@/lib/paystack";
 
 const SECRET = "sk_test_abcdef123456";
 const BODY = '{"event":"charge.success","data":{"reference":"HMS-1"}}';
@@ -102,5 +102,70 @@ describe("createRefund", () => {
     await expect(createRefund(args, SECRET, fakeFetch(200, { status: true }))).rejects.toThrow();
     const boom = (async () => { throw new Error("socket hang up"); }) as typeof fetch;
     await expect(createRefund(args, SECRET, boom)).rejects.toThrow("socket hang up");
+  });
+});
+
+describe("listBanks", () => {
+  it("asks for the currency, follows the cursor and returns sorted, de-duplicated banks", async () => {
+    const urls: string[] = [];
+    const pages = [
+      { status: true, data: [{ id: 9, name: "Zenith Bank", code: "057" }, { id: 1, name: "Access Bank", code: "044" }], meta: { next: "abc" } },
+      { status: true, data: [{ id: "9", name: "Zenith Bank" }, { id: 5, name: "GTBank" }], meta: { next: null } },
+    ];
+    const f = (async (url: string | URL | Request) => {
+      urls.push(String(url));
+      return new Response(JSON.stringify(pages[urls.length - 1]), { status: 200 });
+    }) as typeof fetch;
+    const banks = await listBanks("NGN", SECRET, f);
+    expect(banks).toEqual([{ id: "1", name: "Access Bank" }, { id: "5", name: "GTBank" }, { id: "9", name: "Zenith Bank" }]);
+    expect(urls).toHaveLength(2);
+    expect(urls[0]).toContain("currency=NGN");
+    expect(urls[0]).toContain("country=nigeria");
+    expect(urls[0]).not.toContain("next=");
+    expect(urls[1]).toContain("next=abc");
+  });
+  it("stops after 10 pages even if the cursor never ends", async () => {
+    let calls = 0;
+    const f = (async () => { calls++; return new Response(JSON.stringify({ status: true, data: [{ id: calls, name: `Bank ${calls}` }], meta: { next: "again" } }), { status: 200 }); }) as typeof fetch;
+    expect(await listBanks("NGN", SECRET, f)).toHaveLength(10);
+    expect(calls).toBe(10);
+  });
+  it("throws on HTTP errors and unexpected shapes", async () => {
+    await expect(listBanks("NGN", SECRET, fakeFetch(500, {}))).rejects.toThrow();
+    await expect(listBanks("NGN", SECRET, fakeFetch(200, { status: true }))).rejects.toThrow();
+    await expect(listBanks("NGN", SECRET, fakeFetch(200, { status: true, data: [{ name: "No id" }] }))).rejects.toThrow();
+  });
+});
+
+describe("retryRefundWithCustomerDetails", () => {
+  const args = { providerRefundId: "3018", currency: "NGN", accountNumber: "0123456789", bankId: "9" };
+  it("posts the bank details to the refund's retry endpoint", async () => {
+    let sent: { url?: string; body?: Record<string, unknown>; auth?: string | null } = {};
+    const f = (async (url: string | URL | Request, init?: RequestInit) => {
+      sent = { url: String(url), body: JSON.parse(String(init?.body)), auth: new Headers(init?.headers).get("authorization") };
+      return new Response(JSON.stringify({ status: true, message: "Refund retried" }), { status: 200 });
+    }) as typeof fetch;
+    expect(await retryRefundWithCustomerDetails(args, SECRET, f)).toEqual({ kind: "accepted" });
+    expect(sent.url).toBe("https://api.paystack.co/refund/retry_with_customer_details/3018");
+    expect(sent.auth).toBe(`Bearer ${SECRET}`);
+    expect(sent.body).toEqual({ refund_account_details: { currency: "NGN", account_number: "0123456789", bank_id: "9" } });
+  });
+  it("treats a 4xx (not 429) as a definite refusal and never echoes the account number", async () => {
+    const out = await retryRefundWithCustomerDetails(args, SECRET, fakeFetch(422, { status: false, message: "Could not resolve account 0123456789" }));
+    expect(out).toMatchObject({ kind: "rejected", httpStatus: 422 });
+    expect(JSON.stringify(out)).not.toContain("0123456789");
+    expect(await retryRefundWithCustomerDetails(args, SECRET, fakeFetch(400, "oops"))).toMatchObject({ kind: "rejected", httpStatus: 400 });
+  });
+  it("throws when the outcome is unknown: 429, 5xx, bad shapes, network errors", async () => {
+    await expect(retryRefundWithCustomerDetails(args, SECRET, fakeFetch(429, {}))).rejects.toThrow();
+    await expect(retryRefundWithCustomerDetails(args, SECRET, fakeFetch(503, {}))).rejects.toThrow();
+    await expect(retryRefundWithCustomerDetails(args, SECRET, fakeFetch(200, { message: "no status" }))).rejects.toThrow();
+    const boom = (async () => { throw new Error("socket hang up"); }) as typeof fetch;
+    await expect(retryRefundWithCustomerDetails(args, SECRET, boom)).rejects.toThrow("socket hang up");
+  });
+  it("puts an odd refund id into the path safely", async () => {
+    const seen: { url?: string } = {};
+    await retryRefundWithCustomerDetails({ ...args, providerRefundId: "../x?y" }, SECRET, fakeFetch(200, { status: true }, seen));
+    expect(seen.url).toBe("https://api.paystack.co/refund/retry_with_customer_details/..%2Fx%3Fy");
   });
 });

@@ -21,6 +21,8 @@ export type PayoutDeps = {
   ): Promise<CreateRefundResult>;
   recordResult(args: { refundId: string; eventId: string; status: "succeeded" | "failed"; providerRefundId: string | null; failureReason: string | null }): Promise<void>;
   noteAttention(refundId: string, note: string): Promise<void>;
+  /** Paystack answered needs-attention: remember the provider refund id and open the bank-details retry. */
+  markNeedsDetails(refundId: string, providerRefundId: string | null, note: string): Promise<void>;
   log?(level: "info" | "warn" | "error", message: string, context?: Record<string, unknown>): void;
 };
 
@@ -80,7 +82,7 @@ export async function payoutRefund(deps: PayoutDeps, refundId: string): Promise<
     return { status: "failed", reason: "Paystack reported the refund as failed" };
   }
   if (result.providerStatus === "needs-attention") {
-    await deps.noteAttention(refundId, "Paystack needs the customer's bank details to complete this refund (needs-attention)");
+    await deps.markNeedsDetails(refundId, result.providerRefundId, "Paystack needs the customer's bank details to complete this refund (needs-attention)");
   }
   return { status: "submitted", providerStatus: result.providerStatus };
 }

@@ -64,8 +64,8 @@ function buildDeps(): WebhookDeps {
       const out = data as { result?: string; duplicate?: boolean } | null;
       return { result: out?.result, duplicate: out?.duplicate === true };
     },
-    async noteRefundAttention(refundId, note) {
-      const { error } = await db.rpc("note_refund_attention", { p_refund_id: refundId, p_note: note });
+    async markRefundNeedsDetails(refundId, providerRefundId, note) {
+      const { error } = await db.rpc("mark_refund_needs_details", { p_refund_id: refundId, p_provider_refund_id: providerRefundId, p_note: note });
       if (error) throw new Error(error.message);
     },
     log(level, message, context) {
