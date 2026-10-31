@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 // Items without an href are placeholders until their phase lands.
 const NAV: { label: string; href?: string }[] = [
   { label: "Overview", href: "/app" },
-  { label: "Front Desk" },
+  { label: "Front Desk", href: "/app/front-desk" },
   { label: "Reservations", href: "/app/reservations" },
   { label: "Room Management" },
   { label: "Guests" },
