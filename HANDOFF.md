@@ -71,7 +71,13 @@ Built and tested locally (PostgreSQL 16 with stand-ins for Supabase's `auth` sch
   `/login` (email and password through Supabase Auth, `lib/staff/auth-actions.ts`), sign-out in the `/app` sidebar, and
   `proxy.ts` refreshes the session cookie and sends signed-out visitors to `/login?next=...` (`next` is limited to `/app` paths).
   A correct password also needs an active `tenant_memberships` row. Checked on a real build: the redirect, the page and the
-  open-redirect guard. NOT checked against a live Supabase Auth project; forgot/reset password pages do not exist yet.
+  open-redirect guard. NOT checked against a live Supabase Auth project.
+  Password recovery: `/forgot-password` (same answer whether or not the email has an account), the link lands on `/auth/callback`
+  (exchanges the code for a session, then `/reset-password`), and `/reset-password` sets the new password (10+ characters, at most
+  72 bytes) and signs the account out everywhere. Supabase setup needed: add `https://<site>/auth/callback` to Auth > URL
+  Configuration > Redirect URLs, and set Site URL. The default link only works in the browser that asked for it (PKCE); to make it
+  work from a phone too, change the Reset Password email template's link to
+  `{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=recovery&next=/reset-password`.
 
 Not verified:
 

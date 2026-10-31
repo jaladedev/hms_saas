@@ -1,6 +1,7 @@
 import { PasswordField, SubmitButton } from "@/components/staff/login-bits";
 import { inputClass } from "@/components/staff/ui";
-import { safeNext, signInErrorMessage } from "@/lib/staff/auth";
+import Link from "next/link";
+import { safeNext, signInErrorMessage, signInNotice } from "@/lib/staff/auth";
 import { signIn } from "@/lib/staff/auth-actions";
 
 export const dynamic = "force-dynamic";
@@ -10,6 +11,7 @@ const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 export default async function Login({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const search = await searchParams;
   const error = signInErrorMessage(one(search.err));
+  const notice = signInNotice(one(search.ok));
   const next = safeNext(one(search.next));
 
   return (
@@ -18,6 +20,9 @@ export default async function Login({ searchParams }: { searchParams: Promise<Re
       <h1 className="mt-6 font-display text-3xl">Staff sign in</h1>
       <p className="mt-2 text-sm text-muted">Use the email and password your hotel gave you.</p>
 
+      {notice && !error && (
+        <p role="status" className="mt-6 border-l-4 border-primary bg-primary/5 px-4 py-3 text-sm text-primary-strong">{notice}</p>
+      )}
       {error && (
         <p role="alert" className="mt-6 border-l-4 border-critical bg-critical/5 px-4 py-3 text-sm text-critical">{error}</p>
       )}
@@ -34,6 +39,9 @@ export default async function Login({ searchParams }: { searchParams: Promise<Re
         <PasswordField />
         <SubmitButton>Sign in</SubmitButton>
       </form>
+      <p className="mt-4 text-sm">
+        <Link href="/forgot-password" className="text-primary-strong underline underline-offset-2">Forgot your password?</Link>
+      </p>
     </main>
   );
 }

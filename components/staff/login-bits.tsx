@@ -4,15 +4,17 @@ import { useState } from "react";
 import { useFormStatus } from "react-dom";
 import { buttonPrimary, inputClass } from "./ui";
 
-export function PasswordField() {
+export function PasswordField({
+  name = "password", label = "Password", autoComplete = "current-password",
+}: { name?: string; label?: string; autoComplete?: "current-password" | "new-password" }) {
   const [shown, setShown] = useState(false);
   return (
     <div>
-      <label htmlFor="password" className="block text-sm font-medium">Password</label>
+      <label htmlFor={name} className="block text-sm font-medium">{label}</label>
       <div className="mt-1 flex gap-2">
         <input
-          id="password" name="password" type={shown ? "text" : "password"} required maxLength={200}
-          autoComplete="current-password" className={inputClass}
+          id={name} name={name} type={shown ? "text" : "password"} required maxLength={200}
+          autoComplete={autoComplete} className={inputClass}
         />
         <button
           type="button" onClick={() => setShown((s) => !s)} aria-pressed={shown}
@@ -25,11 +27,11 @@ export function PasswordField() {
   );
 }
 
-export function SubmitButton({ children }: { children: React.ReactNode }) {
+export function SubmitButton({ children, pendingLabel = "Signing in…" }: { children: React.ReactNode; pendingLabel?: string }) {
   const { pending } = useFormStatus();
   return (
     <button type="submit" disabled={pending} className={`${buttonPrimary} w-full py-2`}>
-      {pending ? "Signing in…" : children}
+      {pending ? pendingLabel : children}
     </button>
   );
 }
