@@ -64,7 +64,8 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 ## Phase 3: Staff MVP (UI)
 - [x] Sign in, forgot and reset password
 - [x] Staff and permissions (`/app/staff`, owner only): list with roles, invite by email (Supabase invite for new people), add or remove a role per property, suspend, restore, remove. Not built: custom roles, editing a role's permissions, a staff member's own profile page, platform-admin tools
-- [ ] Setup wizard, room types and rooms, rates and policies
+- [x] Room types and rooms setup (`/app/settings/rooms`: add types and rooms, put a room in or out of service or retire it; direct writes under row-level security, not audited)
+- [ ] Rates (daily rates, seasonal plans), tax rules, cancellation and payment policies, editing and deactivating room types, first-run wizard
 - [x] Reservation list (`/app/reservations`: search by reference, guest name, email or phone; status, attention and arrival-date filters; paged) and details (`/app/reservations/[id]`: rooms with assigned room number and cleanliness, money summary, cancel, per-room check-in with override reason, per-room check-out, manual payment)
 - [x] Reservation create for walk-in and phone bookings (`/app/reservations/new`, one room per booking, default rate plan, confirmed at once)
 - [ ] Multi-room create, a chosen physical room, edit dates and guests, staff-created holds that wait for payment
@@ -74,7 +75,7 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [x] Front desk board (`/app/front-desk`: arrivals, departures, in house, overdue departures, late arrivals; each links to the booking)
 - [x] Room board (`/app/rooms`, read-only: state of every room today, occupant, blocks, next booking; each room card can set its cleaning status (migration 018) and block or unblock it; a block that would clash with a booking is refused and the booking has to be moved first)
 - [x] Guests (`/app/guests`: search by name, email or phone; guest page with stay history and an audited contact-details edit, migration 020). Not built: merging duplicate guests, guest notes or preferences, a guest's invoices and payments in one view
-- [x] Housekeeping worklist (`/app/housekeeping`: dirty rooms with arrivals first, one-tap start and finish, works for roles that cannot see guests); task history and assignment are still to do
+- [ ] Housekeeping task screens
 - [ ] Hotel runs one full real day in staging with no spreadsheet fallback
 
 ## Phase 4: Hardening and launch

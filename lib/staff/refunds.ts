@@ -110,7 +110,8 @@ export type ErrorCode =
   | "invoice_exists" | "invoice_has_payments" | "invoice_void"
   | "transfer_unavailable" | "transfer_past" | "transfer_outside" | "transfer_bad_room"
   | "guest_name" | "guest_email" | "guest_country" | "guest_field"
-  | "role_escalation" | "self_change" | "last_owner" | "staff_suspended" | "staff_revoked" | "staff_property" | "invite_failed" | "email_invalid";
+  | "role_escalation" | "self_change" | "last_owner" | "staff_suspended" | "staff_revoked" | "staff_property" | "invite_failed" | "email_invalid"
+  | "setup_invalid" | "setup_duplicate_code" | "setup_duplicate_name" | "setup_duplicate_room" | "setup_forbidden" | "room_has_bookings";
 
 /**
  * Maps a database error message to a code, and an amount when the database reports one. The amount
@@ -184,6 +185,9 @@ export const OK_MESSAGES = {
   block_released: "Block removed. The room can be booked again.",
   invoice_issued: "Invoice issued.",
   invoice_voided: "Invoice voided.",
+  room_type_created: "Room type added. Add its rooms below, then set its rates.",
+  room_added: "Room added.",
+  room_status_changed: "Room status updated.",
   guest_updated: "Guest details saved.",
   staff_added: "Access granted. A new person gets an email to choose a password; someone who already has an account just signs in as usual.",
   staff_role_removed: "Role removed.",
@@ -223,6 +227,12 @@ export function errorMessage(code: string, refundable: number | null, formatMino
     case "guest_name_required": return "Enter the guest's name.";
     case "room_type_missing": return "That room type or property is no longer available. Reload the form.";
     case "guest_failed": return "The guest could not be saved. Check the email and phone number and try again.";
+    case "setup_invalid": return "Some of the details are not valid. Check the capacity numbers, the code and the price, and try again.";
+    case "setup_duplicate_code": return "Another room type at this property already uses that code. Choose a different one.";
+    case "setup_duplicate_name": return "Another room type at this property has a name that is too similar. Choose a different name.";
+    case "setup_duplicate_room": return "That room number already exists at this property.";
+    case "setup_forbidden": return "You do not have permission to change the hotel setup.";
+    case "room_has_bookings": return "That room has current or future bookings or blocks. Move the guests and release the blocks first.";
     case "invoice_exists": return "This reservation already has an invoice. Void it first if it needs to be reissued.";
     case "invoice_has_payments": return "This invoice has payments recorded against it, so it cannot be voided. Refund the guest first; once no money is held it can be voided.";
     case "invoice_void": return "That invoice is already void.";
