@@ -159,3 +159,15 @@ export function attentionText(code: string): string {
     default: return code.startsWith("payment_") ? "A payment on this reservation needs review." : `Flagged for attention (${code}).`;
   }
 }
+
+export type InvoiceRow = { id: string; invoice_number: string; invoice_status: string; total_minor: number };
+
+/** Which invoice buttons to show. The database still decides: this only hides what it would refuse. */
+export function invoiceActions(reservationStatus: string, invoices: InvoiceRow[], perms: { issue: boolean; void: boolean }) {
+  const hasLive = invoices.some((i) => i.invoice_status !== "void");
+  const closed = reservationStatus === "cancelled" || reservationStatus === "expired" || reservationStatus === "no_show";
+  return {
+    canIssue: perms.issue && !hasLive && !closed,
+    canVoid: (i: InvoiceRow) => perms.void && i.invoice_status !== "void",
+  };
+}

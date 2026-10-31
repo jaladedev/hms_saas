@@ -172,3 +172,31 @@ describe("attentionText", () => {
     expect(attentionText("something_new")).toContain("something_new");
   });
 });
+
+describe("invoiceActions", () => {
+  const live = { id: "i1", invoice_number: "INV-1", invoice_status: "issued", total_minor: 100 };
+  const voided = { ...live, id: "i2", invoice_status: "void" };
+  const ALLP = { issue: true, void: true };
+  it("offers issue only when no live invoice exists and the booking is not closed", async () => {
+    const { invoiceActions } = await import("./reservations");
+    expect(invoiceActions("confirmed", [], ALLP).canIssue).toBe(true);
+    expect(invoiceActions("confirmed", [voided], ALLP).canIssue).toBe(true);     // reissue after a void
+    expect(invoiceActions("confirmed", [live], ALLP).canIssue).toBe(false);
+    expect(invoiceActions("checked_in", [], { issue: false, void: true }).canIssue).toBe(false);
+    for (const s of ["cancelled", "expired", "no_show"]) expect(invoiceActions(s, [], ALLP).canIssue, s).toBe(false);
+  });
+  it("offers void only on a live invoice, with permission", async () => {
+    const { invoiceActions } = await import("./reservations");
+    const a = invoiceActions("confirmed", [live, voided], ALLP);
+    expect(a.canVoid(live)).toBe(true);
+    expect(a.canVoid(voided)).toBe(false);
+    expect(invoiceActions("confirmed", [live], { issue: true, void: false }).canVoid(live)).toBe(false);
+  });
+  it("words the invoice refusals", async () => {
+    const { classifyRpcError, errorMessage } = await import("./refunds");
+    expect(classifyRpcError("INVALID_STATE: invoice exists").code).toBe("invoice_exists");
+    expect(classifyRpcError("INVALID_STATE: invoice has payments").code).toBe("invoice_has_payments");
+    expect(classifyRpcError("INVALID_STATE: void").code).toBe("invoice_void");
+    expect(errorMessage("invoice_has_payments", null, String)).toMatch(/Refund the guest first/);
+  });
+});

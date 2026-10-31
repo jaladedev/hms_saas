@@ -4,9 +4,9 @@ import { z } from "zod";
 import { buttonDanger, buttonPrimary, buttonQuiet, inputClass, Notice, PaymentChip, ReservationChip } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { formatDateTime } from "@/lib/staff/format";
-import { cancelReservation, checkInRoom, checkOutRoom, recordPayment } from "@/lib/staff/reservation-actions";
+import { cancelReservation, checkInRoom, checkOutRoom, issueInvoice, recordPayment, voidInvoice } from "@/lib/staff/reservation-actions";
 import {
-  attentionText, detailActions, nightsBetween, PAYMENT_METHODS, SOURCE_LABEL, todayIn,
+  attentionText, detailActions, invoiceActions, type InvoiceRow, nightsBetween, PAYMENT_METHODS, SOURCE_LABEL, todayIn,
 } from "@/lib/staff/reservations";
 import { createClient } from "@/lib/supabase/server";
 
@@ -47,12 +47,14 @@ export default async function ReservationPage({
   const res = resRow as Reservation;
 
   const can = (permission: string) => supabase.rpc("has_permission", { p_property: res.property_id, p_permission: permission });
-  const [roomsQ, guestQ, propQ, settleQ, cCancel, cIn, cOut, cPay] = await Promise.all([
+  const [roomsQ, guestQ, propQ, settleQ, cCancel, cIn, cOut, cPay, invQ, cIssue, cVoid] = await Promise.all([
     supabase.from("reservation_rooms").select("id, room_type_id, room_status, adults, children, checked_in_at, checked_out_at").eq("reservation_id", id).order("created_at"),
     supabase.from("guests").select("full_name, email, phone").eq("id", res.primary_guest_id).maybeSingle(),
     supabase.from("properties").select("name, timezone").eq("id", res.property_id).maybeSingle(),
     supabase.rpc("reservation_settlement", { p_reservation_id: id }),
     can("reservation.cancel"), can("reservation.checkin"), can("reservation.checkout"), can("payment.record"),
+    supabase.from("invoices").select("id, invoice_number, invoice_status, total_minor").eq("reservation_id", id).order("created_at"),
+    can("invoice.issue"), can("invoice.void"),
   ]);
 
   const resRooms = (roomsQ.data ?? []) as ResRoom[];
@@ -80,6 +82,9 @@ export default async function ReservationPage({
   const act = detailActions(res, {
     cancel: cCancel.data === true, checkin: cIn.data === true, checkout: cOut.data === true, payment: cPay.data === true,
   }, today, held);
+  // Invoices are readable only with invoice.issue, payment.record or report.view; without them the list is simply empty.
+  const invoices = (invQ.data ?? []) as InvoiceRow[];
+  const inv = invoiceActions(res.reservation_status, invoices, { issue: cIssue.data === true, void: cVoid.data === true });
   const money = (m: number) => formatMoney(m, res.currency);
   const stayNights = nightsBetween(res.arrival_date, res.departure_date);
   const cancelled = res.reservation_status === "cancelled";
@@ -257,6 +262,46 @@ export default async function ReservationPage({
           </details>
         )}
       </section>
+
+      {(invoices.length > 0 || inv.canIssue) && (
+        <section className="mt-10" aria-labelledby="invoices">
+          <h2 id="invoices" className="font-display text-xl">Invoices</h2>
+          {invoices.length > 0 && (
+            <ul className="mt-2 border-t border-line">
+              {invoices.map((i) => (
+                <li key={i.id} className="border-b border-line py-3">
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+                    <span><span className="font-medium">{i.invoice_number}</span> <span className="text-sm text-muted">{i.invoice_status.replace("_", " ")}</span></span>
+                    <span className="tabular-nums">{money(i.total_minor)}</span>
+                  </div>
+                  {inv.canVoid(i) && (
+                    <details className="mt-2">
+                      <summary className="cursor-pointer text-sm text-muted">Void this invoice</summary>
+                      <form action={voidInvoice} className="mt-2 grid max-w-md gap-2">
+                        <input type="hidden" name="reservationId" value={res.id} />
+                        <input type="hidden" name="invoiceId" value={i.id} />
+                        <input type="hidden" name="idempotencyKey" value={crypto.randomUUID()} />
+                        <label htmlFor={`void-${i.id}`} className="block text-sm">Why is it being voided?</label>
+                        <textarea id={`void-${i.id}`} name="reason" required maxLength={500} rows={2} className={inputClass} />
+                        <p className="text-xs text-muted">An invoice with payments recorded against it cannot be voided until the money has been refunded.</p>
+                        <div><button type="submit" className={buttonDanger}>Void invoice</button></div>
+                      </form>
+                    </details>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+          {inv.canIssue && (
+            <form action={issueInvoice} className="mt-3">
+              <input type="hidden" name="reservationId" value={res.id} />
+              <input type="hidden" name="idempotencyKey" value={crypto.randomUUID()} />
+              <button type="submit" className={buttonQuiet}>Issue invoice</button>
+              <p className="mt-1 text-xs text-muted">Copies the nights and tax into a numbered invoice. Payments already received are applied to it.</p>
+            </form>
+          )}
+        </section>
+      )}
 
       {act.cancel && (
         <section className="mt-10" aria-labelledby="cancel">

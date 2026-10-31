@@ -134,3 +134,28 @@ export async function createManualReservation(formData: FormData) {
   if (!reservationId) return back(LIST, { ok: "created" });
   return ok(pageFor(reservationId), "created");
 }
+
+export async function issueInvoice(formData: FormData) {
+  const parsed = z.object({ reservationId: uuid, idempotencyKey: key }).safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return back(LIST, { err: "bad_request" });
+  const page = pageFor(parsed.data.reservationId);
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("issue_invoice", { p_reservation_id: parsed.data.reservationId, p_idempotency_key: parsed.data.idempotencyKey });
+  if (error) return fail(page, error.message);
+  refresh(parsed.data.reservationId);
+  return ok(page, "invoice_issued");
+}
+
+export async function voidInvoice(formData: FormData) {
+  const parsed = z.object({ reservationId: uuid, invoiceId: uuid, idempotencyKey: key, reason: z.string().max(500) }).safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return back(LIST, { err: "bad_request" });
+  const page = pageFor(parsed.data.reservationId);
+  if (!parsed.data.reason.trim()) return back(page, { err: "reason_required" });
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("void_invoice", {
+    p_invoice_id: parsed.data.invoiceId, p_reason: parsed.data.reason.trim(), p_idempotency_key: parsed.data.idempotencyKey,
+  });
+  if (error) return fail(page, error.message);
+  refresh(parsed.data.reservationId);
+  return ok(page, "invoice_voided");
+}

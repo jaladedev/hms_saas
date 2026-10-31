@@ -106,7 +106,8 @@ export type ErrorCode =
   | "overpayment" | "method_invalid" | "not_cancellable"
   | "room_unavailable" | "capacity" | "rate_missing" | "forbidden" | "arrival_past" | "dates_invalid"
   | "guest_name_required" | "too_long_stay" | "room_type_missing" | "guest_failed"
-  | "block_conflict" | "block_past" | "block_invalid" | "room_retired";
+  | "block_conflict" | "block_past" | "block_invalid" | "room_retired"
+  | "invoice_exists" | "invoice_has_payments" | "invoice_void";
 
 /**
  * Maps a database error message to a code, and an amount when the database reports one. The amount
@@ -142,6 +143,9 @@ export function classifyRpcError(message: string): { code: ErrorCode; refundable
   if (/arrival in the past/.test(message)) return { code: "arrival_past" };
   if (/departure must follow/.test(message)) return { code: "dates_invalid" };
   if (/NOT_FOUND: room type|NOT_FOUND: property/.test(message)) return { code: "room_type_missing" };
+  if (/invoice exists/.test(message)) return { code: "invoice_exists" };
+  if (/invoice has payments/.test(message)) return { code: "invoice_has_payments" };
+  if (/INVALID_STATE: void/.test(message)) return { code: "invoice_void" };
   if (/INVALID_STATE/.test(message)) return { code: "invalid_state" };
   if (/NOT_FOUND/.test(message)) return { code: "not_found" };
   return { code: "unknown" };
@@ -161,6 +165,8 @@ export const OK_MESSAGES = {
   housekeeping_set: "Room status updated.",
   blocked: "Room blocked for those dates.",
   block_released: "Block removed. The room can be booked again.",
+  invoice_issued: "Invoice issued.",
+  invoice_voided: "Invoice voided.",
 } as const;
 export type OkCode = keyof typeof OK_MESSAGES;
 
@@ -193,6 +199,9 @@ export function errorMessage(code: string, refundable: number | null, formatMino
     case "guest_name_required": return "Enter the guest's name.";
     case "room_type_missing": return "That room type or property is no longer available. Reload the form.";
     case "guest_failed": return "The guest could not be saved. Check the email and phone number and try again.";
+    case "invoice_exists": return "This reservation already has an invoice. Void it first if it needs to be reissued.";
+    case "invoice_has_payments": return "This invoice has payments recorded against it, so it cannot be voided. Refund the guest first; once no money is held it can be voided.";
+    case "invoice_void": return "That invoice is already void.";
     case "block_conflict": return refundable !== null ? `${refundable} ${refundable === 1 ? "booking is" : "bookings are"} already on that room for those dates, so it was not blocked. Move ${refundable === 1 ? "it" : "them"} first.` : "Bookings are already on that room for those dates, so it was not blocked.";
     case "block_past": return "A block cannot start in the past. Choose today or a later date.";
     case "block_invalid": return "Enter a reason and an end date after the start date.";
