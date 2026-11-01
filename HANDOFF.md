@@ -1,6 +1,6 @@
 # Handoff
 
-Last updated: 2026-11-01 (tax rules screen and tax rule audit 028, on top of maintenance alerts, folio screens and folio charges 027). Read this first, then `TODO.md`.
+Last updated: 2026-11-01 (block versus booking race test, tax rules screen and tax rule audit 028, on top of maintenance alerts, folio screens and folio charges 027). Read this first, then `TODO.md`.
 
 ## What this is
 
@@ -66,6 +66,7 @@ Built and tested locally (PostgreSQL 16 with stand-ins for Supabase's `auth` sch
   pgbench races: 50 clients for 1 room (1 wins), 100 for 5 rooms (5 win), the same two through
   `create_reservation`, plus 40 clients each requesting 2 of 5 rooms (exactly 2 win, no partial bookings);
   the last room race and the two-room race are repeated through `create_hold`; 20 clients paying a fifth of a total (exactly 5 fit); one Paystack webhook delivered 20 times at once (one payment); 20 refund requests against one payment (exactly one fits); and 30 email workers over 20 pending emails (each claimed exactly once).
+  Block versus booking (`27_block_race_fixtures.sql`, end of the block races): ten rounds of 24 clients on the one room (201) of the SOLO type, each client either blocking it (`create_room_block`, resolution `fail`), asking for a hold the way the website does (`create_hold`) or booking it as staff (`create_reservation`); rounds 7 to 10 use only blocks and holds, and in rounds 9 and 10 the blockers wait 40 ms so holds win too. Each round must end with exactly one client holding the room, one active claim whose type matches the winner (block, hold or stay), a reservation only when a booking won, no guest left behind by a refused hold, and no deadlock. Dates come from one stored value (`t27_ctx`) because blocks count days from the property's today and holds from the database's current date.
   Any pgbench client error fails the run. All pass.
 - App shell builds and type-checks: `/` guest placeholder, `/platform` placeholder. Staff sign-in works in code:
   `/login` (email and password through Supabase Auth, `lib/staff/auth-actions.ts`), sign-out in the `/app` sidebar, and
@@ -152,5 +153,5 @@ Not verified:
 1. Run `npm install` and `npm run db:test` locally to confirm the same results.
 2. Push, confirm CI is green, create a Supabase staging project, apply all sixteen migrations there.
 3. Configure the maintenance scheduler and email domain, build the staff UI (refund queue, settlement view, failed-email view, payout button), schedule `expire_lapsed_holds`, build cancellation settlement, and the two
-   missing race tests (transfer, block over stay).
+   missing race test (a block with resolution `move` racing a new booking; the plain block against holds and staff bookings is covered).
 4. Continue down `TODO.md` in phase order; do not start online booking before Phase 3 and 4 gates pass.

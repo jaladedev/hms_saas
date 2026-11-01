@@ -348,6 +348,46 @@ psql -At -c "do \$\$ declare v_rr uuid := (select rr from t19_rr where label = '
   end if;
   if (select count(*) from room_inventory_claims where reservation_room_id = v_rr and status = 'active') <> 1 then raise exception 'FAIL guest claims'; end if;
 end \$\$"
+echo "--- concurrency: a block, website holds and staff bookings fight over the one room of the solo type (rounds 1-6: all three; rounds 7-10: only blocks and website holds, the blocks arriving late in 9 and 10)"
+psql -f "$HERE/27_block_race_fixtures.sql"
+PREV=200
+for i in 1 2 3 4 5 6 7 8 9 10; do
+  KINDS=3; [ "$i" -le 6 ] || KINDS=2
+  OFF="$(psql -At -c "select t27_setup($PREV)")"; [ -n "$OFF" ] || { echo "no free window for the block and booking race"; exit 1; }
+  PREV=$((OFF + 3))
+  # Rounds 9 and 10: the clients that block wait 40 ms, so the holds are already racing when the blocks arrive.
+  if [ "$i" -ge 9 ]; then HEAD='\set k :client_id % 2
+\if :k = 0
+\sleep 40 ms
+\endif'; else HEAD="\\set k :client_id % $KINDS"; fi
+  cat > "$DATA/block_vs_book.sql" <<SQL
+$HEAD
+select t27_try('t27_r$i', :k);
+SQL
+  bench -c 24 -j 8 -t 1 -f "$DATA/block_vs_book.sql"
+  psql -At -c "select 'round $i: winner=' || coalesce((select case split_part(label, ':', 2) when '0' then 'block' when '1' then 'hold' else 'staff booking' end from test_results where label like 't27_r$i:%' and ok limit 1), 'NOBODY') || ' refused=' || count(*) filter (where not ok) from test_results where label like 't27_r$i:%'"
+  psql -At -c "do \$\$ declare
+    v_d date := (select d from t27_ctx);
+    v_room uuid := (select id from rooms where property_id = '00000000-0000-0000-0000-0000000000a2' and room_number = '201');
+    v_n integer; v_type text; v_kind text := (select split_part(label, ':', 2) from test_results where label like 't27_r$i:%' and ok limit 1);
+  begin
+    if (select count(*) from test_results where label like 't27_r$i:%' and ok) <> 1 then raise exception 'FAIL round $i: not exactly one client got the room'; end if;
+    if (select count(*) from test_results where label like 't27_r$i:%') <> 24 then raise exception 'FAIL round $i: a client got no clean answer'; end if;
+    select count(*), min(claim_type) into v_n, v_type from room_inventory_claims
+     where room_id = v_room and status = 'active' and daterange(start_date, end_date, '[)') && daterange(v_d, v_d + 2, '[)');
+    if v_n <> 1 then raise exception 'FAIL round $i: % active claims on the room, expected one', v_n; end if;
+    if (v_kind = '0') <> (v_type = 'block') or (v_kind = '1') <> (v_type = 'hold') or (v_kind = '2') <> (v_type = 'stay') then
+      raise exception 'FAIL round $i: the winner (kind %) and the claim (%) do not match', v_kind, v_type;
+    end if;
+    if (select count(*) from reservations where arrival_date = v_d) <> (case when v_type = 'block' then 0 else 1 end) then
+      raise exception 'FAIL round $i: orphan or missing reservation';
+    end if;
+    if exists (select 1 from guests g where g.full_name = 'T27 Race Guest' and not exists (select 1 from reservations r where r.primary_guest_id = g.id)) then
+      raise exception 'FAIL round $i: a refused hold left a guest behind';
+    end if;
+  end \$\$"
+done
+
 echo "--- concurrency: housekeeping task claimed by two housekeepers at once (20 clients): exactly one of them gets it"
 psql -c "select t21_race_setup()"
 cat > "$DATA/hk_claim.sql" <<'SQL'
