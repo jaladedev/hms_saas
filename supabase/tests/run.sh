@@ -113,6 +113,10 @@ SA="$(psql -f "$HERE/23_setup_audit.sql" 2>&1)" || { echo "$SA"; echo "SETUP AUD
 echo "$SA" | grep -E 'PASS' || true
 if echo "$SA" | grep -qE 'FAIL|ERROR'; then echo "$SA"; echo "SETUP AUDIT TESTS FAILED"; exit 1; fi
 
+MT="$(psql -f "$HERE/24_maintenance_requests.sql" 2>&1)" || { echo "$MT"; echo "MAINTENANCE REQUEST TESTS FAILED"; exit 1; }
+echo "$MT" | grep -E 'PASS' || true
+if echo "$MT" | grep -qE 'FAIL|ERROR'; then echo "$MT"; echo "MAINTENANCE REQUEST TESTS FAILED"; exit 1; fi
+
 echo "--- concurrency: last room race (1 room, 50 clients)"
 cat > "$DATA/race_one.sql" <<'SQL'
 select test_try_claim('last_room', '00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', '2027-10-01', '2027-10-03');
@@ -367,4 +371,32 @@ psql -At -c "do \$\$ declare v_room uuid := t21_room('103'); v_status text; v_li
   if v_status = 'dirty' and v_live <> 1 then raise exception 'FAIL dirty room without exactly one live task (%)', v_live; end if;
   if exists (select 1 from housekeeping_tasks where room_id = v_room and status = 'in_progress' and started_at is null) then raise exception 'FAIL started task without a start time'; end if;
 end \$\$"
+echo "--- concurrency: maintenance request claimed by two technicians at once (20 clients): exactly one of them gets it"
+psql -c "select t24_race_setup()"
+cat > "$DATA/mt_claim.sql" <<'SQL'
+select t24_try_claim('mt_claim', :client_id);
+SQL
+bench -c 20 -j 10 -t 1 -f "$DATA/mt_claim.sql"
+psql -At -c "select 'technician A ok=' || count(*) filter (where label = 'mt_claim_a' and ok) || ' B ok=' || count(*) filter (where label = 'mt_claim_b' and ok) from test_results where label like 'mt_claim%'"
+psql -At -c "do \$\$ declare v_r uuid := (select id from t24_ctx where label = 'claim'); begin
+  if (select count(*) from test_results where label like 'mt_claim%') <> 20 then raise exception 'FAIL a client got no clean answer'; end if;
+  if (select count(*) from test_results where label = 'mt_claim_a' and ok) > 0 and (select count(*) from test_results where label = 'mt_claim_b' and ok) > 0 then raise exception 'FAIL both technicians got the request'; end if;
+  if (select count(*) from test_results where label like 'mt_claim%' and ok) = 0 then raise exception 'FAIL nobody got the request'; end if;
+  if (select assigned_to from maintenance_requests where id = v_r) not in ('00000000-0000-0000-0000-00000000aa08', '00000000-0000-0000-0000-00000000aa10') then raise exception 'FAIL request not assigned'; end if;
+  if (select count(*) from audit_logs where action = 'maintenance.request_assigned' and entity_id = v_r) <> 1 then raise exception 'FAIL claim audit rows'; end if;
+end \$\$"
+
+echo "--- concurrency: the same fault reported 20 times at once with one key: one request, one answer"
+cat > "$DATA/mt_report.sql" <<'SQL'
+select t24_try_report('mt_report');
+SQL
+bench -c 20 -j 10 -t 1 -f "$DATA/mt_report.sql"
+psql -At -c "select 'answers=' || count(*) || ' distinct request ids=' || count(distinct val) from t24_out where label = 'mt_report'"
+psql -At -c "do \$\$ begin
+  if (select count(*) from t24_out where label = 'mt_report') <> 20 then raise exception 'FAIL a client got no answer'; end if;
+  if (select count(distinct val) from t24_out where label = 'mt_report') <> 1 then raise exception 'FAIL clients were told different requests'; end if;
+  if (select count(*) from maintenance_requests where title = 'Race: double tap') <> 1 then raise exception 'FAIL more than one request was made'; end if;
+  if (select count(*) from audit_logs where action = 'maintenance.request_created' and entity_id = (select id from maintenance_requests where title = 'Race: double tap')) <> 1 then raise exception 'FAIL created audit rows'; end if;
+end \$\$"
+
 echo "ALL TESTS PASSED"
