@@ -121,7 +121,8 @@ export type ErrorCode =
   | "role_escalation" | "self_change" | "last_owner" | "staff_suspended" | "staff_revoked" | "staff_property" | "invite_failed" | "email_invalid"
   | "rate_range_invalid" | "rate_range_long" | "rate_forbidden" | "rate_no_plan"
   | "setup_invalid" | "setup_duplicate_code" | "setup_duplicate_name" | "setup_duplicate_room" | "setup_forbidden" | "room_has_bookings"
-  | "task_taken" | "task_forbidden" | "task_assignee" | "task_reason" | "task_invalid";
+  | "task_taken" | "task_forbidden" | "task_assignee" | "task_reason" | "task_invalid"
+  | "mt_taken" | "mt_forbidden" | "mt_assignee" | "mt_reason" | "mt_place" | "mt_block" | "mt_invalid" | "mt_duplicate";
 
 /**
  * Maps a database error message to a code, and an amount when the database reports one. The amount
@@ -217,6 +218,17 @@ export const OK_MESSAGES = {
   task_assigned: "Task assigned.",
   task_unassigned: "Task is unassigned again.",
   task_cancelled: "Task cancelled.",
+  mt_reported: "Fault reported. Maintenance can see it now.",
+  mt_claimed: "Request is yours.",
+  mt_started: "Work started.",
+  mt_resolved: "Request resolved.",
+  mt_resolved_block: "Request resolved. The room is still blocked and cannot be booked. Remove the block on the room board when it can be sold again.",
+  mt_assigned: "Request assigned.",
+  mt_unassigned: "Request is unassigned again.",
+  mt_cancelled: "Request cancelled.",
+  mt_priority: "Priority changed.",
+  mt_block_linked: "Room block linked to this request.",
+  mt_block_unlinked: "Room block link removed. The block itself is unchanged.",
   transferred: "Room changed. The booking shows the new room below. If the guest was in the old room, it is now marked dirty.",
 } as const;
 export type OkCode = keyof typeof OK_MESSAGES;
@@ -288,6 +300,14 @@ export function errorMessage(code: string, refundable: number | null, formatMino
     case "task_assignee": return "That person cannot be given housekeeping work at this property.";
     case "task_reason": return "Give a reason for cancelling, up to 200 characters.";
     case "task_invalid": return "The task details are not valid. Check the type, the priority and that the note is under 500 characters.";
+    case "mt_taken": return "Someone else has this request. Ask them, or a manager, to hand it over.";
+    case "mt_forbidden": return "You do not have permission to do that with maintenance requests.";
+    case "mt_assignee": return "That person cannot be given maintenance work at this property.";
+    case "mt_reason": return "Give a reason for cancelling, up to 200 characters.";
+    case "mt_place": return "Choose the room, or name the place if it is not in a room.";
+    case "mt_block": return "That room block cannot be linked here. Only a block on the same room can be.";
+    case "mt_invalid": return "The request details are not valid. Check the title (up to 120 characters), the description (2000), the place (100), the note and the priority.";
+    case "mt_duplicate": return "That form was already sent with different words. Reload the page and report the fault again.";
     case "provider_payment": return "Card and online payments are paid out through the provider, not recorded by hand.";
     case "bad_request": return "The form was incomplete. Reload the page and try again.";
     default: return "Something went wrong. Nothing was changed; try again, and tell a developer if it keeps happening.";

@@ -117,6 +117,10 @@ MT="$(psql -f "$HERE/24_maintenance_requests.sql" 2>&1)" || { echo "$MT"; echo "
 echo "$MT" | grep -E 'PASS' || true
 if echo "$MT" | grep -qE 'FAIL|ERROR'; then echo "$MT"; echo "MAINTENANCE REQUEST TESTS FAILED"; exit 1; fi
 
+FT="$(psql -f "$HERE/25_folio_charges.sql" 2>&1)" || { echo "$FT"; echo "FOLIO TESTS FAILED"; exit 1; }
+echo "$FT" | grep -E 'PASS' || true
+if echo "$FT" | grep -qE 'FAIL|ERROR'; then echo "$FT"; echo "FOLIO TESTS FAILED"; exit 1; fi
+
 echo "--- concurrency: last room race (1 room, 50 clients)"
 cat > "$DATA/race_one.sql" <<'SQL'
 select test_try_claim('last_room', '00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', '2027-10-01', '2027-10-03');
@@ -397,6 +401,49 @@ psql -At -c "do \$\$ begin
   if (select count(distinct val) from t24_out where label = 'mt_report') <> 1 then raise exception 'FAIL clients were told different requests'; end if;
   if (select count(*) from maintenance_requests where title = 'Race: double tap') <> 1 then raise exception 'FAIL more than one request was made'; end if;
   if (select count(*) from audit_logs where action = 'maintenance.request_created' and entity_id = (select id from maintenance_requests where title = 'Race: double tap')) <> 1 then raise exception 'FAIL created audit rows'; end if;
+end \$\$"
+
+echo "--- concurrency: a folio balance paid in full by 20 clients at once: exactly one payment is taken"
+psql -c "select t25_race_setup()"
+cat > "$DATA/fol_pay.sql" <<'SQL'
+select t25_try_pay('fol_pay', :client_id);
+SQL
+bench -c 20 -j 10 -t 1 -f "$DATA/fol_pay.sql"
+psql -At -c "select 'payments ok=' || count(*) filter (where ok) || ' refused=' || count(*) filter (where not ok) from test_results where label = 'fol_pay'"
+psql -At -c "do \$\$ declare v_tot record; begin
+  select * into v_tot from folio_totals(t25_res());
+  if (select count(*) from test_results where label = 'fol_pay') <> 20 then raise exception 'FAIL a client got no clean answer'; end if;
+  if (select count(*) from test_results where label = 'fol_pay' and ok) <> 1 then raise exception 'FAIL % payments were taken for one balance', (select count(*) from test_results where label = 'fol_pay' and ok); end if;
+  if v_tot.paid_minor <> v_tot.charges_minor then raise exception 'FAIL balance not settled exactly (paid %, charges %)', v_tot.paid_minor, v_tot.charges_minor; end if;
+end \$\$"
+
+echo "--- concurrency: the same folio charge posted 20 times at once with one key: one charge, one answer"
+cat > "$DATA/fol_post.sql" <<'SQL'
+select t25_try_post('fol_post');
+SQL
+bench -c 20 -j 10 -t 1 -f "$DATA/fol_post.sql"
+psql -At -c "select 'answers=' || count(*) || ' distinct charge ids=' || count(distinct val) from t25_out where label = 'fol_post'"
+psql -At -c "do \$\$ begin
+  if (select count(*) from t25_out where label = 'fol_post') <> 20 then raise exception 'FAIL a client got no answer'; end if;
+  if (select count(distinct val) from t25_out where label = 'fol_post') <> 1 then raise exception 'FAIL clients were told different charges'; end if;
+  if (select count(*) from folio_charges where description = 'Race snack') <> 1 then raise exception 'FAIL more than one charge was made'; end if;
+  if (select count(*) from audit_logs where action = 'folio.charge_posted' and entity_id = (select id from folio_charges where description = 'Race snack')) <> 1 then raise exception 'FAIL posted audit rows'; end if;
+end \$\$"
+
+echo "--- concurrency: one reservation, 12 clients posting, paying and voiding at once (no deadlock, never over-paid)"
+cat > "$DATA/fol_mix.sql" <<'SQL'
+\set w random(0, 2)
+\set n random(1, 1000000000)
+select t25_mix('fol_mix', :w, :n);
+SQL
+bench -c 12 -j 6 -t 20 -f "$DATA/fol_mix.sql"
+psql -At -c "select 'ok=' || count(*) filter (where ok) || ' refused=' || count(*) filter (where not ok) from test_results where label = 'fol_mix'"
+psql -At -c "do \$\$ declare v_tot record; begin
+  select * into v_tot from folio_totals(t25_res());
+  if (select count(*) from test_results where label = 'fol_mix') <> 240 then raise exception 'FAIL a client got no clean answer'; end if;
+  if v_tot.paid_minor > v_tot.charges_minor then raise exception 'FAIL folio over-paid (paid %, charges %)', v_tot.paid_minor, v_tot.charges_minor; end if;
+  if v_tot.paid_minor < 0 or v_tot.charges_minor < 0 then raise exception 'FAIL negative folio'; end if;
+  if t25_money(t25_res()) <> (select val from t25_ctx where label = 'money') then raise exception 'FAIL the reservation''s own money changed'; end if;
 end \$\$"
 
 echo "ALL TESTS PASSED"

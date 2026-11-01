@@ -1,7 +1,11 @@
 import Link from "next/link";
+import { ReportForm } from "@/components/staff/maintenance-bits";
 import { buttonDanger, buttonPrimary, buttonQuiet, inputClass, Notice } from "@/components/staff/ui";
 import { formatDate } from "@/lib/guest-site/format";
 import { historyByRoom, historyLine, type TaskRow } from "@/lib/staff/housekeeping-tasks";
+import {
+  faultLabel, faultsByRoom, historyByRoom as repairsByRoom, historyLine as repairLine, REQUEST_COLUMNS, type RequestRow,
+} from "@/lib/staff/maintenance";
 import { compareRoomNumbers, countStates, HOUSEKEEPING_STATUSES, roomViews, STATE_LABEL, type BoardClaim, type BoardRoom, type RoomState } from "@/lib/staff/room-board";
 import { blockRoom, releaseBlock, setHousekeeping } from "@/lib/staff/room-actions";
 import { todayIn } from "@/lib/staff/reservations";
@@ -66,19 +70,31 @@ export default async function RoomBoardPage({ searchParams }: { searchParams: Pr
   const history = historyByRoom((taskQ.data ?? []) as TaskRow[]);
   const tzOf = new Map(properties.map((p) => [p.id, p.timezone]));
 
+  // Repairs for each room: how many are open (the indicator) and the recent ones (the list). Readable with
+  // maintenance.view or maintenance.manage; without either this comes back empty and nothing is shown.
+  const repairQ = rooms.length
+    ? await supabase.from("maintenance_requests").select(REQUEST_COLUMNS)
+        .or(`status.in.(open,in_progress),created_at.gte.${sinceTasks}`).order("created_at", { ascending: false }).limit(1000)
+    : { data: [] };
+  const repairs = (repairQ.data ?? []) as RequestRow[];
+  const faults = faultsByRoom(repairs);
+  const repairHistory = repairsByRoom(repairs);
+
   const typeIds = [...new Set(rooms.map((r) => r.room_type_id))];
   // Room types need reservation.view or rate.view; housekeeping and maintenance see rooms without type names.
   const typeQ = typeIds.length ? await supabase.from("room_types").select("id, name").in("id", typeIds) : { data: [] };
   const typeNames = new Map(((typeQ.data ?? []) as { id: string; name: string }[]).map((t) => [t.id, t.name]));
 
   // What the viewer may do at each property; the database checks again on every action.
-  const can = new Map<string, { housekeeping: boolean; block: boolean }>();
+  const can = new Map<string, { housekeeping: boolean; block: boolean; report: boolean }>();
   await Promise.all(properties.map(async (p) => {
-    const [h, b] = await Promise.all([
+    const [h, b, mv, mm] = await Promise.all([
       supabase.rpc("has_permission", { p_property: p.id, p_permission: "housekeeping.update" }),
       supabase.rpc("has_permission", { p_property: p.id, p_permission: "room.block" }),
+      supabase.rpc("has_permission", { p_property: p.id, p_permission: "maintenance.view" }),
+      supabase.rpc("has_permission", { p_property: p.id, p_permission: "maintenance.manage" }),
     ]);
-    can.set(p.id, { housekeeping: h.data === true, block: b.data === true });
+    can.set(p.id, { housekeeping: h.data === true, block: b.data === true, report: mv.data === true || mm.data === true });
   }));
 
   const views = roomViews(rooms, claims, checkedIn, today)
@@ -128,6 +144,13 @@ export default async function RoomBoardPage({ searchParams }: { searchParams: Pr
                   <p className="mt-1 text-xs text-muted">
                     {v.room.floor !== null ? `Floor ${v.room.floor}, ` : ""}{HOUSEKEEPING[v.room.housekeeping_status] ?? v.room.housekeeping_status}
                   </p>
+                  {faults.get(v.room.id) && (
+                    <p className="mt-1 text-xs">
+                      <Link href="/app/maintenance" className={`font-medium underline underline-offset-2 ${faults.get(v.room.id)?.top === "urgent" || faults.get(v.room.id)?.top === "high" ? "text-critical" : "text-pending"}`}>
+                        {faultLabel(faults.get(v.room.id)!)}
+                      </Link>
+                    </p>
+                  )}
                   {v.current && v.state !== "vacant" && (
                     <p className="mt-2 text-sm">
                       {v.current.claim_type === "block"
@@ -161,6 +184,37 @@ export default async function RoomBoardPage({ searchParams }: { searchParams: Pr
                           );
                         })}
                       </ul>
+                    </details>
+                  )}
+                  {(can.get(v.room.property_id)?.report || (repairHistory.get(v.room.id)?.length ?? 0) > 0) && (
+                    <details className="mt-3 border-t border-line pt-2">
+                      <summary className="cursor-pointer text-xs font-medium text-primary-strong">Repairs{(repairHistory.get(v.room.id)?.length ?? 0) > 0 ? ` (${repairHistory.get(v.room.id)!.length})` : ""}</summary>
+                      {(repairHistory.get(v.room.id)?.length ?? 0) > 0 && (
+                        <ul className="mt-2 space-y-1 text-xs">
+                          {repairHistory.get(v.room.id)!.map((rq) => {
+                            const line = repairLine(rq, tzOf.get(rq.property_id) ?? "UTC");
+                            return (
+                              <li key={rq.id}>
+                                <Link href={`/app/maintenance/${rq.id}`} className="font-medium underline underline-offset-2">{line.title}</Link>
+                                {line.detail && <span className="block text-muted">{line.detail}</span>}
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      )}
+                      {can.get(v.room.property_id)?.report && v.state !== "retired" && (
+                        <div className="mt-3">
+                          <p className="mb-2 text-xs font-medium">Report a fault in this room</p>
+                          <ReportForm
+                            properties={[{ id: v.room.property_id, name: propName.get(v.room.property_id) ?? "" }]}
+                            rooms={[{ id: v.room.id, property_id: v.room.property_id, room_number: v.room.room_number, floor: v.room.floor }]}
+                            from="rooms"
+                            idempotencyKey={crypto.randomUUID()}
+                            fixedRoomId={v.room.id}
+                          />
+                          <p className="mt-1 text-xs text-muted">This tells maintenance. It does not block the room.</p>
+                        </div>
+                      )}
                     </details>
                   )}
                   {(can.get(v.room.property_id)?.housekeeping || can.get(v.room.property_id)?.block) && v.state !== "retired" && (
