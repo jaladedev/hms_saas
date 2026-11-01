@@ -120,7 +120,8 @@ export type ErrorCode =
   | "guest_name" | "guest_email" | "guest_country" | "guest_field"
   | "role_escalation" | "self_change" | "last_owner" | "staff_suspended" | "staff_revoked" | "staff_property" | "invite_failed" | "email_invalid"
   | "rate_range_invalid" | "rate_range_long" | "rate_forbidden" | "rate_no_plan"
-  | "setup_invalid" | "setup_duplicate_code" | "setup_duplicate_name" | "setup_duplicate_room" | "setup_forbidden" | "room_has_bookings";
+  | "setup_invalid" | "setup_duplicate_code" | "setup_duplicate_name" | "setup_duplicate_room" | "setup_forbidden" | "room_has_bookings"
+  | "task_taken" | "task_forbidden" | "task_assignee" | "task_reason" | "task_invalid";
 
 /**
  * Maps a database error message to a code, and an amount when the database reports one. The amount
@@ -206,6 +207,13 @@ export const OK_MESSAGES = {
   staff_suspended_ok: "Access suspended. They can no longer see or change anything until you restore it.",
   staff_reinstated: "Access restored.",
   staff_revoked_ok: "Access revoked and their roles cleared. To bring them back, add them again.",
+  task_created: "Task added.",
+  task_claimed: "Task is yours.",
+  task_started: "Task started.",
+  task_completed: "Task done.",
+  task_assigned: "Task assigned.",
+  task_unassigned: "Task is unassigned again.",
+  task_cancelled: "Task cancelled.",
   transferred: "Room changed. The booking shows the new room below. If the guest was in the old room, it is now marked dirty.",
 } as const;
 export type OkCode = keyof typeof OK_MESSAGES;
@@ -272,6 +280,11 @@ export function errorMessage(code: string, refundable: number | null, formatMino
     case "block_past": return "A block cannot start in the past. Choose today or a later date.";
     case "block_invalid": return "Enter a reason and an end date after the start date.";
     case "room_retired": return "That room is retired, so it cannot be changed.";
+    case "task_taken": return "Someone else has this task. A supervisor can hand it over.";
+    case "task_forbidden": return "You do not have permission to do that with housekeeping tasks.";
+    case "task_assignee": return "That person cannot be given housekeeping work at this property.";
+    case "task_reason": return "Give a reason for cancelling, up to 200 characters.";
+    case "task_invalid": return "The task details are not valid. Check the type, the priority and that the note is under 500 characters.";
     case "provider_payment": return "Card and online payments are paid out through the provider, not recorded by hand.";
     case "bad_request": return "The form was incomplete. Reload the page and try again.";
     default: return "Something went wrong. Nothing was changed; try again, and tell a developer if it keeps happening.";

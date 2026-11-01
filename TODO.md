@@ -40,7 +40,7 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 ## Phase 2: Core schema and security
 - [x] Pricing and policy: rate_plans, daily_rates, tax_rules (percent and fixed per night), property_policies (versioned), `resolve_rate`, `calc_night_tax` (005)
 - [ ] Stay-level fixed charges and folio taxes in `tax_rules`; `discount.apply` limits
-- [x] Operations, housekeeping: `housekeeping_tasks` with assignment, priority, due time and history (migration 023). The screen at `/app/housekeeping` does not use it yet (see Phase 3)
+- [x] Operations, housekeeping: `housekeeping_tasks` with assignment, priority, due time and history (migration 023). The screen at `/app/housekeeping` now works from it (Phase 3)
 - [ ] Operations, still to build: maintenance_requests, folio_charges
 - [x] Money, staff side: invoices, lines, invoice_sequences, payments, allocations (010)
 - [x] Money, provider side: payment_attempts, payment_events, payment_provider_accounts, `create_payment_attempt`, `confirm_payment` (011)
@@ -64,7 +64,7 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [x] Guard against role escalation (migration 019): giving, removing or suspending needs every permission of the role at a covering scope plus tenant-wide `staff.manage`; nobody changes their own access; the last active owner cannot be removed or suspended; revoking clears roles
 
 ## Phase 3: Staff MVP (UI)
-- [ ] Housekeeping screen on tasks: list from `housekeeping_tasks` (priority, due, assignee), claim and start/complete buttons calling the 023 functions, a supervisor view with the assignment picker (`list_housekeeping_staff`), cancel with a reason, a room's task history on the room card
+- [x] Housekeeping screen on tasks (`/app/housekeeping`: my tasks, tasks nobody has, tasks with others, done in the last 24 hours; take, start, finish with a note; supervisors (`housekeeping.assign`) get an assignment picker from `list_housekeeping_staff` and cancel with a reason; anyone with `housekeeping.update` can add a task; dirty rooms with no task get a "Create cleaning task" button). Still to do: a room's task history on the room card (`/app/rooms`), a due time on the add form, a supervisor filter by person
 - [x] Sign in, forgot and reset password
 - [x] Staff and permissions (`/app/staff`, owner only): list with roles, invite by email (Supabase invite for new people), add or remove a role per property, suspend, restore, remove. Not built: custom roles, editing a role's permissions, a staff member's own profile page, platform-admin tools
 - [x] Room types and rooms setup (`/app/settings/rooms`: add types and rooms, put a room in or out of service or retire it; direct writes under row-level security, not audited)
@@ -79,7 +79,7 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [x] Front desk board (`/app/front-desk`: arrivals, departures, in house, overdue departures, late arrivals; each links to the booking)
 - [x] Room board (`/app/rooms`, read-only: state of every room today, occupant, blocks, next booking; each room card can set its cleaning status (migration 018) and block or unblock it; a block that would clash with a booking is refused and the booking has to be moved first)
 - [x] Guests (`/app/guests`: search by name, email or phone; guest page with stay history and an audited contact-details edit, migration 020). Not built: merging duplicate guests, guest notes or preferences, a guest's invoices and payments in one view
-- [x] Housekeeping screen (`/app/housekeeping`: rooms to clean, most urgent first, one button per room; reads only rooms and claims, so it works for roles that cannot see guests or rates; now linked from the sidebar). It still works from room status. The task table now exists (023), so the screen can show assignment, priority and a person's own list; maintenance requests are still to build
+- [x] Housekeeping screen (`/app/housekeeping`: rooms to clean, most urgent first, one button per room; reads only rooms and claims, so it works for roles that cannot see guests or rates; now linked from the sidebar). Superseded by the task screen above; maintenance requests are still to build
 - [ ] Hotel runs one full real day in staging with no spreadsheet fallback
 
 ## Phase 4: Hardening and launch
