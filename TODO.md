@@ -11,7 +11,7 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [ ] Create Supabase staging and production projects; check plan limits (connections, PITR, `pg_cron`, `pg_jsonschema`)
 - [ ] Link Supabase CLI (`supabase link`), run migrations on staging, confirm they apply on real Supabase
 - [ ] Wire `supabase gen types` into a `types/database.ts` file and a script
-- [ ] Add lint and formatting (ESLint, Prettier) to CI
+- [ ] Add lint and formatting (ESLint, Prettier) to CI. Tried 2026-11-01: `eslint-config-next` 16.4.3 refuses to load on TypeScript 7.0 (typescript-eslint does not support it yet). Options: wait for typescript-eslint support, or run it against a side-by-side TypeScript 6 install. Prettier would rewrite most files, so agree a config that matches the current style first
 - [ ] Extract design tokens and shared components from the prototype (colors, fonts, status badges, tables, room cards)
 
 ## Phase 1: Inventory proof
