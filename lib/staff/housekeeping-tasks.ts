@@ -188,3 +188,35 @@ export function historyLine(t: TaskRow, timeZone: string): { title: string; deta
     default: return { title: `${type}, waiting`, detail: at(t.created_at) };
   }
 }
+
+/** Narrows live tasks to one person for a supervisor: "me", "unassigned", a user id, or anything else for everyone. */
+export function filterByPerson(tasks: TaskRow[], who: string, userId: string): TaskRow[] {
+  if (who === "me") return tasks.filter((t) => t.assigned_to === userId);
+  if (who === "unassigned") return tasks.filter((t) => t.assigned_to === null);
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(who)) return tasks.filter((t) => t.assigned_to === who);
+  return tasks;
+}
+
+/**
+ * Turns a `datetime-local` value ("2026-11-03T14:30", hotel wall-clock time) into a UTC ISO string for the
+ * property's timezone, or null for a malformed or impossible time. An unknown timezone is treated as UTC.
+ */
+export function zonedToIso(local: string, timeZone: string): string | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(local);
+  if (!m) return null;
+  const [y, mo, d, h, mi] = [Number(m[1]), Number(m[2]), Number(m[3]), Number(m[4]), Number(m[5])];
+  const wall = Date.UTC(y, mo - 1, d, h, mi);
+  const check = new Date(wall);
+  if (check.getUTCMonth() !== mo - 1 || check.getUTCDate() !== d || h > 23 || mi > 59) return null;
+  const offsetAt = (t: number): number => {
+    try {
+      const f = new Intl.DateTimeFormat("en-US", { timeZone, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" });
+      const p = Object.fromEntries(f.formatToParts(new Date(t)).map((x) => [x.type, x.value]));
+      return Date.UTC(Number(p.year), Number(p.month) - 1, Number(p.day), Number(p.hour), Number(p.minute), Number(p.second)) - t;
+    } catch {
+      return 0;
+    }
+  };
+  const t = wall - offsetAt(wall - offsetAt(wall));
+  return new Date(t).toISOString();
+}

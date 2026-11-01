@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  activityByRoom, actionsFor, classifyTaskError, formatDue, formatShort, groupLive, historyByRoom, historyLine, recentlyDone, roomsWithoutTask, sortTasks, type TaskRow,
+  activityByRoom, actionsFor, classifyTaskError, formatDue, filterByPerson, formatShort, groupLive, historyByRoom, historyLine, recentlyDone, roomsWithoutTask, sortTasks, zonedToIso, type TaskRow,
 } from "./housekeeping-tasks";
 import { classifyRpcError, errorMessage, OK_MESSAGES } from "./refunds";
 import type { BoardClaim, BoardRoom } from "./room-board";
@@ -201,5 +201,30 @@ describe("room history", () => {
     expect(formatShort("2026-11-03T13:05:00Z", "Nowhere/Land")).toBe("3 Nov, 13:05");
     expect(formatShort("nope", "Africa/Lagos")).toBe("");
     expect(formatShort(null, "Africa/Lagos")).toBe("");
+  });
+});
+
+describe("filterByPerson", () => {
+  const all = [task("m", "1", { assigned_to: "me" }), task("u", "2"), task("o", "3", { assigned_to: "6f1c2a3e-1111-4222-8333-444455556666" })];
+  it("filters to mine, unassigned or one person, and shows everything otherwise", () => {
+    expect(ids(filterByPerson(all, "me", "me"))).toEqual(["m"]);
+    expect(ids(filterByPerson(all, "unassigned", "me"))).toEqual(["u"]);
+    expect(ids(filterByPerson(all, "6f1c2a3e-1111-4222-8333-444455556666", "me"))).toEqual(["o"]);
+    expect(ids(filterByPerson(all, "", "me"))).toEqual(["m", "u", "o"]);
+    expect(ids(filterByPerson(all, "' or 1=1", "me"))).toEqual(["m", "u", "o"]);
+  });
+});
+
+describe("zonedToIso", () => {
+  it("reads the time in the property's timezone", () => {
+    expect(zonedToIso("2026-11-03T14:30", "Africa/Lagos")).toBe("2026-11-03T13:30:00.000Z");
+    expect(zonedToIso("2026-07-01T12:00", "America/New_York")).toBe("2026-07-01T16:00:00.000Z");
+    expect(zonedToIso("2026-01-01T12:00", "America/New_York")).toBe("2026-01-01T17:00:00.000Z");
+  });
+  it("treats an unknown timezone as UTC", () => expect(zonedToIso("2026-11-03T14:30", "Nowhere/Land")).toBe("2026-11-03T14:30:00.000Z"));
+  it("refuses malformed or impossible times", () => {
+    for (const bad of ["", "2026-11-03", "2026-11-03 14:30", "2026-02-31T10:00", "2026-11-03T25:00", "2026-11-03T10:61", "garbage"]) {
+      expect(zonedToIso(bad, "Africa/Lagos"), bad).toBeNull();
+    }
   });
 });

@@ -1,7 +1,7 @@
 import { buttonDanger, buttonPrimary, buttonQuiet, inputClass, Notice } from "@/components/staff/ui";
 import { assignTask, cancelTask, claimTask, completeTask, createTask, startTask } from "@/lib/staff/housekeeping-actions";
 import {
-  activityByRoom, actionsFor, formatDue, groupLive, PRIORITY_LABEL, recentlyDone, roomsWithoutTask, sortTasks,
+  activityByRoom, actionsFor, filterByPerson, formatDue, groupLive, PRIORITY_LABEL, recentlyDone, roomsWithoutTask, sortTasks,
   TASK_PRIORITIES, TASK_TYPE_LABEL, TASK_TYPES, type RoomActivity, type TaskRow,
 } from "@/lib/staff/housekeeping-tasks";
 import { todayIn } from "@/lib/staff/reservations";
@@ -73,7 +73,12 @@ export default async function HousekeepingPage({ searchParams }: { searchParams:
   const tz = new Map(properties.map((p) => [p.id, p.timezone]));
   const propName = new Map(properties.map((p) => [p.id, p.name]));
   const showProperty = properties.length > 1;
-  const groups = groupLive(sortTasks(live, roomById, activity), userId);
+  const anySupervisor = [...canAssign.values()].some(Boolean);
+  const people = new Map<string, string>();
+  for (const list of staff.values()) for (const s of list) people.set(s.user_id, s.full_name);
+  const whoParam = search.who;
+  const who = anySupervisor && typeof whoParam === "string" ? whoParam : "";
+  const groups = groupLive(filterByPerson(sortTasks(live, roomById, activity), who, userId), userId);
   const orphans = roomsWithoutTask(rooms, live).filter((r) => canWork.get(r.property_id));
   const createRooms = rooms
     .filter((r) => r.operational_status !== "retired" && canWork.get(r.property_id))
@@ -187,6 +192,19 @@ export default async function HousekeepingPage({ searchParams }: { searchParams:
         </p>
       )}
 
+      {anySupervisor && (
+        <form method="get" className="mb-4 flex flex-wrap items-center gap-2" aria-label="Filter tasks">
+          <label htmlFor="who" className="text-sm text-muted">Show</label>
+          <select id="who" name="who" defaultValue={who} className={`${inputClass} w-auto`}>
+            <option value="">Everyone's tasks</option>
+            <option value="me">Mine</option>
+            <option value="unassigned">Nobody's</option>
+            {[...people].map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+          </select>
+          <button type="submit" className={buttonQuiet}>Show</button>
+        </form>
+      )}
+
       <div className="mt-6">
         <Section title="My tasks" items={groups.mine} />
         <Section title="Nobody has these yet" hint="Take one, or start it and it becomes yours." items={groups.unassigned} />
@@ -254,6 +272,10 @@ export default async function HousekeepingPage({ searchParams }: { searchParams:
                 <select name="priority" className={inputClass} defaultValue="normal">
                   {TASK_PRIORITIES.map((k) => <option key={k} value={k}>{PRIORITY_LABEL[k]}</option>)}
                 </select>
+              </label>
+              <label className="text-sm">
+                <span className="mb-1 block text-muted">Due (optional, hotel time)</span>
+                <input name="due" type="datetime-local" className={inputClass} />
               </label>
               <label className="text-sm">
                 <span className="mb-1 block text-muted">Note (optional)</span>
