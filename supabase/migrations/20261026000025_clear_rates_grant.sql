@@ -1,0 +1,12 @@
+-- 025 Let rate managers clear nightly prices.
+--
+-- Migration 005 revoked DELETE on daily_rates from signed-in users, but "clear prices" on the rates screen
+-- (lib/staff/rate-actions.ts clearRates) deletes rows as the staff member, so it failed with "permission denied"
+-- against a real database. Clearing a night only sends it back to the standard price: bookings already made keep the
+-- price copied onto their nights, so nothing that other records depend on is lost.
+--
+-- Only daily_rates gets the grant. The table's own policy (daily_rates_write) still limits writes to people with
+-- rate.manage at that property, so another hotel's data and people without the permission are untouched; and
+-- migration 024 now records every clear in the audit log (rates.cleared). rate_plans, tax_rules and the other
+-- tables keep their no-delete rule.
+grant delete on daily_rates to authenticated;
