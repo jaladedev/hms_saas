@@ -122,7 +122,9 @@ export type ErrorCode =
   | "rate_range_invalid" | "rate_range_long" | "rate_forbidden" | "rate_no_plan"
   | "setup_invalid" | "setup_duplicate_code" | "setup_duplicate_name" | "setup_duplicate_room" | "setup_forbidden" | "room_has_bookings"
   | "task_taken" | "task_forbidden" | "task_assignee" | "task_reason" | "task_invalid"
-  | "mt_taken" | "mt_forbidden" | "mt_assignee" | "mt_reason" | "mt_place" | "mt_block" | "mt_invalid" | "mt_duplicate";
+  | "mt_taken" | "mt_forbidden" | "mt_assignee" | "mt_reason" | "mt_place" | "mt_block" | "mt_invalid" | "mt_duplicate"
+  | "fo_category" | "fo_description" | "fo_quantity" | "fo_amount" | "fo_date" | "fo_room" | "fo_reason" | "fo_method" | "fo_too_long"
+  | "fo_overpay" | "fo_not_open" | "fo_paid" | "fo_not_found" | "fo_duplicate" | "fo_unknown";
 
 /**
  * Maps a database error message to a code, and an amount when the database reports one. The amount
@@ -230,6 +232,10 @@ export const OK_MESSAGES = {
   mt_block_linked: "Room block linked to this request.",
   mt_block_unlinked: "Room block link removed. The block itself is unchanged.",
   transferred: "Room changed. The booking shows the new room below. If the guest was in the old room, it is now marked dirty.",
+  fo_posted: "Charge added to the folio.",
+  fo_voided: "Charge voided. It no longer counts toward what the guest owes.",
+  fo_payment: "Payment recorded against the extras.",
+  fo_reversed: "Payment reversed. The amount is owed again. No money has been paid back to the guest.",
 } as const;
 export type OkCode = keyof typeof OK_MESSAGES;
 
@@ -308,6 +314,20 @@ export function errorMessage(code: string, refundable: number | null, formatMino
     case "mt_block": return "That room block cannot be linked here. Only a block on the same room can be.";
     case "mt_invalid": return "The request details are not valid. Check the title (up to 120 characters), the description (2000), the place (100), the note and the priority.";
     case "mt_duplicate": return "That form was already sent with different words. Reload the page and report the fault again.";
+    case "fo_category": return "Choose what the charge was for.";
+    case "fo_description": return "Say what it was, in up to 200 characters.";
+    case "fo_quantity": return "The quantity must be a whole number from 1 to 1,000.";
+    case "fo_amount": return "Enter an amount above zero, such as 1,500 or 1500.50, and no more than 10,000,000.";
+    case "fo_date": return "The charge date must be a day from the guest's arrival up to today.";
+    case "fo_room": return "Choose a room that is part of this booking, or leave it as the whole booking.";
+    case "fo_reason": return "Give a reason, up to 200 characters.";
+    case "fo_method": return "Choose how the money was received.";
+    case "fo_too_long": return "The receipt number (up to 100 characters) or the note (up to 500) is too long.";
+    case "fo_overpay": return refundable !== null ? `That is more than the extras still owed. At most ${formatMinor(refundable)} is outstanding.` : "That is more than the extras still owed.";
+    case "fo_not_open": return "Extras can be charged and paid only while the guest is in the house or has just checked out.";
+    case "fo_paid": return "That charge cannot be voided while the money collected would be more than the charges left. Reverse a payment first.";
+    case "fo_not_found": return "That reservation, charge or payment was not found, or you do not have permission to change it.";
+    case "fo_duplicate": return "That form was already sent with different words. Reload the page and try again.";
     case "provider_payment": return "Card and online payments are paid out through the provider, not recorded by hand.";
     case "bad_request": return "The form was incomplete. Reload the page and try again.";
     default: return "Something went wrong. Nothing was changed; try again, and tell a developer if it keeps happening.";

@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
+import { FolioSection } from "@/components/staff/folio";
 import { buttonDanger, buttonPrimary, buttonQuiet, inputClass, Notice, PaymentChip, ReservationChip } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
+import { checkoutNote, CHARGE_COLUMNS, folioIsOpen, isFolioResult, owingMinor, PAYMENT_COLUMNS, type ChargeRow, type FolioBalance, type PaymentRow } from "@/lib/staff/folio";
 import { formatDateTime } from "@/lib/staff/format";
 import { cancelReservation, checkInRoom, checkOutRoom, issueInvoice, recordPayment, transferRoom, voidInvoice } from "@/lib/staff/reservation-actions";
 import {
@@ -48,7 +50,10 @@ export default async function ReservationPage({
   const res = resRow as Reservation;
 
   const can = (permission: string) => supabase.rpc("has_permission", { p_property: res.property_id, p_permission: permission });
-  const [roomsQ, guestQ, propQ, settleQ, cCancel, cIn, cOut, cPay, invQ, cIssue, cVoid, cAssign] = await Promise.all([
+  // A guest who has not arrived has no folio, so nothing is read for one. A person who may not see it gets an error from
+  // folio_balance (the database answers "not found"), and then the whole section is left out.
+  const showFolio = folioIsOpen(res.reservation_status);
+  const [roomsQ, guestQ, propQ, settleQ, cCancel, cIn, cOut, cPay, invQ, cIssue, cVoid, cAssign, folioBalQ, folioChargesQ, folioPaymentsQ, cFolio, cReverse] = await Promise.all([
     supabase.from("reservation_rooms").select("id, room_type_id, room_status, adults, children, checked_in_at, checked_out_at").eq("reservation_id", id).order("created_at"),
     supabase.from("guests").select("full_name, email, phone").eq("id", res.primary_guest_id).maybeSingle(),
     supabase.from("properties").select("name, timezone").eq("id", res.property_id).maybeSingle(),
@@ -56,6 +61,10 @@ export default async function ReservationPage({
     can("reservation.cancel"), can("reservation.checkin"), can("reservation.checkout"), can("payment.record"),
     supabase.from("invoices").select("id, invoice_number, invoice_status, total_minor").eq("reservation_id", id).order("created_at"),
     can("invoice.issue"), can("invoice.void"), can("room.assign"),
+    showFolio ? supabase.rpc("folio_balance", { p_reservation_id: id }) : null,
+    showFolio ? supabase.from("folio_charges").select(CHARGE_COLUMNS).eq("reservation_id", id) : null,
+    showFolio ? supabase.from("folio_payments").select(PAYMENT_COLUMNS).eq("reservation_id", id) : null,
+    showFolio ? can("folio.charge") : null, showFolio ? can("refund.approve") : null,
   ]);
 
   const resRooms = (roomsQ.data ?? []) as ResRoom[];
@@ -105,6 +114,19 @@ export default async function ReservationPage({
   const errCode = Array.isArray(search.err) ? search.err[0] : search.err;
   const paymentRefused = errCode === "overpayment" || errCode === "amount_invalid" || errCode === "method_invalid";
 
+  // The folio: extras charged during the stay, kept beside the booking's own money. No balance means no access.
+  const folio = folioBalQ && !folioBalQ.error ? (folioBalQ.data as FolioBalance | null) : null;
+  const folioCheckoutNote = checkoutNote(owingMinor(folio), money);
+  const folioRooms = resRooms.length > 1
+    ? resRooms.map((rr, i) => {
+        const mine = claims.filter((c) => c.reservation_room_id === rr.id);
+        const current = mine.find((c) => c.start_date <= today && c.end_date > today) ?? mine[0];
+        const number = current ? physical.get(current.room_id)?.room_number : undefined;
+        const type = typeNames.get(rr.room_type_id) ?? "Room";
+        return { id: rr.id, label: number ? `Room ${number} (${type})` : `${type} (room ${i + 1} of ${resRooms.length})` };
+      })
+    : [];
+
   return (
     <main className="max-w-4xl">
       <p className="text-sm"><Link href="/app/reservations" className="text-primary-strong underline underline-offset-2">Reservations</Link></p>
@@ -114,7 +136,7 @@ export default async function ReservationPage({
       </p>
       <p className="mt-2 flex flex-wrap gap-2"><ReservationChip status={res.reservation_status} /><PaymentChip status={res.payment_status} /></p>
 
-      <div className="mt-6"><Notice search={search} currency={res.currency} /></div>
+      <div className="mt-6">{!(folio && isFolioResult(search)) && <Notice search={search} currency={res.currency} />}</div>
 
       {res.attention_reason && (
         <p className="mb-6 border-l-4 border-pending bg-pending/5 px-4 py-3 text-sm">{attentionText(res.attention_reason)}</p>
@@ -228,6 +250,9 @@ export default async function ReservationPage({
                         <input type="hidden" name="reservationRoomId" value={rr.id} />
                         <button type="submit" className={buttonQuiet}>Check out</button>
                         {today < res.departure_date && <p className="max-w-xs text-xs text-muted">Leaving before {formatDate(res.departure_date)}: the room is freed for the unused nights.</p>}
+                        {folioCheckoutNote && (
+                          <p className="max-w-xs text-xs text-pending">{folioCheckoutNote} <a href="#folio" className="underline underline-offset-2">See folio</a></p>
+                        )}
                       </form>
                     )}
                   </div>
@@ -309,6 +334,15 @@ export default async function ReservationPage({
           </details>
         )}
       </section>
+
+      {folio && (
+        <FolioSection
+          reservationId={res.id} currency={res.currency} reservationStatus={res.reservation_status} arrival={res.arrival_date}
+          today={today} timeZone={tz} balance={folio} charges={(folioChargesQ?.data ?? []) as ChargeRow[]}
+          payments={(folioPaymentsQ?.data ?? []) as PaymentRow[]} rooms={folioRooms}
+          viewer={{ charge: cFolio?.data === true, record: cPay.data === true, reverse: cReverse?.data === true }} search={search}
+        />
+      )}
 
       {(invoices.length > 0 || inv.canIssue) && (
         <section className="mt-10" aria-labelledby="invoices">
