@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  activityByRoom, actionsFor, classifyTaskError, formatDue, groupLive, recentlyDone, roomsWithoutTask, sortTasks, type TaskRow,
+  activityByRoom, actionsFor, classifyTaskError, formatDue, formatShort, groupLive, historyByRoom, historyLine, recentlyDone, roomsWithoutTask, sortTasks, type TaskRow,
 } from "./housekeeping-tasks";
 import { classifyRpcError, errorMessage, OK_MESSAGES } from "./refunds";
 import type { BoardClaim, BoardRoom } from "./room-board";
@@ -168,5 +168,38 @@ describe("classifyTaskError", () => {
     for (const c of ["task_created", "task_claimed", "task_started", "task_completed", "task_assigned", "task_unassigned", "task_cancelled"] as const) {
       expect(OK_MESSAGES[c], c).toBeTruthy();
     }
+  });
+});
+
+describe("room history", () => {
+  const mk = (id: string, room: string, created: string, over: Partial<TaskRow> = {}) => task(id, room, { created_at: created, ...over });
+
+  it("keeps each room's newest tasks, newest first, and caps them", () => {
+    const h = historyByRoom([
+      mk("a", "101", "2026-11-01T08:00:00Z"), mk("b", "101", "2026-11-03T08:00:00Z"), mk("c", "101", "2026-11-02T08:00:00Z"),
+      mk("d", "102", "2026-11-01T08:00:00Z"),
+    ], 2);
+    expect(ids(h.get("101")!)).toEqual(["b", "c"]);
+    expect(ids(h.get("102")!)).toEqual(["d"]);
+    expect(h.has("103")).toBe(false);
+  });
+
+  it("describes each status with a time in the property's timezone", () => {
+    const tz = "Africa/Lagos";
+    expect(historyLine(mk("1", "1", "2026-11-03T06:00:00Z", { status: "done", completed_at: "2026-11-03T13:05:00Z", completion_note: "spare towels", started_at: "x" }), tz))
+      .toEqual({ title: "Cleaning, done", detail: "3 Nov, 14:05: spare towels" });
+    expect(historyLine(mk("2", "1", "2026-11-03T06:00:00Z", { status: "cancelled", cancelled_at: "2026-11-03T07:00:00Z", cancel_reason: "room retired", task_type: "inspection" }), tz))
+      .toEqual({ title: "Inspection, cancelled", detail: "3 Nov, 08:00: room retired" });
+    expect(historyLine(mk("3", "1", "2026-11-03T06:00:00Z", { status: "in_progress", started_at: "2026-11-03T06:30:00Z" }), tz))
+      .toEqual({ title: "Cleaning, in progress", detail: "3 Nov, 07:30" });
+    expect(historyLine(mk("4", "1", "2026-11-03T06:00:00Z", { task_type: "deep_clean" }), tz))
+      .toEqual({ title: "Deep clean, waiting", detail: "3 Nov, 07:00" });
+  });
+
+  it("copes with missing times and an unknown timezone", () => {
+    expect(historyLine(mk("5", "1", "2026-11-03T06:00:00Z", { status: "done", completed_at: null }), "Africa/Lagos").detail).toBe("");
+    expect(formatShort("2026-11-03T13:05:00Z", "Nowhere/Land")).toBe("3 Nov, 13:05");
+    expect(formatShort("nope", "Africa/Lagos")).toBe("");
+    expect(formatShort(null, "Africa/Lagos")).toBe("");
   });
 });

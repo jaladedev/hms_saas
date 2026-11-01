@@ -25,6 +25,9 @@ export type TaskRow = {
   created_at: string;
   started_at: string | null;
   completed_at: string | null;
+  /** Only selected where history is shown (the room board). */
+  cancel_reason?: string | null;
+  cancelled_at?: string | null;
 };
 
 export const TASK_TYPE_LABEL: Record<string, string> = {
@@ -153,4 +156,35 @@ export function classifyTaskError(message: string): ErrorCode | null {
   if (/POLICY_VIOLATION: reason/.test(message)) return "task_reason";
   if (/POLICY_VIOLATION: (task type|priority|notes too long|note too long)/.test(message)) return "task_invalid";
   return null;
+}
+
+/** Each room's most recent tasks, newest first, at most `perRoom` of them, for the history on a room card. */
+export function historyByRoom(tasks: TaskRow[], perRoom = 5): Map<string, TaskRow[]> {
+  const out = new Map<string, TaskRow[]>();
+  for (const t of [...tasks].sort((a, b) => b.created_at.localeCompare(a.created_at))) {
+    const list = out.get(t.room_id) ?? [];
+    if (list.length < perRoom) out.set(t.room_id, [...list, t]);
+  }
+  return out;
+}
+
+/** "31 Oct, 15:05" in the property's timezone (UTC if it is unknown); empty for a missing or invalid time. */
+export function formatShort(iso: string | null | undefined, timeZone: string): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const fmt = (tz: string) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: tz }).format(d);
+  try { return fmt(timeZone); } catch { return fmt("UTC"); }
+}
+
+/** One line of a room's history: what the task was, where it stands, and when that happened. */
+export function historyLine(t: TaskRow, timeZone: string): { title: string; detail: string } {
+  const type = TASK_TYPE_LABEL[t.task_type] ?? t.task_type;
+  const at = (iso: string | null | undefined) => formatShort(iso, timeZone);
+  switch (t.status) {
+    case "done": return { title: `${type}, done`, detail: [at(t.completed_at), t.completion_note].filter(Boolean).join(": ") };
+    case "cancelled": return { title: `${type}, cancelled`, detail: [at(t.cancelled_at), t.cancel_reason].filter(Boolean).join(": ") };
+    case "in_progress": return { title: `${type}, in progress`, detail: at(t.started_at ?? t.created_at) };
+    default: return { title: `${type}, waiting`, detail: at(t.created_at) };
+  }
 }

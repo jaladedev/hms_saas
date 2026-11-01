@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { buttonDanger, buttonPrimary, buttonQuiet, inputClass, Notice } from "@/components/staff/ui";
 import { formatDate } from "@/lib/guest-site/format";
+import { historyByRoom, historyLine, type TaskRow } from "@/lib/staff/housekeeping-tasks";
 import { compareRoomNumbers, countStates, HOUSEKEEPING_STATUSES, roomViews, STATE_LABEL, type BoardClaim, type BoardRoom, type RoomState } from "@/lib/staff/room-board";
 import { blockRoom, releaseBlock, setHousekeeping } from "@/lib/staff/room-actions";
 import { todayIn } from "@/lib/staff/reservations";
@@ -53,6 +54,17 @@ export default async function RoomBoardPage({ searchParams }: { searchParams: Pr
   const guestIds = [...new Set([...reservations.values()].map((r) => r.primary_guest_id))];
   const guestQ = guestIds.length ? await supabase.from("guests").select("id, full_name").in("id", guestIds) : { data: [] };
   const guests = new Map(((guestQ.data ?? []) as { id: string; full_name: string }[]).map((g) => [g.id, g.full_name]));
+
+  // Recent cleaning and other housekeeping tasks for each room's history. Readable with housekeeping.view; without it
+  // this comes back empty and the history is simply not shown.
+  const sinceTasks = new Date(now.getTime() - 30 * 24 * 3600_000).toISOString();
+  const taskQ = rooms.length
+    ? await supabase.from("housekeeping_tasks")
+        .select("id, property_id, room_id, task_type, status, priority, assigned_to, due_at, notes, completion_note, created_at, started_at, completed_at, cancel_reason, cancelled_at")
+        .gte("created_at", sinceTasks).order("created_at", { ascending: false }).limit(1000)
+    : { data: [] };
+  const history = historyByRoom((taskQ.data ?? []) as TaskRow[]);
+  const tzOf = new Map(properties.map((p) => [p.id, p.timezone]));
 
   const typeIds = [...new Set(rooms.map((r) => r.room_type_id))];
   // Room types need reservation.view or rate.view; housekeeping and maintenance see rooms without type names.
@@ -134,6 +146,22 @@ export default async function RoomBoardPage({ searchParams }: { searchParams: Pr
                         <>{nextRes ? <Link href={`/app/reservations/${nextRes.id}`} className="underline underline-offset-2">{nextRes.booking_reference}</Link> : "booking"} from {formatDate(v.next.start_date)}</>
                       )}
                     </p>
+                  )}
+                  {(history.get(v.room.id)?.length ?? 0) > 0 && (
+                    <details className="mt-3 border-t border-line pt-2">
+                      <summary className="cursor-pointer text-xs font-medium text-primary-strong">Housekeeping history</summary>
+                      <ul className="mt-2 space-y-1 text-xs">
+                        {history.get(v.room.id)!.map((t) => {
+                          const line = historyLine(t, tzOf.get(t.property_id) ?? "UTC");
+                          return (
+                            <li key={t.id}>
+                              <span className="font-medium">{line.title}</span>
+                              {line.detail && <span className="block text-muted">{line.detail}</span>}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </details>
                   )}
                   {(can.get(v.room.property_id)?.housekeeping || can.get(v.room.property_id)?.block) && v.state !== "retired" && (
                     <details className="mt-3 border-t border-line pt-2">
