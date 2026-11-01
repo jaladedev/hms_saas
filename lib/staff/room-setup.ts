@@ -21,14 +21,13 @@ export type RoomTypeInput = {
   maxAdults: number; maxChildren: number; maxOccupancy: number; baseRateMinor: number; isPublic: boolean;
 };
 
-export function validateRoomType(raw: Record<string, unknown>): { ok: true; value: RoomTypeInput } | { ok: false; code: ErrorCode } {
-  const propertyId = clean(raw.propertyId, 40);
-  if (!GUID.test(propertyId)) return { ok: false, code: "bad_request" };
-  // Over-long input is refused, never silently cut short: clean() gets a generous cap and the checks below set the real limits.
+type TypeFields = { name: string; slug: string; description: string | null; maxAdults: number; maxChildren: number; maxOccupancy: number; baseRateMinor: number; isPublic: boolean };
+
+/** The fields a room type has whether it is being added or edited. Over-long input is refused, never silently cut short. */
+function parseTypeFields(raw: Record<string, unknown>): { ok: true; value: TypeFields } | { ok: false; code: ErrorCode } {
   const name = clean(raw.name, 200);
-  const code = clean(raw.code, 50).toUpperCase();
   const slug = slugify(name);
-  if (!name || name.length > 80 || !slug || !/^[A-Z0-9][A-Z0-9-]{1,11}$/.test(code)) return { ok: false, code: "setup_invalid" };
+  if (!name || name.length > 80 || !slug) return { ok: false, code: "setup_invalid" };
 
   const maxAdults = whole(raw.maxAdults, 1, 20);
   const maxChildren = whole(raw.maxChildren ?? "0", 0, 20);
@@ -43,7 +42,46 @@ export function validateRoomType(raw: Record<string, unknown>): { ok: true; valu
 
   const description = clean(raw.description, 2000);
   if (description.length > 500) return { ok: false, code: "setup_invalid" };
-  return { ok: true, value: { propertyId, name, code, slug, description: description || null, maxAdults, maxChildren, maxOccupancy, baseRateMinor, isPublic: raw.isPublic === "on" } };
+  return { ok: true, value: { name, slug, description: description || null, maxAdults, maxChildren, maxOccupancy, baseRateMinor, isPublic: raw.isPublic === "on" } };
+}
+
+export function validateRoomType(raw: Record<string, unknown>): { ok: true; value: RoomTypeInput } | { ok: false; code: ErrorCode } {
+  const propertyId = clean(raw.propertyId, 40);
+  if (!GUID.test(propertyId)) return { ok: false, code: "bad_request" };
+  const code = clean(raw.code, 50).toUpperCase();
+  const fields = parseTypeFields(raw);
+  if (!fields.ok) return fields;
+  if (!/^[A-Z0-9][A-Z0-9-]{1,11}$/.test(code)) return { ok: false, code: "setup_invalid" };
+  return { ok: true, value: { propertyId, code, ...fields.value } };
+}
+
+/**
+ * What an edit may change: name, description, capacity, standard price and whether guests can book it online.
+ * The code and the web address (slug) stay as they were, so existing links, reports and references do not break.
+ */
+export type RoomTypeEdit = Omit<TypeFields, "slug"> & { roomTypeId: string };
+
+export function validateRoomTypeEdit(raw: Record<string, unknown>): { ok: true; value: RoomTypeEdit } | { ok: false; code: ErrorCode } {
+  const roomTypeId = clean(raw.roomTypeId, 40);
+  if (!GUID.test(roomTypeId)) return { ok: false, code: "bad_request" };
+  const fields = parseTypeFields(raw);
+  if (!fields.ok) return fields;
+  const { slug: _slug, ...rest } = fields.value;
+  return { ok: true, value: { roomTypeId, ...rest } };
+}
+
+export const ROOM_TYPE_STATUSES = ["active", "inactive"] as const;
+export type RoomTypeStatus = (typeof ROOM_TYPE_STATUSES)[number];
+export const isRoomTypeStatus = (v: unknown): v is RoomTypeStatus => ROOM_TYPE_STATUSES.some((s) => s === v);
+
+/**
+ * True when renaming a type to `name` would make it look like another type at the hotel: the same name, or a name
+ * that makes the same web address. Compared in code so names with odd characters need no escaping in a query.
+ */
+export function nameClashes(name: string, others: { name: string; slug: string }[]): boolean {
+  const lower = name.trim().toLowerCase();
+  const slug = slugify(name);
+  return others.some((o) => o.name.trim().toLowerCase() === lower || o.slug === slug);
 }
 
 export type RoomInput = { roomTypeId: string; roomNumber: string; floor: number | null };

@@ -32,7 +32,7 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [x] Rate limiting on guest actions (search, hold, pay, link requests) by keyed hash of address, email or reservation (015)
 - [ ] Guest site polish: hotel name and branding before a search, photos and amenities for room types, cancellation and payment policy text on the reserve page. Done: a not-found page for dead booking links (`app/(site)/not-found.tsx`)
 - [ ] Dynamic hold length on the countdown (the page shows minutes left only at render time)
-- [ ] Refund payout route for staff: `begin_refund_processing`, then Paystack `POST /refund`, then `record_refund_result` (the webhook also reports the result)
+- [x] Refund payout route for staff: `begin_refund_processing`, then Paystack `POST /refund`, then `record_refund_result` (the webhook also reports the result). Built as `/api/staff/refunds/<id>/payout` (see Phase 2)
 - [x] Staff queue for reservations with `attention_reason` set (payment_amount_or_currency_mismatch, payment_overpayment, paid_inventory_lost, paid_after_cancel): "Needs attention" filter on `/app/reservations`, a badge per row, the explanation on the booking page, and a count on the overview that links to the filtered list
 - [x] Concurrency tests: reservation race for the last room, multi-room race (exactly 2 of 40 two-room requests win), the same two through `create_hold`
 - [x] Concurrency tests for transfers (4 guests into the last free room; 8 clients moving 4 guests) and for blocks (12 clients on a free room; 12 clients on a room with a guest, resolution `move`). `run.sh` now also fails when a `pgbench` client aborts on an unhandled error, which it used to ignore. Still missing: a race between a block and a new hold or reservation on the same room
@@ -69,7 +69,9 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [x] Staff and permissions (`/app/staff`, owner only): list with roles, invite by email (Supabase invite for new people), add or remove a role per property, suspend, restore, remove. Not built: custom roles, editing a role's permissions, a staff member's own profile page, platform-admin tools
 - [x] Room types and rooms setup (`/app/settings/rooms`: add types and rooms, put a room in or out of service or retire it; direct writes under row-level security, not audited)
 - [x] Rates setup (`/app/settings/rates`: create the standard rate plan, set or clear a nightly price for a date range per room type)
-- [ ] Tax rules, cancellation and payment policies, editing and deactivating room types, first-run wizard
+- [x] Editing and switching off room types (`/app/settings/rooms`: change name, description, capacity, standard price and the "bookable online" box; "Switch off" stops new bookings by staff and online while existing bookings and the rooms stay; the code and web address never change; a rename onto another type's name is refused; proven in `22_room_type_status.sql`; no migration, plain updates under row-level security)
+- [ ] Tax rules, cancellation and payment policies, first-run wizard
+- [ ] Audit setup changes: room type, room and rate edits are direct writes and leave no audit row, so a changed price cannot be traced to a person (add a trigger or move them behind functions that call `write_audit`)
 - [x] Reservation list (`/app/reservations`: search by reference, guest name, email or phone; status, attention and arrival-date filters; paged) and details (`/app/reservations/[id]`: rooms with assigned room number and cleanliness, money summary, cancel, per-room check-in with override reason, per-room check-out, manual payment)
 - [x] Reservation create for walk-in and phone bookings (`/app/reservations/new`, one room per booking, default rate plan, confirmed at once)
 - [ ] Multi-room create, a chosen physical room, edit dates and guests, staff-created holds that wait for payment

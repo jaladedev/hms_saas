@@ -105,6 +105,10 @@ HT="$(psql -f "$HERE/21_housekeeping_tasks.sql" 2>&1)" || { echo "$HT"; echo "HO
 echo "$HT" | grep -E 'PASS' || true
 if echo "$HT" | grep -qE 'FAIL|ERROR'; then echo "$HT"; echo "HOUSEKEEPING TASK TESTS FAILED"; exit 1; fi
 
+RT="$(psql -f "$HERE/22_room_type_status.sql" 2>&1)" || { echo "$RT"; echo "ROOM TYPE STATUS TESTS FAILED"; exit 1; }
+echo "$RT" | grep -E 'PASS' || true
+if echo "$RT" | grep -qE 'FAIL|ERROR'; then echo "$RT"; echo "ROOM TYPE STATUS TESTS FAILED"; exit 1; fi
+
 echo "--- concurrency: last room race (1 room, 50 clients)"
 cat > "$DATA/race_one.sql" <<'SQL'
 select test_try_claim('last_room', '00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', '2027-10-01', '2027-10-03');

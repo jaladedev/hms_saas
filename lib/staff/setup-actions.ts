@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { back, ok, staffClient } from "./action-helpers";
 import { classifyRpcError } from "./refunds";
-import { classifySetupError, isRoomStatus, validateRoom, validateRoomType } from "./room-setup";
+import { classifySetupError, isRoomStatus, isRoomTypeStatus, nameClashes, validateRoom, validateRoomType, validateRoomTypeEdit } from "./room-setup";
 import { todayIn } from "./reservations";
 
 /**
@@ -35,6 +35,54 @@ export async function addRoomType(formData: FormData) {
   if (error) return failWith(error);
   refresh();
   return ok(PAGE, "room_type_created");
+}
+
+/**
+ * Changes a room type's name, description, capacity, standard price and online visibility. The code and web address
+ * stay. A person without hotel-setup permission can read the row but the update matches nothing under row-level
+ * security, so an empty result is treated as a refusal rather than a success.
+ */
+export async function updateRoomType(formData: FormData) {
+  const v = validateRoomTypeEdit(Object.fromEntries(formData));
+  if (!v.ok) return back(PAGE, { err: v.code });
+  const { value } = v;
+
+  const supabase = await staffClient();
+  const { data: type } = await supabase.from("room_types").select("id, property_id").eq("id", value.roomTypeId).maybeSingle();
+  if (!type) return back(PAGE, { err: "not_found" });
+
+  const { data: others, error: othersError } = await supabase.from("room_types").select("name, slug").eq("property_id", type.property_id).neq("id", type.id);
+  if (othersError) return failWith(othersError);
+  if (nameClashes(value.name, others ?? [])) return back(PAGE, { err: "setup_duplicate_name" });
+
+  const { data: changed, error } = await supabase.from("room_types").update({
+    name: value.name, description: value.description, max_adults: value.maxAdults, max_children: value.maxChildren,
+    max_occupancy: value.maxOccupancy, base_rate_minor: value.baseRateMinor, is_public: value.isPublic,
+  }).eq("id", type.id).select("id");
+  if (error) return failWith(error);
+  if (!changed || changed.length === 0) return back(PAGE, { err: "setup_forbidden" });
+  refresh();
+  return ok(PAGE, "room_type_updated");
+}
+
+/**
+ * Switches a room type off or on. Off stops NEW bookings (staff and online both check it); bookings already made,
+ * and the type's rooms, are left alone.
+ */
+export async function setRoomTypeStatus(formData: FormData) {
+  const parsed = z.object({ roomTypeId: uuid, status: z.string().max(20) }).safeParse(Object.fromEntries(formData));
+  if (!parsed.success || !isRoomTypeStatus(parsed.data.status)) return back(PAGE, { err: "bad_request" });
+  const { roomTypeId, status } = parsed.data;
+
+  const supabase = await staffClient();
+  const { data: type } = await supabase.from("room_types").select("id").eq("id", roomTypeId).maybeSingle();
+  if (!type) return back(PAGE, { err: "not_found" });
+
+  const { data: changed, error } = await supabase.from("room_types").update({ status }).eq("id", roomTypeId).select("id");
+  if (error) return failWith(error);
+  if (!changed || changed.length === 0) return back(PAGE, { err: "setup_forbidden" });
+  refresh();
+  return ok(PAGE, status === "inactive" ? "room_type_deactivated" : "room_type_activated");
 }
 
 export async function addRoom(formData: FormData) {

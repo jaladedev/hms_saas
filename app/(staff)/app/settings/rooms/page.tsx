@@ -2,7 +2,7 @@ import { buttonPrimary, buttonQuiet, inputClass, Notice } from "@/components/sta
 import { formatMoney } from "@/lib/guest-site/format";
 import { ROOM_STATUSES } from "@/lib/staff/room-setup";
 import { compareRoomNumbers } from "@/lib/staff/room-board";
-import { addRoom, addRoomType, setRoomStatus } from "@/lib/staff/setup-actions";
+import { addRoom, addRoomType, setRoomStatus, setRoomTypeStatus, updateRoomType } from "@/lib/staff/setup-actions";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -67,6 +67,52 @@ export default async function RoomSetupPage({ searchParams }: { searchParams: Pr
                     {" "}{t.is_public ? "Bookable online." : "Staff only."}{t.status !== "active" ? " Inactive." : ""}
                   </p>
                   {t.description && <p className="mt-1 max-w-prose text-sm">{t.description}</p>}
+
+                  {canEdit && (
+                    <div className="mt-3 flex flex-wrap items-start gap-x-6 gap-y-2">
+                      <details className="min-w-0 flex-1">
+                        <summary className="cursor-pointer text-sm font-medium text-primary-strong">Edit {t.name}</summary>
+                        <form action={updateRoomType} className="mt-3 grid gap-4 sm:grid-cols-2">
+                          <input type="hidden" name="roomTypeId" value={t.id} />
+                          <div>
+                            <label htmlFor={`en-${t.id}`} className="block text-sm">Name</label>
+                            <input id={`en-${t.id}`} name="name" required maxLength={80} defaultValue={t.name} className={inputClass} />
+                          </div>
+                          <div>
+                            <label htmlFor={`er-${t.id}`} className="block text-sm">Standard price a night (₦)</label>
+                            <input id={`er-${t.id}`} name="baseRate" inputMode="decimal" required defaultValue={(t.base_rate_minor / 100).toFixed(2)} className={`${inputClass} tabular-nums`} />
+                            <p className="mt-1 text-xs text-muted">Applies to new bookings only. Nights with their own price on the Rates page keep it.</p>
+                          </div>
+                          <div>
+                            <label htmlFor={`ea-${t.id}`} className="block text-sm">Most adults</label>
+                            <input id={`ea-${t.id}`} name="maxAdults" type="number" inputMode="numeric" min={1} max={20} required defaultValue={t.max_adults} className={inputClass} />
+                          </div>
+                          <div>
+                            <label htmlFor={`ek-${t.id}`} className="block text-sm">Most children</label>
+                            <input id={`ek-${t.id}`} name="maxChildren" type="number" inputMode="numeric" min={0} max={20} defaultValue={t.max_children} className={inputClass} />
+                          </div>
+                          <div>
+                            <label htmlFor={`eo-${t.id}`} className="block text-sm">Most people in all</label>
+                            <input id={`eo-${t.id}`} name="maxOccupancy" type="number" inputMode="numeric" min={1} max={40} defaultValue={t.max_occupancy} className={inputClass} />
+                          </div>
+                          <div className="sm:col-span-2">
+                            <label htmlFor={`ed-${t.id}`} className="block text-sm">Description (optional)</label>
+                            <textarea id={`ed-${t.id}`} name="description" maxLength={500} rows={2} defaultValue={t.description ?? ""} className={inputClass} />
+                          </div>
+                          <div className="flex items-center gap-2 sm:col-span-2">
+                            <input id={`ep-${t.id}`} name="isPublic" type="checkbox" defaultChecked={t.is_public} className="h-4 w-4" />
+                            <label htmlFor={`ep-${t.id}`} className="text-sm">Guests can book this type on the hotel&apos;s website</label>
+                          </div>
+                          <div className="sm:col-span-2"><button type="submit" className={buttonPrimary}>Save changes</button></div>
+                        </form>
+                      </details>
+                      <form action={setRoomTypeStatus}>
+                        <input type="hidden" name="roomTypeId" value={t.id} />
+                        <input type="hidden" name="status" value={t.status === "active" ? "inactive" : "active"} />
+                        <button type="submit" className={buttonQuiet}>{t.status === "active" ? "Switch off" : "Switch on"}</button>
+                      </form>
+                    </div>
+                  )}
 
                   <h4 className="mt-4 text-sm font-medium">Rooms ({mine.length})</h4>
                   {mine.length === 0 ? <p className="mt-1 text-sm text-muted">No rooms yet, so this type cannot be booked.</p> : (
