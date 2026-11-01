@@ -120,7 +120,7 @@ export type ErrorCode =
   | "guest_name" | "guest_email" | "guest_country" | "guest_field"
   | "role_escalation" | "self_change" | "last_owner" | "staff_suspended" | "staff_revoked" | "staff_property" | "invite_failed" | "email_invalid"
   | "rate_range_invalid" | "rate_range_long" | "rate_forbidden" | "rate_no_plan"
-  | "tax_forbidden" | "tax_not_percent" | "tax_not_found"
+  | "tax_forbidden" | "tax_not_percent" | "tax_not_found" | "tax_invalid" | "tax_duplicate"
   | "setup_invalid" | "setup_duplicate_code" | "setup_duplicate_name" | "setup_duplicate_room" | "setup_forbidden" | "room_has_bookings"
   | "task_taken" | "task_forbidden" | "task_assignee" | "task_reason" | "task_invalid"
   | "mt_taken" | "mt_forbidden" | "mt_assignee" | "mt_reason" | "mt_place" | "mt_block" | "mt_invalid" | "mt_duplicate"
@@ -204,6 +204,8 @@ export const OK_MESSAGES = {
   rates_cleared: "Those dates now use the room type's standard price.",
   tax_extras_on: "Extras posted from now on are taxed with this rule. Charges already posted keep the tax they were posted with.",
   tax_extras_off: "Extras posted from now on are no longer taxed with this rule. Charges already posted keep the tax they were posted with.",
+  tax_rule_created: "Tax rule added. It applies to quotes and bookings made from now on, and it does not tax extras until you switch that on.",
+  tax_rule_updated: "Tax rule saved. It applies to quotes and bookings made from now on; bookings already made and charges already posted keep the tax they were made with.",
   room_type_created: "Room type added. Add its rooms below, then set its rates.",
   room_type_updated: "Room type saved. New bookings use these details; bookings already made keep the price they were made at.",
   room_type_deactivated: "Room type switched off. It can no longer be booked, by staff or online. Existing bookings are not affected.",
@@ -278,6 +280,8 @@ export function errorMessage(code: string, refundable: number | null, formatMino
     case "tax_forbidden": return "You do not have permission to change the hotel's tax rules.";
     case "tax_not_percent": return "Only a percentage tax can be applied to extras. A fixed amount a night cannot.";
     case "tax_not_found": return "That tax rule could not be found, or you may not change it. Reload the page.";
+    case "tax_invalid": return "Some of the tax details are not valid. Give it a name (up to 60 characters), a rate above zero (a percentage up to 100, or a naira amount a night), real dates with the last day on or after the first, and an order number from 1 to 999 or leave it blank.";
+    case "tax_duplicate": return "Another tax rule with that name is already switched on for some of the same dates, so guests would be taxed twice on those nights. Switch the old rule off, or end it the day before this one starts.";
     case "setup_invalid": return "Some of the details are not valid. Check the capacity numbers, the code and the price, and try again.";
     case "setup_duplicate_code": return "Another room type at this property already uses that code. Choose a different one.";
     case "setup_duplicate_name": return "Another room type at this property has a name that is too similar. Choose a different name.";

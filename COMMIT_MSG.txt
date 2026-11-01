@@ -1,0 +1,26 @@
+feat(tax-rules): add and edit tax rules from the tax screen
+
+Why: until now a new tax rule, a rate change or an end date meant writing SQL,
+which the hotel cannot do and which blocked go-live. Tax rules are plain
+tables under row-level security, so the screen writes them as the signed-in
+user and the database still decides who may (property.configure); migration 028
+already audits every insert and update.
+
+- addTaxRule / updateTaxRule with pure validation in lib/staff/tax-rules.ts
+  (percent above 0 up to 100, fixed amount typed in naira and stored as kobo,
+  real dates, last day not before first day, order 1 to 999)
+- the kind of tax (percent or fixed) is read from the stored rule and never
+  edited: changing it would change what the number means, and a fixed rule
+  cannot be marked for extras
+- neither action writes applies_to_charges: a new rule starts with extras
+  untaxed, and an edit leaves the mark alone
+- doubleTaxes refuses a save that leaves two switched-on rules with the same
+  name in force on the same day (VAT charged twice). Checked in the action
+  only, so two simultaneous saves can still get past it
+- classifyTaxError: a check failure other than the percent-only constraint is
+  now tax_invalid, not "only a percentage can be applied to extras"
+- changes affect quotes and new bookings only; reservations and posted
+  charges keep the tax they were made with
+
+Checked: typecheck, npm test (352 passed), next build. Not checked in a
+browser or over HTTP; db:test not run (no PostgreSQL 16 binaries here).

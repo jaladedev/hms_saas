@@ -1,9 +1,9 @@
-import { buttonPrimary, buttonQuiet, Notice } from "@/components/staff/ui";
+import { buttonPrimary, buttonQuiet, inputClass, Notice } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { todayIn } from "@/lib/staff/reservations";
-import { setExtrasTax } from "@/lib/staff/tax-actions";
+import { addTaxRule, setExtrasTax, updateTaxRule } from "@/lib/staff/tax-actions";
 import {
-  appliesLine, canApplyToExtras, describeRate, extrasTaxRules, ruleState, sortRules, STATE_LABEL, TAX_RULE_COLUMNS, type TaxRuleRow,
+  appliesLine, canApplyToExtras, describeRate, extrasTaxRules, nextSequence, rateInputValue, RULE_NAME_MAX, ruleState, sortRules, STATE_LABEL, TAX_RULE_COLUMNS, type TaxRuleRow,
 } from "@/lib/staff/tax-rules";
 import { createClient } from "@/lib/supabase/server";
 
@@ -14,7 +14,8 @@ export const dynamic = "force-dynamic";
  * Nights are taxed by every rule in force; extras only by the percent rules marked here, and nothing is marked
  * until a person does it. Changing the mark affects extras posted from then on; a charge already posted keeps the
  * tax it was posted with. Only people with property.configure may change it (the database decides), and the change
- * is recorded in the audit log.
+ * is recorded in the audit log. People with property.configure can also add a rule and edit one (name, rate, order,
+ * dates, switched on or off); the kind of tax (percent or fixed) is chosen when the rule is added and never edited.
  */
 export default async function TaxRulesPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const search = await searchParams;
@@ -89,10 +90,103 @@ export default async function TaxRulesPage({ searchParams }: { searchParams: Pro
                           </button>
                         </form>
                       )}
+                      {manage && (
+                        <details className="w-full">
+                          <summary className="cursor-pointer text-sm font-medium text-primary-strong">Edit {r.name}</summary>
+                          <form action={updateTaxRule} className="mt-3 grid gap-4 sm:grid-cols-2">
+                            <input type="hidden" name="ruleId" value={r.id} />
+                            <div>
+                              <label htmlFor={`tn-${r.id}`} className="block text-sm">Name</label>
+                              <input id={`tn-${r.id}`} name="name" required maxLength={RULE_NAME_MAX} defaultValue={r.name} className={inputClass} />
+                            </div>
+                            <div>
+                              <label htmlFor={`tr-${r.id}`} className="block text-sm">{r.basis === "percent" ? "Rate (%)" : "Amount a night (₦)"}</label>
+                              <input id={`tr-${r.id}`} name="rate" inputMode="decimal" required defaultValue={rateInputValue(r)} className={`${inputClass} tabular-nums`} />
+                            </div>
+                            <div>
+                              <label htmlFor={`tf-${r.id}`} className="block text-sm">First day</label>
+                              <input id={`tf-${r.id}`} name="effectiveFrom" type="date" required defaultValue={r.effective_from} className={inputClass} />
+                            </div>
+                            <div>
+                              <label htmlFor={`tt-${r.id}`} className="block text-sm">Last day (leave empty if it has no end)</label>
+                              <input id={`tt-${r.id}`} name="effectiveTo" type="date" defaultValue={r.effective_to ?? ""} className={inputClass} />
+                            </div>
+                            <div>
+                              <label htmlFor={`ts-${r.id}`} className="block text-sm">Order</label>
+                              <input id={`ts-${r.id}`} name="sequence" type="number" inputMode="numeric" min={1} max={999} required defaultValue={r.sequence} className={inputClass} />
+                              <p className="mt-1 text-xs text-muted">Rules are applied in this order, lowest first.</p>
+                            </div>
+                            <div>
+                              <label htmlFor={`tu-${r.id}`} className="block text-sm">Status</label>
+                              <select id={`tu-${r.id}`} name="status" defaultValue={r.status === "active" ? "active" : "inactive"} className={inputClass}>
+                                <option value="active">Switched on</option>
+                                <option value="inactive">Switched off</option>
+                              </select>
+                            </div>
+                            {r.basis === "percent" && (
+                              <div className="flex items-center gap-2 sm:col-span-2">
+                                <input id={`tc-${r.id}`} name="compounds" type="checkbox" defaultChecked={r.compounds} className="h-4 w-4" />
+                                <label htmlFor={`tc-${r.id}`} className="text-sm">Apply on top of the rules before it (tax on tax)</label>
+                              </div>
+                            )}
+                            <p className="text-xs text-muted sm:col-span-2">
+                              A change applies to quotes and bookings made from now on. Bookings already made and charges already posted keep their tax. To change a rate from a certain day, set this rule&apos;s last day to the day before and add a new rule that starts on that day.
+                            </p>
+                            <div className="sm:col-span-2"><button type="submit" className={buttonPrimary}>Save changes</button></div>
+                          </form>
+                        </details>
+                      )}
                     </li>
                   );
                 })}
               </ul>
+            )}
+
+            {manage && (
+              <details className="mt-6">
+                <summary className="cursor-pointer text-sm font-medium text-primary-strong">Add a tax rule</summary>
+                <form action={addTaxRule} className="mt-3 grid gap-4 sm:grid-cols-2">
+                  <input type="hidden" name="propertyId" value={p.id} />
+                  <div>
+                    <label htmlFor={`an-${p.id}`} className="block text-sm">Name</label>
+                    <input id={`an-${p.id}`} name="name" required maxLength={RULE_NAME_MAX} placeholder="VAT" className={inputClass} />
+                  </div>
+                  <div>
+                    <label htmlFor={`ab-${p.id}`} className="block text-sm">Kind of tax</label>
+                    <select id={`ab-${p.id}`} name="basis" defaultValue="percent" className={inputClass}>
+                      <option value="percent">A percentage of the night&apos;s price</option>
+                      <option value="fixed_per_night">A fixed amount each night</option>
+                    </select>
+                    <p className="mt-1 text-xs text-muted">This cannot be changed later.</p>
+                  </div>
+                  <div>
+                    <label htmlFor={`ar-${p.id}`} className="block text-sm">Rate</label>
+                    <input id={`ar-${p.id}`} name="rate" inputMode="decimal" required placeholder="7.5" className={`${inputClass} tabular-nums`} />
+                    <p className="mt-1 text-xs text-muted">A percentage: 7.5 means 7.5%. A fixed amount: naira a night, such as 1,000.</p>
+                  </div>
+                  <div>
+                    <label htmlFor={`as-${p.id}`} className="block text-sm">Order (optional)</label>
+                    <input id={`as-${p.id}`} name="sequence" type="number" inputMode="numeric" min={1} max={999} placeholder={String(nextSequence(mine))} className={inputClass} />
+                    <p className="mt-1 text-xs text-muted">Rules are applied lowest first. Left empty, this one goes last.</p>
+                  </div>
+                  <div>
+                    <label htmlFor={`af-${p.id}`} className="block text-sm">First day</label>
+                    <input id={`af-${p.id}`} name="effectiveFrom" type="date" required defaultValue={today} className={inputClass} />
+                  </div>
+                  <div>
+                    <label htmlFor={`at-${p.id}`} className="block text-sm">Last day (leave empty if it has no end)</label>
+                    <input id={`at-${p.id}`} name="effectiveTo" type="date" className={inputClass} />
+                  </div>
+                  <div className="flex items-center gap-2 sm:col-span-2">
+                    <input id={`ac-${p.id}`} name="compounds" type="checkbox" className="h-4 w-4" />
+                    <label htmlFor={`ac-${p.id}`} className="text-sm">Percentage only: apply on top of the rules before it (tax on tax)</label>
+                  </div>
+                  <p className="text-xs text-muted sm:col-span-2">
+                    A new rule is added to every night priced from its first day. Extras stay untaxed until you switch that on for the rule.
+                  </p>
+                  <div className="sm:col-span-2"><button type="submit" className={buttonPrimary}>Add tax rule</button></div>
+                </form>
+              </details>
             )}
 
             {!manage && mine.length > 0 && <p className="mt-3 text-sm text-muted">You can see these rules but not change them.</p>}
@@ -101,7 +195,7 @@ export default async function TaxRulesPage({ searchParams }: { searchParams: Pro
       })}
 
       <p className="mt-10 max-w-prose text-xs text-muted">
-        Switching a rule on or off applies to extras posted from then on; a charge already posted keeps the tax it was posted with. Adding a tax rule or changing its rate is not available on this screen yet. Every change here is recorded with who made it.
+        Switching a rule on or off applies to extras posted from then on; a charge already posted keeps the tax it was posted with. Every change here, including adding a rule, is recorded with who made it.
       </p>
     </main>
   );
