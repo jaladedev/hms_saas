@@ -1,7 +1,10 @@
 /** What the overview page adds up. Pure functions, so the counting rules are tested without a database. */
 
 import type { DeskGroups } from "./front-desk";
+import { countRequests, type RequestBrief } from "./maintenance";
 import { STUCK_AFTER_MINUTES, minutesSince } from "./refunds";
+
+export type { RequestBrief };
 
 /** Only the refund columns the overview reads. */
 export type RefundBrief = {
@@ -40,10 +43,22 @@ export type Task = { key: string; count: number; label: string; href: string; to
 
 const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
 
+/**
+ * Live maintenance requests the viewer can read, as the overview needs them. Row level security decides what comes
+ * back, so a role that cannot read maintenance gets zeros and no repair line appears for it.
+ */
+export type RepairCounts = { open: number; overdue: number; highPriority: number };
+
+export function countRepairs(rows: RequestBrief[], now: Date): RepairCounts {
+  const c = countRequests(rows, "", now);
+  return { open: c.open, overdue: c.overdue, highPriority: c.highPriority };
+}
+
 export type OverviewInput = {
   desk: Pick<DeskGroups, "overdue" | "lateArrivals">;
   flaggedReservations: number;
   refunds: RefundCounts;
+  repairs: RepairCounts;
   failedEmails: number;
 };
 
@@ -56,10 +71,14 @@ export function buildTasks(i: OverviewInput): Task[] {
       label: plural(i.flaggedReservations, "reservation is flagged for attention", "reservations are flagged for attention") },
     { key: "stuck", count: i.refunds.stuck, tone: "critical", href: "/app/refunds",
       label: plural(i.refunds.stuck, "refund payout has an unknown or overdue result", "refund payouts have an unknown or overdue result") },
+    { key: "repairsOverdue", count: i.repairs.overdue, tone: "critical", href: "/app/maintenance",
+      label: plural(i.repairs.overdue, "repair is overdue", "repairs are overdue") },
     { key: "toApprove", count: i.refunds.toApprove, tone: "normal", href: "/app/refunds",
       label: plural(i.refunds.toApprove, "refund is waiting for your approval", "refunds are waiting for your approval") },
     { key: "toPay", count: i.refunds.toPay, tone: "normal", href: "/app/refunds",
       label: plural(i.refunds.toPay, "approved refund is ready to pay out", "approved refunds are ready to pay out") },
+    { key: "repairsHigh", count: i.repairs.highPriority, tone: "normal", href: "/app/maintenance",
+      label: plural(i.repairs.highPriority, "urgent or high-priority repair is open", "urgent or high-priority repairs are open") },
     { key: "emails", count: i.failedEmails, tone: "normal", href: "/app/emails",
       label: plural(i.failedEmails, "guest email could not be delivered", "guest emails could not be delivered") },
     { key: "late", count: i.desk.lateArrivals.length, tone: "normal", href: "/app/front-desk",

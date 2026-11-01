@@ -2,11 +2,18 @@ import Link from "next/link";
 import { formatDate } from "@/lib/guest-site/format";
 import { loadDeskRows } from "@/lib/staff/desk-query";
 import { bucketFrontDesk } from "@/lib/staff/front-desk";
-import { buildTasks, countRefunds, todayFigures, type RefundBrief } from "@/lib/staff/overview";
+import { buildTasks, countRefunds, countRepairs, todayFigures, type RefundBrief, type RequestBrief } from "@/lib/staff/overview";
 import { todayIn } from "@/lib/staff/reservations";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
+
+/** True when the signed-in user holds at least one of the permissions at any of the properties. A failed check counts as no. */
+async function anyPermission(supabase: Awaited<ReturnType<typeof createClient>>, propertyIds: string[], permissions: string[]): Promise<boolean> {
+  const checks = propertyIds.flatMap((id) => permissions.map((p) => supabase.rpc("has_permission", { p_property: id, p_permission: p })));
+  const results = await Promise.all(checks);
+  return results.some((r) => r.data === true);
+}
 
 export default async function Dashboard() {
   const supabase = await createClient();
@@ -23,19 +30,24 @@ export default async function Dashboard() {
 
   // Each source is read on its own and may come back empty: row level security decides what this person can see,
   // and a failed read is reported at the top rather than shown as "all clear".
-  const [desk, flaggedQ, refundQ, emailQ] = await Promise.all([
+  const [desk, flaggedQ, refundQ, emailQ, repairQ, canSeeRepairs] = await Promise.all([
     earliest && latest ? loadDeskRows(supabase, earliest, latest) : Promise.resolve({ rows: [], error: null }),
     supabase.from("reservations").select("id", { count: "exact", head: true }).not("attention_reason", "is", null),
     supabase.from("refunds").select("refund_status, requested_by, attention_note, provider_call_started_at").in("refund_status", ["requested", "approved", "processing"]).limit(500),
     supabase.rpc("staff_failed_emails", { p_limit: 200 }),
+    // A thin read of live requests; row level security returns only what this person may see (maintenance.view or manage).
+    supabase.from("maintenance_requests").select("status, priority, assigned_to, due_at").in("status", ["open", "in_progress"]).limit(500),
+    // The repair figure is shown only to people who can read requests, so "0 open" is never shown to a role that sees none.
+    anyPermission(supabase, properties.map((p) => p.id), ["maintenance.view", "maintenance.manage"]),
   ]);
 
   const groups = bucketFrontDesk(desk.rows, todayByProperty);
   const refunds = countRefunds((refundQ.data ?? []) as RefundBrief[], auth.user?.id ?? null, now);
+  const repairs = countRepairs((repairQ.data ?? []) as RequestBrief[], now);
   const failedEmails = ((emailQ.data ?? []) as { state: string }[]).filter((e) => e.state === "failed").length;
-  const tasks = buildTasks({ desk: groups, flaggedReservations: flaggedQ.count ?? 0, refunds, failedEmails });
+  const tasks = buildTasks({ desk: groups, flaggedReservations: flaggedQ.count ?? 0, refunds, repairs, failedEmails });
   const figures = todayFigures(groups);
-  const loadFailed = Boolean(propQ.error || desk.error || flaggedQ.error || refundQ.error);
+  const loadFailed = Boolean(propQ.error || desk.error || flaggedQ.error || refundQ.error || repairQ.error);
 
   return (
     <main className="max-w-4xl">
@@ -51,14 +63,27 @@ export default async function Dashboard() {
       <section className="mt-8" aria-labelledby="today">
         <h2 id="today" className="font-display text-xl">Today</h2>
         <dl className="mt-3 flex flex-wrap border-y border-line">
-          {([["Arriving", figures.arriving], ["Departing", figures.departing], ["In house", figures.inHouse]] as const).map(([label, n], i) => (
+          {([
+            ["Arriving", figures.arriving],
+            ["Departing", figures.departing],
+            ["In house", figures.inHouse],
+            ...(canSeeRepairs ? ([["Open repairs", repairs.open]] as const) : []),
+          ] as readonly (readonly [string, number])[]).map(([label, n], i) => (
             <div key={label} className={`min-w-32 flex-1 px-4 py-4 ${i > 0 ? "border-l border-line" : "pl-0"}`}>
               <dt className="text-sm text-muted">{label}</dt>
               <dd className="mt-1 text-3xl font-semibold tabular-nums">{n}</dd>
             </div>
           ))}
         </dl>
-        <p className="mt-2 text-sm"><Link href="/app/front-desk" className="text-primary-strong underline underline-offset-2">Open the front desk</Link></p>
+        <p className="mt-2 text-sm">
+          <Link href="/app/front-desk" className="text-primary-strong underline underline-offset-2">Open the front desk</Link>
+          {canSeeRepairs && (
+            <>
+              {" · "}
+              <Link href="/app/maintenance" className="text-primary-strong underline underline-offset-2">Open maintenance</Link>
+            </>
+          )}
+        </p>
       </section>
 
       <section className="mt-10" aria-labelledby="needs">

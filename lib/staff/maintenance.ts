@@ -88,8 +88,11 @@ export function groupLive(requests: RequestRow[], userId: string): RequestGroups
 
 export type DashboardCounts = { open: number; highPriority: number; overdue: number; mine: number };
 
+/** The only columns the counts read, so the overview and the sidebar can fetch a thin row instead of every column. */
+export type RequestBrief = Pick<RequestRow, "status" | "priority" | "assigned_to" | "due_at">;
+
 /** The figures at the top of the dashboard: how many are live, how many are high or urgent, overdue, and the viewer's. */
-export function countRequests(requests: RequestRow[], userId: string, now: Date): DashboardCounts {
+export function countRequests(requests: RequestBrief[], userId: string, now: Date): DashboardCounts {
   const live = requests.filter(isLive);
   return {
     open: live.length,

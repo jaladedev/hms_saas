@@ -29,6 +29,15 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   const { data } = await supabase.auth.getUser();
   if (!data.user) redirect("/login");
 
+  // How many live repairs are assigned to this person. Row level security limits the read to people who may see
+  // maintenance, and a failed read shows no badge rather than a wrong number.
+  const mineQ = await supabase
+    .from("maintenance_requests")
+    .select("id", { count: "exact", head: true })
+    .in("status", ["open", "in_progress"])
+    .eq("assigned_to", data.user.id);
+  const myRepairs = mineQ.error ? 0 : (mineQ.count ?? 0);
+
   return (
     <div className="flex min-h-screen">
       <aside className="w-60 shrink-0 bg-navy-900 p-4 text-sm text-white">
@@ -36,7 +45,15 @@ export default async function StaffLayout({ children }: { children: React.ReactN
         <nav className="mt-6 space-y-2 text-white/80">
           {NAV.map((item) =>
             item.href ? (
-              <Link key={item.label} href={item.href} className="block text-white focus-visible:outline-2 focus-visible:outline-white">{item.label}</Link>
+              <Link key={item.label} href={item.href} className="block text-white focus-visible:outline-2 focus-visible:outline-white">
+                {item.label}
+                {item.href === "/app/maintenance" && myRepairs > 0 && (
+                  <>
+                    <span aria-hidden="true" className="ml-2 rounded-full bg-white/20 px-2 py-0.5 text-xs tabular-nums">{myRepairs}</span>
+                    <span className="sr-only">, {myRepairs} assigned to you</span>
+                  </>
+                )}
+              </Link>
             ) : (
               <div key={item.label}>{item.label}</div>
             ),

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { DeskRow } from "./front-desk";
-import { buildTasks, countRefunds, todayFigures, type RefundBrief } from "./overview";
+import { buildTasks, countRefunds, countRepairs, todayFigures, type RefundBrief, type RequestBrief } from "./overview";
 
 const NOW = new Date("2026-10-31T12:00:00Z");
 const ME = "11111111-1111-1111-1111-111111111111";
@@ -25,22 +25,49 @@ describe("countRefunds", () => {
   });
 });
 
+const request = (over: Partial<RequestBrief>): RequestBrief => ({ status: "open", priority: "normal", assigned_to: null, due_at: null, ...over });
+
+describe("countRepairs", () => {
+  it("counts live requests, overdue ones and high or urgent ones, and ignores finished requests", () => {
+    const c = countRepairs([
+      request({}),
+      request({ priority: "high" }),
+      request({ priority: "urgent", status: "in_progress", assigned_to: ME }),
+      request({ due_at: "2026-10-31T09:00:00Z" }),
+      request({ due_at: "2026-10-31T15:00:00Z" }),
+      request({ status: "resolved", priority: "urgent", due_at: "2026-10-30T09:00:00Z" }),
+      request({ status: "cancelled", priority: "high" }),
+    ], NOW);
+    expect(c).toEqual({ open: 5, overdue: 1, highPriority: 2 });
+  });
+  it("is all zeros when nothing is visible", () => {
+    expect(countRepairs([], NOW)).toEqual({ open: 0, overdue: 0, highPriority: 0 });
+  });
+});
+
 describe("buildTasks", () => {
-  const none = { desk: { overdue: [], lateArrivals: [] }, flaggedReservations: 0, refunds: { stuck: 0, toApprove: 0, waitingOnOthers: 0, toPay: 0 }, failedEmails: 0 };
+  const noRepairs = { open: 0, overdue: 0, highPriority: 0 };
+  const none = { desk: { overdue: [], lateArrivals: [] }, flaggedReservations: 0, refunds: { stuck: 0, toApprove: 0, waitingOnOthers: 0, toPay: 0 }, repairs: noRepairs, failedEmails: 0 };
   it("is empty when nothing needs anyone, and ignores requests that wait on others", () => {
     expect(buildTasks(none)).toEqual([]);
     expect(buildTasks({ ...none, refunds: { ...none.refunds, waitingOnOthers: 4 } })).toEqual([]);
   });
+  it("does not list open repairs that are neither overdue nor high priority", () => {
+    expect(buildTasks({ ...none, repairs: { open: 6, overdue: 0, highPriority: 0 } })).toEqual([]);
+  });
   it("lists only non-zero items, most urgent first, with correct plurals", () => {
     const t = buildTasks({
       desk: { overdue: [row("a")], lateArrivals: [row("b"), row("c")] }, flaggedReservations: 3,
-      refunds: { stuck: 1, toApprove: 1, waitingOnOthers: 0, toPay: 2 }, failedEmails: 1,
+      refunds: { stuck: 1, toApprove: 1, waitingOnOthers: 0, toPay: 2 }, repairs: { open: 5, overdue: 1, highPriority: 2 }, failedEmails: 1,
     });
-    expect(t.map((x) => x.key)).toEqual(["overdue", "flagged", "stuck", "toApprove", "toPay", "emails", "late"]);
+    expect(t.map((x) => x.key)).toEqual(["overdue", "flagged", "stuck", "repairsOverdue", "toApprove", "toPay", "repairsHigh", "emails", "late"]);
     expect(t[0]?.label).toBe("guest is still in house past their departure date");
     expect(t[1]?.label).toBe("reservations are flagged for attention");
-    expect(t.filter((x) => x.tone === "critical").map((x) => x.key)).toEqual(["overdue", "flagged", "stuck"]);
+    expect(t[3]?.label).toBe("repair is overdue");
+    expect(t[6]?.label).toBe("urgent or high-priority repairs are open");
+    expect(t.filter((x) => x.tone === "critical").map((x) => x.key)).toEqual(["overdue", "flagged", "stuck", "repairsOverdue"]);
     expect(t.every((x) => x.href.startsWith("/app/"))).toBe(true);
+    expect(t.filter((x) => x.key.startsWith("repairs")).every((x) => x.href === "/app/maintenance")).toBe(true);
   });
 });
 
