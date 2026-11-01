@@ -121,6 +121,10 @@ FT="$(psql -f "$HERE/25_folio_charges.sql" 2>&1)" || { echo "$FT"; echo "FOLIO T
 echo "$FT" | grep -E 'PASS' || true
 if echo "$FT" | grep -qE 'FAIL|ERROR'; then echo "$FT"; echo "FOLIO TESTS FAILED"; exit 1; fi
 
+TX="$(psql -f "$HERE/26_tax_rule_audit.sql" 2>&1)" || { echo "$TX"; echo "TAX RULE AUDIT TESTS FAILED"; exit 1; }
+echo "$TX" | grep -E 'PASS' || true
+if echo "$TX" | grep -qE 'FAIL|ERROR'; then echo "$TX"; echo "TAX RULE AUDIT TESTS FAILED"; exit 1; fi
+
 echo "--- concurrency: last room race (1 room, 50 clients)"
 cat > "$DATA/race_one.sql" <<'SQL'
 select test_try_claim('last_room', '00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', '2027-10-01', '2027-10-03');

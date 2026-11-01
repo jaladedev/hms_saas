@@ -120,6 +120,7 @@ export type ErrorCode =
   | "guest_name" | "guest_email" | "guest_country" | "guest_field"
   | "role_escalation" | "self_change" | "last_owner" | "staff_suspended" | "staff_revoked" | "staff_property" | "invite_failed" | "email_invalid"
   | "rate_range_invalid" | "rate_range_long" | "rate_forbidden" | "rate_no_plan"
+  | "tax_forbidden" | "tax_not_percent" | "tax_not_found"
   | "setup_invalid" | "setup_duplicate_code" | "setup_duplicate_name" | "setup_duplicate_room" | "setup_forbidden" | "room_has_bookings"
   | "task_taken" | "task_forbidden" | "task_assignee" | "task_reason" | "task_invalid"
   | "mt_taken" | "mt_forbidden" | "mt_assignee" | "mt_reason" | "mt_place" | "mt_block" | "mt_invalid" | "mt_duplicate"
@@ -201,6 +202,8 @@ export const OK_MESSAGES = {
   rate_plan_created: "Standard rate plan created. Bookings can now be made.",
   rates_set: "Nightly prices saved.",
   rates_cleared: "Those dates now use the room type's standard price.",
+  tax_extras_on: "Extras posted from now on are taxed with this rule. Charges already posted keep the tax they were posted with.",
+  tax_extras_off: "Extras posted from now on are no longer taxed with this rule. Charges already posted keep the tax they were posted with.",
   room_type_created: "Room type added. Add its rooms below, then set its rates.",
   room_type_updated: "Room type saved. New bookings use these details; bookings already made keep the price they were made at.",
   room_type_deactivated: "Room type switched off. It can no longer be booked, by staff or online. Existing bookings are not affected.",
@@ -272,6 +275,9 @@ export function errorMessage(code: string, refundable: number | null, formatMino
     case "rate_range_long": return "A price change can cover at most 366 nights at a time. Split it into smaller ranges.";
     case "rate_forbidden": return "You do not have permission to change rates.";
     case "rate_no_plan": return "This hotel has no standard rate plan yet. Create one first.";
+    case "tax_forbidden": return "You do not have permission to change the hotel's tax rules.";
+    case "tax_not_percent": return "Only a percentage tax can be applied to extras. A fixed amount a night cannot.";
+    case "tax_not_found": return "That tax rule could not be found, or you may not change it. Reload the page.";
     case "setup_invalid": return "Some of the details are not valid. Check the capacity numbers, the code and the price, and try again.";
     case "setup_duplicate_code": return "Another room type at this property already uses that code. Choose a different one.";
     case "setup_duplicate_name": return "Another room type at this property has a name that is too similar. Choose a different name.";

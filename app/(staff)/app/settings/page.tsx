@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 const SECTIONS = [
   { href: "/app/settings/rooms", title: "Room types and rooms", text: "The kinds of room you sell, their capacity and standard price, and the rooms themselves." },
   { href: "/app/settings/rates", title: "Rates", text: "Standard rate plan and different nightly prices for holidays and busy weeks." },
+  { href: "/app/settings/tax", title: "Tax rules", text: "Which taxes are added to nights, and which of them also apply to extras such as the minibar and laundry." },
   { href: "/app/staff", title: "Staff and permissions", text: "Who can sign in and what each person may do." },
 ];
 
