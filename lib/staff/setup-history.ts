@@ -8,6 +8,7 @@
  * words them. Names are looked up from the live tables by id, because an update row records the changed columns and
  * not the thing's name; a deleted thing falls back to the name stored with the row.
  */
+import { guestSummary, readConfig } from "./policies";
 import type { TaxRuleRow } from "./tax-rules";
 
 export type AuditRow = {
@@ -29,6 +30,7 @@ export const HISTORY_FILTERS = [
   { value: "rooms", label: "Room types and rooms" },
   { value: "rates", label: "Rates" },
   { value: "tax", label: "Tax rules" },
+  { value: "policies", label: "Cancellation and payment policies" },
   { value: "staff", label: "Staff access" },
 ] as const;
 export type HistoryFilter = (typeof HISTORY_FILTERS)[number]["value"];
@@ -38,6 +40,7 @@ export const FILTER_ACTIONS: Record<Exclude<HistoryFilter, "all">, string[]> = {
   rooms: ["room_type.created", "room_type.updated", "room_type.deleted", "room.created", "room.updated", "room.deleted"],
   rates: ["rate_plan.created", "rate_plan.updated", "rate_plan.deleted", "rates.set", "rates.changed", "rates.cleared"],
   tax: ["tax_rule.created", "tax_rule.updated", "tax_rule.deleted"],
+  policies: ["property_policy.created"],
   staff: ["staff.role_added", "staff.role_removed", "staff.status_changed"],
 };
 export const actionsFor = (what: HistoryFilter): string[] =>
@@ -238,6 +241,17 @@ export function describeEvent(row: AuditRow, lookup: Lookup, fmt: Format): { sum
     }
     if (row.action === "staff.role_removed") return { summary: `Removed the role ${roleName(m, lookup)} from ${person}`, details: [`Covered: ${scopeOf(m, lookup)}`] };
     if (row.action === "staff.status_changed") return { summary: `Changed ${person}'s access from ${asString(m.from) ?? "unknown"} to ${asString(m.to) ?? "unknown"}`, details: [] };
+  }
+
+  // A published policy version (migration 031): the sentences guests would read, not the raw settings.
+  if (row.action === "property_policy.created") {
+    const values = asRecord(m.values);
+    const version = asNumber(values.version);
+    const from = asString(values.effective_from);
+    return {
+      summary: `Published ${version === null ? "a new policy version" : `policy version ${version}`}${from ? `, starting ${fmt.date(from)}` : ""}`,
+      details: guestSummary(readConfig(values.config), fmt.money),
+    };
   }
 
   if (verb === "created" || verb === "deleted") {

@@ -121,6 +121,7 @@ export type ErrorCode =
   | "role_escalation" | "self_change" | "last_owner" | "staff_suspended" | "staff_revoked" | "staff_property" | "invite_failed" | "email_invalid"
   | "rate_range_invalid" | "rate_range_long" | "rate_forbidden" | "rate_no_plan"
   | "tax_forbidden" | "tax_not_percent" | "tax_not_found" | "tax_invalid" | "tax_duplicate"
+  | "policy_forbidden" | "policy_conflict" | "policy_invalid" | "policy_rules" | "policy_deposit" | "policy_date" | "policy_past" | "policy_order"
   | "setup_invalid" | "setup_duplicate_code" | "setup_duplicate_name" | "setup_duplicate_room" | "setup_forbidden" | "room_has_bookings"
   | "task_taken" | "task_forbidden" | "task_assignee" | "task_reason" | "task_invalid"
   | "mt_taken" | "mt_forbidden" | "mt_assignee" | "mt_reason" | "mt_place" | "mt_block" | "mt_invalid" | "mt_duplicate"
@@ -204,6 +205,7 @@ export const OK_MESSAGES = {
   rates_cleared: "Those dates now use the room type's standard price.",
   tax_extras_on: "Extras posted from now on are taxed with this rule. Charges already posted keep the tax they were posted with.",
   tax_extras_off: "Extras posted from now on are no longer taxed with this rule. Charges already posted keep the tax they were posted with.",
+  policy_published: "New policy saved. It applies to bookings made from its start date; bookings already made keep the policy they were made under.",
   tax_rule_created: "Tax rule added. It applies to quotes and bookings made from now on, and it does not tax extras until you switch that on.",
   tax_rule_updated: "Tax rule saved. It applies to quotes and bookings made from now on; bookings already made and charges already posted keep the tax they were made with.",
   room_type_created: "Room type added. Add its rooms below, then set its rates.",
@@ -282,6 +284,14 @@ export function errorMessage(code: string, refundable: number | null, formatMino
     case "tax_not_found": return "That tax rule could not be found, or you may not change it. Reload the page.";
     case "tax_invalid": return "Some of the tax details are not valid. Give it a name (up to 60 characters), a rate above zero (a percentage up to 100, or a naira amount a night), real dates with the last day on or after the first, and an order number from 1 to 999 or leave it blank.";
     case "tax_duplicate": return "Another tax rule with that name is already switched on for some of the same dates, so guests would be taxed twice on those nights. Switch the old rule off, or end it the day before this one starts.";
+    case "policy_forbidden": return "You do not have permission to change the hotel's policies.";
+    case "policy_conflict": return "Another policy was saved for this hotel at the same moment, or already starts on that date. Reload the page and try again.";
+    case "policy_invalid": return "Some of the policy details are not valid. Check them and try again.";
+    case "policy_rules": return "Check the cancellation rules. Each needs a number of hours (0 to 8760) that no other rule uses, and a charge: a percentage above 0 up to 100, 1 to 30 nights, or a naira amount. Leave a row empty to skip it.";
+    case "policy_deposit": return "Enter the deposit as a percentage above 0 and up to 100, or choose to take the full amount online.";
+    case "policy_date": return "Choose a real start date for the new policy.";
+    case "policy_past": return "The new policy cannot start in the past. Choose today or a later date.";
+    case "policy_order": return "The new policy must start after the one saved last. Choose a later date.";
     case "setup_invalid": return "Some of the details are not valid. Check the capacity numbers, the code and the price, and try again.";
     case "setup_duplicate_code": return "Another room type at this property already uses that code. Choose a different one.";
     case "setup_duplicate_name": return "Another room type at this property has a name that is too similar. Choose a different name.";

@@ -11,7 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 /**
- * Setup history: who changed the hotel's room types, rooms, rates, tax rules and staff access, and what changed.
+ * Setup history: who changed the hotel's room types, rooms, rates, tax rules, policies and staff access, and what changed.
  * Reads audit_logs as the signed-in person. The table shows a row only to people with audit.view at its property
  * (row-level security), so this page never decides who may see what; a login without it gets an empty explanation.
  * Names of the things changed come from the live tables by id, names of the people from audit_actor_names (029).
@@ -82,7 +82,7 @@ export default async function SetupHistoryPage({ searchParams }: { searchParams:
     <main className="max-w-4xl">
       <h1 className="font-display text-3xl">Setup history</h1>
       <p className="mt-2 max-w-prose text-muted">
-        Who changed the hotel&apos;s room types, rooms, rates, tax rules and staff access, newest first. Each line says who made the change and what it was; edits show the old and the new value. Nothing here can be changed or deleted.
+        Who changed the hotel&apos;s room types, rooms, rates, tax rules, policies and staff access, newest first. Each line says who made the change and what it was; edits show the old and the new value. Nothing here can be changed or deleted.
       </p>
 
       <form method="get" className="mt-6 flex flex-wrap items-end gap-4" aria-label="Filter the history">

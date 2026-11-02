@@ -176,3 +176,30 @@ describe("describeEvent", () => {
     expect(e.details).toEqual(["Cancellation policy changed"]);
   });
 });
+
+describe("policy versions", () => {
+  const policyRow = row({
+    action: "property_policy.created", entity_type: "property_policy", entity_id: "99999999-9999-4999-8999-999999999999",
+    metadata: { values: { version: 4, effective_from: "2026-11-09", config: {
+      online_payment: { mode: "deposit_percent", value: 30 },
+      cancellation_rules: [{ within_hours: 48, charge: { type: "percent", value: 50 } }],
+    } } },
+  });
+  it("is listed under its own filter and under everything", () => {
+    expect(actionsFor("policies")).toEqual(["property_policy.created"]);
+    expect(actionsFor("all")).toContain("property_policy.created");
+    expect(parseHistoryFilters({ what: "policies" }).what).toBe("policies");
+  });
+  it("words a published version with its start date and what guests are told", () => {
+    const e = describeEvent(policyRow, lookup(), fmt);
+    expect(e.summary).toBe("Published policy version 4, starting d:2026-11-09");
+    expect(e.details).toEqual([
+      "Pay a 30% deposit online to confirm your booking. The balance is due at the hotel.",
+      "Cancel free of charge until 2 days before check-in.",
+      "Within 2 days of check-in, you pay 50% of the total.",
+    ]);
+  });
+  it("copes with a row that has no values", () => {
+    expect(describeEvent(row({ action: "property_policy.created", entity_type: "property_policy", metadata: null }), lookup(), fmt).summary).toBe("Published a new policy version");
+  });
+});

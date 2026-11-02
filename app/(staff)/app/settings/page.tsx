@@ -6,6 +6,7 @@ const SECTIONS = [
   { href: "/app/settings/rooms", title: "Room types and rooms", text: "The kinds of room you sell, their capacity and standard price, and the rooms themselves." },
   { href: "/app/settings/rates", title: "Rates", text: "Standard rate plan and different nightly prices for holidays and busy weeks." },
   { href: "/app/settings/tax", title: "Tax rules", text: "Which taxes are added to nights, and which of them also apply to extras such as the minibar and laundry." },
+  { href: "/app/settings/policies", title: "Cancellation and payment policies", text: "What guests pay online to keep a booking, whether the balance must be paid before check-in, and what a cancellation costs." },
   { href: "/app/staff", title: "Staff and permissions", text: "Who can sign in and what each person may do." },
   { href: "/app/settings/history", title: "Setup history", text: "Who changed the room types, rooms, rates, tax rules and staff access, and what they changed. For the owner and general manager." },
 ];

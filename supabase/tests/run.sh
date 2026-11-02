@@ -125,6 +125,10 @@ TX="$(psql -f "$HERE/26_tax_rule_audit.sql" 2>&1)" || { echo "$TX"; echo "TAX RU
 echo "$TX" | grep -E 'PASS' || true
 if echo "$TX" | grep -qE 'FAIL|ERROR'; then echo "$TX"; echo "TAX RULE AUDIT TESTS FAILED"; exit 1; fi
 
+PA="$(psql -f "$HERE/29_policy_audit.sql" 2>&1)" || { echo "$PA"; echo "POLICY AUDIT TESTS FAILED"; exit 1; }
+echo "$PA" | grep -E 'PASS' || true
+if echo "$PA" | grep -qE 'FAIL|ERROR'; then echo "$PA"; echo "POLICY AUDIT TESTS FAILED"; exit 1; fi
+
 AN="$(psql -f "$HERE/27_audit_actor_names.sql" 2>&1)" || { echo "$AN"; echo "AUDIT ACTOR NAME TESTS FAILED"; exit 1; }
 echo "$AN" | grep -E 'PASS' || true
 if echo "$AN" | grep -qE 'FAIL|ERROR'; then echo "$AN"; echo "AUDIT ACTOR NAME TESTS FAILED"; exit 1; fi
