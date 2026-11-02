@@ -52,9 +52,14 @@ insert into tenant_memberships (id, tenant_id, user_id, status) values
 update auth.users set email = 'ada.owner@hotel-a.test' where id = '00000000-0000-0000-0000-00000000aa01';
 update auth.users set email = 'accounts@hotel-a.test' where id = '00000000-0000-0000-0000-00000000aa05';
 insert into user_profiles (id, full_name) values ('00000000-0000-0000-0000-00000000aa01', 'Ada Owner');
+-- Hotel B's owner: lets the staff cases prove that one hotel group never sees or changes another's setup.
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-00000000aa0b', 'bola.owner@hotel-b.test');
+insert into tenant_memberships (id, tenant_id, user_id, status)
+values ('00000000-0000-0000-0000-0000000aaa0b', '00000000-0000-0000-0000-0000000000b1', '00000000-0000-0000-0000-00000000aa0b', 'active');
 insert into membership_roles (membership_id, role_id)
   select '00000000-0000-0000-0000-0000000aaa01'::uuid, id from roles where key = 'owner'
-  union all select '00000000-0000-0000-0000-0000000aaa05'::uuid, id from roles where key = 'accountant';
+  union all select '00000000-0000-0000-0000-0000000aaa05'::uuid, id from roles where key = 'accountant'
+  union all select '00000000-0000-0000-0000-0000000aaa0b'::uuid, id from roles where key = 'owner';
 SQL
 export ACCOUNT_ID="$("$PGBIN/psql" -At -c "select id from payment_provider_accounts limit 1")"
 

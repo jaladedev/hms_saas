@@ -398,5 +398,205 @@ res = await staff("/app/settings/history", ACCOUNTANT_COOKIE);
 histHtml = await res.text();
 check("a login without audit.view sees an explanation and no rows", res.status === 200 && histHtml.includes("Only people who may view the audit trail") && !histHtml.includes("E2E VAT") && !plain(histHtml).includes("access from"), `status ${res.status}`);
 
+// 12. More staff cases, building on section 11 (its rules "E2E VAT" and "E2E Levy", its edits, and its staff status changes
+// are all still there). Covers: what the screens show for each rule state; the edit forms' starting values; compounding
+// and order; refusals that must change nothing; a second hotel group that must see and change none of the first's setup
+// (rules, history, staff changes); paging through the history; and the audit trail being append-only.
+const OWNER_B_ID = "00000000-0000-0000-0000-00000000aa0b", PROPERTY_B = "00000000-0000-0000-0000-0000000000b2", TENANT_A = "00000000-0000-0000-0000-0000000000a1";
+const OWNER_B_COOKIE = session(OWNER_B_ID, "bola.owner@hotel-b.test");
+const OWNER_JWT = jwt("authenticated", JWT_SECRET, OWNER_ID), ACCOUNTANT_JWT = jwt("authenticated", JWT_SECRET, ACCOUNTANT_ID), OWNER_B_JWT = jwt("authenticated", JWT_SECRET, OWNER_B_ID);
+const api = (token, path, init = {}) => fetch(`${REST}${path}`, { ...init, headers: { authorization: `Bearer ${token}`, "content-type": "application/json", ...(init.headers ?? {}) } });
+const SERVICE_JWT = jwt("service_role");
+
+// What a person reads on a page: scripts (which carry the page's data as text) and tags removed, entities decoded.
+const pageText = (html) => html.replace(/<script[\s\S]*?<\/script>/g, " ").replace(/<style[\s\S]*?<\/style>/g, " ").replace(/<!--[\s\S]*?-->/g, "").replace(/<[^>]+>/g, " ")
+  .replace(/&#x27;/g, "'").replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
+const words = (s) => s.replace(/\s+/g, " ").trim();
+const sees = (text, ...needles) => needles.every((n) => text.includes(words(n)));
+const doesNotSee = (text, ...needles) => needles.every((n) => !text.includes(words(n)));
+const quoted = (s) => `“${s}”`;
+/** formatDate in lib/guest-site/format.ts, so expected words come from the same ICU data as the page's. */
+function fmtDate(iso) {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(Date.UTC(y, m - 1, d)));
+}
+const attrOf = (tag, name) => { const m = new RegExp(`\\s${name}="([^"]*)"`).exec(tag); return m ? m[1].replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, "&") : undefined; };
+const isSet = (tag, name) => new RegExp(`\\s${name}(?=[\\s=>/])`).test(tag);
+/** What a browser would send for a form if the person pressed the button without typing: inputs, ticked boxes, chosen options. */
+function fieldsOf(block = "") {
+  const out = new Map();
+  for (const m of block.matchAll(/<input\b[^>]*>/g)) {
+    const name = attrOf(m[0], "name");
+    if (!name) continue;
+    const type = (attrOf(m[0], "type") ?? "text").toLowerCase();
+    if (type === "checkbox") { if (isSet(m[0], "checked")) out.set(name, attrOf(m[0], "value") ?? "on"); continue; }
+    if (type === "submit" || type === "button") continue;
+    out.set(name, attrOf(m[0], "value") ?? "");
+  }
+  for (const m of block.matchAll(/<select\b([^>]*)>([\s\S]*?)<\/select>/g)) {
+    const name = attrOf(m[1], "name");
+    const options = [...m[2].matchAll(/<option\b([^>]*)>/g)].map((o) => o[1]);
+    const chosen = options.find((o) => isSet(` ${o}`, "selected")) ?? options[0];
+    if (name) out.set(name, chosen === undefined ? "" : attrOf(chosen, "value") ?? "");
+  }
+  return out;
+}
+const formBlocks = (html) => [...html.matchAll(/<form[\s\S]*?<\/form>/g)].map((m) => m[0]);
+const ruleBlock = (html, ruleId, marker) => formBlocks(html).find((b) => b.includes(`name="ruleId" value="${ruleId}"`) && b.includes(marker));
+const historyRows = (html) => { const ol = /<ol\b[^>]*>([\s\S]*?)<\/ol>/.exec(html); return ol ? ol[1].split('<li class="py-4">').slice(1).map(pageText) : []; };
+const everyRule = async () => (await (await api(SERVICE_JWT, `/tax_rules?property_id=eq.${PROPERTY_A}&select=id,name,basis,rate_value,sequence,compounds,effective_from,effective_to,status,applies_to_charges&order=name.asc`)).json());
+const taxAuditIds = async (property = PROPERTY_A) => (await (await api(SERVICE_JWT, `/audit_logs?property_id=eq.${property}&action=in.(tax_rule.created,tax_rule.updated,tax_rule.deleted)&select=id&limit=5000`)).json()).map((r) => r.id);
+const getPage = async (path, cookie) => { const r = await staff(path, cookie); const html = await r.text(); return { status: r.status, html, text: pageText(html) }; };
+const send = (path, cookie, block, fields) => staff(path, cookie, { method: "POST", body: formData(block, fields) });
+
+// -- 12.1 what the tax screen shows for each state, and what the edit forms start with
+let t = await getPage("/app/settings/tax", OWNER_COOKIE);
+check("a switched-off rule is labelled, and the page explains that its extras mark does nothing while it is off",
+  sees(t.text, "E2E VAT 10% Switched off", "Switched on for extras, but it does not tax anything while it is switched off.", "Extras are not taxed.", "No percentage rule in force is switched on for extras."), t.text.slice(0, 500));
+check("a rule that starts later is labelled, dated from its first day, and a fixed rule reads as naira a night",
+  sees(t.text, "E2E Levy", "1,000.00 a night", "Starts later", `From ${fmtDate("2090-01-01")}`, "Added to each night of a stay. Cannot be applied to extras."), t.text.slice(0, 500));
+const vatEdit = ruleBlock(t.html, vatId, 'name="status"'), levyEdit = ruleBlock(t.html, levyId, 'name="status"');
+const vatFields = vatEdit ? fieldsOf(vatEdit) : new Map(), levyFields = levyEdit ? fieldsOf(levyEdit) : new Map();
+check("the edit form starts with the stored values: name, rate as typed, dates, order, status",
+  vatFields.get("name") === "E2E VAT" && vatFields.get("rate") === "10" && vatFields.get("effectiveFrom") === "2090-01-01" && vatFields.get("effectiveTo") === "" && vatFields.get("status") === "inactive"
+  && vatFields.get("sequence") === String((await taxRows("E2E VAT"))[0].sequence) && !vatFields.has("compounds"), JSON.stringify([...vatFields]));
+check("a fixed rule's edit form shows naira (not kobo) and has no 'on top of' box", levyFields.get("rate") === "1000.00" && !levyFields.has("compounds"), JSON.stringify([...levyFields]));
+check("no edit form offers to change the kind of tax", !vatFields.has("basis") && !levyFields.has("basis"));
+
+// -- 12.2 saving without changing anything succeeds and writes nothing
+let auditBefore = (await taxAuditIds()).length;
+res = await send("/app/settings/tax", OWNER_COOKIE, vatEdit, Object.fromEntries(vatFields));
+check("saving the form exactly as it was is accepted", res.status === 303 && outcome(res).get("ok") === "tax_rule_updated", `${res.status} ${res.headers.get("location")}`);
+check("and writes no audit row", (await taxAuditIds()).length === auditBefore);
+
+// -- 12.3 compounding, and where a new rule goes in the order
+const rulesBeforeAdd = await everyRule();
+const addBlockNow = formWith((await getPage("/app/settings/tax", OWNER_COOKIE)).html, 'name="propertyId"');
+const baseNew = { propertyId: PROPERTY_A, basis: "percent", rate: "2.5", sequence: "", effectiveFrom: "2090-02-01", effectiveTo: "", compounds: "on" };
+res = await send("/app/settings/tax", OWNER_COOKIE, addBlockNow, { ...baseNew, name: "E2E Compound" });
+check("a percentage rule applied on top of earlier rules is added", outcome(res).get("ok") === "tax_rule_created", res.headers.get("location") ?? "");
+const compound = (await taxRows("E2E Compound"))[0];
+check("it is stored as compounding and goes after every existing rule", compound?.compounds === true && Number(compound.rate_value) === 2.5 && compound.sequence === Math.max(...rulesBeforeAdd.map((r) => r.sequence)) + 1, JSON.stringify(compound));
+res = await send("/app/settings/tax", OWNER_COOKIE, addBlockNow, { ...baseNew, name: "E2E Last", compounds: null, effectiveFrom: "2090-03-01", effectiveTo: "2090-12-31", sequence: "999" });
+check("a rule with an end date and an explicit order is added", outcome(res).get("ok") === "tax_rule_created", res.headers.get("location") ?? "");
+const last = (await taxRows("E2E Last"))[0];
+check("order 999 and the end date are stored", last?.sequence === 999 && last.effective_to === "2090-12-31" && last.compounds === false, JSON.stringify(last));
+t = await getPage("/app/settings/tax", OWNER_COOKIE);
+check("the page says when a rule is stacked on earlier ones, and shows a rule's date range",
+  sees(t.text, `From ${fmtDate("2090-02-01")}, applied on top of the rules before it`, `${fmtDate("2090-03-01")} to ${fmtDate("2090-12-31")}`), t.text.slice(0, 600));
+const at = ["E2E VAT", "E2E Levy", "E2E Compound", "E2E Last"].map((n) => t.text.indexOf(`${n} `));
+check("rules are listed in the order they are applied", at.every((i, n) => i >= 0 && (n === 0 || i > at[n - 1])), JSON.stringify(at));
+check("its edit form has the 'on top of' box ticked", fieldsOf(ruleBlock(t.html, compound.id, 'name="status"')).get("compounds") === "on");
+
+// -- 12.4 refusals change nothing
+const rulesSnapshot = JSON.stringify(await everyRule());
+auditBefore = (await taxAuditIds()).length;
+const freshAdd = formWith(t.html, 'name="propertyId"'), freshEdit = ruleBlock(t.html, vatId, 'name="status"'), freshToggle = formWith(t.html, 'name="apply"');
+const refused = [
+  ["an order number of 0", () => send("/app/settings/tax", OWNER_COOKIE, freshAdd, { ...baseNew, name: "Zero order", sequence: "0" }), "tax_invalid"],
+  ["a name of 61 characters", () => send("/app/settings/tax", OWNER_COOKIE, freshAdd, { ...baseNew, name: "x".repeat(61) }), "tax_invalid"],
+  ["a date that is not a real day", () => send("/app/settings/tax", OWNER_COOKIE, freshAdd, { ...baseNew, name: "Bad day", effectiveFrom: "2090-02-30" }), "tax_invalid"],
+  ["an edit with the order left blank", () => send("/app/settings/tax", OWNER_COOKIE, freshEdit, { ...Object.fromEntries(fieldsOf(freshEdit)), sequence: "" }), "tax_invalid"],
+  ["an edit that would double-tax (same name as a switched-on rule over the same days)", () => send("/app/settings/tax", OWNER_COOKIE, ruleBlock(t.html, levyId, 'name="status"'), { ...Object.fromEntries(fieldsOf(ruleBlock(t.html, levyId, 'name="status"'))), name: "e2e compound" }), "tax_duplicate"],
+  ["an edit of a rule that does not exist", () => send("/app/settings/tax", OWNER_COOKIE, freshEdit, { ...Object.fromEntries(fieldsOf(freshEdit)), ruleId: "00000000-0000-0000-0000-00000000dead" }), "tax_not_found"],
+  ["an edit with a rule id that is not an id", () => send("/app/settings/tax", OWNER_COOKIE, freshEdit, { ...Object.fromEntries(fieldsOf(freshEdit)), ruleId: "nope" }), "bad_request"],
+  ["an add with a property id that is not an id", () => send("/app/settings/tax", OWNER_COOKIE, freshAdd, { ...baseNew, name: "No property", propertyId: "nope" }), "bad_request"],
+];
+for (const [label, run, want] of refused) {
+  const r = await run();
+  check(`${label} is refused (${want})`, r.status === 303 && outcome(r).get("err") === want && outcome(r).get("ok") === null, `${r.status} ${r.headers.get("location")}`);
+}
+check("none of those refusals changed a rule or wrote an audit row", JSON.stringify(await everyRule()) === rulesSnapshot && (await taxAuditIds()).length === auditBefore);
+for (const [code, kind, words_] of [
+  ["tax_rule_created", "status", ["Tax rule added.", "does not tax extras until you switch that on"]],
+  ["tax_rule_updated", "status", ["Tax rule saved.", "keep the tax they were made with"]],
+  ["tax_extras_off", "status", ["no longer taxed with this rule"]],
+]) {
+  const n = await getPage(`/app/settings/tax?ok=${code}`, OWNER_COOKIE);
+  check(`the '${code}' notice is a status message in plain words`, n.html.includes('role="status"') && sees(n.text, ...words_), n.text.slice(0, 300));
+}
+for (const [code, words_] of [["tax_forbidden", ["You do not have permission to change the hotel's tax rules."]], ["tax_not_percent", ["Only a percentage tax can be applied to extras."]], ["tax_not_found", ["could not be found, or you may not change it"]], ["tax_duplicate", ["would be taxed twice", "end it the day before this one starts"]]]) {
+  const n = await getPage(`/app/settings/tax?err=${code}`, OWNER_COOKIE);
+  check(`the '${code}' notice is an alert in plain words`, n.html.includes('role="alert"') && sees(n.text, ...words_), n.text.slice(0, 300));
+}
+
+// -- 12.5 a second hotel group sees and changes none of the first's setup
+const forgedAdd = formWith((await getPage("/app/settings/tax", OWNER_COOKIE)).html, 'name="propertyId"');
+const rulesOfA = JSON.stringify(await everyRule()), auditOfA = (await taxAuditIds()).length;
+let b = await getPage("/app/settings/tax", OWNER_B_COOKIE);
+check("hotel B's owner opens the tax screen and sees none of hotel A's rules", b.status === 200 && sees(b.text, "This hotel has no tax rules") && doesNotSee(b.text, "E2E VAT", "E2E Levy", "E2E Compound", "E2E Last"), b.text.slice(0, 300));
+const addB = formWith(b.html, 'name="propertyId"');
+check("their add form is for their own property", Boolean(addB) && fieldsOf(addB).get("propertyId") === PROPERTY_B, JSON.stringify([...(addB ? fieldsOf(addB) : [])]));
+res = await send("/app/settings/tax", OWNER_B_COOKIE, forgedAdd, { ...baseNew, name: "Cross hotel", propertyId: PROPERTY_A });
+check("naming hotel A's property in a hand-made add is refused", outcome(res).get("err") === "tax_forbidden", res.headers.get("location") ?? "");
+res = await send("/app/settings/tax", OWNER_B_COOKIE, freshToggle, { ruleId: vatId, apply: "on" });
+check("hotel B's owner cannot switch hotel A's rule", outcome(res).get("err") === "tax_not_found", res.headers.get("location") ?? "");
+res = await send("/app/settings/tax", OWNER_B_COOKIE, freshEdit, { ...Object.fromEntries(fieldsOf(freshEdit)), rate: "1" });
+check("hotel B's owner cannot edit hotel A's rule", outcome(res).get("err") === "tax_not_found", res.headers.get("location") ?? "");
+check("hotel A's rules and audit trail are exactly as they were", JSON.stringify(await everyRule()) === rulesOfA && (await taxAuditIds()).length === auditOfA);
+check("hotel B's owner reads none of hotel A's rules over the API either", JSON.stringify(await (await api(OWNER_B_JWT, `/tax_rules?property_id=eq.${PROPERTY_A}&select=id`)).json()) === "[]");
+res = await send("/app/settings/tax", OWNER_B_COOKIE, addB, { ...baseNew, name: "E2E VAT", rate: "2", compounds: null, propertyId: PROPERTY_B });
+check("hotel B can add a rule with the same name, since names only clash within a hotel", outcome(res).get("ok") === "tax_rule_created", res.headers.get("location") ?? "");
+b = await getPage("/app/settings/tax", OWNER_B_COOKIE);
+check("it shows on their screen at their own rate", sees(b.text, "E2E VAT 2% In force") || sees(b.text, "E2E VAT 2% Starts later"), b.text.slice(0, 300));
+check("hotel A's rule of that name keeps its own rate", Number((await taxRows("E2E VAT")).find((r) => r.id === vatId).rate_value) === 10);
+let hb = await getPage("/app/settings/history?what=tax", OWNER_B_COOKIE);
+check("hotel B's history shows their one change, under their own sign-in, and none of hotel A's",
+  historyRows(hb.html).length === 1 && sees(hb.text, `Added the tax rule ${quoted("E2E VAT")}`, "bola.owner@hotel-b.test") && doesNotSee(hb.text, "E2E Levy", "E2E Compound", "Ada Owner"), hb.text.slice(0, 400));
+hb = await getPage("/app/settings/history", OWNER_B_COOKIE);
+check("hotel B's full history holds only their own setup", sees(hb.text, `Added the room type ${quoted("Standard")}`) && doesNotSee(hb.text, "Solo Suite", "Added room 201", "E2E Levy", "E2E Compound", "ada.owner@hotel-a.test", "accounts@hotel-a.test"), hb.text.slice(0, 400));
+hb = await getPage("/app/settings/history?what=staff", OWNER_B_COOKIE);
+check("hotel A's suspend and reinstate (migration 030) are not shown to hotel B", sees(hb.text, "Nothing has been recorded for this selection yet.") && historyRows(hb.html).length === 0 && doesNotSee(hb.text, "access from"), hb.text.slice(0, 300));
+let ha = await getPage("/app/settings/history?what=tax", OWNER_COOKIE);
+check("and hotel B's change is not in hotel A's history", doesNotSee(ha.text, "bola.owner@hotel-b.test"));
+const bAudit = await (await api(OWNER_B_JWT, "/audit_logs?select=property_id")).json();
+check("over the API hotel B's owner reads audit rows of their own property only", Array.isArray(bAudit) && bAudit.length > 0 && bAudit.every((r) => r.property_id === PROPERTY_B), JSON.stringify(bAudit.slice(0, 3)));
+const accountantApi = { rules: await (await api(ACCOUNTANT_JWT, `/tax_rules?property_id=eq.${PROPERTY_A}&select=id`)).json(), audit: await (await api(ACCOUNTANT_JWT, "/audit_logs?select=id")).json() };
+check("an accountant reads the rules over the API but not a single audit row", accountantApi.rules.length >= 4 && JSON.stringify(accountantApi.audit) === "[]", JSON.stringify([accountantApi.rules.length, accountantApi.audit.length]));
+
+// -- 12.6 how the history words what happened
+ha = await getPage("/app/settings/history?what=tax", OWNER_COOKIE);
+let rowsA = historyRows(ha.html);
+const rowOf = (needle) => rowsA.find((x) => x.includes(words(needle))) ?? "";
+const compoundRow = rowOf(`Added the tax rule ${quoted("E2E Compound")}`);
+check("a created rule lists what it started with, in plain words",
+  sees(compoundRow, "Kind of tax: A percentage of the night's price", "Rate: 2.5%", "Applied on top of earlier rules: Yes", `First day: ${fmtDate("2090-02-01")}`, "Status: Active", "Taxes extras: No") && !compoundRow.includes("Last day"), compoundRow);
+check("a rule's end date appears on its created row", sees(rowOf(`Added the tax rule ${quoted("E2E Last")}`), `Last day: ${fmtDate("2090-12-31")}`, "Order: 999"));
+check("a fixed rule reads as naira a night", sees(rowOf(`Added the tax rule ${quoted("E2E Levy")}`), "Kind of tax: A fixed amount each night", "1,000.00 a night"));
+check("one edit that changed a rate and a status is one row with both lines", rowsA.some((x) => x.startsWith(`Changed the tax rule ${quoted("E2E VAT")}`) && sees(x, "Rate: 7.5% → 10%", "Status: Active → Switched off")));
+check("an edit that changed only the extras mark shows only that line", rowsA.some((x) => x.startsWith(`Changed the tax rule ${quoted("E2E VAT")}`) && sees(x, "Taxes extras: No → Yes") && doesNotSee(x, "Rate:", "Status:")));
+check("newest first: the rule added last is above the one added first", ha.text.indexOf(`Added the tax rule ${quoted("E2E Last")}`) < ha.text.indexOf(`Added the tax rule ${quoted("E2E VAT")}`));
+check("every row names a person from hotel A (no 'A staff member' fallbacks, no 'The system')", rowsA.length > 0 && rowsA.every((x) => x.includes("Ada Owner")) && doesNotSee(ha.text, "A staff member", "The system"));
+
+// -- 12.7 paging: 52 more rules over the API as the owner, each one written to the audit trail by the trigger
+res = await api(OWNER_JWT, "/tax_rules", { method: "POST", headers: { prefer: "return=minimal" }, body: JSON.stringify(Array.from({ length: 52 }, (_, i) => ({
+  tenant_id: TENANT_A, property_id: PROPERTY_A, name: `E2E Page ${String(i + 1).padStart(2, "0")}`, basis: "fixed_per_night", rate_value: 100000, sequence: 100 + i, effective_from: "2090-01-01" }))) });
+check("fifty-two more rules are added", res.status === 201, `${res.status} ${await res.text()}`);
+const totalRows = (await taxAuditIds()).length, PER_PAGE = 50, pages = Math.ceil(totalRows / PER_PAGE);
+check("each wrote an audit row, so the history needs more than one page", totalRows >= 52 + 6 && pages >= 2, `${totalRows} rows`);
+const seen = [];
+for (let n = 1; n <= pages; n++) {
+  const pg = await getPage(`/app/settings/history?property=${PROPERTY_A}&what=tax${n > 1 ? `&page=${n}` : ""}`, OWNER_COOKIE);
+  const here = historyRows(pg.html), lastPage = n === pages, want = lastPage ? totalRows - PER_PAGE * (pages - 1) : PER_PAGE;
+  seen.push(...here);
+  check(`page ${n} of ${pages} shows ${want} rows`, pg.status === 200 && here.length === want, `${here.length}`);
+  check(`page ${n} links ${n > 1 ? "to newer" : "to no newer"} entries and ${lastPage ? "to no older" : "to older"} ones, and says which page it is`,
+    pg.html.includes('rel="prev"') === (n > 1) && pg.html.includes('rel="next"') === !lastPage && sees(pg.text, `Page ${n}`), `${pg.html.includes('rel="prev"')} ${pg.html.includes('rel="next"')}`);
+  if (!lastPage) check(`the 'Older' link on page ${n} keeps the property and the filter`, pg.html.includes(`href="/app/settings/history?property=${PROPERTY_A}&amp;what=tax&amp;page=${n + 1}"`), (/href="[^"]*page=[^"]*"/.exec(pg.html) ?? [""])[0]);
+}
+check("across the pages nothing is shown twice and nothing is skipped", seen.length === totalRows && new Set(seen).size === totalRows, `${seen.length} shown, ${new Set(seen).size} distinct, ${totalRows} written`);
+check("the newest rows come first and the oldest row of all is last", seen[0].includes("E2E Page") && seen[seen.length - 1].startsWith(`Added the tax rule ${quoted("E2E VAT")}`), `${seen[0]} | ${seen[seen.length - 1]}`);
+const beyond = await getPage(`/app/settings/history?what=tax&page=${pages + 1}`, OWNER_COOKIE);
+check("a page beyond the end says there is nothing further back and offers the way back", sees(beyond.text, "There is nothing further back.") && beyond.html.includes('rel="prev"') && !beyond.html.includes('rel="next"'));
+check("hotel B's history is still just their one row after all that", historyRows((await getPage("/app/settings/history?what=tax", OWNER_B_COOKIE)).html).length === 1);
+
+// -- 12.8 the audit trail cannot be changed, not even by the owner
+const [target] = await (await api(SERVICE_JWT, `/audit_logs?property_id=eq.${PROPERTY_A}&action=eq.tax_rule.created&select=id,action,metadata&limit=1`)).json();
+const countBefore = (await taxAuditIds()).length;
+const del = await api(OWNER_JWT, `/audit_logs?id=eq.${target.id}`, { method: "DELETE" });
+const patch = await api(OWNER_JWT, `/audit_logs?id=eq.${target.id}`, { method: "PATCH", body: JSON.stringify({ action: "tax_rule.deleted", metadata: {} }) });
+const [auditAfter] = await (await api(SERVICE_JWT, `/audit_logs?id=eq.${target.id}&select=id,action,metadata`)).json();
+check("the owner cannot delete or rewrite an audit row over the API", !del.ok && !patch.ok && auditAfter?.action === "tax_rule.created" && JSON.stringify(auditAfter.metadata) === JSON.stringify(target.metadata) && (await taxAuditIds()).length === countBefore, `${del.status} ${patch.status} ${JSON.stringify(auditAfter)}`);
+
 console.log(failures === 0 ? `E2E PASSED (${reference})` : `E2E FAILED: ${failures} check(s)`);
 process.exit(failures === 0 ? 0 : 1);
