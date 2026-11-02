@@ -137,6 +137,10 @@ MV="$(psql -f "$HERE/28_audit_membership_visibility.sql" 2>&1)" || { echo "$MV";
 echo "$MV" | grep -E 'PASS' || true
 if echo "$MV" | grep -qE 'FAIL|ERROR'; then echo "$MV"; echo "AUDIT MEMBERSHIP VISIBILITY TESTS FAILED"; exit 1; fi
 
+GP="$(psql -f "$HERE/30_guest_policy.sql" 2>&1)" || { echo "$GP"; echo "GUEST POLICY TESTS FAILED"; exit 1; }
+echo "$GP" | grep -E 'PASS' || true
+if echo "$GP" | grep -qE 'FAIL|ERROR'; then echo "$GP"; echo "GUEST POLICY TESTS FAILED"; exit 1; fi
+
 echo "--- concurrency: last room race (1 room, 50 clients)"
 cat > "$DATA/race_one.sql" <<'SQL'
 select test_try_claim('last_room', '00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', '2027-10-01', '2027-10-03');

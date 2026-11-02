@@ -77,6 +77,13 @@ export function searchAvailability(host: string, stay: StayParams) {
   });
 }
 
+export type GuestPolicy = { currency: string; cancellation_rules: unknown; online_payment: unknown; checkin_payment: unknown };
+
+/** The cancellation and payment policy in force for the hotel behind this host (migration 032). */
+export function guestPolicy(host: string) {
+  return call<GuestPolicy>("guest_policy", { p_host: host });
+}
+
 export function createHold(args: {
   host: string; stay: StayParams; roomTypeId: string; quantity: number;
   guest: { full_name: string; email: string; phone?: string }; idempotencyKey: string;

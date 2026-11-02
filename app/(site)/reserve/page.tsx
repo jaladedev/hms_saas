@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import { formatDate, formatMoney, formatTime } from "@/lib/guest-site/format";
 import { messageForCode } from "@/lib/guest-site/errors";
 import { parseStayParams, stayQuery, uuidSchema } from "@/lib/guest-site/params";
-import { requestHost, searchAvailability } from "@/lib/guest-site/server";
+import { guestPolicy, requestHost, searchAvailability } from "@/lib/guest-site/server";
+import { guestSummary, readConfig } from "@/lib/staff/policies";
 import { reserveAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +16,8 @@ export default async function Reserve({ searchParams }: Props) {
   const type = typeof raw.type === "string" && uuidSchema.safeParse(raw.type).success ? raw.type : null;
   if (!stay || !type) redirect("/");
 
-  const result = await searchAvailability(await requestHost(), stay);
+  const host = await requestHost();
+  const [result, policy] = await Promise.all([searchAvailability(host, stay), guestPolicy(host)]);
   if (!result.ok) redirect(`/?${stayQuery(stay)}`);
   const quote = result.data.room_types.find((t) => t.room_type_id === type);
   if (!quote) redirect(`/?${stayQuery(stay)}&error=unavailable`);
@@ -39,6 +41,17 @@ export default async function Reserve({ searchParams }: Props) {
           <dt className="text-muted">Guests per room</dt><dd>{stay.adults} {stay.adults === 1 ? "adult" : "adults"}{stay.children ? `, ${stay.children} ${stay.children === 1 ? "child" : "children"}` : ""}</dd>
           <dt className="text-muted">Price per room</dt><dd>{formatMoney(quote.total_minor, result.data.currency)} for {result.data.nights} {result.data.nights === 1 ? "night" : "nights"}, taxes included</dd>
         </dl>
+      </section>
+
+      <section aria-labelledby="policy-heading" className="mt-6 rounded border border-line bg-white p-4">
+        <h2 id="policy-heading" className="font-display text-xl">Payment and cancellation</h2>
+        {policy.ok ? (
+          <ul className="mt-2 space-y-1 text-sm">
+            {guestSummary(readConfig(policy.data), (m) => formatMoney(m, result.data.currency)).map((line) => <li key={line}>{line}</li>)}
+          </ul>
+        ) : (
+          <p className="mt-2 text-sm text-critical">The payment and cancellation terms could not be loaded. Reload this page before you hold a room.</p>
+        )}
       </section>
 
       <form action={reserveAction} className="mt-6 space-y-4 rounded border border-line bg-white p-4">
