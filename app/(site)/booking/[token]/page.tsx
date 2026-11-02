@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { HoldCountdown } from "@/components/site/hold-countdown";
 import { verifyBookingToken } from "@/lib/booking-token";
 import { serverEnv } from "@/lib/env";
 import { formatDate, formatMoney, formatTime } from "@/lib/guest-site/format";
 import { messageForCode } from "@/lib/guest-site/errors";
+import { secondsRemaining } from "@/lib/guest-site/hold";
 import { bookingStatus } from "@/lib/guest-site/server";
 import { payAction } from "./actions";
 
@@ -15,11 +17,6 @@ type Props = {
   params: Promise<{ token: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
-
-function holdMinutesLeft(iso: string | null): number {
-  if (!iso) return 0;
-  return Math.max(0, Math.ceil((Date.parse(iso) - Date.now()) / 60000));
-}
 
 export default async function BookingPage({ params, searchParams }: Props) {
   const { token } = await params;
@@ -81,10 +78,7 @@ export default async function BookingPage({ params, searchParams }: Props) {
 
       {holdLive && !awaitingConfirmation ? (
         <section className="mt-6 rounded border border-line bg-white p-4">
-          <p className="text-sm text-muted">
-            Your room is held for about {holdMinutesLeft(b.hold_expires_at)} more {holdMinutesLeft(b.hold_expires_at) === 1 ? "minute" : "minutes"}.
-            Keep this page&apos;s link: it is how you come back to your booking.
-          </p>
+          <HoldCountdown initialSeconds={secondsRemaining(b.hold_expires_at, Date.now())} />
           <form action={payAction} className="mt-4">
             <input type="hidden" name="token" value={token} />
             <input type="hidden" name="key" value={key} />

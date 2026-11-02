@@ -61,7 +61,7 @@ Supabase's `auth` schema, then runs:
 - `08_provider_payments.sql`: attempts, `confirm_payment` (success, mismatch, failure, late, expired, room lost, after cancel), sweep, access limits; plus a duplicate-webhook race (20 deliveries, one payment)
 - `07_money.sql`: invoice issue, numbering and immutability, manual payments, allocation, overpayment, void, permissions; plus a payment race (20 clients, exactly 5 fit)
 - `06_holds.sql`: host resolution, `create_hold` called the way PostgREST calls it (session `authenticator`, role from the JWT), access limits, validation, idempotency, guest reuse, hold caps, expiry
-- pgbench races: last room (1 of 50 wins), 5 rooms (5 of 100), the same through `create_reservation`, two-room bookings (2 of 40), and the last two through `create_hold`
+- pgbench races: last room (1 of 50 wins), 5 rooms (5 of 100), the same through `create_reservation`, two-room bookings (2 of 40), the last two through `create_hold`, and a block against website holds and staff bookings for the one room of the solo type (10 rounds of 24 clients: exactly one gets it)
 
 ## Migrations so far
 
