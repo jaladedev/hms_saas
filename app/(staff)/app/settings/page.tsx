@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { buildChecklist, countsFor, progressOf } from "@/lib/staff/setup-checklist";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -11,11 +13,55 @@ const SECTIONS = [
   { href: "/app/settings/history", title: "Setup history", text: "Who changed the room types, rooms, rates, tax rules and staff access, and what they changed. For the owner and general manager." },
 ];
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  const supabase = await createClient();
+  // Each read is on its own and may come back empty (row-level security decides what this person sees). A failed read
+  // hides the checklist rather than telling someone their hotel has nothing set up.
+  const [propQ, typeQ, roomQ, planQ, taxQ, polQ] = await Promise.all([
+    supabase.from("properties").select("id, name").order("name"),
+    supabase.from("room_types").select("property_id, status").limit(1000),
+    supabase.from("rooms").select("property_id, operational_status").limit(5000),
+    supabase.from("rate_plans").select("property_id, is_default, status").limit(1000),
+    supabase.from("tax_rules").select("property_id").limit(1000),
+    supabase.from("property_policies").select("property_id").limit(1000),
+  ]);
+  const loaded = ![propQ, typeQ, roomQ, planQ, taxQ, polQ].some((q) => q.error);
+  const properties = (propQ.data ?? []) as { id: string; name: string }[];
+  const setup = loaded ? properties.map((p) => {
+    const steps = buildChecklist(countsFor(p.id, {
+      roomTypes: (typeQ.data ?? []) as { property_id: string; status: string }[],
+      rooms: (roomQ.data ?? []) as { property_id: string; operational_status: string }[],
+      ratePlans: (planQ.data ?? []) as { property_id: string; is_default: boolean; status: string }[],
+      taxRules: (taxQ.data ?? []) as { property_id: string }[],
+      policies: (polQ.data ?? []) as { property_id: string }[],
+    }));
+    return { property: p, steps, progress: progressOf(steps) };
+  }).filter((x) => !x.progress.complete) : [];
+
   return (
     <main className="max-w-3xl">
       <h1 className="font-display text-3xl">Settings</h1>
       <p className="mt-2 max-w-prose text-muted">Set up the hotel. A new hotel needs room types, rooms and a standard rate plan before it can take a booking.</p>
+      {setup.map(({ property, steps, progress }) => (
+        <section key={property.id} aria-label={`Setup for ${property.name}`} className="mt-6 border-l-4 border-primary/40 bg-white px-4 py-4">
+          <h2 className="font-display text-xl">{properties.length > 1 ? `Set up ${property.name}` : "Set up your hotel"}</h2>
+          <p className="mt-1 text-sm text-muted">
+            {progress.done} of {progress.total} steps done. {progress.ready ? "Guests can book now; the steps left are recommended." : "Finish the first three before guests can book."}
+          </p>
+          <ol className="mt-3 space-y-2 text-sm">
+            {steps.map((st) => (
+              <li key={st.key} className="flex flex-wrap items-baseline gap-x-3">
+                <span aria-hidden="true" className={st.done ? "text-primary-strong" : "text-muted"}>{st.done ? "Done" : st.required ? "To do" : "Suggested"}</span>
+                {st.done
+                  ? <span className="text-muted"><span className="sr-only">Done: </span>{st.title}</span>
+                  : <Link href={st.href} className="font-medium text-primary-strong focus-visible:outline-2 focus-visible:outline-primary">{st.title}</Link>}
+                {!st.done && <span className="text-muted">{st.text}</span>}
+              </li>
+            ))}
+          </ol>
+        </section>
+      ))}
+
       <ul className="mt-6 divide-y divide-line border-y border-line">
         {SECTIONS.map((s) => (
           <li key={s.href}>
