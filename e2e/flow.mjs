@@ -598,5 +598,87 @@ const patch = await api(OWNER_JWT, `/audit_logs?id=eq.${target.id}`, { method: "
 const [auditAfter] = await (await api(SERVICE_JWT, `/audit_logs?id=eq.${target.id}&select=id,action,metadata`)).json();
 check("the owner cannot delete or rewrite an audit row over the API", !del.ok && !patch.ok && auditAfter?.action === "tax_rule.created" && JSON.stringify(auditAfter.metadata) === JSON.stringify(target.metadata) && (await taxAuditIds()).length === countBefore, `${del.status} ${patch.status} ${JSON.stringify(auditAfter)}`);
 
+// 13. Cancellation and payment policies: the staff screen, the audit rows, and the text on the reserve page.
+// Versions start in 2090, so no booking made in this run is affected. Policies are never edited, so each save is a new version.
+res = await staff("/app/settings/policies", null);
+check("the policies page sends a signed-out visitor to sign in", res.status === 307 && (res.headers.get("location") ?? "").includes("/login"), `status ${res.status} ${res.headers.get("location")}`);
+
+res = await staff("/app/settings/policies", OWNER_COOKIE);
+let polHtml = await res.text();
+check("the owner sees the policies page with the publish form", res.status === 200 && polHtml.includes("Cancellation and payment policies") && polHtml.includes("Publish version 1"), `status ${res.status}`);
+const polBlock = formWith(polHtml, 'name="effectiveFrom"');
+check("the publish form carries a server action and the property", Boolean(polBlock) && /\$ACTION_ID_/.test(polBlock) && polBlock.includes(PROPERTY_A), polBlock?.slice(0, 200));
+
+const polRows = async () => (await (await api(SERVICE_JWT, `/property_policies?property_id=eq.${PROPERTY_A}&select=version,effective_from,config,created_by&order=version`)).json());
+const policyFields = { propertyId: PROPERTY_A, effectiveFrom: "2090-01-01", onlineMode: "deposit_percent", depositPercent: "30", checkinPayment: "full",
+  rule_hours_0: "168", rule_type_0: "nights", rule_value_0: "1", rule_hours_1: "48", rule_type_1: "percent", rule_value_1: "50", rule_hours_2: "0", rule_type_2: "percent", rule_value_2: "100" };
+const publishPolicy = (fields, cookie = OWNER_COOKIE) => staff("/app/settings/policies", cookie, { method: "POST", body: formData(polBlock, { ...policyFields, ...fields }) });
+const polBefore = (await polRows()).length;
+
+res = await publishPolicy({});
+check("publishing redirects with the success code", res.status === 303 && outcome(res).get("ok") === "policy_published", `status ${res.status} ${res.headers.get("location")}`);
+let polAll = await polRows();
+const polV1 = polAll[polBefore];
+check("the version is stored: its date, the deposit, three rules, the check-in rule and who published it",
+  polAll.length === polBefore + 1 && polV1.effective_from === "2090-01-01" && polV1.config.online_payment?.mode === "deposit_percent" && Number(polV1.config.online_payment?.value) === 30
+  && polV1.config.cancellation_rules?.length === 3 && polV1.config.cancellation_rules[0].within_hours === 168 && polV1.config.cancellation_rules[0].charge.type === "nights"
+  && polV1.config.checkin_payment === "full" && polV1.created_by === OWNER_ID, JSON.stringify(polV1));
+
+const polRefused = [
+  ["a repeated window", { rule_hours_3: "48", rule_type_3: "fixed", rule_value_3: "5000" }, "policy_rules"],
+  ["a percentage above 100", { rule_value_1: "150" }, "policy_rules"],
+  ["a deposit of zero", { depositPercent: "0" }, "policy_deposit"],
+  ["a date that is not real", { effectiveFrom: "2090-02-30" }, "policy_date"],
+  ["a start date in the past", { effectiveFrom: "2000-01-01" }, "policy_past"],
+  ["a start date that is not after the newest version", { effectiveFrom: "2090-01-01" }, "policy_order"],
+];
+for (const [name, fields, code] of polRefused) {
+  res = await publishPolicy({ effectiveFrom: "2090-03-01", ...fields });
+  check(`${name} is refused`, res.status === 303 && outcome(res).get("err") === code, `status ${res.status} ${res.headers.get("location")}`);
+}
+check("none of the refused versions was stored", (await polRows()).length === polBefore + 1);
+
+res = await publishPolicy({ effectiveFrom: "2090-03-01" }, ACCOUNTANT_COOKIE);
+check("a login without property.configure cannot publish: the database refuses it", res.status === 303 && outcome(res).get("err") === "policy_forbidden", `status ${res.status} ${res.headers.get("location")}`);
+check("and nothing was stored", (await polRows()).length === polBefore + 1);
+
+res = await staff("/app/settings/policies", OWNER_COOKIE);
+polHtml = await res.text();
+const polText = pageText(polHtml);
+check("the page lists the scheduled version and the sentences guests will read",
+  sees(polText, `Version ${polV1.version} is scheduled`, "Pay a 30% deposit online to confirm your booking.", "The booking must be fully paid before check-in.", "Within 2 days of check-in, you pay 50% of the total."), polText.slice(0, 400));
+
+// A second version: no rules and full payment. Nothing is edited; the first one stays on record.
+res = await publishPolicy({ effectiveFrom: "2090-06-01", onlineMode: "full", checkinPayment: "none", rule_hours_0: "", rule_type_0: "percent", rule_value_0: "", rule_hours_1: "", rule_value_1: "", rule_hours_2: "", rule_value_2: "" });
+check("a later version can be published", res.status === 303 && outcome(res).get("ok") === "policy_published", `status ${res.status} ${res.headers.get("location")}`);
+polAll = await polRows();
+const polV2 = polAll[polBefore + 1];
+check("it is the next version with no rules, and the first is unchanged",
+  polAll.length === polBefore + 2 && polV2.version === polV1.version + 1 && polV2.config.cancellation_rules?.length === 0 && polV2.config.online_payment?.mode === "full"
+  && polAll[polBefore].config.cancellation_rules.length === 3, JSON.stringify(polAll.slice(polBefore)));
+
+const polPatch = await api(OWNER_JWT, `/property_policies?property_id=eq.${PROPERTY_A}&version=eq.${polV1.version}`, { method: "PATCH", body: JSON.stringify({ config: {} }) });
+const delPol = await api(OWNER_JWT, `/property_policies?property_id=eq.${PROPERTY_A}&version=eq.${polV1.version}`, { method: "DELETE" });
+check("the owner cannot rewrite or delete a version over the API", !polPatch.ok && !delPol.ok && (await polRows())[polBefore].config.cancellation_rules.length === 3);
+
+const polAudit = await (await api(SERVICE_JWT, `/audit_logs?action=eq.property_policy.created&select=actor_user_id,property_id,metadata&order=created_at`)).json();
+check("each published version is in the audit log with who made it and its values",
+  polAudit.length >= 2 && polAudit.slice(-2).every((a) => a.actor_user_id === OWNER_ID && a.property_id === PROPERTY_A) && Number(polAudit.at(-2).metadata?.values?.version) === polV1.version, JSON.stringify(polAudit.slice(-2)));
+
+res = await staff("/app/settings/history?what=policies", OWNER_COOKIE);
+const polHistText = pageText(await res.text());
+check("setup history shows the published versions under their own filter", sees(polHistText, `Published policy version ${polV1.version}`, "starting"), polHistText.slice(0, 400));
+
+// The guest side. Versions start in 2090, so the host still gets the defaults today; the function is closed to everyone but the server.
+const guestPol = await api(SERVICE_JWT, "/rpc/guest_policy", { method: "POST", body: JSON.stringify({ p_host: HOST }) });
+const guestPolBody = await guestPol.json();
+check("guest_policy answers the server with only the four keys guests need", guestPol.ok && Object.keys(guestPolBody).sort().join() === "cancellation_rules,checkin_payment,currency,online_payment", JSON.stringify(guestPolBody));
+const guestPolOwner = await api(OWNER_JWT, "/rpc/guest_policy", { method: "POST", body: JSON.stringify({ p_host: HOST }) });
+check("guest_policy is refused to a signed-in person", !guestPolOwner.ok);
+res = await site(reserveHref);
+const polReserveText = pageText(await res.text());
+check("the reserve page shows the payment and cancellation terms in force", res.status === 200 && sees(polReserveText, "Payment and cancellation") && polReserveText.includes("to confirm your booking"), polReserveText.slice(0, 500));
+check("and none of the 2090 versions yet", doesNotSee(polReserveText, "Pay a 30% deposit"));
+
 console.log(failures === 0 ? `E2E PASSED (${reference})` : `E2E FAILED: ${failures} check(s)`);
 process.exit(failures === 0 ? 0 : 1);
