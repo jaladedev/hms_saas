@@ -151,7 +151,8 @@ Not verified:
 ## Suggested next steps
 
 1. Run `npm install` and `npm run db:test` locally to confirm the same results.
-2. Push, confirm CI is green, create a Supabase staging project, apply all thirty migrations there.
-3. Configure the maintenance scheduler and email domain, build the staff UI (refund queue, settlement view, failed-email view, payout button), schedule `expire_lapsed_holds`, build cancellation settlement, and the two
-   missing race tests (transfer, block over stay).
-4. Continue down `TODO.md` in phase order; do not start online booking before Phase 3 and 4 gates pass.
+2. Work through `docs/STAGING.md`: create a Supabase staging project, apply all thirty migrations, check the security
+   setup with the four queries there (expected results are listed, produced on a scratch database), create the first
+   hotel with the SQL there (tested), then deploy, schedule `/api/cron/maintenance`, set up Resend and Paystack TEST,
+   and settle the `sb_secret_` question. It also lists the first real-browser pass over the staff screens.
+3. Continue down `TODO.md` in phase order; do not start online booking before Phase 3 and 4 gates pass.
