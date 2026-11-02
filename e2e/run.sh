@@ -49,6 +49,9 @@ insert into auth.users (id) values ('00000000-0000-0000-0000-00000000aa01'), ('0
 insert into tenant_memberships (id, tenant_id, user_id, status) values
   ('00000000-0000-0000-0000-0000000aaa01', '00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-00000000aa01', 'active'),
   ('00000000-0000-0000-0000-0000000aaa05', '00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-00000000aa05', 'active');
+update auth.users set email = 'ada.owner@hotel-a.test' where id = '00000000-0000-0000-0000-00000000aa01';
+update auth.users set email = 'accounts@hotel-a.test' where id = '00000000-0000-0000-0000-00000000aa05';
+insert into user_profiles (id, full_name) values ('00000000-0000-0000-0000-00000000aa01', 'Ada Owner');
 insert into membership_roles (membership_id, role_id)
   select '00000000-0000-0000-0000-0000000aaa01'::uuid, id from roles where key = 'owner'
   union all select '00000000-0000-0000-0000-0000000aaa05'::uuid, id from roles where key = 'accountant';

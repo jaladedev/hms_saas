@@ -263,5 +263,125 @@ check("service_role JWT signed with another secret is refused", res.status === 4
 res = await rpc("confirm_payment", { p_provider: "paystack", p_event_id: "e", p_event_type: "t", p_reference: attemptRef, p_status: "success", p_amount_minor: 1, p_currency: "NGN", p_channel: "card" }, jwt("authenticated"));
 check("authenticated JWT cannot call confirm_payment", res.status === 401 || res.status === 403, `status ${res.status}`);
 
+// 11. Staff screens over HTTP: tax rules and setup history, signed in with a session cookie.
+// The fake auth server (proxy.mjs) accepts a token signed with the PostgREST secret, so these are the real pages,
+// real server actions, real row-level security and the real audit triggers. Rules start in 2090 so they tax nothing.
+const OWNER_ID = "00000000-0000-0000-0000-00000000aa01", ACCOUNTANT_ID = "00000000-0000-0000-0000-00000000aa05";
+function session(sub, email) {
+  const b = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
+  const head = b({ alg: "HS256", typ: "JWT" }), exp = Math.floor(Date.now() / 1000) + 3600;
+  const body = b({ role: "authenticated", aud: "authenticated", iss: "e2e", sub, email, exp });
+  const access_token = `${head}.${body}.${createHmac("sha256", JWT_SECRET).update(`${head}.${body}`).digest("base64url")}`;
+  const value = { access_token, token_type: "bearer", expires_in: 3600, expires_at: exp, refresh_token: "e2e-refresh", user: { id: sub, aud: "authenticated", role: "authenticated", email } };
+  return `sb-127-auth-token=base64-${Buffer.from(JSON.stringify(value)).toString("base64url")}`;
+}
+const OWNER_COOKIE = session(OWNER_ID, "ada.owner@hotel-a.test"), ACCOUNTANT_COOKIE = session(ACCOUNTANT_ID, "accounts@hotel-a.test");
+const staff = (path, cookie, init = {}) => fetch(`${SITE}${path}`, { redirect: "manual", ...init, headers: { ...(cookie ? { cookie } : {}), ...(init.headers ?? {}) } });
+
+/** The form (hidden inputs, which carry the server action id) whose markup contains `marker`. */
+function formWith(html, marker) {
+  for (const m of html.matchAll(/<form[\s\S]*?<\/form>/g)) if (m[0].includes(marker)) return m[0];
+  return null;
+}
+function formData(block, fields) {
+  const data = new FormData();
+  for (const [k, v] of hiddenInputs(block)) data.append(k, v);
+  for (const [k, v] of Object.entries(fields)) if (v !== null) data.set(k, v);
+  return data;
+}
+const outcome = (res) => new URL(res.headers.get("location") ?? "/", SITE).searchParams;
+const PROPERTY_A = "00000000-0000-0000-0000-0000000000a2";
+const taxRows = async (name) => (await fetch(`${REST}/tax_rules?name=eq.${encodeURIComponent(name)}&select=id,basis,rate_value,sequence,compounds,effective_from,effective_to,status,applies_to_charges`, { headers: { authorization: `Bearer ${jwt("service_role")}` } })).json();
+
+res = await staff("/app/settings/tax", null);
+check("the tax page sends a signed-out visitor to sign in", res.status === 307 && (res.headers.get("location") ?? "").includes("/login"), `status ${res.status} ${res.headers.get("location")}`);
+
+res = await staff("/app/settings/tax", OWNER_COOKIE);
+let taxHtml = await res.text();
+check("the owner sees the tax rules page with the add form", res.status === 200 && taxHtml.includes("Tax rules") && taxHtml.includes("Add a tax rule"), `status ${res.status}`);
+const addBlock = formWith(taxHtml, 'name="propertyId"');
+check("the add form carries a server action and the property", Boolean(addBlock) && /\$ACTION_ID_/.test(addBlock) && addBlock.includes(PROPERTY_A), addBlock?.slice(0, 200));
+
+const newRule = { propertyId: PROPERTY_A, name: "E2E VAT", basis: "percent", rate: "7.5", sequence: "", effectiveFrom: "2090-01-01", effectiveTo: "", compounds: null };
+const addTax = (fields, cookie = OWNER_COOKIE) => staff("/app/settings/tax", cookie, { method: "POST", body: formData(addBlock, { ...newRule, ...fields }) });
+
+res = await addTax({});
+check("adding a percent rule redirects with the success code", res.status === 303 && outcome(res).get("ok") === "tax_rule_created", `status ${res.status} ${res.headers.get("location")}`);
+let rows = await taxRows("E2E VAT");
+check("the rule is stored: 7.5 percent, switched on, extras untaxed, ordered after the others",
+  rows.length === 1 && rows[0].basis === "percent" && Number(rows[0].rate_value) === 7.5 && rows[0].status === "active" && rows[0].applies_to_charges === false && rows[0].effective_from === "2090-01-01" && rows[0].effective_to === null && rows[0].sequence >= 1, JSON.stringify(rows));
+const vatId = rows[0]?.id;
+
+res = await addTax({ name: "e2e vat", effectiveFrom: "2090-06-01" });
+check("a second switched-on rule with the same name over the same dates is refused (double tax)", res.status === 303 && outcome(res).get("err") === "tax_duplicate", `status ${res.status} ${res.headers.get("location")}`);
+res = await addTax({ name: "Bad rate", rate: "abc" });
+check("a rate that is not a number is refused as invalid", outcome(res).get("err") === "tax_invalid", res.headers.get("location") ?? "");
+res = await addTax({ name: "Bad rate", rate: "150" });
+check("a percentage above 100 is refused as invalid", outcome(res).get("err") === "tax_invalid", res.headers.get("location") ?? "");
+res = await addTax({ name: "Backwards", effectiveFrom: "2090-05-01", effectiveTo: "2090-04-01" });
+check("a last day before the first day is refused as invalid", outcome(res).get("err") === "tax_invalid", res.headers.get("location") ?? "");
+check("none of the refused rules was stored", (await taxRows("Bad rate")).length === 0 && (await taxRows("Backwards")).length === 0);
+
+res = await addTax({ name: "E2E Levy", basis: "fixed_per_night", rate: "1,000", compounds: "on" });
+check("a fixed amount rule is added", outcome(res).get("ok") === "tax_rule_created", res.headers.get("location") ?? "");
+rows = await taxRows("E2E Levy");
+check("the fixed amount is stored in kobo and 'on top of' is ignored for it", rows.length === 1 && rows[0].basis === "fixed_per_night" && Number(rows[0].rate_value) === 100000 && rows[0].compounds === false, JSON.stringify(rows));
+const levyId = rows[0]?.id;
+
+res = await addTax({ name: "Owner Only" }, ACCOUNTANT_COOKIE);
+check("a login without property.configure cannot add a rule: the database refuses it", res.status === 303 && outcome(res).get("err") === "tax_forbidden", `status ${res.status} ${res.headers.get("location")}`);
+check("and nothing was stored", (await taxRows("Owner Only")).length === 0);
+
+res = await staff("/app/settings/tax", OWNER_COOKIE);
+taxHtml = await res.text();
+check("the new rules are listed, with the rate in the right unit",
+  taxHtml.includes("E2E VAT") && taxHtml.includes("7.5%") && taxHtml.includes("E2E Levy") && taxHtml.includes("1,000.00 a night") && taxHtml.includes("Starts later"));
+
+// Edit: change the rate and switch the rule off; the extras mark must not move
+const editBlock = [...taxHtml.matchAll(/<form[\s\S]*?<\/form>/g)].map((m) => m[0]).find((b) => b.includes(`name="ruleId" value="${vatId}"`) && b.includes('name="status"'));
+check("the edit form for the rule is on the page", Boolean(editBlock) && /\$ACTION_ID_/.test(editBlock));
+const vatNow = (await taxRows("E2E VAT"))[0];
+const editFields = { ruleId: vatId, name: "E2E VAT", rate: "10", sequence: String(vatNow.sequence), effectiveFrom: "2090-01-01", effectiveTo: "", status: "inactive", compounds: null };
+res = await staff("/app/settings/tax", OWNER_COOKIE, { method: "POST", body: formData(editBlock, editFields) });
+check("saving an edit redirects with the success code", res.status === 303 && outcome(res).get("ok") === "tax_rule_updated", `status ${res.status} ${res.headers.get("location")}`);
+rows = await taxRows("E2E VAT");
+check("the rate changed, the rule is switched off, and the extras mark was not touched", rows.length === 1 && Number(rows[0].rate_value) === 10 && rows[0].status === "inactive" && rows[0].applies_to_charges === false, JSON.stringify(rows));
+res = await staff("/app/settings/tax", OWNER_COOKIE, { method: "POST", body: formData(editBlock, { ...editFields, rate: "0" }) });
+check("an edit to a zero rate is refused", outcome(res).get("err") === "tax_invalid", res.headers.get("location") ?? "");
+res = await staff("/app/settings/tax", ACCOUNTANT_COOKIE, { method: "POST", body: formData(editBlock, { ...editFields, rate: "20" }) });
+check("a login without property.configure cannot edit: zero rows changed is a refusal, not a success", res.status === 303 && ["tax_forbidden", "tax_not_found"].includes(outcome(res).get("err")), `status ${res.status} ${res.headers.get("location")}`);
+check("and the rate is still 10", Number((await taxRows("E2E VAT"))[0].rate_value) === 10);
+
+// The switch for extras: a percent rule can be marked, a fixed rule is refused by the database's own constraint
+res = await staff("/app/settings/tax", OWNER_COOKIE);
+taxHtml = await res.text();
+const toggleBlock = formWith(taxHtml, 'name="apply"');
+check("a percent rule offers the extras switch", Boolean(toggleBlock) && /\$ACTION_ID_/.test(toggleBlock));
+res = await staff("/app/settings/tax", OWNER_COOKIE, { method: "POST", body: formData(toggleBlock, { ruleId: vatId, apply: "on" }) });
+check("the extras switch turns on", outcome(res).get("ok") === "tax_extras_on" && (await taxRows("E2E VAT"))[0].applies_to_charges === true, res.headers.get("location") ?? "");
+res = await staff("/app/settings/tax", OWNER_COOKIE, { method: "POST", body: formData(toggleBlock, { ruleId: levyId, apply: "on" }) });
+check("the extras switch on a fixed rule is refused by the database", outcome(res).get("err") === "tax_not_percent" && (await taxRows("E2E Levy"))[0].applies_to_charges === false, res.headers.get("location") ?? "");
+
+// Setup history: the audit rows those changes wrote, read as the signed-in person
+res = await staff("/app/settings/history", null);
+check("the history page sends a signed-out visitor to sign in", res.status === 307, `status ${res.status}`);
+res = await staff("/app/settings/history", OWNER_COOKIE);
+let histHtml = await res.text();
+check("the owner sees the setup history", res.status === 200 && histHtml.includes("Setup history"), `status ${res.status}`);
+check("it lists the added rule by name, with who did it (audit_actor_names over PostgREST)", histHtml.includes("Added the tax rule") && histHtml.includes("E2E VAT") && histHtml.includes("Ada Owner"), histHtml.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 400));
+check("it shows the edit as old and new values, in the rule's own unit", histHtml.includes("Rate: 7.5% \u2192 10%") && histHtml.includes("Status: Active \u2192 Switched off"), histHtml.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 600));
+check("it shows the fixed amount as naira a night", histHtml.includes("1,000.00 a night"));
+res = await staff("/app/settings/history?what=tax", OWNER_COOKIE);
+histHtml = await res.text();
+check("the tax filter keeps tax rule rows", histHtml.includes("E2E VAT"));
+res = await staff("/app/settings/history?what=rooms", OWNER_COOKIE);
+histHtml = await res.text();
+check("the rooms filter leaves them out", res.status === 200 && !histHtml.includes("E2E VAT"));
+res = await staff("/app/settings/history?what=nonsense&page=-3&property=bad", OWNER_COOKIE);
+check("bad filters fall back to the defaults instead of failing", res.status === 200);
+res = await staff("/app/settings/history", ACCOUNTANT_COOKIE);
+histHtml = await res.text();
+check("a login without audit.view sees an explanation and no rows", res.status === 200 && histHtml.includes("Only people who may view the audit trail") && !histHtml.includes("E2E VAT"), `status ${res.status}`);
+
 console.log(failures === 0 ? `E2E PASSED (${reference})` : `E2E FAILED: ${failures} check(s)`);
 process.exit(failures === 0 ? 0 : 1);
