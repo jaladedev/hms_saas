@@ -362,6 +362,13 @@ check("the extras switch turns on", outcome(res).get("ok") === "tax_extras_on" &
 res = await staff("/app/settings/tax", OWNER_COOKIE, { method: "POST", body: formData(toggleBlock, { ruleId: levyId, apply: "on" }) });
 check("the extras switch on a fixed rule is refused by the database", outcome(res).get("err") === "tax_not_percent" && (await taxRows("E2E Levy"))[0].applies_to_charges === false, res.headers.get("location") ?? "");
 
+// Suspend and reinstate the accountant through the real function, as the owner: the rows have no property
+const ACCOUNTANT_MEMBERSHIP = "00000000-0000-0000-0000-0000000aaa05";
+res = await rpc("set_staff_status", { p_membership: ACCOUNTANT_MEMBERSHIP, p_status: "suspended" }, jwt("authenticated", JWT_SECRET, OWNER_ID));
+check("the owner can suspend a staff member", res.status === 200, `status ${res.status} ${await res.text()}`);
+res = await rpc("set_staff_status", { p_membership: ACCOUNTANT_MEMBERSHIP, p_status: "active" }, jwt("authenticated", JWT_SECRET, OWNER_ID));
+check("and reinstate them", res.status === 200, `status ${res.status} ${await res.text()}`);
+
 // Setup history: the audit rows those changes wrote, read as the signed-in person
 res = await staff("/app/settings/history", null);
 check("the history page sends a signed-out visitor to sign in", res.status === 307, `status ${res.status}`);
@@ -371,6 +378,14 @@ check("the owner sees the setup history", res.status === 200 && histHtml.include
 check("it lists the added rule by name, with who did it (audit_actor_names over PostgREST)", histHtml.includes("Added the tax rule") && histHtml.includes("E2E VAT") && histHtml.includes("Ada Owner"), histHtml.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 400));
 check("it shows the edit as old and new values, in the rule's own unit", histHtml.includes("Rate: 7.5% \u2192 10%") && histHtml.includes("Status: Active \u2192 Switched off"), histHtml.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 600));
 check("it shows the fixed amount as naira a night", histHtml.includes("1,000.00 a night"));
+const plain = (h) => h.replace(/<[^>]+>/g, " ").replace(/&#x27;/g, "'").replace(/\s+/g, " ");
+res = await staff("/app/settings/history?what=staff", OWNER_COOKIE);
+histHtml = await res.text();
+check("staff access changes are listed, by person and with from and to (migration 030)",
+  res.status === 200 && plain(histHtml).includes("accounts@hotel-a.test's access from active to suspended") && plain(histHtml).includes("accounts@hotel-a.test's access from suspended to active"), plain(histHtml).slice(0, 500));
+res = await staff(`/app/settings/history?what=staff&property=${PROPERTY_A}`, OWNER_COOKIE);
+histHtml = await res.text();
+check("choosing one property leaves hotel-wide staff changes out", res.status === 200 && !plain(histHtml).includes("access from active to suspended"));
 res = await staff("/app/settings/history?what=tax", OWNER_COOKIE);
 histHtml = await res.text();
 check("the tax filter keeps tax rule rows", histHtml.includes("E2E VAT"));
@@ -381,7 +396,7 @@ res = await staff("/app/settings/history?what=nonsense&page=-3&property=bad", OW
 check("bad filters fall back to the defaults instead of failing", res.status === 200);
 res = await staff("/app/settings/history", ACCOUNTANT_COOKIE);
 histHtml = await res.text();
-check("a login without audit.view sees an explanation and no rows", res.status === 200 && histHtml.includes("Only people who may view the audit trail") && !histHtml.includes("E2E VAT"), `status ${res.status}`);
+check("a login without audit.view sees an explanation and no rows", res.status === 200 && histHtml.includes("Only people who may view the audit trail") && !histHtml.includes("E2E VAT") && !plain(histHtml).includes("access from"), `status ${res.status}`);
 
 console.log(failures === 0 ? `E2E PASSED (${reference})` : `E2E FAILED: ${failures} check(s)`);
 process.exit(failures === 0 ? 0 : 1);

@@ -15,8 +15,9 @@ export const dynamic = "force-dynamic";
  * Reads audit_logs as the signed-in person. The table shows a row only to people with audit.view at its property
  * (row-level security), so this page never decides who may see what; a login without it gets an empty explanation.
  * Names of the things changed come from the live tables by id, names of the people from audit_actor_names (029).
- * Staff status changes (suspend, restore, remove) are written without a property, which that policy hides, so they
- * do not appear here yet.
+ * Staff status changes (suspend, reinstate, remove) apply to the whole hotel group and are written without a
+ * property; migration 030 lets people with audit.view see those membership rows, and they are listed here under
+ * "All properties" only, so choosing one property leaves them out.
  */
 export default async function SetupHistoryPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const search = await searchParams;
@@ -45,7 +46,11 @@ export default async function SetupHistoryPage({ searchParams }: { searchParams:
   }
 
   const offset = (f.page - 1) * PAGE_SIZE;
-  const query = supabase.from("audit_logs").select(AUDIT_COLUMNS).in("property_id", property ? [property] : viewable.map((p) => p.id))
+  // Staff access changes (suspend, reinstate, remove) belong to the whole hotel group and have no property (migration 030
+  // lets audit.view readers see them), so they are listed only when no single property is chosen.
+  const propertyIds = viewable.map((p) => p.id).join(",");
+  const query = supabase.from("audit_logs").select(AUDIT_COLUMNS)
+    .or(property ? `property_id.eq.${property}` : `property_id.in.(${propertyIds}),and(property_id.is.null,entity_type.eq.membership)`)
     .in("action", actionsFor(f.what)).order("created_at", { ascending: false }).order("id", { ascending: false }).range(offset, offset + PAGE_SIZE);
   const { data: logData, error: logError } = await query;
   const fetched = (logData ?? []) as AuditRow[];
@@ -99,6 +104,10 @@ export default async function SetupHistoryPage({ searchParams }: { searchParams:
         <button type="submit" className={buttonPrimary}>Show</button>
       </form>
 
+      {property && many && (f.what === "all" || f.what === "staff") && (
+        <p className="mt-3 text-sm text-muted">Suspensions, reinstatements and removals apply to the whole hotel group, so they show under All properties.</p>
+      )}
+
       {logError && <p role="alert" className="mt-6 border-l-4 border-critical bg-critical/5 px-4 py-3 text-sm text-critical">The history could not be loaded. Reload the page.</p>}
 
       {!logError && rows.length === 0 && (
@@ -116,7 +125,7 @@ export default async function SetupHistoryPage({ searchParams }: { searchParams:
               <li key={r.id} className="py-4">
                 <p className="font-medium">{summary}</p>
                 <p className="mt-1 text-sm text-muted">
-                  <span className="tabular-nums">{formatDateTime(r.created_at, (r.property_id && zone.get(r.property_id)) || "UTC")}</span>
+                  <span className="tabular-nums">{formatDateTime(r.created_at, (r.property_id && zone.get(r.property_id)) || viewable[0]?.timezone || "UTC")}</span>
                   {" \u00b7 "}{actorName(r, lookup.people)}{many && where ? ` \u00b7 ${where}` : ""}
                 </p>
                 {details.length > 0 && (

@@ -129,6 +129,10 @@ AN="$(psql -f "$HERE/27_audit_actor_names.sql" 2>&1)" || { echo "$AN"; echo "AUD
 echo "$AN" | grep -E 'PASS' || true
 if echo "$AN" | grep -qE 'FAIL|ERROR'; then echo "$AN"; echo "AUDIT ACTOR NAME TESTS FAILED"; exit 1; fi
 
+MV="$(psql -f "$HERE/28_audit_membership_visibility.sql" 2>&1)" || { echo "$MV"; echo "AUDIT MEMBERSHIP VISIBILITY TESTS FAILED"; exit 1; }
+echo "$MV" | grep -E 'PASS' || true
+if echo "$MV" | grep -qE 'FAIL|ERROR'; then echo "$MV"; echo "AUDIT MEMBERSHIP VISIBILITY TESTS FAILED"; exit 1; fi
+
 echo "--- concurrency: last room race (1 room, 50 clients)"
 cat > "$DATA/race_one.sql" <<'SQL'
 select test_try_claim('last_room', '00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', '2027-10-01', '2027-10-03');
