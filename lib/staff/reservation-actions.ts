@@ -5,6 +5,7 @@ import { z } from "zod";
 import { back, fail, ok, staffClient } from "./action-helpers";
 import { parseAmountToMinor } from "./money-input";
 import { classifyRpcError } from "./refunds";
+import { parseNoShowForm } from "./no-show";
 import { roomsPayload, validateNewReservation } from "./new-reservation";
 import { isPaymentMethod, parseIsoDate } from "./reservations";
 
@@ -45,6 +46,24 @@ export async function cancelReservation(formData: FormData) {
   }
   refresh(parsed.data.reservationId);
   return ok(page, "cancelled");
+}
+
+export async function markNoShow(formData: FormData) {
+  const raw = Object.fromEntries(formData);
+  const parsed = z.object({ reservationId: uuid, idempotencyKey: key }).safeParse(raw);
+  if (!parsed.success) return back(LIST, { err: "bad_request" });
+  const page = pageFor(parsed.data.reservationId);
+  const form = parseNoShowForm(raw);
+  if (!form.ok) return back(page, { err: form.code });
+
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("mark_no_show", {
+    p_reservation_id: parsed.data.reservationId, p_note: form.value.note, p_waive_charge: form.value.waive,
+    p_idempotency_key: parsed.data.idempotencyKey,
+  });
+  if (error) return fail(page, error.message);
+  refresh(parsed.data.reservationId);
+  return ok(page, "no_show_marked");
 }
 
 export async function checkInRoom(formData: FormData) {

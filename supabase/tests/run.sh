@@ -152,6 +152,9 @@ if echo "$GC" | grep -qE 'FAIL|ERROR'; then echo "$GC"; echo "GUEST CANCEL TESTS
 DR="$(psql -f "$HERE/35_daily_report.sql" 2>&1)" || { echo "$DR"; echo "DAILY REPORT TESTS FAILED"; exit 1; }
 echo "$DR" | grep -E 'PASS' || true
 if echo "$DR" | grep -qE 'FAIL|ERROR'; then echo "$DR"; echo "DAILY REPORT TESTS FAILED"; exit 1; fi
+NS="$(psql -f "$HERE/36_no_show.sql" 2>&1)" || { echo "$NS"; echo "NO SHOW TESTS FAILED"; exit 1; }
+echo "$NS" | grep -E 'PASS' || true
+if echo "$NS" | grep -qE 'FAIL|ERROR'; then echo "$NS"; echo "NO SHOW TESTS FAILED"; exit 1; fi
 
 echo "--- concurrency: last room race (1 room, 50 clients)"
 cat > "$DATA/race_one.sql" <<'SQL'

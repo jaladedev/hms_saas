@@ -8,8 +8,9 @@ import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { checkoutNote, CHARGE_COLUMNS, folioIsOpen, isFolioResult, owingMinor, PAYMENT_COLUMNS, type ChargeRow, type FolioBalance, type PaymentRow } from "@/lib/staff/folio";
 import { formatDateTime } from "@/lib/staff/format";
 import { holdView } from "@/lib/staff/hold";
+import { canMarkNoShow, NOTE_MAX } from "@/lib/staff/no-show";
 import { stayEditView } from "@/lib/staff/stay-edit";
-import { cancelReservation, checkInRoom, checkOutRoom, issueInvoice, recordPayment, transferRoom, voidInvoice } from "@/lib/staff/reservation-actions";
+import { cancelReservation, checkInRoom, checkOutRoom, issueInvoice, markNoShow, recordPayment, transferRoom, voidInvoice } from "@/lib/staff/reservation-actions";
 import {
   attentionText, detailActions, invoiceActions, type InvoiceRow, nightsBetween, PAYMENT_METHODS, SOURCE_LABEL, todayIn,
 } from "@/lib/staff/reservations";
@@ -22,7 +23,7 @@ type Reservation = {
   id: string; property_id: string; booking_reference: string; primary_guest_id: string; source: string;
   reservation_status: string; payment_status: string; arrival_date: string; departure_date: string; currency: string;
   subtotal_minor: number; tax_minor: number; discount_minor: number; total_minor: number;
-  cancellation_charge_minor: number; cancel_reason: string | null; cancelled_at: string | null;
+  cancellation_charge_minor: number; cancel_reason: string | null; cancelled_at: string | null; no_show_at: string | null;
   attention_reason: string | null; created_at: string;
 };
 type ResRoom = {
@@ -47,7 +48,7 @@ export default async function ReservationPage({
 
   const { data: resRow } = await supabase
     .from("reservations")
-    .select("id, property_id, booking_reference, primary_guest_id, source, reservation_status, payment_status, arrival_date, departure_date, currency, subtotal_minor, tax_minor, discount_minor, total_minor, cancellation_charge_minor, cancel_reason, cancelled_at, attention_reason, created_at, policy_snapshot")
+    .select("id, property_id, booking_reference, primary_guest_id, source, reservation_status, payment_status, arrival_date, departure_date, currency, subtotal_minor, tax_minor, discount_minor, total_minor, cancellation_charge_minor, cancel_reason, cancelled_at, no_show_at, attention_reason, created_at, policy_snapshot")
     .eq("id", id).maybeSingle();
   if (!resRow) notFound();
   const res = resRow as Reservation;
@@ -118,6 +119,7 @@ export default async function ReservationPage({
   const hold = holdView(res.reservation_status, holdTimes[0] ?? null, new Date(), res.total_minor, (res as { policy_snapshot?: unknown }).policy_snapshot as Parameters<typeof holdView>[4], held);
   const stayNights = nightsBetween(res.arrival_date, res.departure_date);
   const cancelled = res.reservation_status === "cancelled";
+  const noShowOffered = canMarkNoShow({ reservationStatus: res.reservation_status, rooms: resRooms, canCancel: act.cancel, today, arrival: res.arrival_date });
   const outstanding = held === null ? null : cancelled ? settlement?.charge_due_minor ?? 0 : Math.max(res.total_minor - held, 0);
   const closed = res.reservation_status === "expired" || res.reservation_status === "no_show";
   const errCode = Array.isArray(search.err) ? search.err[0] : search.err;
@@ -183,7 +185,7 @@ export default async function ReservationPage({
           {guest?.phone && (<><dt className="text-muted">Phone</dt><dd>{guest.phone}</dd></>)}
           {cancelled && (
             <>
-              <dt className="text-muted">Cancelled</dt>
+              <dt className="text-muted">{res.no_show_at ? "No-show" : "Cancelled"}</dt>
               <dd>{res.cancelled_at ? formatDateTime(res.cancelled_at, tz) : ""}{res.cancel_reason ? `: ${res.cancel_reason}` : ""}</dd>
             </>
           )}
@@ -415,6 +417,31 @@ export default async function ReservationPage({
               <p className="mt-1 text-xs text-muted">Copies the nights and tax into a numbered invoice. Payments already received are applied to it.</p>
             </form>
           )}
+        </section>
+      )}
+
+      {noShowOffered && (
+        <section className="mt-10" aria-labelledby="no-show">
+          <h2 id="no-show" className="font-display text-xl">Guest did not arrive</h2>
+          <details className="mt-3">
+            <summary className={`${buttonDanger} inline-block cursor-pointer list-none`}>Mark as no-show</summary>
+            <form action={markNoShow} className="mt-3 grid max-w-md gap-3">
+              <input type="hidden" name="reservationId" value={res.id} />
+              <input type="hidden" name="idempotencyKey" value={crypto.randomUUID()} />
+              <div>
+                <label htmlFor="noshow-note" className="block text-sm">Note (optional)</label>
+                <textarea id="noshow-note" name="note" maxLength={NOTE_MAX} rows={2} className={inputClass} />
+              </div>
+              <label className="flex items-start gap-2 text-sm">
+                <input type="checkbox" name="waive" className="mt-1" />
+                <span>Waive the charge, so the guest is not charged for the missed stay</span>
+              </label>
+              <p className="text-xs text-muted">
+                This is allowed once check-in time on the arrival day has passed. The rooms are released at once and the booking is settled like a cancellation: the charge in the booking&rsquo;s policy is invoiced, and any money held beyond it is queued for refund, which a second person must approve. This cannot be undone.
+              </p>
+              <div><button type="submit" className={buttonDanger}>Mark as no-show</button></div>
+            </form>
+          </details>
         </section>
       )}
 

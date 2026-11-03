@@ -129,7 +129,7 @@ export type ErrorCode =
   | "fo_overpay" | "fo_not_open" | "fo_paid" | "fo_not_found" | "fo_duplicate" | "fo_unknown"
   | "se_dates" | "se_too_long" | "se_reason" | "se_room" | "se_capacity" | "se_arrival_past" | "se_unavailable" | "se_rate" | "se_paid" | "se_invoiced"
   | "se_payment_started" | "se_split" | "se_not_editable" | "se_discount" | "se_not_found" | "se_duplicate" | "se_unknown"
-  | "hold_lapsed" | "hold_source";
+  | "hold_lapsed" | "hold_source" | "ns_early" | "ns_note";
 
 /**
  * Maps a database error message to a code, and an amount when the database reports one. The amount
@@ -182,6 +182,8 @@ export function classifyRpcError(message: string): { code: ErrorCode; refundable
   if (/INVALID_STATE: revoked/.test(message)) return { code: "staff_revoked" };
   if (/POLICY_VIOLATION: property/.test(message)) return { code: "staff_property" };
   if (/POLICY_VIOLATION: status/.test(message)) return { code: "bad_request" };
+  if (/INVALID_STATE: too early/.test(message)) return { code: "ns_early" };
+  if (/POLICY_VIOLATION: note/.test(message)) return { code: "ns_note" };
   if (/INVALID_STATE: hold lapsed/.test(message)) return { code: "hold_lapsed" };
   if (/POLICY_VIOLATION: source/.test(message)) return { code: "hold_source" };
   if (/INVALID_STATE: void/.test(message)) return { code: "invoice_void" };
@@ -201,6 +203,7 @@ export const OK_MESSAGES = {
   checked_out: "Room checked out. It is now marked dirty for housekeeping.",
   payment_recorded: "Payment recorded.",
   created: "Reservation created and confirmed. The room is held for the guest.",
+  no_show_marked: "Marked as a no-show. The rooms are released and the booking is settled like a cancellation: any charge is invoiced and money held beyond it is queued for refund, which a second person must approve.",
   created_hold: "Room held. Record the guest's payment before the hold runs out and the booking is confirmed; if it runs out, the room is released.",
   payment_confirmed: "Payment recorded. The booking is now confirmed and the room is the guest's.",
   housekeeping_set: "Room status updated.",
@@ -312,6 +315,8 @@ export function errorMessage(code: string, refundable: number | null, formatMino
     case "room_has_bookings": return "That room has current or future bookings or blocks. Move the guests and release the blocks first.";
     case "invoice_exists": return "This reservation already has an invoice. Void it first if it needs to be reissued.";
     case "invoice_has_payments": return "This invoice has payments recorded against it, so it cannot be voided. Refund the guest first; once no money is held it can be voided.";
+    case "ns_early": return "A booking can only be marked as a no-show once check-in time on its arrival day has passed.";
+    case "ns_note": return "Keep the note to 200 characters or fewer.";
     case "hold_lapsed": return "The hold on this room has run out, so no payment was taken. Book the room again if it is still free.";
     case "hold_source": return "A held booking must come from a walk-in, a phone call or a staff entry.";
     case "invoice_void": return "That invoice is already void.";
