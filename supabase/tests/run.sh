@@ -137,6 +137,10 @@ RI="$(psql -f "$HERE/35_role_isolation.sql" 2>&1)" || { echo "$RI"; echo "ROLE I
 echo "$RI" | grep -E 'PASS' || true
 if echo "$RI" | grep -qE 'FAIL|ERROR'; then echo "$RI"; echo "ROLE ISOLATION TESTS FAILED"; exit 1; fi
 
+DR="$(psql -f "$HERE/36_daily_report.sql" 2>&1)" || { echo "$DR"; echo "DAILY REPORT TESTS FAILED"; exit 1; }
+echo "$DR" | grep -E 'PASS' || true
+if echo "$DR" | grep -qE 'FAIL|ERROR'; then echo "$DR"; echo "DAILY REPORT TESTS FAILED"; exit 1; fi
+
 AN="$(psql -f "$HERE/27_audit_actor_names.sql" 2>&1)" || { echo "$AN"; echo "AUDIT ACTOR NAME TESTS FAILED"; exit 1; }
 echo "$AN" | grep -E 'PASS' || true
 if echo "$AN" | grep -qE 'FAIL|ERROR'; then echo "$AN"; echo "AUDIT ACTOR NAME TESTS FAILED"; exit 1; fi
