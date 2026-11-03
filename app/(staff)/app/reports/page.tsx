@@ -34,6 +34,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const range = parseRange({ from: search.from, to: search.to }, today);
   const { data, error } = await supabase.rpc("daily_report", { p_property_id: chosen.id, p_from: range.from, p_to: range.to });
   const report = error ? null : (data as Report);
+  const { data: mayExport } = await supabase.rpc("has_permission", { p_property: chosen.id, p_permission: "report.export" });
   const money = (n: number) => formatMoney(n, report?.currency ?? "NGN");
   const qs = (from: string, to: string) => `?${new URLSearchParams({ property: chosen.id, from, to })}`;
 
@@ -68,6 +69,11 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           <Link key={p.label} href={qs(p.from, p.to)} className="text-primary-strong underline underline-offset-2">{p.label}</Link>
         ))}
       </p>
+      {mayExport === true && report && (
+        <p className="mt-3 text-sm">
+          <a href={`/app/reports/csv?${new URLSearchParams({ property: chosen.id, from: range.from, to: range.to })}`} className="text-primary-strong underline underline-offset-2">Download as CSV</a>
+        </p>
+      )}
       {range.fixed && <p role="status" className="mt-3 text-sm text-pending">{ERROR_TEXT.fixed}</p>}
 
       {!report ? (
