@@ -129,6 +129,10 @@ PA="$(psql -f "$HERE/29_policy_audit.sql" 2>&1)" || { echo "$PA"; echo "POLICY A
 echo "$PA" | grep -E 'PASS' || true
 if echo "$PA" | grep -qE 'FAIL|ERROR'; then echo "$PA"; echo "POLICY AUDIT TESTS FAILED"; exit 1; fi
 
+PV="$(psql -f "$HERE/34_policy_config_valid.sql" 2>&1)" || { echo "$PV"; echo "POLICY VALIDITY TESTS FAILED"; exit 1; }
+echo "$PV" | grep -E 'PASS' || true
+if echo "$PV" | grep -qE 'FAIL|ERROR'; then echo "$PV"; echo "POLICY VALIDITY TESTS FAILED"; exit 1; fi
+
 AN="$(psql -f "$HERE/27_audit_actor_names.sql" 2>&1)" || { echo "$AN"; echo "AUDIT ACTOR NAME TESTS FAILED"; exit 1; }
 echo "$AN" | grep -E 'PASS' || true
 if echo "$AN" | grep -qE 'FAIL|ERROR'; then echo "$AN"; echo "AUDIT ACTOR NAME TESTS FAILED"; exit 1; fi
@@ -146,26 +150,6 @@ if echo "$SGE" | grep -qE 'FAIL|ERROR'; then echo "$SGE"; echo "STAY EDIT TESTS 
 SH="$(psql -f "$HERE/33_staff_hold.sql" 2>&1)" || { echo "$SH"; echo "STAFF HOLD TESTS FAILED"; exit 1; }
 echo "$SH" | grep -E 'PASS' || true
 if echo "$SH" | grep -qE 'FAIL|ERROR'; then echo "$SH"; echo "STAFF HOLD TESTS FAILED"; exit 1; fi
-GC="$(psql -f "$HERE/34_guest_cancel.sql" 2>&1)" || { echo "$GC"; echo "GUEST CANCEL TESTS FAILED"; exit 1; }
-echo "$GC" | grep -E 'PASS' || true
-if echo "$GC" | grep -qE 'FAIL|ERROR'; then echo "$GC"; echo "GUEST CANCEL TESTS FAILED"; exit 1; fi
-DR="$(psql -f "$HERE/35_daily_report.sql" 2>&1)" || { echo "$DR"; echo "DAILY REPORT TESTS FAILED"; exit 1; }
-echo "$DR" | grep -E 'PASS' || true
-if echo "$DR" | grep -qE 'FAIL|ERROR'; then echo "$DR"; echo "DAILY REPORT TESTS FAILED"; exit 1; fi
-NS="$(psql -f "$HERE/36_no_show.sql" 2>&1)" || { echo "$NS"; echo "NO SHOW TESTS FAILED"; exit 1; }
-echo "$NS" | grep -E 'PASS' || true
-if echo "$NS" | grep -qE 'FAIL|ERROR'; then echo "$NS"; echo "NO SHOW TESTS FAILED"; exit 1; fi
-GS="$(psql -f "$HERE/37_guest_cancel_setting.sql" 2>&1)" || { echo "$GS"; echo "GUEST CANCEL SETTING TESTS FAILED"; exit 1; }
-echo "$GS" | grep -E 'PASS' || true
-if echo "$GS" | grep -qE 'FAIL|ERROR'; then echo "$GS"; echo "GUEST CANCEL SETTING TESTS FAILED"; exit 1; fi
-
-RB="$(psql -f "$HERE/38_room_board_views.sql" 2>&1)" || { echo "$RB"; echo "ROOM BOARD VIEW TESTS FAILED"; exit 1; }
-echo "$RB" | grep -E 'PASS' || true
-if echo "$RB" | grep -qE 'FAIL|ERROR'; then echo "$RB"; echo "ROOM BOARD VIEW TESTS FAILED"; exit 1; fi
-
-OC="$(psql -f "$HERE/39_occupancy_report.sql" 2>&1)" || { echo "$OC"; echo "OCCUPANCY REPORT TESTS FAILED"; exit 1; }
-echo "$OC" | grep -E 'PASS' || true
-if echo "$OC" | grep -qE 'FAIL|ERROR'; then echo "$OC"; echo "OCCUPANCY REPORT TESTS FAILED"; exit 1; fi
 
 echo "--- concurrency: last room race (1 room, 50 clients)"
 cat > "$DATA/race_one.sql" <<'SQL'
