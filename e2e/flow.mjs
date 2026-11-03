@@ -17,6 +17,18 @@ function check(name, ok, detail = "") {
   if (!ok) failures++;
 }
 
+// Page text, not page markup. React puts comment nodes between adjacent text and expressions in the served HTML, so a
+// plain html.includes("Publish version 1") can miss text that is really there, and, worse, a negative check such as
+// !html.includes("Pay now") can pass because the text is split. Text checks go through these; only attributes, classes
+// and links are matched against raw markup.
+// What a person reads on a page: scripts (which carry the page's data as text) and tags removed, entities decoded.
+const pageText = (html) => html.replace(/<script[\s\S]*?<\/script>/g, " ").replace(/<style[\s\S]*?<\/style>/g, " ").replace(/<!--[\s\S]*?-->/g, "").replace(/<[^>]+>/g, " ")
+  .replace(/&#x27;/g, "'").replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
+const words = (s) => s.replace(/\s+/g, " ").trim();
+const sees = (text, ...needles) => needles.every((n) => text.includes(words(n)));
+const doesNotSee = (text, ...needles) => needles.every((n) => !text.includes(words(n)));
+const quoted = (s) => `“${s}”`;
+
 const site = (path, init = {}) =>
   fetch(`${SITE}${path}`, { redirect: "manual", ...init, headers: { "x-forwarded-host": HOST, "x-forwarded-proto": "http", ...(init.headers ?? {}) } });
 
@@ -58,19 +70,19 @@ const arrival = day(40), departure = day(42);
 // 1. Search page lists room types with a price
 let res = await site(`/?arrival=${arrival}&departure=${departure}&adults=2&children=0`);
 let html = await res.text();
-check("search page renders room types from the database", res.status === 200 && html.includes("Standard") && html.includes("Solo Suite") && html.includes("50,000.00"), `status ${res.status}`);
+check("search page renders room types from the database", res.status === 200 && sees(pageText(html), "Standard", "Solo Suite", "50,000.00"), `status ${res.status}`);
 const reserveHref = decode(/href="(\/reserve\?[^"]*type=[^"]*)"/.exec(html)?.[1] ?? "");
 check("search page links to the reserve page", reserveHref.startsWith("/reserve?"), html.slice(0, 300));
 
 // 2. A host the system does not know gets a polite message, not data
 res = await fetch(`${SITE}/?arrival=${arrival}&departure=${departure}`, { headers: { "x-forwarded-host": "nobody.example" }, redirect: "manual" });
 html = await res.text();
-check("unknown host shows the not-configured message", html.includes("not available on this site yet"));
+check("unknown host shows the not-configured message", sees(pageText(html), "not available on this site yet"));
 
 // 3. Reserve page, then submit the real server-action form
 res = await site(reserveHref);
 html = await res.text();
-check("reserve page renders the quote and form", res.status === 200 && html.includes("Hold my room") && html.includes("Your reservation"), `status ${res.status}`);
+check("reserve page renders the quote and form", res.status === 200 && sees(pageText(html), "Hold my room", "Your reservation"), `status ${res.status}`);
 let form = new FormData();
 for (const [k, v] of hiddenInputs(html, "<form")) form.append(k, v);
 form.set("quantity", "1"); form.set("full_name", "Ada Obi"); form.set("email", "ada.e2e@example.com"); form.set("phone", "+2348000000000");
@@ -81,7 +93,7 @@ check("reserve action creates a hold and redirects to the booking page", res.sta
 // 4. Booking page shows a live hold and a pay button
 res = await site(bookingPath);
 html = await res.text();
-check("booking page shows reference, hold and pay button", res.status === 200 && /BK-[A-Z0-9-]+/.test(html) && html.includes("Pay now") && html.includes("Still to pay"));
+check("booking page shows reference, hold and pay button", res.status === 200 && /BK-[A-Z0-9-]+/.test(html) && sees(pageText(html), "Pay now", "Still to pay"));
 const reference = /BK-[A-Z0-9-]+/.exec(html)?.[0];
 
 // 5. Tampered tokens are not found
@@ -103,7 +115,7 @@ check("provider received our reference, kobo amount, email and callback URL",
 // 7. Returning from checkout before the webhook shows a waiting message
 res = await site(`${bookingPath}?paid=1`);
 html = await res.text();
-check("callback page says payment is being confirmed", html.includes("confirming your payment") && html.includes('http-equiv="refresh"'));
+check("callback page says payment is being confirmed", sees(pageText(html), "confirming your payment") && html.includes('http-equiv="refresh"'));
 
 // 8. Webhook: bad signature rejected, good one confirms, replay is harmless
 const body = JSON.stringify({ event: "charge.success", data: { id: state.id, reference: attemptRef, amount: 1, currency: "USD" } });
@@ -129,13 +141,13 @@ check("after the replay the booking holds exactly one payment", status.paid_mino
 // 9. Booking page now confirmed and fully paid
 res = await site(bookingPath);
 html = await res.text();
-check("booking page shows confirmed and paid", html.includes("Your booking is confirmed") && !html.includes("Pay now"), "");
+check("booking page shows confirmed and paid", sees(pageText(html), "Your booking is confirmed") && doesNotSee(pageText(html), "Pay now"), "");
 
 // 9b. Emails: held (sent right after the reserve action) and confirmed (after the webhook), with working links
 const heldMail = await waitForEmail((m) => m.to[0] === "ada.e2e@example.com" && m.subject.includes("Complete your booking") && m.subject.includes(reference));
 check("hold email was sent to the guest with the booking reference", heldMail !== null, JSON.stringify((await emails()).map((m) => m.subject)));
 const heldPath = heldMail ? linkIn(heldMail) : undefined;
-check("the emailed link opens the booking", !!heldPath && (await (await site(heldPath)).text()).includes(reference), String(heldPath));
+check("the emailed link opens the booking", !!heldPath && pageText(await (await site(heldPath)).text()).includes(reference), String(heldPath));
 check("email html escapes and carries the button link", !!heldMail && heldMail.html.includes(`href="http://book.hotel-a.test${heldPath}"`));
 const confirmedMail = await waitForEmail((m) => m.to[0] === "ada.e2e@example.com" && m.subject.startsWith("Booking confirmed") && m.subject.includes(reference));
 check("confirmation email was sent after the webhook", confirmedMail !== null);
@@ -165,7 +177,7 @@ const before = (await emails()).length;
 let loc = await submitFind(reference.toLowerCase(), "  ADA.E2E@example.com ");
 check("matching link request redirects to the generic confirmation", loc === "/booking/find?sent=1", loc);
 const linkMail = await waitForEmail((m) => m.subject.startsWith("Your booking link for") && m.to[0] === "ada.e2e@example.com");
-check("matching link request emails a fresh working link", !!linkMail && !!linkIn(linkMail) && (await (await site(linkIn(linkMail))).text()).includes(reference));
+check("matching link request emails a fresh working link", !!linkMail && !!linkIn(linkMail) && pageText(await (await site(linkIn(linkMail))).text()).includes(reference));
 loc = await submitFind(reference, "someone.else@example.com");
 check("a wrong email gets the same generic answer", loc === "/booking/find?sent=1", loc);
 await sleep(1500); await (await fetch(`${SITE}/api/cron/maintenance`, { headers: { authorization: `Bearer ${CRON_SECRET}` } })).text();
@@ -178,7 +190,7 @@ for (let i = 0; i < 6; i++) outcomes.push(await submitFind(reference, `probe${i}
 check("link requests are limited per address (5 allowed, then refused)",
   outcomes.slice(0, 5).every((l) => l === "/booking/find?sent=1") && outcomes[5] === "/booking/find?error=rate_limited", JSON.stringify(outcomes));
 html = await (await site("/booking/find?error=rate_limited")).text();
-check("the limit message is friendly", html.includes("Too many attempts"));
+check("the limit message is friendly", sees(pageText(html), "Too many attempts"));
 
 res = await site(reserveHref);
 html = await res.text();
@@ -195,9 +207,9 @@ check("holds are limited per address: ten attempts counted, the eleventh refused
   holdOutcomes.slice(0, 10).every((l) => !l.includes("error=rate_limited")) && holdOutcomes[10].includes("error=rate_limited"), JSON.stringify(holdOutcomes.map((l) => l.split("error=")[1] ?? "ok")));
 res = await site(`/?arrival=${arrival}&departure=${departure}&adults=2&children=0`, { headers: { "x-forwarded-for": "192.0.2.200" } });
 html = await res.text();
-check("other addresses are not affected by that limit", res.status === 200 && html.includes("Find a room") && !html.includes("Too many attempts"));
+check("other addresses are not affected by that limit", res.status === 200 && sees(pageText(html), "Find a room") && doesNotSee(pageText(html), "Too many attempts"));
 res = await site(`/?arrival=${arrival}&departure=${departure}&adults=2&children=0`, { headers: { "x-forwarded-for": "198.51.100.77" } });
-check("the limited address still browses (search has its own, larger limit)", res.status === 200 && !(await res.text()).includes("Too many attempts"));
+check("the limited address still browses (search has its own, larger limit)", res.status === 200 && doesNotSee(pageText(await res.text()), "Too many attempts"));
 
 // 9f. Cancellation, settlement and a refund, driven by two staff identities over PostgREST,
 //     finished by Paystack's real refund webhook shape (amount as a string, refund_reference)
@@ -298,7 +310,7 @@ check("the tax page sends a signed-out visitor to sign in", res.status === 307 &
 
 res = await staff("/app/settings/tax", OWNER_COOKIE);
 let taxHtml = await res.text();
-check("the owner sees the tax rules page with the add form", res.status === 200 && taxHtml.includes("Tax rules") && taxHtml.includes("Add a tax rule"), `status ${res.status}`);
+check("the owner sees the tax rules page with the add form", res.status === 200 && sees(pageText(taxHtml), "Tax rules", "Add a tax rule"), `status ${res.status}`);
 const addBlock = formWith(taxHtml, 'name="propertyId"');
 check("the add form carries a server action and the property", Boolean(addBlock) && /\$ACTION_ID_/.test(addBlock) && addBlock.includes(PROPERTY_A), addBlock?.slice(0, 200));
 
@@ -335,7 +347,7 @@ check("and nothing was stored", (await taxRows("Owner Only")).length === 0);
 res = await staff("/app/settings/tax", OWNER_COOKIE);
 taxHtml = await res.text();
 check("the new rules are listed, with the rate in the right unit",
-  taxHtml.includes("E2E VAT") && taxHtml.includes("7.5%") && taxHtml.includes("E2E Levy") && taxHtml.includes("1,000.00 a night") && taxHtml.includes("Starts later"));
+  sees(pageText(taxHtml), "E2E VAT", "7.5%", "E2E Levy", "1,000.00 a night", "Starts later"));
 
 // Edit: change the rate and switch the rule off; the extras mark must not move
 const editBlock = [...taxHtml.matchAll(/<form[\s\S]*?<\/form>/g)].map((m) => m[0]).find((b) => b.includes(`name="ruleId" value="${vatId}"`) && b.includes('name="status"'));
@@ -374,11 +386,11 @@ res = await staff("/app/settings/history", null);
 check("the history page sends a signed-out visitor to sign in", res.status === 307, `status ${res.status}`);
 res = await staff("/app/settings/history", OWNER_COOKIE);
 let histHtml = await res.text();
-check("the owner sees the setup history", res.status === 200 && histHtml.includes("Setup history"), `status ${res.status}`);
-check("it lists the added rule by name, with who did it (audit_actor_names over PostgREST)", histHtml.includes("Added the tax rule") && histHtml.includes("E2E VAT") && histHtml.includes("Ada Owner"), histHtml.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 400));
-check("it shows the edit as old and new values, in the rule's own unit", histHtml.includes("Rate: 7.5% \u2192 10%") && histHtml.includes("Status: Active \u2192 Switched off"), histHtml.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 600));
-check("it shows the fixed amount as naira a night", histHtml.includes("1,000.00 a night"));
-const plain = (h) => h.replace(/<[^>]+>/g, " ").replace(/&#x27;/g, "'").replace(/\s+/g, " ");
+check("the owner sees the setup history", res.status === 200 && sees(pageText(histHtml), "Setup history"), `status ${res.status}`);
+check("it lists the added rule by name, with who did it (audit_actor_names over PostgREST)", sees(pageText(histHtml), "Added the tax rule", "E2E VAT", "Ada Owner"), histHtml.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 400));
+check("it shows the edit as old and new values, in the rule's own unit", sees(pageText(histHtml), "Rate: 7.5% \u2192 10%", "Status: Active \u2192 Switched off"), histHtml.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 600));
+check("it shows the fixed amount as naira a night", sees(pageText(histHtml), "1,000.00 a night"));
+const plain = pageText;
 res = await staff("/app/settings/history?what=staff", OWNER_COOKIE);
 histHtml = await res.text();
 check("staff access changes are listed, by person and with from and to (migration 030)",
@@ -388,15 +400,15 @@ histHtml = await res.text();
 check("choosing one property leaves hotel-wide staff changes out", res.status === 200 && !plain(histHtml).includes("access from active to suspended"));
 res = await staff("/app/settings/history?what=tax", OWNER_COOKIE);
 histHtml = await res.text();
-check("the tax filter keeps tax rule rows", histHtml.includes("E2E VAT"));
+check("the tax filter keeps tax rule rows", sees(pageText(histHtml), "E2E VAT"));
 res = await staff("/app/settings/history?what=rooms", OWNER_COOKIE);
 histHtml = await res.text();
-check("the rooms filter leaves them out", res.status === 200 && !histHtml.includes("E2E VAT"));
+check("the rooms filter leaves them out", res.status === 200 && doesNotSee(pageText(histHtml), "E2E VAT"));
 res = await staff("/app/settings/history?what=nonsense&page=-3&property=bad", OWNER_COOKIE);
 check("bad filters fall back to the defaults instead of failing", res.status === 200);
 res = await staff("/app/settings/history", ACCOUNTANT_COOKIE);
 histHtml = await res.text();
-check("a login without audit.view sees an explanation and no rows", res.status === 200 && histHtml.includes("Only people who may view the audit trail") && !histHtml.includes("E2E VAT") && !plain(histHtml).includes("access from"), `status ${res.status}`);
+check("a login without audit.view sees an explanation and no rows", res.status === 200 && sees(pageText(histHtml), "Only people who may view the audit trail") && doesNotSee(pageText(histHtml), "E2E VAT") && !plain(histHtml).includes("access from"), `status ${res.status}`);
 
 // 12. More staff cases, building on section 11 (its rules "E2E VAT" and "E2E Levy", its edits, and its staff status changes
 // are all still there). Covers: what the screens show for each rule state; the edit forms' starting values; compounding
@@ -408,13 +420,6 @@ const OWNER_JWT = jwt("authenticated", JWT_SECRET, OWNER_ID), ACCOUNTANT_JWT = j
 const api = (token, path, init = {}) => fetch(`${REST}${path}`, { ...init, headers: { authorization: `Bearer ${token}`, "content-type": "application/json", ...(init.headers ?? {}) } });
 const SERVICE_JWT = jwt("service_role");
 
-// What a person reads on a page: scripts (which carry the page's data as text) and tags removed, entities decoded.
-const pageText = (html) => html.replace(/<script[\s\S]*?<\/script>/g, " ").replace(/<style[\s\S]*?<\/style>/g, " ").replace(/<!--[\s\S]*?-->/g, "").replace(/<[^>]+>/g, " ")
-  .replace(/&#x27;/g, "'").replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
-const words = (s) => s.replace(/\s+/g, " ").trim();
-const sees = (text, ...needles) => needles.every((n) => text.includes(words(n)));
-const doesNotSee = (text, ...needles) => needles.every((n) => !text.includes(words(n)));
-const quoted = (s) => `“${s}”`;
 /** formatDate in lib/guest-site/format.ts, so expected words come from the same ICU data as the page's. */
 function fmtDate(iso) {
   const [y, m, d] = iso.split("-").map(Number);

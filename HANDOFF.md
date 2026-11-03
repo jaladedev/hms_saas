@@ -111,6 +111,7 @@ Not verified:
 
 ## Things to know before editing
 
+- E2E text checks read the page as text, never as markup (`pageText`, `sees`, `doesNotSee` at the top of `e2e/flow.mjs`). React puts comment nodes between adjacent text and expressions in the served HTML, so `html.includes("Publish version 1")` can miss text that is there, and a negative check like `!html.includes("Pay now")` can pass because the text is split. Only attributes, classes, roles and links are matched against raw markup (`role="alert"`, `rel="next"`, `href=...`, `tabular-nums`). The one deliberate exception is the housekeeping board's price check, which also scans raw markup so that no rate hides in the page's data.
 - **Deadlocks are real.** Without locks, concurrent multi-room bookings deadlocked (36 of 40 clients exhausted
   three retries). `create_reservation` now takes `pg_advisory_xact_lock` per (property, room type) in sorted
   order before claiming rooms. Any new function that claims rooms (`transfer_room`, `create_room_block`,
