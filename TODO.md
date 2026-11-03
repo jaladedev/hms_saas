@@ -58,7 +58,7 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [x] Resolve Paystack `refund.needs-attention` (migration 022): the refund is marked and its Paystack refund id kept; `/app/refunds` shows an "Enter bank details" form (bank list from Paystack, account number reviewed before sending); the details go to `POST /refund/retry_with_customer_details/<id>` at most once per attempt (a refusal frees it, an unclear answer keeps it used); the account number is never stored, logged or returned
 - [ ] Check the bank-details retry against Paystack TEST mode before using it with real money: the bank list response (`id`, `name`) and the `bank_id` the retry expects were taken from Paystack's docs and not confirmed with a live call; add a case to `npm run e2e` with the fake Paystack
 - [x] Staff screens for money: refund queue (`/app/refunds`: request, approve or reject, manual and Paystack payout, needs-a-person list), settlement summary per cancelled booking (`/app/reservations/<id>/settlement`), and cancellation-charge collection (the charge due shows as the outstanding amount on the booking page, where a payment is recorded).
-- [ ] Guests cannot cancel their own booking (staff cancel on their behalf); a guest-facing cancel needs the same settlement preview before they confirm
+- [x] Guest self-cancel: the booking page shows a settlement preview (`guest_cancel_preview`) before the guest confirms (`guest_cancel_reservation`); the hotel can turn it off or limit it by policy (migrations 035 and 038, `/booking/<token>/cancel`, tests 34 and 37, e2e)
 - [x] `audit_logs` (insert-only) and `idempotency_keys` (007)
 - [ ] `outbox_events`, `notifications`, `documents`, `booking_access_tokens`; idempotency key expiry job
 - [x] `cancel_reservation` (policy charge, releases inventory), `check_in` (readiness gate with override), `check_out` (early departure frees the room, marks dirty) (008)
@@ -108,11 +108,11 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [ ] User acceptance with the first hotel
 
 ## Phase 5: Online booking and Paystack
-- [ ] `tenant_domains` host resolution on the guest site
-- [ ] Guest flow: search, details, optional room selection, review, payment, confirmation, lookup, status
-- [ ] Payment initiation, signed webhook Edge Function, verification, idempotent `confirm_payment`
-- [ ] Paid-but-no-room recovery, refunds, reconciliation import
-- [ ] Payment test matrix (duplicate, out-of-order, wrong amount, wrong currency, delayed webhook)
+- [x] `tenant_domains` host resolution on the guest site: the server passes the request host to `search_availability`, `create_hold` and `guest_policy`, and the database resolves it (`resolve_host`, migration 009; tests 06 and 11)
+- [x] Guest flow: search, reserve, hold, payment, confirmation, lookup (`/booking/find`) and status. Guests do not pick a physical room: `create_hold` ignores any room the caller names, on purpose. If the hotel wants that, it is a new decision, not a gap
+- [x] Payment initiation, signed webhook, verification, idempotent `confirm_payment`. The webhook is a Next.js route (`app/api/webhooks/paystack/[account]`), not a Supabase Edge Function
+- [ ] Reconciliation import (comparing Paystack's settlement report with our payments). Not built. Paid-but-no-room recovery and refunds are done (see Phase 1 and 2)
+- [ ] Payment test matrix. Covered in `supabase/tests/08_provider_payments.sql`: duplicate events, wrong amount, wrong currency, late payment after expiry, failure then a successful retry, payment after cancel, another tenant's events. Missing: a failed event arriving after a success (out of order)
 
 ## Phase 6 and 7
 - [ ] Calendars, room blocks UI, maintenance, reports, notifications, self-service booking management
