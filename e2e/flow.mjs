@@ -742,5 +742,130 @@ check("anon cannot call the report function", occRpcAnon.status === 401 || occRp
 const occRpcB = await rpc("occupancy_report", { p_property_id: PROPERTY_A, p_from: tonight, p_to: tonight }, OWNER_B_JWT);
 check("hotel B's owner cannot read hotel A's occupancy", occRpcB.status >= 400, `${occRpcB.status}`);
 
+// 14. A refund Paystack cannot finish without the customer's bank details: payout through the real route, the
+// needs-attention event, the bank list, the retry with the bank and account, and the event that completes it.
+// The fake Paystack behaves like the documented endpoints (cursor-paged /bank, a retry that answers 422 unless the refund
+// is in needs-attention), so this checks our side of that contract, not Paystack's real responses: confirm those in TEST mode.
+const postJson = (path, cookie, body) => staff(path, cookie, { method: "POST", headers: { origin: SITE, "content-type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });
+const ACCOUNT_NUMBER = "0123456789";
+
+// A second booking, paid through the fake checkout and confirmed by the signed webhook, then cancelled and approved
+res = await site(reserveHref);
+html = await res.text();
+form = new FormData();
+for (const [k, v] of hiddenInputs(html, "<form")) form.append(k, v);
+form.set("quantity", "1"); form.set("full_name", "Bea Okoro"); form.set("email", "bea.e2e@example.com"); form.set("phone", "+2348000000001");
+res = await site(reserveHref, { method: "POST", body: form });
+const booking2Path = res.headers.get("location") ?? "";
+check("a second booking is held", res.status === 303 && /^\/booking\/[\w-]+\.[\w-]+$/.test(booking2Path), `status ${res.status} location ${booking2Path}`);
+res = await site(booking2Path);
+html = await res.text();
+form = new FormData();
+for (const [k, v] of hiddenInputs(html, "<form")) form.append(k, v);
+res = await site(booking2Path, { method: "POST", body: form });
+const attempt2 = decodeURIComponent((res.headers.get("location") ?? "").split("/checkout/")[1] ?? "");
+const tx2 = await (await fetch(`${FAKE}/_state/${encodeURIComponent(attempt2)}`)).json();
+const charge2 = JSON.stringify({ event: "charge.success", data: { id: tx2.id, reference: attempt2, amount: 1, currency: "USD" } });
+res = await hook(charge2, sign(charge2));
+out = await res.json();
+check("the second booking is paid and confirmed by the signed webhook", res.status === 200 && out.result === "confirmed", JSON.stringify(out));
+const reservation2 = JSON.parse(Buffer.from(booking2Path.split("/").pop().split(".")[0], "base64url").toString()).r;
+c = await call("cancel_reservation", { p_reservation_id: reservation2, p_reason: "bank details e2e", p_idempotency_key: "e2e-cancel-bank" }, OWNER);
+check("the owner cancels it", c.status === 200 && c.body?.status === "cancelled", JSON.stringify(c));
+const refundRow = async () => (await (await api(SERVICE_JWT, `/refunds?reservation_id=eq.${reservation2}&select=id,refund_status,amount_minor,needs_bank_details,provider_refund_id,details_retry_started_at`)).json())[0];
+let r2 = await refundRow();
+check("a refund for everything paid was requested", r2?.refund_status === "requested" && r2.amount_minor === 5000000, JSON.stringify(r2));
+c = await call("approve_refund", { p_refund_id: r2.id, p_approve: true, p_note: null, p_idempotency_key: "e2e-approve-bank" }, ACCOUNTANT);
+check("the accountant approves it", c.status === 200, JSON.stringify(c));
+
+// Pay out through the real route: our app calls the fake POST /refund
+res = await postJson(`/api/staff/refunds/${r2.id}/payout`, HK_COOKIE);
+check("a login without refund rights cannot start the payout", res.status === 404, `status ${res.status}`);
+res = await postJson(`/api/staff/refunds/${r2.id}/payout`, OWNER_B_COOKIE);
+check("another hotel's owner cannot start it either", res.status === 404, `status ${res.status}`);
+res = await postJson(`/api/staff/refunds/${r2.id}/payout`, OWNER_COOKIE);
+let pay = await res.json();
+check("the payout is sent to Paystack and comes back submitted (pending)", res.status === 200 && pay.status === "submitted" && pay.providerStatus === "pending", JSON.stringify(pay));
+const fakeRefund = await (await fetch(`${FAKE}/_refund/by-tx/${encodeURIComponent(attempt2)}`)).json();
+check("Paystack was asked to refund our transaction reference, the full amount in kobo, once",
+  fakeRefund.transaction === attempt2 && fakeRefund.amount === 5000000 && fakeRefund.currency === "NGN" && String(fakeRefund.merchant_note).startsWith("Refund "), JSON.stringify(fakeRefund));
+r2 = await refundRow();
+check("the refund is processing and does not yet ask for bank details", r2.refund_status === "processing" && r2.needs_bank_details === false, JSON.stringify(r2));
+
+// The banks route needs an open bank-details retry
+res = await staff(`/api/staff/refunds/${r2.id}/banks`, OWNER_COOKIE);
+check("the bank list is refused while Paystack has not asked for details", res.status === 409, `status ${res.status}`);
+
+// Paystack says it needs the customer's bank details
+const attention = { id: fakeRefund.id, status: "needs-attention", transaction_reference: attempt2, amount: "5000000", currency: "NGN" };
+res = await refundHook({ ...attention, amount: "4999999" }, "refund.needs-attention");
+out = await res.json();
+check("a needs-attention event for the wrong amount matches nothing", out.result === "ignored_no_match", JSON.stringify(out));
+res = await refundHook(attention, "refund.needs-attention");
+out = await res.json();
+check("the needs-attention event opens the bank-details retry", res.status === 200 && out.result === "noted_attention", JSON.stringify(out));
+r2 = await refundRow();
+check("the refund asks for bank details and keeps Paystack's own refund id", r2.needs_bank_details === true && r2.provider_refund_id === String(fakeRefund.id) && r2.refund_status === "processing", JSON.stringify(r2));
+
+res = await staff(`/api/staff/refunds/${r2.id}/banks`, HK_COOKIE);
+check("a login without refund rights cannot read the bank list", res.status === 404, `status ${res.status}`);
+res = await staff(`/api/staff/refunds/${r2.id}/banks`, OWNER_B_COOKIE);
+check("another hotel's owner cannot read it either", res.status === 404, `status ${res.status}`);
+res = await staff(`/api/staff/refunds/${r2.id}/banks`, null);
+check("nor can someone signed out", res.status === 401, `status ${res.status}`);
+res = await staff(`/api/staff/refunds/${r2.id}/banks`, OWNER_COOKIE);
+const bankList = await res.json();
+check("the bank list follows Paystack's cursor to the second page, with ids as text, sorted by name",
+  res.status === 200 && bankList.currency === "NGN" && JSON.stringify(bankList.banks) === JSON.stringify([{ id: "301", name: "Access Bank" }, { id: "302", name: "Guaranty Trust Bank" }, { id: "303", name: "Zenith Bank" }]), JSON.stringify(bankList));
+const bankQueries = await (await fetch(`${FAKE}/_banks`)).json();
+check("it asked for Nigerian naira banks with cursor paging", bankQueries.length === 2 && bankQueries[0].currency === "NGN" && bankQueries[0].country === "nigeria" && bankQueries[0].use_cursor === "true" && bankQueries[0].perPage === "100" && bankQueries[1].next === "cur2", JSON.stringify(bankQueries));
+
+// Details: typos are refused before the one-shot guard is used
+res = await postJson(`/api/staff/refunds/${r2.id}/details`, OWNER_COOKIE, { bankId: "302", accountNumber: "12345" });
+check("an account number of the wrong length is refused", res.status === 400 && (await res.json()).error === "account_invalid", `status ${res.status}`);
+res = await postJson(`/api/staff/refunds/${r2.id}/details`, OWNER_COOKIE, { accountNumber: ACCOUNT_NUMBER });
+check("a missing bank is refused", res.status === 400, `status ${res.status}`);
+res = await postJson(`/api/staff/refunds/${r2.id}/details`, HK_COOKIE, { bankId: "302", accountNumber: ACCOUNT_NUMBER });
+check("a login without refund rights cannot send details", res.status >= 400 && res.status < 500, `status ${res.status}`);
+check("none of that reached Paystack or used the attempt", (await (await fetch(`${FAKE}/_refund/${fakeRefund.id}`)).json()).retries === 0 && (await refundRow()).details_retry_started_at === null);
+
+// Paystack answers 422 unless it has just sent needs-attention: a definite refusal frees the attempt
+await fetch(`${FAKE}/_refund/${fakeRefund.id}/state`, { method: "POST", body: JSON.stringify({ state: "pending" }) });
+res = await postJson(`/api/staff/refunds/${r2.id}/details`, OWNER_COOKIE, { bankId: "302", accountNumber: ACCOUNT_NUMBER });
+let det = await res.json();
+check("Paystack's 422 comes back as a refusal with its reason", res.status === 422 && det.status === "rejected" && /needs-attention/.test(det.reason ?? ""), `status ${res.status} ${JSON.stringify(det)}`);
+r2 = await refundRow();
+check("the refusal freed the attempt and the refund still waits for details", r2.details_retry_started_at === null && r2.needs_bank_details === true, JSON.stringify(r2));
+
+// Now Paystack is ready: the same details go through, once
+await fetch(`${FAKE}/_refund/${fakeRefund.id}/state`, { method: "POST", body: JSON.stringify({ state: "needs-attention" }) });
+res = await postJson(`/api/staff/refunds/${r2.id}/details`, OWNER_COOKIE, { bankId: "302", accountNumber: "0123 456-789" });
+det = await res.json();
+check("the details are accepted by Paystack", res.status === 200 && det.status === "submitted", `status ${res.status} ${JSON.stringify(det)}`);
+const afterRetry = await (await fetch(`${FAKE}/_refund/${fakeRefund.id}`)).json();
+check("Paystack received the currency, the bank id and the account number with spaces and dashes removed, exactly once",
+  afterRetry.retries === 1 && afterRetry.state === "processing" && JSON.stringify(afterRetry.details) === JSON.stringify({ currency: "NGN", account_number: ACCOUNT_NUMBER, bank_id: "302" }), JSON.stringify(afterRetry));
+r2 = await refundRow();
+check("once Paystack accepted the details the refund stops asking for them", r2.refund_status === "processing" && r2.needs_bank_details === false, JSON.stringify(r2));
+res = await postJson(`/api/staff/refunds/${r2.id}/details`, OWNER_COOKIE, { bankId: "302", accountNumber: ACCOUNT_NUMBER });
+det = await res.json();
+check("sending them again is refused and does not reach Paystack", res.status === 409 && /INVALID_STATE/.test(det.error ?? "") && (await (await fetch(`${FAKE}/_refund/${fakeRefund.id}`)).json()).retries === 1, `status ${res.status} ${JSON.stringify(det)}`);
+
+// Paystack finishes the refund
+const processed = { id: fakeRefund.id, status: "processed", transaction_reference: attempt2, refund_reference: "rf_e2e_bank", amount: "5000000", currency: "NGN" };
+res = await refundHook(processed, "refund.processed");
+out = await res.json();
+check("refund.processed completes the refund", res.status === 200 && out.result === "succeeded", JSON.stringify(out));
+r2 = await refundRow();
+check("the refund is done and no longer asks for bank details", r2.refund_status === "succeeded" && r2.needs_bank_details === false, JSON.stringify(r2));
+const refundMail2 = await waitForEmail((m) => m.to[0] === "bea.e2e@example.com" && m.subject.startsWith("Refund processed"));
+check("the guest got the refund email", !!refundMail2 && refundMail2.text.includes("50,000.00"), JSON.stringify(refundMail2)?.slice(0, 200));
+
+// The customer's bank and account number are only ever passed to Paystack
+const refundFull = JSON.stringify(await (await api(SERVICE_JWT, `/refunds?id=eq.${r2.id}&select=*`)).json());
+const refundAudit = JSON.stringify(await (await api(SERVICE_JWT, `/audit_logs?entity_id=eq.${r2.id}&select=*`)).json());
+check("the account number is nowhere in the refund row or its audit trail", !refundFull.includes(ACCOUNT_NUMBER) && !refundAudit.includes(ACCOUNT_NUMBER) && !refundAudit.includes("0123"), "found in a stored row");
+check("the audit trail records the needs-details outcome without the details", refundAudit.includes("refund.needs_bank_details"));
+
 console.log(failures === 0 ? `E2E PASSED (${reference})` : `E2E FAILED: ${failures} check(s)`);
 process.exit(failures === 0 ? 0 : 1);
