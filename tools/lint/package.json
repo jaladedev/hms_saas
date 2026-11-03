@@ -1,0 +1,17 @@
+{
+  "name": "hms-lint",
+  "private": true,
+  "description": "ESLint runs here, with its own TypeScript 6, because typescript-eslint does not support TypeScript 7 yet (peer range < 6.1). The app itself still builds and typechecks with TypeScript 7. Remove this folder when typescript-eslint supports 7.",
+  "scripts": {
+    "lint": "cd ../.. && eslint --config tools/lint/eslint.config.mjs --max-warnings=0 ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@next/eslint-plugin-next": "^16.4.3",
+    "eslint": "^9.0.0",
+    "eslint-plugin-react-hooks": "^7.0.0",
+    "globals": "^16.0.0",
+    "typescript": "~6.0.0",
+    "typescript-eslint": "^8.72.0"
+  }
+}

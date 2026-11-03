@@ -512,7 +512,7 @@ for (const [label, run, want] of refused) {
   check(`${label} is refused (${want})`, r.status === 303 && outcome(r).get("err") === want && outcome(r).get("ok") === null, `${r.status} ${r.headers.get("location")}`);
 }
 check("none of those refusals changed a rule or wrote an audit row", JSON.stringify(await everyRule()) === rulesSnapshot && (await taxAuditIds()).length === auditBefore);
-for (const [code, kind, words_] of [
+for (const [code, _kind, words_] of [
   ["tax_rule_created", "status", ["Tax rule added.", "does not tax extras until you switch that on"]],
   ["tax_rule_updated", "status", ["Tax rule saved.", "keep the tax they were made with"]],
   ["tax_extras_off", "status", ["no longer taxed with this rule"]],
@@ -691,7 +691,7 @@ const HK_ID = "00000000-0000-0000-0000-00000000aa06", GUEST_A = "00000000-0000-0
 const HK_COOKIE = session(HK_ID, "hk@hotel-a.test");
 // The hotel's own calendar day (the seed gives Hotel A Africa/Lagos); property_today() is an internal helper that logins cannot call.
 const dayOf = async () => new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Lagos" });
-const tonight = await dayOf(), tomorrow = new Date(Date.parse(`${tonight}T00:00:00Z`) + 86400000).toISOString().slice(0, 10), dayAfter = new Date(Date.parse(`${tonight}T00:00:00Z`) + 2 * 86400000).toISOString().slice(0, 10);
+const tonight = await dayOf(), dayAfter = new Date(Date.parse(`${tonight}T00:00:00Z`) + 2 * 86400000).toISOString().slice(0, 10);
 const booked = await call("create_reservation", { p_property_id: PROPERTY_A, p_primary_guest_id: GUEST_A, p_source: "staff_entry", p_arrival: tonight, p_departure: dayAfter,
   p_rooms: [{ room_type_id: TYPE_SOLO, requested_room_id: null, adults: 1 }], p_idempotency_key: "e2e-board-booking" }, OWNER_JWT);
 check("the owner books the Solo Suite for tonight", booked.status === 200 && Boolean(booked.body?.rooms?.[0]?.reservation_room_id), JSON.stringify(booked));

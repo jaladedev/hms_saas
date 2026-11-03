@@ -73,7 +73,6 @@ export default async function SettlementPage({
   const guestName = (guestQ.data as { full_name?: string } | null)?.full_name;
   const canRequest = canRequestQ.data === true;
   const money = (m: number) => formatMoney(m, res.currency);
-  const cancelled = res.reservation_status === "cancelled";
 
   // Prefill each refund form with what the settlement still says is owed, newest payment first.
   let toRequest = settlement?.refund_still_to_request_minor ?? 0;

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { HoldCountdown } from "@/components/site/hold-countdown";
 import { verifyBookingToken } from "@/lib/booking-token";
 import { serverEnv } from "@/lib/env";
@@ -55,12 +56,12 @@ export default async function BookingPage({ params, searchParams }: Props) {
       ) : null}
       {b.status === "pending" && !awaitingConfirmation && !holdLive ? (
         <p className="mt-4 rounded border border-pending/40 bg-white p-3 text-pending">
-          This reservation hold has expired. <a href="/" className="underline">Search again</a> to make a new one.
+          This reservation hold has expired. <Link href="/" className="underline">Search again</Link> to make a new one.
         </p>
       ) : null}
       {b.status === "expired" ? (
         <p className="mt-4 rounded border border-pending/40 bg-white p-3 text-pending">
-          This reservation expired because payment was not completed. <a href="/" className="underline">Search again</a> to book.
+          This reservation expired because payment was not completed. <Link href="/" className="underline">Search again</Link> to book.
         </p>
       ) : null}
       {b.status === "cancelled" ? (

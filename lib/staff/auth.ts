@@ -8,6 +8,8 @@
 export function safeNext(value: string | null | undefined): string {
   if (!value || value.length > 500) return "/app";
   if (!/^\/app(?:[/?#]|$)/.test(value)) return "/app";
+  // Control characters are rejected on purpose.
+  // eslint-disable-next-line no-control-regex
   if (/[\\\s\u0000-\u001f]/.test(value) || value.includes("//")) return "/app";
   return value;
 }

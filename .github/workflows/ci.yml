@@ -12,6 +12,8 @@ jobs:
         with: { node-version: 22, cache: npm }
       - run: npm ci
       - run: npm run typecheck
+      - run: npm ci --prefix tools/lint
+      - run: npm run lint
       - run: npm test
       - run: npm run build
 

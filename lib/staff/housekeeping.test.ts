@@ -48,7 +48,7 @@ describe("buildWorklist", () => {
   });
 
   it("orders by floor, then room number naturally", () => {
-    const w = buildWorklist(["210", "102", "21", "101"].map((n, i) => room(n, { housekeeping_status: "dirty", floor: n === "21" ? 2 : Number(n[0]) })), [], TODAY);
+    const w = buildWorklist(["210", "102", "21", "101"].map((n) => room(n, { housekeeping_status: "dirty", floor: n === "21" ? 2 : Number(n[0]) })), [], TODAY);
     expect(nums(w.toClean)).toEqual(["101", "102", "21", "210"]);
   });
 

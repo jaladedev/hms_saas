@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "db:test": "bash supabase/tests/run.sh",
     "test": "vitest run",
-    "e2e": "bash e2e/run.sh"
+    "e2e": "bash e2e/run.sh",
+    "lint": "npm run lint --prefix tools/lint"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
