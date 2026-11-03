@@ -1,66 +1,56 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { addDays, CHANNELS, defaultRange, earnedMinor, isQuiet, MAX_REPORT_DAYS, parseRange, presets, taxMinor, type ReportDay } from "./reports";
+import { dayOccupancy, parseRange, toCsv, totals, type ReportDay } from "./reports";
 
-const TODAY = "2026-11-03";
-const day = (over: Partial<ReportDay> = {}): ReportDay => ({
-  date: TODAY, online_minor: 0, cash_minor: 0, bank_transfer_minor: 0, pos_minor: 0, other_minor: 0, received_minor: 0, refunded_minor: 0, net_minor: 0,
-  room_revenue_minor: 0, room_tax_minor: 0, extras_minor: 0, extras_tax_minor: 0, cancellation_charges_minor: 0, ...over,
-});
-
-describe("addDays", () => {
-  it("moves across months, years and leap days", () => {
-    expect(addDays("2026-11-03", -6)).toBe("2026-10-28");
-    expect(addDays("2026-12-31", 1)).toBe("2027-01-01");
-    expect(addDays("2028-03-01", -1)).toBe("2028-02-29");
-    expect(addDays("2026-11-03", 0)).toBe("2026-11-03");
-  });
+const row = (o: Partial<ReportDay>): ReportDay => ({
+  day: "2026-11-01", rooms_available: 10, rooms_sold: 5, room_revenue_minor: 5_000_000, room_tax_minor: 375_000,
+  extras_minor: 200_000, extras_tax_minor: 15_000, cash_in_minor: 3_000_000, refunds_paid_minor: 500_000, ...o,
 });
 
 describe("parseRange", () => {
-  it("opens on the last 7 days when nothing is asked", () => {
-    expect(parseRange({}, TODAY)).toEqual({ from: "2026-10-28", to: TODAY, fixed: false });
-    expect(defaultRange(TODAY)).toEqual({ from: "2026-10-28", to: TODAY });
+  it("defaults to the last 7 days ending today", () => {
+    expect(parseRange(undefined, undefined, "2026-11-03")).toEqual({ from: "2026-10-28", to: "2026-11-03", trimmed: false });
+    expect(parseRange("nope", "2026-11-03", "2026-11-03").from).toBe("2026-10-28");
+    expect(parseRange("2026-02-30", "2026-03-01", "2026-11-03").to).toBe("2026-11-03");
   });
-  it("takes a good range as it is, one day included", () => {
-    expect(parseRange({ from: "2026-10-01", to: "2026-10-31" }, TODAY)).toEqual({ from: "2026-10-01", to: "2026-10-31", fixed: false });
-    expect(parseRange({ from: TODAY, to: TODAY }, TODAY)).toEqual({ from: TODAY, to: TODAY, fixed: false });
+  it("keeps a good range and swaps a reversed one", () => {
+    expect(parseRange("2026-11-01", "2026-11-03", "2026-11-03")).toEqual({ from: "2026-11-01", to: "2026-11-03", trimmed: false });
+    expect(parseRange("2026-11-03", "2026-11-01", "2026-11-03")).toEqual({ from: "2026-11-01", to: "2026-11-03", trimmed: false });
   });
-  it("allows exactly 92 days and no more, as the database does", () => {
-    expect(parseRange({ from: "2026-08-01", to: addDays("2026-08-01", MAX_REPORT_DAYS - 1) }, TODAY).fixed).toBe(false);
-    expect(parseRange({ from: "2026-08-01", to: addDays("2026-08-01", MAX_REPORT_DAYS) }, TODAY).fixed).toBe(true);
+  it("cuts a long range to the most recent 92 days", () => {
+    const r = parseRange("2026-01-01", "2026-11-03", "2026-11-03");
+    expect(r.trimmed).toBe(true);
+    expect(r.to).toBe("2026-11-03");
+    expect((Date.parse(r.to) - Date.parse(r.from)) / 86_400_000 + 1).toBe(92);
   });
-  it("falls back to the default, and says so, for anything unusable", () => {
-    for (const s of [{ from: "2026-10-31", to: "2026-10-01" }, { from: "2026-02-30", to: TODAY }, { from: "x", to: "y" }, { from: TODAY }, { to: TODAY }, { from: ["a", "b"], to: TODAY }]) {
-      expect(parseRange(s as never, TODAY), JSON.stringify(s)).toEqual({ from: "2026-10-28", to: TODAY, fixed: true });
-    }
-  });
-  it("uses the same 92-day limit as migration 036", () => {
-    const sql = readFileSync(new URL("../../supabase/migrations/20261026000036_daily_report.sql", import.meta.url), "utf8");
-    expect(sql).toMatch(/p_to - p_from > 91/);
-    expect(MAX_REPORT_DAYS).toBe(92);
-  });
-});
-
-describe("presets", () => {
-  it("are all valid ranges ending today or yesterday", () => {
-    for (const p of presets(TODAY)) expect(parseRange({ from: p.from, to: p.to }, TODAY).fixed, p.label).toBe(false);
-    expect(presets(TODAY).find((p) => p.label === "This month")).toMatchObject({ from: "2026-11-01", to: TODAY });
-    expect(presets(TODAY).find((p) => p.label === "Yesterday")).toMatchObject({ from: "2026-11-02", to: "2026-11-02" });
+  it("ignores values that are not text, such as a repeated query parameter", () => {
+    expect(parseRange(["2026-11-01", "2026-11-02"], "2026-11-03", "2026-11-03").from).toBe("2026-10-28");
   });
 });
 
 describe("totals", () => {
-  it("earned is before tax and includes extras and cancellation charges; tax is shown apart", () => {
-    const d = day({ room_revenue_minor: 100, room_tax_minor: 7, extras_minor: 20, extras_tax_minor: 2, cancellation_charges_minor: 30 });
-    expect(earnedMinor(d)).toBe(150);
-    expect(taxMinor(d)).toBe(9);
+  it("adds earned and cash separately", () => {
+    const t = totals([row({}), row({ day: "2026-11-02", rooms_sold: 0, room_revenue_minor: 0, room_tax_minor: 0, extras_minor: 0, extras_tax_minor: 0, cash_in_minor: 0, refunds_paid_minor: 100_000 })]);
+    expect(t.roomNights).toBe(5);
+    expect(t.occupancyPercent).toBe(25);
+    expect(t.earned).toBe(5_200_000);
+    expect(t.cashNet).toBe(3_000_000 - 600_000);
+    expect(t.averageRate).toBe(1_000_000);
   });
-  it("calls a day quiet only when nothing at all happened", () => {
-    expect(isQuiet(day())).toBe(true);
-    for (const o of [{ received_minor: 1 }, { refunded_minor: 1 }, { room_revenue_minor: 1 }, { extras_tax_minor: 1 }, { cancellation_charges_minor: 1 }]) expect(isQuiet(day(o)), JSON.stringify(o)).toBe(false);
+  it("has no occupancy or average rate when there is nothing to divide by", () => {
+    expect(totals([])).toMatchObject({ days: 0, occupancyPercent: null, averageRate: null, earned: 0 });
+    expect(totals([row({ rooms_available: 0, rooms_sold: 0, room_revenue_minor: 0 })]).occupancyPercent).toBeNull();
   });
-  it("lists every way money arrives", () => {
-    expect(CHANNELS.map((c) => c.key)).toEqual(["online_minor", "cash_minor", "bank_transfer_minor", "pos_minor", "other_minor"]);
+  it("rounds occupancy to one decimal", () => {
+    expect(dayOccupancy({ rooms_sold: 1, rooms_available: 3 })).toBe(33.3);
+    expect(dayOccupancy({ rooms_sold: 0, rooms_available: 0 })).toBeNull();
+  });
+});
+
+describe("toCsv", () => {
+  it("writes a header, one line a day and naira with two decimals", () => {
+    const csv = toCsv([row({})]);
+    expect(csv.split("\n")[0]).toBe("Date,Rooms available,Rooms sold,Occupancy %,Room revenue,Room tax,Extras,Extras tax,Cash received,Refunds paid");
+    expect(csv.split("\n")[1]).toBe("2026-11-01,10,5,50,50000.00,3750.00,2000.00,150.00,30000.00,5000.00");
+    expect(csv.endsWith("\n")).toBe(true);
   });
 });
