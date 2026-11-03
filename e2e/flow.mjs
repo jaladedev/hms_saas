@@ -605,7 +605,7 @@ check("the policies page sends a signed-out visitor to sign in", res.status === 
 
 res = await staff("/app/settings/policies", OWNER_COOKIE);
 let polHtml = await res.text();
-check("the owner sees the policies page with the publish form", res.status === 200 && polHtml.includes("Cancellation and payment policies") && polHtml.includes("Publish version 1"), `status ${res.status}`);
+check("the owner sees the policies page with the publish form", res.status === 200 && sees(pageText(polHtml), "Cancellation and payment policies", "Publish version 1"), `status ${res.status} ${pageText(polHtml).slice(0, 300)}`);
 const polBlock = formWith(polHtml, 'name="effectiveFrom"');
 check("the publish form carries a server action and the property", Boolean(polBlock) && /\$ACTION_ID_/.test(polBlock) && polBlock.includes(PROPERTY_A), polBlock?.slice(0, 200));
 
@@ -672,7 +672,7 @@ check("setup history shows the published versions under their own filter", sees(
 // The guest side. Versions start in 2090, so the host still gets the defaults today; the function is closed to everyone but the server.
 const guestPol = await api(SERVICE_JWT, "/rpc/guest_policy", { method: "POST", body: JSON.stringify({ p_host: HOST }) });
 const guestPolBody = await guestPol.json();
-check("guest_policy answers the server with only the four keys guests need", guestPol.ok && Object.keys(guestPolBody).sort().join() === "cancellation_rules,checkin_payment,currency,online_payment", JSON.stringify(guestPolBody));
+check("guest_policy answers the server with only the keys guests need (terms, currency, and whether they may cancel themselves)", guestPol.ok && Object.keys(guestPolBody).sort().join() === "cancellation_rules,checkin_payment,currency,guest_cancellation,online_payment", JSON.stringify(guestPolBody));
 const guestPolOwner = await api(OWNER_JWT, "/rpc/guest_policy", { method: "POST", body: JSON.stringify({ p_host: HOST }) });
 check("guest_policy is refused to a signed-in person", !guestPolOwner.ok);
 res = await site(reserveHref);
