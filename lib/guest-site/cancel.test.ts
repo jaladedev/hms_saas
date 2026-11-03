@@ -31,7 +31,7 @@ describe("cancelSummary", () => {
 
 describe("notAllowedText", () => {
   it("has a sentence for each reason and a safe default", () => {
-    for (const w of ["status", "started", "too_late", null] as const) expect(notAllowedText(w)).toMatch(/hotel|release/);
+    for (const w of ["status", "started", "too_late", "disabled", null] as const) expect(notAllowedText(w)).toMatch(/hotel|release/);
     expect(notAllowedText("too_late")).toMatch(/check-in time/);
   });
 });
@@ -49,7 +49,8 @@ describe("guest error wording", () => {
     expect(friendlyError("POLICY_VIOLATION: charge changed").code).toBe("charge_changed");
     expect(friendlyError("INVALID_STATE: too late").code).toBe("cancel_too_late");
     for (const s of ["cancelled", "checked_in", "checked_out", "no_show"]) expect(friendlyError(`INVALID_STATE: ${s}`).code, s).toBe("cancel_not_allowed");
-    for (const c of ["charge_changed", "cancel_too_late", "cancel_not_allowed"]) expect(messageForCode(c), c).toBeTruthy();
+    expect(friendlyError("INVALID_STATE: disabled").code).toBe("cancel_disabled");
+    for (const c of ["charge_changed", "cancel_too_late", "cancel_not_allowed", "cancel_disabled"]) expect(messageForCode(c), c).toBeTruthy();
   });
   it("only uses texts the migration really raises", () => {
     const sql = readFileSync(new URL("../../supabase/migrations/20261026000035_guest_cancel.sql", import.meta.url), "utf8");

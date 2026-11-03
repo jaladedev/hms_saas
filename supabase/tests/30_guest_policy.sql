@@ -18,11 +18,11 @@ end $$;
 -- 2. Keys a guest does not need are not returned
 do $$ declare r jsonb; begin
   r := guest_policy('book.hotel-a.test');
-  if (select count(*) from jsonb_object_keys(r)) <> 4
-     or not (r ?& array['currency','cancellation_rules','online_payment','checkin_payment']) then
+  if (select count(*) from jsonb_object_keys(r)) <> 5
+     or not (r ?& array['currency','cancellation_rules','online_payment','checkin_payment','guest_cancellation']) then
     raise exception 'FAIL extra keys %', r;
   end if;
-  raise notice 'PASS guest_policy returns only the four keys guests need';
+  raise notice 'PASS guest_policy returns only the five keys guests need';
 end $$;
 
 -- 3. Another hotel sees its own (empty) policy, never this one's; an unverified or unknown host finds nothing

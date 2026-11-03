@@ -9,6 +9,7 @@ const RULES: Array<[RegExp, GuestError]> = [
   [/POLICY_VIOLATION: (stay too long|arrival too far ahead|arrival in the past|departure must follow arrival)/, { code: "dates", message: "Please check your dates." }],
   [/hold lapsed|INVALID_STATE: (pending|expired)/, { code: "hold_lapsed", message: "Your reservation hold has expired. Please search again to make a new reservation." }],
   [/POLICY_VIOLATION: charge changed/, { code: "charge_changed", message: "The cancellation charge changed while you were reading. Please check the new amount below and confirm again." }],
+  [/INVALID_STATE: disabled/, { code: "cancel_disabled", message: "This hotel does not take cancellations online. Please contact the hotel." }],
   [/INVALID_STATE: too late/, { code: "cancel_too_late", message: "It is too late to cancel online. Please contact the hotel." }],
   [/INVALID_STATE: (cancelled|checked_in|checked_out|no_show)/, { code: "cancel_not_allowed", message: "This booking can no longer be cancelled online. Please contact the hotel." }],
   [/INVALID_STATE: nothing due/, { code: "nothing_due", message: "Nothing is left to pay on this booking." }],

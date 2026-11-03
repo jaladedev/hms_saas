@@ -18,13 +18,34 @@ describe("readConfig", () => {
     expect(cfg.checkin_payment).toBe("full");
   });
   it("falls back to what the database falls back to: full payment, no check-in requirement, no rules", () => {
-    expect(readConfig({})).toEqual({ cancellation_rules: [], online_payment: { mode: "full" }, checkin_payment: "none" });
+    expect(readConfig({})).toEqual({ cancellation_rules: [], online_payment: { mode: "full" }, checkin_payment: "none", guest_cancellation: "on" });
     expect(readConfig(null).online_payment).toEqual({ mode: "full" });
     expect(readConfig({ online_payment: { mode: "deposit_percent", value: 0 } }).online_payment).toEqual({ mode: "full" });
   });
   it("drops rules it cannot use instead of guessing", () => {
     const cfg = readConfig({ cancellation_rules: [{ within_hours: -1, charge: { type: "percent", value: 10 } }, { within_hours: 5, charge: { type: "weird", value: 1 } }, "x", { within_hours: 5 }] });
     expect(cfg.cancellation_rules).toEqual([]);
+  });
+});
+
+describe("guest cancellation setting", () => {
+  const form = { propertyId: "6f1c1c1e-2b7a-4a55-9a43-1d2a8d9a1f10", effectiveFrom: "2026-12-01", onlineMode: "full", depositPercent: "30", checkinPayment: "none" };
+  it("reads on unless the policy says off", () => {
+    expect(readConfig({}).guest_cancellation).toBe("on");
+    expect(readConfig({ guest_cancellation: "off" }).guest_cancellation).toBe("off");
+    for (const v of ["OFF", "no", false, 0, null]) expect(readConfig({ guest_cancellation: v }).guest_cancellation, String(v)).toBe("on");
+  });
+  it("takes on or off from the form, treats a missing field as on and refuses anything else", () => {
+    expect(validatePolicy({ ...form, guestCancellation: "off" })).toMatchObject({ ok: true, value: { config: { guest_cancellation: "off" } } });
+    expect(validatePolicy({ ...form, guestCancellation: "on" })).toMatchObject({ ok: true, value: { config: { guest_cancellation: "on" } } });
+    expect(validatePolicy(form)).toMatchObject({ ok: true, value: { config: { guest_cancellation: "on" } } });
+    expect(validatePolicy({ ...form, guestCancellation: "maybe" })).toEqual({ ok: false, code: "policy_invalid", field: "rules" });
+  });
+  it("replaces the old value when a new version is saved, and tells guests to contact the hotel when it is off", () => {
+    expect(mergeConfig({ guest_cancellation: "off", check_in_time: "14:00" }, readConfig({}))).toMatchObject({ guest_cancellation: "on", check_in_time: "14:00" });
+    const lines = guestSummary(readConfig({ guest_cancellation: "off" }), (m) => String(m));
+    expect(lines.at(-1)).toMatch(/contact the hotel/);
+    expect(guestSummary(readConfig({}), (m) => String(m)).join(" ")).not.toMatch(/contact the hotel/);
   });
 });
 
@@ -85,7 +106,7 @@ describe("mergeConfig", () => {
     expect(merged.cancellation_rules).toEqual([]);
   });
   it("copes with no previous version", () => {
-    expect(mergeConfig(null, readConfig({}))).toEqual({ cancellation_rules: [], online_payment: { mode: "full" }, checkin_payment: "none" });
+    expect(mergeConfig(null, readConfig({}))).toEqual({ cancellation_rules: [], online_payment: { mode: "full" }, checkin_payment: "none", guest_cancellation: "on" });
   });
 });
 

@@ -15,11 +15,14 @@ export type ChargeType = "percent" | "nights" | "fixed";
 export type CancellationRule = { within_hours: number; charge: { type: ChargeType; value: number } };
 export type OnlinePayment = { mode: "full" } | { mode: "deposit_percent"; value: number };
 export type CheckinPayment = "none" | "full";
+/** Whether guests may cancel from their booking link (migration 038). Read from the policy in force today, not the booking's snapshot. */
+export type GuestCancellation = "on" | "off";
 
 export type PolicyConfig = {
   cancellation_rules: CancellationRule[];
   online_payment: OnlinePayment;
   checkin_payment: CheckinPayment;
+  guest_cancellation: GuestCancellation;
 };
 
 export type PolicyRow = { id: string; property_id: string; version: number; effective_from: string; config: Record<string, unknown> };
@@ -53,7 +56,7 @@ export function readConfig(config: unknown): PolicyConfig {
   const pct = Number(op.value);
   const online: OnlinePayment = op.mode === "deposit_percent" && Number.isFinite(pct) && pct > 0 && pct <= 100
     ? { mode: "deposit_percent", value: pct } : { mode: "full" };
-  return { cancellation_rules: sortRules(rules), online_payment: online, checkin_payment: c.checkin_payment === "full" ? "full" : "none" };
+  return { cancellation_rules: sortRules(rules), online_payment: online, checkin_payment: c.checkin_payment === "full" ? "full" : "none", guest_cancellation: c.guest_cancellation === "off" ? "off" : "on" };
 }
 
 /** Widest window first, the order a person reads them in. The database picks the smallest window that still covers the time left. */
@@ -90,6 +93,7 @@ export function guestSummary(cfg: PolicyConfig, formatMinor: (minor: number) => 
     lines.push(widest.within_hours > 0 ? `Cancel free of charge until ${describeWindow(widest.within_hours).replace(" or less before check-in", "")} before check-in.` : "Cancel free of charge until check-in time.");
     for (const r of rules) lines.push(`${r.within_hours === 0 ? "After check-in time" : `Within ${describeWindow(r.within_hours).replace(" or less before check-in", "")} of check-in`}, you pay ${describeCharge(r.charge, formatMinor)}.`);
   }
+  if (cfg.guest_cancellation === "off") lines.push("To cancel, contact the hotel: bookings cannot be cancelled online.");
   return lines;
 }
 
@@ -160,13 +164,17 @@ export function validatePolicy(input: PolicyInput):
   const checkin = clean(input.checkinPayment, 10);
   if (checkin !== "none" && checkin !== "full") return bad("rules");
 
-  return { ok: true, value: { propertyId: propertyId.data, effectiveFrom, config: { cancellation_rules: sortRules(rules), online_payment: online, checkin_payment: checkin } } };
+  // A form from before this field existed leaves it out: that means "on", as a policy without the key does.
+  const guestCancel = input.guestCancellation === undefined ? "on" : clean(input.guestCancellation, 5);
+  if (guestCancel !== "on" && guestCancel !== "off") return bad("rules");
+
+  return { ok: true, value: { propertyId: propertyId.data, effectiveFrom, config: { cancellation_rules: sortRules(rules), online_payment: online, checkin_payment: checkin, guest_cancellation: guestCancel } } };
 }
 
 /** The config to store: the previous version's keys this screen does not manage are kept, the managed ones replaced. */
 export function mergeConfig(previous: unknown, next: PolicyConfig): Record<string, unknown> {
   const base = isObject(previous) ? { ...previous } : {};
-  delete base.cancellation_rules; delete base.online_payment; delete base.checkin_payment;
+  delete base.cancellation_rules; delete base.online_payment; delete base.checkin_payment; delete base.guest_cancellation;
   return { ...base, ...next };
 }
 

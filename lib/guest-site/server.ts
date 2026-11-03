@@ -77,7 +77,7 @@ export function searchAvailability(host: string, stay: StayParams) {
   });
 }
 
-export type GuestPolicy = { currency: string; cancellation_rules: unknown; online_payment: unknown; checkin_payment: unknown };
+export type GuestPolicy = { currency: string; cancellation_rules: unknown; online_payment: unknown; checkin_payment: unknown; guest_cancellation: unknown };
 
 /** The cancellation and payment policy in force for the hotel behind this host (migration 032). */
 export function guestPolicy(host: string) {
@@ -102,7 +102,7 @@ export function bookingStatus(reservationId: string) {
 }
 
 export type CancelPreview = {
-  allowed: boolean; why_not: "status" | "started" | "too_late" | null; currency: string;
+  allowed: boolean; why_not: "status" | "started" | "too_late" | "disabled" | null; currency: string;
   charge_minor: number; held_minor: number; refund_minor: number; still_owed_minor: number; hours_before_arrival: number;
 };
 

@@ -123,6 +123,14 @@ export default async function PoliciesPage({ searchParams }: { searchParams: Pro
                       <input id={`dp-${p.id}`} name="depositPercent" inputMode="decimal" defaultValue={String(deposit)} className={`${inputClass} tabular-nums`} />
                     </div>
                     <div className="sm:col-span-2">
+                      <label htmlFor={`gc-${p.id}`} className="block text-sm">Guests cancelling online</label>
+                      <select id={`gc-${p.id}`} name="guestCancellation" defaultValue={cfg.guest_cancellation} className={inputClass}>
+                        <option value="on">Guests can cancel from their booking link</option>
+                        <option value="off">Guests must contact the hotel to cancel</option>
+                      </select>
+                      <p className="mt-1 text-xs text-muted">This applies as soon as the version starts, to bookings already made too. Staff can always cancel. The charge a guest would pay still follows the rules they booked under.</p>
+                    </div>
+                    <div className="sm:col-span-2">
                       <label htmlFor={`cp-${p.id}`} className="block text-sm">Before check-in</label>
                       <select id={`cp-${p.id}`} name="checkinPayment" defaultValue={cfg.checkin_payment} className={inputClass}>
                         <option value="none">The balance can be paid at the desk</option>

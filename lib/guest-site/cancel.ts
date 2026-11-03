@@ -34,6 +34,7 @@ export function cancelSummary(p: CancelPreview, format: (minor: number, currency
 export function notAllowedText(why: CancelPreview["why_not"]): string {
   switch (why) {
     case "too_late": return "It is too late to cancel online because check-in time has passed. Please contact the hotel.";
+    case "disabled": return "This hotel does not take cancellations online. Please contact the hotel to cancel.";
     case "started": return "This stay has already started, so it cannot be cancelled online. Please contact the hotel.";
     case "status": return "This booking cannot be cancelled online. If it is a hold that has not been paid, it will release itself when the time runs out.";
     default: return "This booking cannot be cancelled online. Please contact the hotel.";

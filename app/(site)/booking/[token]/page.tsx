@@ -6,7 +6,8 @@ import { serverEnv } from "@/lib/env";
 import { formatDate, formatMoney, formatTime } from "@/lib/guest-site/format";
 import { messageForCode } from "@/lib/guest-site/errors";
 import { secondsRemaining } from "@/lib/guest-site/hold";
-import { bookingStatus } from "@/lib/guest-site/server";
+import { notAllowedText } from "@/lib/guest-site/cancel";
+import { bookingStatus, cancelPreview } from "@/lib/guest-site/server";
 import { payAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -32,6 +33,7 @@ export default async function BookingPage({ params, searchParams }: Props) {
   const holdLive = b.status === "pending" && b.hold_expires_at !== null && Date.parse(b.hold_expires_at) > Date.now();
   const awaitingConfirmation = justPaid && b.status === "pending";
   const notice = typeof raw.error === "string" ? messageForCode(raw.error) : null;
+  const cancel = b.status === "confirmed" ? await cancelPreview(reservationId) : null;
   const key = crypto.randomUUID();
 
   return (
@@ -90,8 +92,11 @@ export default async function BookingPage({ params, searchParams }: Props) {
           </form>
         </section>
       ) : null}
-      {b.status === "confirmed" ? (
+      {cancel?.ok && cancel.data.allowed ? (
         <p className="mt-6 text-sm"><a href={`/booking/${token}/cancel`} className="underline underline-offset-2">Cancel this booking</a></p>
+      ) : null}
+      {cancel?.ok && !cancel.data.allowed ? (
+        <p className="mt-6 text-sm text-muted">{notAllowedText(cancel.data.why_not)}</p>
       ) : null}
       {(b.status === "confirmed" && b.outstanding_minor > 0) ? (
         <section className="mt-6 rounded border border-line bg-white p-4">
