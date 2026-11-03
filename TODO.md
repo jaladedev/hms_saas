@@ -65,8 +65,8 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [ ] Operation functions still to build: settlement on cancellation, payment verification workflow, early check-in policy, settlement or credit on cancel and early check-out, cancel-resolution for blocks
 - [x] `refresh_reservation_payment_status` (010)
 - [ ] Reporting views, `guest_booking_status`
-- [ ] `room_board_view` for roles that must not read rates or guests (a `housekeeping_task_view` is not needed: tasks hold no guest or rate data and are readable with `housekeeping.view`)
-- [ ] Full security suite from System Design 6.3, including refund requester != approver and property-scoped roles
+- [x] `room_board_view` not needed: `rooms` and `room_inventory_claims` hold no guest or rate data (claims carry only ids, dates and a block reason), and `35_role_isolation.sql` proves housekeeping and maintenance read none. Build a view only if claims ever gain guest or rate columns. Original note: for roles that must not read rates or guests (a `housekeeping_task_view` is not needed: tasks hold no guest or rate data and are readable with `housekeeping.view`)
+- [ ] Full security suite from System Design 6.3, including refund requester != approver and property-scoped roles. Done: `35_role_isolation.sql` (housekeeping and maintenance read no guest, rate, tax, policy, money, email or audit rows across 25 tables; passes). Still open: the other roles, property-scoped roles, refund requester != approver
 - [x] Guard against role escalation (migration 019): giving, removing or suspending needs every permission of the role at a covering scope plus tenant-wide `staff.manage`; nobody changes their own access; the last active owner cannot be removed or suspended; revoking clears roles
 
 ## Phase 3: Staff MVP (UI)

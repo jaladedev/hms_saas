@@ -133,6 +133,10 @@ PV="$(psql -f "$HERE/34_policy_config_valid.sql" 2>&1)" || { echo "$PV"; echo "P
 echo "$PV" | grep -E 'PASS' || true
 if echo "$PV" | grep -qE 'FAIL|ERROR'; then echo "$PV"; echo "POLICY VALIDITY TESTS FAILED"; exit 1; fi
 
+RI="$(psql -f "$HERE/35_role_isolation.sql" 2>&1)" || { echo "$RI"; echo "ROLE ISOLATION TESTS FAILED"; exit 1; }
+echo "$RI" | grep -E 'PASS' || true
+if echo "$RI" | grep -qE 'FAIL|ERROR'; then echo "$RI"; echo "ROLE ISOLATION TESTS FAILED"; exit 1; fi
+
 AN="$(psql -f "$HERE/27_audit_actor_names.sql" 2>&1)" || { echo "$AN"; echo "AUDIT ACTOR NAME TESTS FAILED"; exit 1; }
 echo "$AN" | grep -E 'PASS' || true
 if echo "$AN" | grep -qE 'FAIL|ERROR'; then echo "$AN"; echo "AUDIT ACTOR NAME TESTS FAILED"; exit 1; fi
