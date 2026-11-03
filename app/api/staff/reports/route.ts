@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-/** The daily report as a CSV file. It runs as the signed-in person: `daily_report` answers only to report.view. */
+/** The daily report as a CSV file. It runs as the signed-in person: needs report.export here, and `daily_report` checks report.view again. */
 export async function GET(request: Request) {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
@@ -14,6 +14,10 @@ export async function GET(request: Request) {
   const propertyId = q.get("property") ?? "";
   const { data: prop } = await supabase.from("properties").select("id, timezone").eq("id", propertyId).maybeSingle();
   if (!prop) return new Response("Not found.", { status: 404 });
+
+  // Downloading needs report.export on top of report.view (the occupancy download works the same way).
+  const { data: mayExport } = await supabase.rpc("has_permission", { p_property: prop.id, p_permission: "report.export" });
+  if (mayExport !== true) return new Response("Not found.", { status: 404 });
 
   const range = parseRange(q.get("from"), q.get("to"), todayIn(prop.timezone, new Date()));
   const { data, error } = await supabase.rpc("daily_report", { p_property: prop.id, p_from: range.from, p_to: range.to });
