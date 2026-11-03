@@ -10,6 +10,7 @@ export const RATE_RULES = {
   holdEmail: { limit: 6, windowSeconds: 3600 },
   pay: { limit: 10, windowSeconds: 3600 },
   payReservation: { limit: 6, windowSeconds: 3600 },
+  cancelReservation: { limit: 6, windowSeconds: 3600 },
   link: { limit: 5, windowSeconds: 3600 },
   linkEmail: { limit: 3, windowSeconds: 3600 },
 } as const satisfies Record<string, RateRule>;

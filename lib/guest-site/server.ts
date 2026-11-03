@@ -101,6 +101,21 @@ export function bookingStatus(reservationId: string) {
   return call<BookingStatus>("guest_booking_status", { p_reservation_id: reservationId });
 }
 
+export type CancelPreview = {
+  allowed: boolean; why_not: "status" | "started" | "too_late" | null; currency: string;
+  charge_minor: number; held_minor: number; refund_minor: number; still_owed_minor: number; hours_before_arrival: number;
+};
+
+export function cancelPreview(reservationId: string) {
+  return call<CancelPreview>("guest_cancel_preview", { p_reservation_id: reservationId });
+}
+
+export function cancelBooking(reservationId: string, expectedChargeMinor: number, idempotencyKey: string) {
+  return call<{ reservation_id: string; status: string; cancellation_charge_minor: number }>("guest_cancel_reservation", {
+    p_reservation_id: reservationId, p_expected_charge_minor: expectedChargeMinor, p_idempotency_key: idempotencyKey,
+  });
+}
+
 export function paymentStartContext(reservationId: string) {
   return call<{ account_id: string; secret_reference: string; guest_email: string; booking_reference: string }>(
     "payment_start_context", { p_reservation_id: reservationId });

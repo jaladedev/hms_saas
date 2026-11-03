@@ -1,6 +1,6 @@
 # Handoff
 
-Last updated: 2026-11-03 (staff holds that wait for payment, migration 034; edit dates and guests: 033; chosen room on new reservations; setup history screen and migration 029, on top of add and edit tax rules, on top of the tax rules screen and tax rule audit 028, on top of maintenance alerts, folio screens and folio charges 027). Read this first, then `TODO.md`.
+Last updated: 2026-11-03 (guest self-cancel, migration 035; staff holds that wait for payment, migration 034; edit dates and guests: 033; chosen room on new reservations; setup history screen and migration 029, on top of add and edit tax rules, on top of the tax rules screen and tax rule audit 028, on top of maintenance alerts, folio screens and folio charges 027). Read this first, then `TODO.md`.
 
 ## What this is
 

@@ -146,6 +146,9 @@ if echo "$SGE" | grep -qE 'FAIL|ERROR'; then echo "$SGE"; echo "STAY EDIT TESTS 
 SH="$(psql -f "$HERE/33_staff_hold.sql" 2>&1)" || { echo "$SH"; echo "STAFF HOLD TESTS FAILED"; exit 1; }
 echo "$SH" | grep -E 'PASS' || true
 if echo "$SH" | grep -qE 'FAIL|ERROR'; then echo "$SH"; echo "STAFF HOLD TESTS FAILED"; exit 1; fi
+GC="$(psql -f "$HERE/34_guest_cancel.sql" 2>&1)" || { echo "$GC"; echo "GUEST CANCEL TESTS FAILED"; exit 1; }
+echo "$GC" | grep -E 'PASS' || true
+if echo "$GC" | grep -qE 'FAIL|ERROR'; then echo "$GC"; echo "GUEST CANCEL TESTS FAILED"; exit 1; fi
 
 echo "--- concurrency: last room race (1 room, 50 clients)"
 cat > "$DATA/race_one.sql" <<'SQL'

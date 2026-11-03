@@ -61,7 +61,11 @@ export default async function BookingPage({ params, searchParams }: Props) {
           This reservation expired because payment was not completed. <a href="/" className="underline">Search again</a> to book.
         </p>
       ) : null}
-      {b.status === "cancelled" ? <p className="mt-4 rounded border border-line bg-white p-3">This booking was cancelled.</p> : null}
+      {b.status === "cancelled" ? (
+        <p className="mt-4 rounded border border-line bg-white p-3">
+          {raw.cancelled === "1" ? "Your booking is cancelled. If you are owed a refund, the hotel will process it and email you." : "This booking was cancelled."}
+        </p>
+      ) : null}
 
       <section className="mt-6 rounded border border-line bg-white p-4">
         <h2 className="font-medium">{b.property_name}</h2>
@@ -85,6 +89,9 @@ export default async function BookingPage({ params, searchParams }: Props) {
             <button type="submit" className="w-full rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-strong">Pay now</button>
           </form>
         </section>
+      ) : null}
+      {b.status === "confirmed" ? (
+        <p className="mt-6 text-sm"><a href={`/booking/${token}/cancel`} className="underline underline-offset-2">Cancel this booking</a></p>
       ) : null}
       {(b.status === "confirmed" && b.outstanding_minor > 0) ? (
         <section className="mt-6 rounded border border-line bg-white p-4">
