@@ -126,7 +126,9 @@ export type ErrorCode =
   | "task_taken" | "task_forbidden" | "task_assignee" | "task_reason" | "task_invalid"
   | "mt_taken" | "mt_forbidden" | "mt_assignee" | "mt_reason" | "mt_place" | "mt_block" | "mt_invalid" | "mt_duplicate"
   | "fo_category" | "fo_description" | "fo_quantity" | "fo_amount" | "fo_date" | "fo_room" | "fo_reason" | "fo_method" | "fo_too_long"
-  | "fo_overpay" | "fo_not_open" | "fo_paid" | "fo_not_found" | "fo_duplicate" | "fo_unknown";
+  | "fo_overpay" | "fo_not_open" | "fo_paid" | "fo_not_found" | "fo_duplicate" | "fo_unknown"
+  | "se_dates" | "se_too_long" | "se_reason" | "se_room" | "se_capacity" | "se_arrival_past" | "se_unavailable" | "se_rate" | "se_paid" | "se_invoiced"
+  | "se_payment_started" | "se_split" | "se_not_editable" | "se_discount" | "se_not_found" | "se_duplicate" | "se_unknown";
 
 /**
  * Maps a database error message to a code, and an amount when the database reports one. The amount
@@ -243,6 +245,9 @@ export const OK_MESSAGES = {
   fo_voided: "Charge voided. It no longer counts toward what the guest owes.",
   fo_payment: "Payment recorded against the extras.",
   fo_reversed: "Payment reversed. The amount is owed again. No money has been paid back to the guest.",
+  se_changed: "Booking updated. The nights already booked keep their price; any new nights are priced at today\u2019s rates.",
+  se_changed_moved: "Booking updated, and a guest had to be given a different room because the old one is not free for the new dates. Check the room number below and tell the guest.",
+  se_nochange: "Nothing was different, so nothing was changed.",
 } as const;
 export type OkCode = keyof typeof OK_MESSAGES;
 
@@ -348,6 +353,22 @@ export function errorMessage(code: string, refundable: number | null, formatMino
     case "fo_paid": return "That charge cannot be voided while the money collected would be more than the charges left. Reverse a payment first.";
     case "fo_not_found": return "That reservation, charge or payment was not found, or you do not have permission to change it.";
     case "fo_duplicate": return "That form was already sent with different words. Reload the page and try again.";
+    case "se_dates": return "Choose a departure date after the arrival date.";
+    case "se_too_long": return "Stays are limited to 30 nights. Shorten the stay, or book the rest separately.";
+    case "se_reason": return "Give a reason for the change, up to 200 characters.";
+    case "se_room": return "That room is not part of this booking. Reload the page and try again.";
+    case "se_capacity": return "That room type cannot take that many adults and children. Check the numbers and try again.";
+    case "se_arrival_past": return "The arrival date cannot be moved to a day that has already passed.";
+    case "se_unavailable": return "No room could be held for all of the new dates, so nothing was changed and the booking keeps its dates and room. Try other dates.";
+    case "se_rate": return "There is no price set for one of the new nights, so the change was not made. Set the rates first.";
+    case "se_paid": return "A payment has been recorded on this booking, so its dates and guests cannot be changed. Cancel it and book it again.";
+    case "se_invoiced": return "An invoice has been issued for this booking. Void the invoice first, then change the dates and guests.";
+    case "se_payment_started": return "An online payment for this booking has been started and not finished. Wait for it to finish or lapse, then try again.";
+    case "se_split": return "This booking has a planned change of room partway through, so its dates cannot be edited. Guest numbers can still be changed. To change the dates, cancel it and book it again.";
+    case "se_not_editable": return "This booking can no longer be changed. Only a confirmed booking whose guests have not arrived can be edited.";
+    case "se_discount": return "This booking has a discount, so its dates cannot be edited. Cancel it and book it again.";
+    case "se_not_found": return "That booking was not found, or you do not have permission to change it.";
+    case "se_duplicate": return "That form was already sent with different words. Reload the page and try again.";
     case "provider_payment": return "Card and online payments are paid out through the provider, not recorded by hand.";
     case "bad_request": return "The form was incomplete. Reload the page and try again.";
     default: return "Something went wrong. Nothing was changed; try again, and tell a developer if it keeps happening.";

@@ -2,10 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { FolioSection } from "@/components/staff/folio";
+import { StayEdit } from "@/components/staff/stay-edit";
 import { buttonDanger, buttonPrimary, buttonQuiet, inputClass, Notice, PaymentChip, ReservationChip } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { checkoutNote, CHARGE_COLUMNS, folioIsOpen, isFolioResult, owingMinor, PAYMENT_COLUMNS, type ChargeRow, type FolioBalance, type PaymentRow } from "@/lib/staff/folio";
 import { formatDateTime } from "@/lib/staff/format";
+import { stayEditView } from "@/lib/staff/stay-edit";
 import { cancelReservation, checkInRoom, checkOutRoom, issueInvoice, recordPayment, transferRoom, voidInvoice } from "@/lib/staff/reservation-actions";
 import {
   attentionText, detailActions, invoiceActions, type InvoiceRow, nightsBetween, PAYMENT_METHODS, SOURCE_LABEL, todayIn,
@@ -53,7 +55,7 @@ export default async function ReservationPage({
   // A guest who has not arrived has no folio, so nothing is read for one. A person who may not see it gets an error from
   // folio_balance (the database answers "not found"), and then the whole section is left out.
   const showFolio = folioIsOpen(res.reservation_status);
-  const [roomsQ, guestQ, propQ, settleQ, cCancel, cIn, cOut, cPay, invQ, cIssue, cVoid, cAssign, folioBalQ, folioChargesQ, folioPaymentsQ, cFolio, cReverse] = await Promise.all([
+  const [roomsQ, guestQ, propQ, settleQ, cCancel, cIn, cOut, cPay, invQ, cIssue, cVoid, cAssign, folioBalQ, folioChargesQ, folioPaymentsQ, cFolio, cReverse, cModify, payCountQ] = await Promise.all([
     supabase.from("reservation_rooms").select("id, room_type_id, room_status, adults, children, checked_in_at, checked_out_at").eq("reservation_id", id).order("created_at"),
     supabase.from("guests").select("full_name, email, phone").eq("id", res.primary_guest_id).maybeSingle(),
     supabase.from("properties").select("name, timezone").eq("id", res.property_id).maybeSingle(),
@@ -65,6 +67,9 @@ export default async function ReservationPage({
     showFolio ? supabase.from("folio_charges").select(CHARGE_COLUMNS).eq("reservation_id", id) : null,
     showFolio ? supabase.from("folio_payments").select(PAYMENT_COLUMNS).eq("reservation_id", id) : null,
     showFolio ? can("folio.charge") : null, showFolio ? can("refund.approve") : null,
+    // Editing dates and guests: only a confirmed booking can be edited, so nothing is read for any other.
+    res.reservation_status === "confirmed" ? can("reservation.modify") : null,
+    res.reservation_status === "confirmed" ? supabase.from("payments").select("id", { count: "exact", head: true }).eq("reservation_id", id) : null,
   ]);
 
   const resRooms = (roomsQ.data ?? []) as ResRoom[];
@@ -72,7 +77,7 @@ export default async function ReservationPage({
 
   const [nightsQ, typeQ, claimQ] = await Promise.all([
     roomIds.length ? supabase.from("reservation_nights").select("reservation_room_id, night_date, rate_minor, tax_minor").in("reservation_room_id", roomIds).order("night_date") : { data: [] },
-    resRooms.length ? supabase.from("room_types").select("id, name").in("id", [...new Set(resRooms.map((r) => r.room_type_id))]) : { data: [] },
+    resRooms.length ? supabase.from("room_types").select("id, name, max_adults, max_children").in("id", [...new Set(resRooms.map((r) => r.room_type_id))]) : { data: [] },
     roomIds.length
       ? supabase.from("room_inventory_claims").select("reservation_room_id, room_id, start_date, end_date").in("reservation_room_id", roomIds).eq("status", "active").in("claim_type", ["stay", "hold"]).order("start_date")
       : { data: [] },
@@ -91,7 +96,8 @@ export default async function ReservationPage({
     ? await supabase.from("room_inventory_claims").select("room_id, start_date, end_date").in("room_id", sameTypeRooms.map((r) => r.id)).eq("status", "active").gt("end_date", res.arrival_date).lt("start_date", res.departure_date)
     : { data: [] };
   const spans = (claimSpansQ.data ?? []) as ClaimSpan[];
-  const typeNames = new Map(((typeQ.data ?? []) as { id: string; name: string }[]).map((t) => [t.id, t.name]));
+  const typeRows = (typeQ.data ?? []) as { id: string; name: string; max_adults: number; max_children: number }[];
+  const typeNames = new Map(typeRows.map((t) => [t.id, t.name]));
   const physical = new Map(((physicalQ.data ?? []) as Room[]).map((r) => [r.id, r]));
 
   const guest = guestQ.data as { full_name: string; email: string | null; phone: string | null } | null;
@@ -127,6 +133,19 @@ export default async function ReservationPage({
       })
     : [];
 
+  // Edit dates and guests (migration 033): offered only while nothing is paid and no live invoice exists.
+  const stayView = stayEditView({
+    reservationStatus: res.reservation_status, rooms: resRooms, canModify: cModify?.data === true,
+    paymentCount: payCountQ?.count ?? 0, liveInvoiceCount: invoices.filter((i) => i.invoice_status !== "void").length,
+  });
+  const stayRooms = resRooms.map((rr, i) => {
+    const t = typeRows.find((x) => x.id === rr.room_type_id);
+    return {
+      id: rr.id, label: `${typeNames.get(rr.room_type_id) ?? "Room"}${resRooms.length > 1 ? ` (room ${i + 1} of ${resRooms.length})` : ""}`,
+      adults: rr.adults, children: rr.children, maxAdults: t?.max_adults ?? 20, maxChildren: t?.max_children ?? 20,
+    };
+  });
+
   return (
     <main className="max-w-4xl">
       <p className="text-sm"><Link href="/app/reservations" className="text-primary-strong underline underline-offset-2">Reservations</Link></p>
@@ -157,6 +176,9 @@ export default async function ReservationPage({
             </>
           )}
         </dl>
+        {stayView.kind !== "hidden" && (
+          <StayEdit reservationId={res.id} arrival={res.arrival_date} departure={res.departure_date} today={today} rooms={stayRooms} view={stayView} />
+        )}
       </section>
 
       <section className="mt-10" aria-labelledby="rooms">

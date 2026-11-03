@@ -140,6 +140,9 @@ if echo "$MV" | grep -qE 'FAIL|ERROR'; then echo "$MV"; echo "AUDIT MEMBERSHIP V
 GP="$(psql -f "$HERE/30_guest_policy.sql" 2>&1)" || { echo "$GP"; echo "GUEST POLICY TESTS FAILED"; exit 1; }
 echo "$GP" | grep -E 'PASS' || true
 if echo "$GP" | grep -qE 'FAIL|ERROR'; then echo "$GP"; echo "GUEST POLICY TESTS FAILED"; exit 1; fi
+SGE="$(psql -f "$HERE/31_stay_edit.sql" 2>&1)" || { echo "$SGE"; echo "STAY EDIT TESTS FAILED"; exit 1; }
+echo "$SGE" | grep -E 'PASS' || true
+if echo "$SGE" | grep -qE 'FAIL|ERROR'; then echo "$SGE"; echo "STAY EDIT TESTS FAILED"; exit 1; fi
 
 echo "--- concurrency: last room race (1 room, 50 clients)"
 cat > "$DATA/race_one.sql" <<'SQL'
@@ -504,6 +507,34 @@ psql -At -c "do \$\$ declare v_tot record; begin
   if v_tot.paid_minor > v_tot.charges_minor then raise exception 'FAIL folio over-paid (paid %, charges %)', v_tot.paid_minor, v_tot.charges_minor; end if;
   if v_tot.paid_minor < 0 or v_tot.charges_minor < 0 then raise exception 'FAIL negative folio'; end if;
   if t25_money(t25_res()) <> (select val from t25_ctx where label = 'money') then raise exception 'FAIL the reservation''s own money changed'; end if;
+end \$\$"
+
+echo "--- concurrency: 4 bookings edited, moved and competed for at once (no deadlock, claims always tile the stay, totals equal the nights)"
+psql -f "$HERE/32_stay_edit_race.sql"
+psql -c "select t32_setup('stay_race', 900, 4)"
+cat > "$DATA/stay_race.sql" <<'SQL'
+\set w random(0, 11)
+\set n random(0, 1000000)
+select t32_act('stay_race', :client_id, :w, :n);
+SQL
+bench -c 12 -j 6 -t 25 -f "$DATA/stay_race.sql"
+psql -At -c "select 'ok=' || count(*) filter (where ok) || ' refused=' || count(*) filter (where not ok) from test_results where label = 'stay_race'"
+psql -At -c "do \$\$ declare v record; begin
+  if (select count(*) from test_results where label = 'stay_race') <> 300 then raise exception 'FAIL a client got no clean answer'; end if;
+  if exists (select 1 from test_results where label like 'stay_race\_%') then
+    raise exception 'FAIL %', (select string_agg(distinct label, '; ') from test_results where label like 'stay_race\_%');
+  end if;
+  if (select count(*) filter (where ok) from test_results where label = 'stay_race') = 0 then raise exception 'FAIL no edit or move ever succeeded'; end if;
+  for v in select s.res, s.rr, r.arrival_date a, r.departure_date d, r.total_minor, r.subtotal_minor, r.tax_minor
+             from t32_res s join reservations r on r.id = s.res where s.label = 'stay_race' loop
+    if v.total_minor <> (select coalesce(sum(n.rate_minor + n.tax_minor), 0) from reservation_nights n where n.reservation_room_id = v.rr) then raise exception 'FAIL total <> nights for %', v.res; end if;
+    if v.subtotal_minor + v.tax_minor <> v.total_minor then raise exception 'FAIL total <> subtotal + tax for %', v.res; end if;
+    if (select count(*) || '/' || min(n.night_date) || '/' || max(n.night_date) from reservation_nights n where n.reservation_room_id = v.rr) <> (v.d - v.a)::text || '/' || v.a || '/' || (v.d - 1) then
+      raise exception 'FAIL nights do not match the dates for %', v.res; end if;
+    if (select coalesce(sum(c.end_date - c.start_date), 0) || '/' || min(c.start_date) || '/' || max(c.end_date) from room_inventory_claims c where c.reservation_room_id = v.rr and c.status = 'active' and c.claim_type = 'stay')
+       <> (v.d - v.a)::text || '/' || v.a || '/' || v.d then raise exception 'FAIL claims do not tile the stay for %', v.res; end if;
+    if exists (select 1 from payments where reservation_id = v.res) or exists (select 1 from invoices where reservation_id = v.res) then raise exception 'FAIL money records appeared'; end if;
+  end loop;
 end \$\$"
 
 echo "ALL TESTS PASSED"
