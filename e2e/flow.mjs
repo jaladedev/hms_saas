@@ -719,5 +719,28 @@ check("over the API housekeeping reads the board view but still no room types ta
 const anonView = await fetch(`${REST}/room_board_view?select=id`, { headers: { authorization: `Bearer ${jwt("anon")}` } });
 check("anon cannot read the board view", anonView.status === 401 || anonView.status === 403, `${anonView.status}`);
 
+// 15. The occupancy report (migration 040), straight after section 14 (the owner's booking for tonight and the block on room 101 are still there).
+const occPath = `/app/reports/occupancy?from=${tonight}&to=${dayAfter}`;
+const occOwner = await getPage(occPath, OWNER_COOKIE);
+check("the owner sees the occupancy report with its totals and the rule that future days are booked so far", occOwner.status === 200 && sees(occOwner.text, "Occupancy", "ADR", "RevPAR", "Room revenue", "room nights", "Download as CSV", fmtDate(tonight)), occOwner.text.slice(0, 200));
+check("it counts the booked night and the blocked room", /Blocked/.test(occOwner.text) && occOwner.html.includes("tabular-nums"));
+const occAccountant = await getPage(occPath, ACCOUNTANT_COOKIE);
+check("an accountant may read it, and the page stays readable", occAccountant.status === 200 && sees(occAccountant.text, "Occupancy", "RevPAR"));
+const occHk = await getPage(occPath, HK_COOKIE);
+check("housekeeping is told it has no permission, with no figures", occHk.status === 200 && sees(occHk.text, "You do not have permission to see reports.") && doesNotSee(occHk.text, "RevPAR", "ADR"));
+const occBad = await getPage("/app/reports/occupancy?from=2026-13-45&to=nonsense", OWNER_COOKIE);
+check("unreadable dates fall back to the default range with a note", occBad.status === 200 && sees(occBad.text, "That date range was not usable"));
+const occCsv = await staff(`/app/reports/occupancy/csv?${new URLSearchParams({ property: PROPERTY_A, from: tonight, to: dayAfter })}`, OWNER_COOKIE);
+const occCsvText = await occCsv.text();
+check("the owner downloads it as CSV with a header, a row per day and a total", occCsv.status === 200 && (occCsv.headers.get("content-type") ?? "").startsWith("text/csv") && occCsvText.includes("Date,Rooms in service,Blocked,Available,Sold,Occupancy %") && occCsvText.includes(`${tonight},`) && /Total,/.test(occCsvText) && (occCsv.headers.get("content-disposition") ?? "").includes("occupancy-"), `${occCsv.status} ${occCsvText.slice(0, 120)}`);
+const occCsvHk = await staff(`/app/reports/occupancy/csv?${new URLSearchParams({ property: PROPERTY_A, from: tonight, to: dayAfter })}`, HK_COOKIE);
+check("housekeeping cannot download it", occCsvHk.status === 404, `${occCsvHk.status}`);
+const occCsvAnon = await staff(`/app/reports/occupancy/csv?property=${PROPERTY_A}`, null);
+check("nobody signed in cannot download it", [307, 401].includes(occCsvAnon.status), `${occCsvAnon.status}`);
+const occRpcAnon = await rpc("occupancy_report", { p_property_id: PROPERTY_A, p_from: tonight, p_to: tonight }, jwt("anon"));
+check("anon cannot call the report function", occRpcAnon.status === 401 || occRpcAnon.status === 403, `${occRpcAnon.status}`);
+const occRpcB = await rpc("occupancy_report", { p_property_id: PROPERTY_A, p_from: tonight, p_to: tonight }, OWNER_B_JWT);
+check("hotel B's owner cannot read hotel A's occupancy", occRpcB.status >= 400, `${occRpcB.status}`);
+
 console.log(failures === 0 ? `E2E PASSED (${reference})` : `E2E FAILED: ${failures} check(s)`);
 process.exit(failures === 0 ? 0 : 1);

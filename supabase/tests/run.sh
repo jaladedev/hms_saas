@@ -163,6 +163,10 @@ RB="$(psql -f "$HERE/38_room_board_views.sql" 2>&1)" || { echo "$RB"; echo "ROOM
 echo "$RB" | grep -E 'PASS' || true
 if echo "$RB" | grep -qE 'FAIL|ERROR'; then echo "$RB"; echo "ROOM BOARD VIEW TESTS FAILED"; exit 1; fi
 
+OC="$(psql -f "$HERE/39_occupancy_report.sql" 2>&1)" || { echo "$OC"; echo "OCCUPANCY REPORT TESTS FAILED"; exit 1; }
+echo "$OC" | grep -E 'PASS' || true
+if echo "$OC" | grep -qE 'FAIL|ERROR'; then echo "$OC"; echo "OCCUPANCY REPORT TESTS FAILED"; exit 1; fi
+
 echo "--- concurrency: last room race (1 room, 50 clients)"
 cat > "$DATA/race_one.sql" <<'SQL'
 select test_try_claim('last_room', '00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', '2027-10-01', '2027-10-03');

@@ -45,6 +45,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         Money in and out by the day it happened, and what was earned by the night or day it belongs to. Days are the hotel&rsquo;s own days.
       </p>
 
+      <p className="mt-3 text-sm"><Link href={`/app/reports/occupancy?${new URLSearchParams({ property: chosen.id })}`} className="text-primary-strong underline underline-offset-2">Occupancy report</Link></p>
+
       <form method="get" className="mt-6 flex flex-wrap items-end gap-3">
         {allowed.length > 1 && (
           <div>
