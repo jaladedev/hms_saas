@@ -3,10 +3,14 @@
 export type BoardRoom = {
   id: string; property_id: string; room_type_id: string; room_number: string; floor: number | null;
   operational_status: string; housekeeping_status: string;
+  /** The room type's name, from room_board_view (034). Never a rate. Absent where a screen reads the rooms table directly. */
+  room_type_name?: string | null;
 };
 export type BoardClaim = {
   id: string; room_id: string; claim_type: string; start_date: string; end_date: string;
   reservation_room_id: string | null; block_reason: string | null;
+  /** From room_board_claims_view (034): the guest of this stay is in the room. Lets people without reservation.view tell occupied from arriving. */
+  checked_in?: boolean;
 };
 
 export const HOUSEKEEPING_STATUSES = ["clean", "dirty", "in_progress", "inspected"] as const;
@@ -28,8 +32,9 @@ export const STATE_LABEL: Record<RoomState, string> = {
 };
 
 /**
- * `checkedIn` holds the reservation-room ids whose guest has checked in. A stay claim covering today is
- * "occupied" when its guest is in the room and "arriving" when they have yet to check in. Room status
+ * A stay claim covering today is "occupied" when its guest is in the room and "arriving" when they have yet to check in.
+ * The claim says so itself (`checked_in`, from room_board_claims_view); `checkedIn`, a set of reservation-room ids, is the
+ * older way for a caller that read reservation rooms directly, and either one is enough. Room status
  * outranks claims: an out-of-service room is shown that way even if a stay is booked on it, because
  * that booking needs moving.
  */
@@ -47,7 +52,7 @@ export function roomViews(rooms: BoardRoom[], claims: BoardClaim[], checkedIn: S
     if (!current) return { room, state: "vacant", current: null, next };
     if (current.claim_type === "block") return { room, state: "blocked", current, next };
     if (current.claim_type === "hold") return { room, state: "held", current, next };
-    const inHouse = current.reservation_room_id !== null && checkedIn.has(current.reservation_room_id);
+    const inHouse = current.checked_in === true || (current.reservation_room_id !== null && checkedIn.has(current.reservation_room_id));
     return { room, state: inHouse ? "occupied" : "arriving", current, next };
   });
 }

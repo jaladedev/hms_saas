@@ -680,5 +680,44 @@ const polReserveText = pageText(await res.text());
 check("the reserve page shows the payment and cancellation terms in force", res.status === 200 && sees(polReserveText, "Payment and cancellation") && polReserveText.includes("to confirm your booking"), polReserveText.slice(0, 500));
 check("and none of the 2090 versions yet", doesNotSee(polReserveText, "Pay a 30% deposit"));
 
+// 14. The room board (migration 039) for people who may see rooms but not bookings, guests or rates. The owner books the
+// one Solo Suite for tonight, checks the guest in, and blocks a Standard room; then each login opens /app/rooms.
+const HK_ID = "00000000-0000-0000-0000-00000000aa06", GUEST_A = "00000000-0000-0000-0000-0000000000a5", TYPE_SOLO = "00000000-0000-0000-0000-0000000000a4";
+const HK_COOKIE = session(HK_ID, "hk@hotel-a.test");
+// The hotel's own calendar day (the seed gives Hotel A Africa/Lagos); property_today() is an internal helper that logins cannot call.
+const dayOf = async () => new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Lagos" });
+const tonight = await dayOf(), tomorrow = new Date(Date.parse(`${tonight}T00:00:00Z`) + 86400000).toISOString().slice(0, 10), dayAfter = new Date(Date.parse(`${tonight}T00:00:00Z`) + 2 * 86400000).toISOString().slice(0, 10);
+const booked = await call("create_reservation", { p_property_id: PROPERTY_A, p_primary_guest_id: GUEST_A, p_source: "staff_entry", p_arrival: tonight, p_departure: dayAfter,
+  p_rooms: [{ room_type_id: TYPE_SOLO, requested_room_id: null, adults: 1 }], p_idempotency_key: "e2e-board-booking" }, OWNER_JWT);
+check("the owner books the Solo Suite for tonight", booked.status === 200 && Boolean(booked.body?.rooms?.[0]?.reservation_room_id), JSON.stringify(booked));
+const boardRr = booked.body?.rooms?.[0]?.reservation_room_id, boardRef = booked.body?.booking_reference;
+const checkedIn = await call("check_in", { p_reservation_room_id: boardRr }, OWNER_JWT);
+check("and checks the guest in", checkedIn.status === 200, JSON.stringify(checkedIn));
+const standard101 = (await (await api(SERVICE_JWT, `/rooms?property_id=eq.${PROPERTY_A}&room_number=eq.101&select=id`)).json())[0]?.id;
+const blocked = await call("create_room_block", { p_room_id: standard101, p_start: tonight, p_end: dayAfter, p_reason: "E2E leak in the ceiling", p_resolution: "fail", p_idempotency_key: "e2e-board-block" }, OWNER_JWT);
+check("and blocks Standard room 101", blocked.status === 200, JSON.stringify(blocked));
+
+const hkBoard = await getPage("/app/rooms", HK_COOKIE);
+const card = (text, number) => { const i = text.indexOf(` ${number} `); return i < 0 ? "" : text.slice(i, i + 160); };
+check("housekeeping opens the board", hkBoard.status === 200 && sees(hkBoard.text, "Rooms", "What every room is doing today."), `${hkBoard.status} ${hkBoard.text.slice(0, 200)}`);
+check("housekeeping sees rooms grouped under their type's name", sees(hkBoard.text, "Standard (5)", "Solo Suite (1)"), hkBoard.text.slice(0, 600));
+check("housekeeping sees the checked-in room as occupied, not merely booked", sees(card(hkBoard.text, "201"), "Occupied") && !card(hkBoard.text, "201").includes("Booked tonight"), card(hkBoard.text, "201"));
+check("and the block, with its reason", sees(card(hkBoard.text, "101"), "Blocked", "E2E leak in the ceiling"), card(hkBoard.text, "101"));
+check("the totals count one occupied and one blocked room", sees(hkBoard.text, "1 occupied", "1 blocked"), hkBoard.text.slice(0, 500));
+check("housekeeping is shown no booking reference, guest name or booking link", doesNotSee(hkBoard.text, boardRef ?? "BK-", "Ada Okafor") && !hkBoard.html.includes(`/app/reservations/`), hkBoard.text.slice(0, 400));
+check("nor any price", !/₦\s?\d/.test(hkBoard.text) && !hkBoard.html.includes("9000000") && !hkBoard.html.includes("2500000"));
+
+const ownerBoard = await getPage("/app/rooms", OWNER_COOKIE);
+check("the owner sees the same states, and the booking with its guest", sees(card(ownerBoard.text, "201"), "Occupied", "Ada Okafor") && sees(ownerBoard.text, "Solo Suite (1)", "1 occupied", "1 blocked"), card(ownerBoard.text, "201"));
+check("and the booking links to its page", ownerBoard.html.includes(`/app/reservations/`) && (boardRef ? ownerBoard.text.includes(boardRef) : true), boardRef);
+
+const accountantBoard = await getPage("/app/rooms", ACCOUNTANT_COOKIE);
+check("an accountant, who may not see rooms, gets an empty board", accountantBoard.status === 200 && sees(accountantBoard.text, "No rooms to show.") && doesNotSee(accountantBoard.text, "Solo Suite", "Occupied"), accountantBoard.text.slice(0, 300));
+const HK_JWT = jwt("authenticated", JWT_SECRET, HK_ID);
+const hkApi = { board: await api(HK_JWT, "/room_board_view?select=room_number,room_type_name"), types: await api(HK_JWT, "/room_types?select=id") };
+check("over the API housekeeping reads the board view but still no room types table", (await hkApi.board.json()).length >= 6 && JSON.stringify(await hkApi.types.json()) === "[]");
+const anonView = await fetch(`${REST}/room_board_view?select=id`, { headers: { authorization: `Bearer ${jwt("anon")}` } });
+check("anon cannot read the board view", anonView.status === 401 || anonView.status === 403, `${anonView.status}`);
+
 console.log(failures === 0 ? `E2E PASSED (${reference})` : `E2E FAILED: ${failures} check(s)`);
 process.exit(failures === 0 ? 0 : 1);

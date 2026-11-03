@@ -28,7 +28,8 @@ export default async function RoomBoardPage({ searchParams }: { searchParams: Pr
   const search = await searchParams;
   const supabase = await createClient();
   const [roomQ, propQ] = await Promise.all([
-    supabase.from("rooms").select("id, property_id, room_type_id, room_number, floor, operational_status, housekeeping_status").limit(1000),
+    // room_board_view (034): the rooms with their type's name and no rate, for everyone who holds room.view.
+    supabase.from("room_board_view").select("id, property_id, room_type_id, room_type_name, room_number, floor, operational_status, housekeeping_status").limit(1000),
     supabase.from("properties").select("id, name, timezone"),
   ]);
   const rooms = (roomQ.data ?? []) as BoardRoom[];
@@ -38,19 +39,20 @@ export default async function RoomBoardPage({ searchParams }: { searchParams: Pr
   const loadError = Boolean(roomQ.error || propQ.error);
   const horizon = [...today.values()].sort()[0];
 
-  // Claims that end today or later, so what is on each room now and next is known.
+  // Claims that end today or later, so what is on each room now and next is known. room_board_claims_view (034) holds
+  // live claims only, says whether the guest is in the room, and gives the booking link only to people who may read bookings.
   const claimQ = rooms.length && horizon
-    ? await supabase.from("room_inventory_claims")
-        .select("id, room_id, claim_type, start_date, end_date, reservation_room_id, block_reason")
-        .eq("status", "active").gt("end_date", horizon).limit(5000)
+    ? await supabase.from("room_board_claims_view")
+        .select("id, room_id, claim_type, start_date, end_date, reservation_room_id, block_reason, checked_in")
+        .gt("end_date", horizon).limit(5000)
     : { data: [] };
   const claims = (claimQ.data ?? []) as BoardClaim[];
 
   const rrIds = [...new Set(claims.map((c) => c.reservation_room_id).filter((x): x is string => Boolean(x)))];
-  // Guest and booking details need reservation.view; without it the board still shows occupied or vacant.
-  const rrQ = rrIds.length ? await supabase.from("reservation_rooms").select("id, reservation_id, room_status").in("id", rrIds) : { data: [] };
-  const rrRows = (rrQ.data ?? []) as { id: string; reservation_id: string; room_status: string }[];
-  const checkedIn = new Set(rrRows.filter((r) => r.room_status === "checked_in").map((r) => r.id));
+  // Guest and booking details need reservation.view. Without it the view gives no booking link (rrIds is empty), so
+  // these reads are skipped and the board still shows occupied, arriving, held, blocked or vacant from the claims alone.
+  const rrQ = rrIds.length ? await supabase.from("reservation_rooms").select("id, reservation_id").in("id", rrIds) : { data: [] };
+  const rrRows = (rrQ.data ?? []) as { id: string; reservation_id: string }[];
   const resIds = [...new Set(rrRows.map((r) => r.reservation_id))];
   const resQ = resIds.length ? await supabase.from("reservations").select("id, booking_reference, primary_guest_id").in("id", resIds) : { data: [] };
   const reservations = new Map(((resQ.data ?? []) as { id: string; booking_reference: string; primary_guest_id: string }[]).map((r) => [r.id, r]));
@@ -80,11 +82,6 @@ export default async function RoomBoardPage({ searchParams }: { searchParams: Pr
   const faults = faultsByRoom(repairs);
   const repairHistory = repairsByRoom(repairs);
 
-  const typeIds = [...new Set(rooms.map((r) => r.room_type_id))];
-  // Room types need reservation.view or rate.view; housekeeping and maintenance see rooms without type names.
-  const typeQ = typeIds.length ? await supabase.from("room_types").select("id, name").in("id", typeIds) : { data: [] };
-  const typeNames = new Map(((typeQ.data ?? []) as { id: string; name: string }[]).map((t) => [t.id, t.name]));
-
   // What the viewer may do at each property; the database checks again on every action.
   const can = new Map<string, { housekeeping: boolean; block: boolean; report: boolean }>();
   await Promise.all(properties.map(async (p) => {
@@ -97,7 +94,7 @@ export default async function RoomBoardPage({ searchParams }: { searchParams: Pr
     can.set(p.id, { housekeeping: h.data === true, block: b.data === true, report: mv.data === true || mm.data === true });
   }));
 
-  const views = roomViews(rooms, claims, checkedIn, today)
+  const views = roomViews(rooms, claims, new Set(), today)
     .sort((a, b) => compareRoomNumbers(a.room.room_number, b.room.room_number));
   const counts = countStates(views);
   const showProperty = properties.length > 1;
@@ -105,7 +102,7 @@ export default async function RoomBoardPage({ searchParams }: { searchParams: Pr
 
   const groups = new Map<string, typeof views>();
   for (const v of views) {
-    const key = `${showProperty ? `${propName.get(v.room.property_id) ?? ""} · ` : ""}${typeNames.get(v.room.room_type_id) ?? "Rooms"}`;
+    const key = `${showProperty ? `${propName.get(v.room.property_id) ?? ""} · ` : ""}${v.room.room_type_name ?? "Rooms"}`;
     groups.set(key, [...(groups.get(key) ?? []), v]);
   }
 

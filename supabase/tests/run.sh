@@ -159,6 +159,10 @@ GS="$(psql -f "$HERE/37_guest_cancel_setting.sql" 2>&1)" || { echo "$GS"; echo "
 echo "$GS" | grep -E 'PASS' || true
 if echo "$GS" | grep -qE 'FAIL|ERROR'; then echo "$GS"; echo "GUEST CANCEL SETTING TESTS FAILED"; exit 1; fi
 
+RB="$(psql -f "$HERE/38_room_board_views.sql" 2>&1)" || { echo "$RB"; echo "ROOM BOARD VIEW TESTS FAILED"; exit 1; }
+echo "$RB" | grep -E 'PASS' || true
+if echo "$RB" | grep -qE 'FAIL|ERROR'; then echo "$RB"; echo "ROOM BOARD VIEW TESTS FAILED"; exit 1; fi
+
 echo "--- concurrency: last room race (1 room, 50 clients)"
 cat > "$DATA/race_one.sql" <<'SQL'
 select test_try_claim('last_room', '00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', '2027-10-01', '2027-10-03');

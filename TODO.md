@@ -66,7 +66,7 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [ ] Operation functions still to build: settlement on cancellation, payment verification workflow, early check-in policy, settlement or credit on cancel and early check-out, cancel-resolution for blocks
 - [x] `refresh_reservation_payment_status` (010)
 - [ ] More reports: occupancy, no-show, guest and channel reports, a printable view. `guest_booking_status` exists (013)
-- [ ] `room_board_view` for roles that must not read rates or guests (a `housekeeping_task_view` is not needed: tasks hold no guest or rate data and are readable with `housekeeping.view`)
+- [x] `room_board_view` for roles that must not read rates or guests, done in 039 as `room_board_view` and `room_board_claims_view` (a `housekeeping_task_view` is not needed: tasks hold no guest or rate data and are readable with `housekeeping.view`)
 - [ ] Full security suite from System Design 6.3, including refund requester != approver and property-scoped roles
 - [x] Guard against role escalation (migration 019): giving, removing or suspending needs every permission of the role at a covering scope plus tenant-wide `staff.manage`; nobody changes their own access; the last active owner cannot be removed or suspended; revoking clears roles
 

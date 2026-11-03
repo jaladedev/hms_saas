@@ -56,9 +56,14 @@ insert into user_profiles (id, full_name) values ('00000000-0000-0000-0000-00000
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-00000000aa0b', 'bola.owner@hotel-b.test');
 insert into tenant_memberships (id, tenant_id, user_id, status)
 values ('00000000-0000-0000-0000-0000000aaa0b', '00000000-0000-0000-0000-0000000000b1', '00000000-0000-0000-0000-00000000aa0b', 'active');
+-- A housekeeper at hotel A: holds room.view but not reservation.view, rate.view or guest.view (the room board cases).
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-00000000aa06', 'hk@hotel-a.test');
+insert into tenant_memberships (id, tenant_id, user_id, status)
+values ('00000000-0000-0000-0000-0000000aaa06', '00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-00000000aa06', 'active');
 insert into membership_roles (membership_id, role_id)
   select '00000000-0000-0000-0000-0000000aaa01'::uuid, id from roles where key = 'owner'
   union all select '00000000-0000-0000-0000-0000000aaa05'::uuid, id from roles where key = 'accountant'
+  union all select '00000000-0000-0000-0000-0000000aaa06'::uuid, id from roles where key = 'housekeeping'
   union all select '00000000-0000-0000-0000-0000000aaa0b'::uuid, id from roles where key = 'owner';
 SQL
 export ACCOUNT_ID="$("$PGBIN/psql" -At -c "select id from payment_provider_accounts limit 1")"

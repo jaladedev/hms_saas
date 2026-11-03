@@ -23,6 +23,20 @@ describe("roomViews", () => {
     expect(["101", "102", "103", "104", "105"].map((id) => stateOf(v, id))).toEqual(["occupied", "arriving", "held", "blocked", "vacant"]);
   });
 
+  it("trusts a claim's own checked_in flag, so a login that cannot read reservations still sees occupied", () => {
+    const stay = (id: string, checked_in: boolean) => claim(id, "2026-11-01", "2026-11-05", { reservation_room_id: null, checked_in });
+    const v = roomViews([room("601"), room("602")], [stay("601", true), stay("602", false)], new Set(), TODAY);
+    expect([stateOf(v, "601"), stateOf(v, "602")]).toEqual(["occupied", "arriving"]);
+  });
+
+  it("does not call a block or a hold occupied, whatever the flag says", () => {
+    const v = roomViews([room("701"), room("702")], [
+      claim("701", "2026-11-02", "2026-11-05", { claim_type: "block", reservation_room_id: null, block_reason: "Leak", checked_in: true }),
+      claim("702", "2026-11-02", "2026-11-05", { claim_type: "hold", checked_in: true }),
+    ], new Set(), TODAY);
+    expect([stateOf(v, "701"), stateOf(v, "702")]).toEqual(["blocked", "held"]);
+  });
+
   it("uses departure-exclusive dates: a stay ending today leaves the room free", () => {
     const v = roomViews([room("101")], [claim("101", "2026-11-01", "2026-11-03")], new Set(), TODAY);
     expect(v[0]?.state).toBe("vacant");

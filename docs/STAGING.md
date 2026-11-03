@@ -62,7 +62,7 @@ auth schema, and `01_seed.sql` is test data.
 
 ## 4. Check the security setup
 
-Run these four in the SQL editor. The expected results were produced by applying all 30 migrations to a scratch
+Run these five in the SQL editor. The expected results were produced by applying all 39 migrations to a scratch
 PostgreSQL with the same default privileges Supabase uses.
 
 ```sql
@@ -95,6 +95,15 @@ select p.proname
  where n.nspname = 'public'
    and p.proname in ('claim_room', 'create_hold', 'confirm_payment', 'search_availability', 'expire_lapsed_holds', 'is_system_caller')
    and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'));
+```
+
+-- 4e. Views anon can read. Expect: no rows. (Views are not covered by 4a; the two room board views are for
+-- authenticated only.)
+select c.relname
+  from pg_class c join pg_namespace n on n.oid = c.relnamespace
+ where n.nspname = 'public' and c.relkind in ('v', 'm')
+   and (has_table_privilege('anon', c.oid, 'select') or has_table_privilege('public', c.oid, 'select'))
+ order by 1;
 ```
 
 Anything different from the expected result is a stop: Supabase grants execute on new functions to `anon` and
