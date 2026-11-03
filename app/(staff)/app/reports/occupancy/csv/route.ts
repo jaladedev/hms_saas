@@ -27,7 +27,7 @@ export async function GET(request: Request) {
   if (exportOk.data !== true || !propQ.data) return plain(404, "Not found.");
 
   const today = todayIn(propQ.data.timezone, new Date());
-  const range = parseRange({ from: url.searchParams.get("from") ?? undefined, to: url.searchParams.get("to") ?? undefined }, today);
+  const range = parseRange(url.searchParams.get("from"), url.searchParams.get("to"), today);
   const { data, error } = await supabase.rpc("occupancy_report", { p_property_id: propertyId, p_from: range.from, p_to: range.to });
   if (error || !data) return plain(404, "Not found.");
 

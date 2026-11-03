@@ -2,7 +2,7 @@ import Link from "next/link";
 import { inputClass, buttonPrimary } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { adrMinor, formatBp, isQuietDay, occupancyBp, revparMinor, type OccupancyReport } from "@/lib/staff/occupancy";
-import { ERROR_TEXT, parseRange, presets } from "@/lib/staff/reports";
+import { MAX_RANGE_DAYS, parseRange, presets } from "@/lib/staff/reports";
 import { todayIn } from "@/lib/staff/reservations";
 import { createClient } from "@/lib/supabase/server";
 
@@ -31,7 +31,7 @@ export default async function OccupancyPage({ searchParams }: { searchParams: Pr
 
   const chosen = allowed.find((p) => p.id === search.property) ?? allowed[0]!;
   const today = todayIn(chosen.timezone, new Date());
-  const range = parseRange({ from: search.from, to: search.to }, today);
+  const range = parseRange(search.from, search.to, today);
   const { data, error } = await supabase.rpc("occupancy_report", { p_property_id: chosen.id, p_from: range.from, p_to: range.to });
   const report = error ? null : (data as OccupancyReport);
   const { data: mayExport } = await supabase.rpc("has_permission", { p_property: chosen.id, p_permission: "report.export" });
@@ -75,7 +75,7 @@ export default async function OccupancyPage({ searchParams }: { searchParams: Pr
           <a href={`/app/reports/occupancy/csv?${new URLSearchParams({ property: chosen.id, from: range.from, to: range.to })}`} className="text-primary-strong underline underline-offset-2">Download as CSV</a>
         </p>
       )}
-      {range.fixed && <p role="status" className="mt-3 text-sm text-pending">{ERROR_TEXT.fixed}</p>}
+      {range.trimmed && <p role="status" className="mt-3 text-sm text-pending">That range is longer than {MAX_RANGE_DAYS} days, so the most recent {MAX_RANGE_DAYS} days are shown.</p>}
 
       {!report ? (
         <p role="alert" className="mt-6 rounded border border-critical/40 bg-white p-3 text-critical">The report could not be loaded. Try again, or choose a shorter range.</p>

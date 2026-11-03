@@ -37,6 +37,19 @@ export function parseRange(from: unknown, to: unknown, today: string): { from: s
   return { from: iso(a), to: iso(b), trimmed };
 }
 
+/** Quick ranges for the report screens, ending today. */
+export function presets(today: string): { label: string; from: string; to: string }[] {
+  const t = parseIso(today) ?? new Date();
+  const day = (n: number) => iso(addDays(t, n));
+  return [
+    { label: "Today", from: day(0), to: day(0) },
+    { label: "Yesterday", from: day(-1), to: day(-1) },
+    { label: "Last 7 days", from: day(-6), to: day(0) },
+    { label: "Last 30 days", from: day(-29), to: day(0) },
+    { label: "This month", from: `${iso(t).slice(0, 8)}01`, to: day(0) },
+  ];
+}
+
 export type Totals = {
   days: number; roomNights: number; roomsAvailableNights: number; occupancyPercent: number | null;
   roomRevenue: number; roomTax: number; extras: number; extrasTax: number;

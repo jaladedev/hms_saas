@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dayOccupancy, parseRange, toCsv, totals, type ReportDay } from "./reports";
+import { dayOccupancy, parseRange, presets, toCsv, totals, type ReportDay } from "./reports";
 
 const row = (o: Partial<ReportDay>): ReportDay => ({
   day: "2026-11-01", rooms_available: 10, rooms_sold: 5, room_revenue_minor: 5_000_000, room_tax_minor: 375_000,
@@ -52,5 +52,19 @@ describe("toCsv", () => {
     expect(csv.split("\n")[0]).toBe("Date,Rooms available,Rooms sold,Occupancy %,Room revenue,Room tax,Extras,Extras tax,Cash received,Refunds paid");
     expect(csv.split("\n")[1]).toBe("2026-11-01,10,5,50,50000.00,3750.00,2000.00,150.00,30000.00,5000.00");
     expect(csv.endsWith("\n")).toBe(true);
+  });
+});
+
+describe("presets", () => {
+  it("gives quick ranges that end today, across a month and year boundary", () => {
+    const p = Object.fromEntries(presets("2027-01-03").map((x) => [x.label, x]));
+    expect(p["Today"]).toMatchObject({ from: "2027-01-03", to: "2027-01-03" });
+    expect(p["Yesterday"]).toMatchObject({ from: "2027-01-02", to: "2027-01-02" });
+    expect(p["Last 7 days"]).toMatchObject({ from: "2026-12-28", to: "2027-01-03" });
+    expect(p["Last 30 days"]).toMatchObject({ from: "2026-12-05", to: "2027-01-03" });
+    expect(p["This month"]).toMatchObject({ from: "2027-01-01", to: "2027-01-03" });
+  });
+  it("never asks for more than the report allows", () => {
+    for (const x of presets("2026-11-03")) expect(parseRange(x.from, x.to, "2026-11-03")).toMatchObject({ from: x.from, to: x.to, trimmed: false });
   });
 });
