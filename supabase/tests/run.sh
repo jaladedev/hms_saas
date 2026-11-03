@@ -5,6 +5,8 @@ set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../.." && pwd)"
 PGBIN="${PGBIN:-/usr/lib/postgresql/16/bin}"
+# The seeded hotels run on Africa/Lagos (UTC+1). Tests that build dates with current_date must see the same day as
+# property_today(), or they fail for the hour each day when the UTC date is still yesterday in Lagos.
 PORT="${PGPORT:-54329}"
 DATA="${PGDATA_DIR:-$(mktemp -d)}"
 RUNAS=""
@@ -14,7 +16,7 @@ cleanup() { run "$PGBIN/pg_ctl -D $DATA -m immediate stop" >/dev/null 2>&1 || tr
 [ -n "${KEEP_DB:-}" ] || trap cleanup EXIT
 
 run "$PGBIN/initdb -D $DATA --auth=trust -U postgres" >/dev/null
-run "$PGBIN/pg_ctl -D $DATA -o '-p $PORT -k /tmp -c max_connections=200 -c fsync=off' -l $DATA/log -w start" >/dev/null
+run "$PGBIN/pg_ctl -D $DATA -o '-p $PORT -k /tmp -c max_connections=200 -c fsync=off -c timezone=Africa/Lagos' -l $DATA/log -w start" >/dev/null
 export PGHOST=/tmp PGPORT=$PORT PGUSER=postgres
 "$PGBIN/createdb" hms_test
 export PGDATABASE=hms_test

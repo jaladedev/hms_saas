@@ -112,7 +112,7 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [x] Guest flow: search, reserve, hold, payment, confirmation, lookup (`/booking/find`) and status. Guests do not pick a physical room: `create_hold` ignores any room the caller names, on purpose. If the hotel wants that, it is a new decision, not a gap
 - [x] Payment initiation, signed webhook, verification, idempotent `confirm_payment`. The webhook is a Next.js route (`app/api/webhooks/paystack/[account]`), not a Supabase Edge Function
 - [ ] Reconciliation import (comparing Paystack's settlement report with our payments). Not built. Paid-but-no-room recovery and refunds are done (see Phase 1 and 2)
-- [ ] Payment test matrix. Covered in `supabase/tests/08_provider_payments.sql`: duplicate events, wrong amount, wrong currency, late payment after expiry, failure then a successful retry, payment after cancel, another tenant's events. Missing: a failed event arriving after a success (out of order)
+- [x] Payment test matrix, in `supabase/tests/08_provider_payments.sql`: duplicate events, wrong amount, wrong currency, late payment after expiry, failure then a successful retry, a failure or abandonment arriving after success (out of order), success after a failure on the same reference, payment after cancel, another tenant's events
 
 ## Phase 6 and 7
 - [ ] Calendars, room blocks UI, maintenance, reports, notifications, self-service booking management

@@ -184,14 +184,21 @@ do $$ declare v_fresh uuid; v_busy uuid; v_exp uuid; v_room_before uuid; v_room_
 end $$;
 
 -- 8. Paid but the room is gone: money stays on record, reservation is flagged
-do $$ declare v_res uuid; r jsonb; begin
-  v_res := t08_online('lost1', 208, '00000000-0000-0000-0000-0000000000a4');
+do $$ declare v_res uuid; r jsonb; v_off integer := 208; begin
+  -- The solo suite has one room and earlier test files leave claims on it at fixed calendar dates, so a window a
+  -- fixed number of days from today collides with one of them on some days of the year. Move on until it is free.
+  -- Dates here use current_date, as t06_hold does: the hotel's own date is an hour ahead of UTC, and mixing the two
+  -- made the "stolen" window miss the held one for an hour every day.
+  while exists (select 1 from room_inventory_claims c join rooms rm on rm.id = c.room_id
+                 where rm.room_type_id = '00000000-0000-0000-0000-0000000000a4' and c.status = 'active'
+                   and daterange(c.start_date, c.end_date) && daterange(current_date + v_off, current_date + v_off + 2))
+  loop v_off := v_off + 1; end loop;
+  v_res := t08_online('lost1', v_off, '00000000-0000-0000-0000-0000000000a4');
   update room_inventory_claims set hold_expires_at = now() - interval '2 minutes'
    where reservation_room_id in (select id from reservation_rooms where reservation_id = v_res);
   update payment_attempts set created_at = now() - interval '1 hour' where reservation_id = v_res;
   perform expire_lapsed_holds();
-  perform t_book('00000000-0000-0000-0000-0000000000a4', property_today('00000000-0000-0000-0000-0000000000a2') + 208,
-                 property_today('00000000-0000-0000-0000-0000000000a2') + 210, 't08-steal-room');
+  perform t_book('00000000-0000-0000-0000-0000000000a4', current_date + v_off, current_date + v_off + 2, 't08-steal-room');
   r := t08_conf('lost1', 'evt-lost1-1');
   if r ->> 'result' <> 'recorded_inventory_lost' then raise exception 'FAIL lost inventory %', r; end if;
   if (select attention_reason from reservations where id = v_res) <> 'paid_inventory_lost'
@@ -201,6 +208,48 @@ do $$ declare v_res uuid; r jsonb; begin
      or exists (select 1 from room_inventory_claims c join reservation_rooms rr on rr.id = c.reservation_room_id where rr.reservation_id = v_res and c.status = 'active')
      then raise exception 'FAIL lost inventory state'; end if;
   raise notice 'PASS paid-but-no-room is recorded, flagged and holds no inventory';
+end $$;
+
+-- 8b. Events out of order. A stale failure or abandonment that arrives after the payment succeeded must change nothing.
+do $$ declare v_res uuid; r jsonb; v_paid bigint; begin
+  v_res := t08_online('ooo1', 218);
+  r := t08_conf('ooo1', 'evt-ooo1-1');
+  if r ->> 'result' <> 'confirmed' then raise exception 'FAIL ooo1 success %', r; end if;
+  select sum(amount_minor) into v_paid from payments where reservation_id = v_res;
+  r := t08_conf('ooo1', 'evt-ooo1-2', 'failed');
+  if r ->> 'result' <> 'already_processed' then raise exception 'FAIL stale failure after success %', r; end if;
+  r := t08_conf('ooo1', 'evt-ooo1-3', 'abandoned');
+  if r ->> 'result' <> 'already_processed' then raise exception 'FAIL stale abandonment after success %', r; end if;
+  if (select status from payment_attempts where reservation_id = v_res) <> 'succeeded'
+     or (select reservation_status from reservations where id = v_res) <> 'confirmed'
+     or (select payment_status from reservations where id = v_res) <> 'paid'
+     or (select attention_reason from reservations where id = v_res) is not null
+     or (select sum(amount_minor) from payments where reservation_id = v_res) <> v_paid
+     or (select count(*) from payments where reservation_id = v_res) <> 1
+     or (select count(*) from payment_events where provider_event_id in ('evt-ooo1-2', 'evt-ooo1-3') and processing_status = 'ignored') <> 2
+     then raise exception 'FAIL a stale failure changed a paid booking'; end if;
+  raise notice 'PASS a failure or abandonment that arrives after success is recorded as ignored and changes nothing';
+end $$;
+
+-- 8c. A failure, then a success on the same reference (the guest retried the card), then repeats of both.
+do $$ declare v_res uuid; r jsonb; begin
+  v_res := t08_online('ooo2', 220);
+  r := t08_conf('ooo2', 'evt-ooo2-1', 'failed');
+  if r ->> 'result' <> 'failed' or (select payment_status from reservations where id = v_res) <> 'payment_failed' then raise exception 'FAIL ooo2 failure %', r; end if;
+  r := t08_conf('ooo2', 'evt-ooo2-2');
+  if r ->> 'result' <> 'confirmed' or r ->> 'payment_status' <> 'paid' then raise exception 'FAIL success after failure on one reference %', r; end if;
+  r := t08_conf('ooo2', 'evt-ooo2-2');
+  if r ->> 'duplicate' <> 'true' or r ->> 'result' <> 'confirmed' then raise exception 'FAIL repeat of the success %', r; end if;
+  r := t08_conf('ooo2', 'evt-ooo2-1', 'failed');
+  if r ->> 'duplicate' <> 'true' then raise exception 'FAIL repeat of the old failure %', r; end if;
+  r := t08_conf('ooo2', 'evt-ooo2-3', 'failed');
+  if r ->> 'result' <> 'already_processed' then raise exception 'FAIL a new failure after the retry succeeded %', r; end if;
+  if (select reservation_status from reservations where id = v_res) <> 'confirmed'
+     or (select payment_status from reservations where id = v_res) <> 'paid'
+     or (select count(*) from payments where reservation_id = v_res) <> 1
+     or (select status from payment_attempts where reservation_id = v_res) <> 'succeeded'
+     then raise exception 'FAIL ooo2 final state'; end if;
+  raise notice 'PASS success after failure on one reference confirms once; repeats and later failures change nothing';
 end $$;
 
 -- 9. Payment after cancellation, unknown reference, bad arguments
