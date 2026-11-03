@@ -13,7 +13,8 @@ export const MAX_NIGHTS = 30;
 
 export const MAX_ROOMS = 5;
 
-export type RoomRequest = { roomTypeId: string; adults: number; children: number };
+/** requestedRoomId is a chosen physical room of that type, or null for "any free room" (the usual case). */
+export type RoomRequest = { roomTypeId: string; requestedRoomId: string | null; adults: number; children: number };
 
 export type NewReservation = {
   propertyId: string; rooms: RoomRequest[]; arrival: string; departure: string;
@@ -47,7 +48,8 @@ export function validateNewReservation(raw: Record<string, unknown>): { ok: true
   if (!arrival || !departure || departure <= arrival) return { ok: false, code: "dates_invalid" };
   if (nightsBetween(arrival, departure) > MAX_NIGHTS) return { ok: false, code: "too_long_stay" };
 
-  // Room 1 uses roomTypeId / adults / children; rooms 2 to MAX_ROOMS use the same names with _2 ... _5.
+  // Room 1 uses roomTypeId / roomId / adults / children; rooms 2 to MAX_ROOMS use the same names with _2 ... _5.
+  // roomId is optional: empty means any free room of the type. Whether it belongs to the type is the database's call.
   // A later slot with no room type is simply unused. Room 1 is required.
   const rooms: RoomRequest[] = [];
   for (let i = 1; i <= MAX_ROOMS; i++) {
@@ -55,10 +57,12 @@ export function validateNewReservation(raw: Record<string, unknown>): { ok: true
     const roomTypeId = clean(raw[`roomTypeId${sfx}`], 40);
     if (i > 1 && roomTypeId === "") continue;
     if (!GUID.test(roomTypeId)) return { ok: false, code: i === 1 ? "bad_request" : "room_type_missing" };
+    const roomId = clean(raw[`roomId${sfx}`], 40);
+    if (roomId !== "" && !GUID.test(roomId)) return { ok: false, code: "room_choice" };
     const adults = wholeNumber(raw[`adults${sfx}`] ?? (i > 1 ? "1" : undefined), 1, 20);
     const children = wholeNumber(raw[`children${sfx}`] ?? "0", 0, 20);
     if (adults === null || children === null) return { ok: false, code: "capacity" };
-    rooms.push({ roomTypeId, adults, children });
+    rooms.push({ roomTypeId, requestedRoomId: roomId === "" ? null : roomId, adults, children });
   }
 
   const source = MANUAL_SOURCES.find((s) => s.value === raw.source)?.value;
@@ -69,5 +73,5 @@ export function validateNewReservation(raw: Record<string, unknown>): { ok: true
 
 /** The `p_rooms` argument for create_reservation. The rate plan is left null so the property's default applies. */
 export function roomsPayload(v: NewReservation) {
-  return v.rooms.map((r) => ({ room_type_id: r.roomTypeId, requested_room_id: null, rate_plan_id: null, adults: r.adults, children: r.children }));
+  return v.rooms.map((r) => ({ room_type_id: r.roomTypeId, requested_room_id: r.requestedRoomId, rate_plan_id: null, adults: r.adults, children: r.children }));
 }

@@ -87,7 +87,8 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [x] Reservation create for walk-in and phone bookings (`/app/reservations/new`, one room per booking, default rate plan, confirmed at once)
 - [x] Edit a booking's dates and guests (migration 033 `update_reservation_stay`; "Change dates or guests" under Stay on `/app/reservations/[id]`, `components/staff/stay-edit.tsx`, `lib/staff/stay-edit.ts`, `lib/staff/stay-actions.ts`). Only a confirmed booking with nothing paid and no live invoice; otherwise cancel and rebook. Nights already booked keep their price, new nights take today's. Not built: changing the dates once money or an invoice exists (needs the money core changed: payment cap, invoice, settlement)
 - [x] Multi-room create on `/app/reservations/new` (up to 5 rooms, any mix of types)
-- [ ] A chosen physical room when creating a booking, and staff-created holds that wait for payment
+- [x] A chosen physical room when creating a booking (`/app/reservations/new`: "Which room?" under each room row, default "Any free room of that type"; the database already took `requested_room_id`, so no migration; a room of the wrong type is `NOT_FOUND: requested room`, a taken one `ROOM_UNAVAILABLE`, all or nothing)
+- [ ] Staff-created holds that wait for payment
 - [x] Invoice issue and void on the details page
 - [x] Room transfer, on the booking page (`Move to another room` under each room: same room type only so the price is unchanged, a chosen free room or the first free one, from a chosen date; all or nothing, reason required, audited). Moving to a different room type (upgrade or downgrade with a price change) is not built
 - [x] Overview (`/app`: arriving, departing and in-house counts for today, then a "needs a person" list that links to the right screen: overdue departures, flagged reservations, stuck refund payouts, refunds to approve or pay out, failed guest emails, late arrivals; nothing at zero is shown)

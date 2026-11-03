@@ -10,12 +10,14 @@ export const dynamic = "force-dynamic";
 export default async function NewReservationPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const search = await searchParams;
   const supabase = await createClient();
-  const [propQ, typeQ] = await Promise.all([
+  const [propQ, typeQ, roomQ] = await Promise.all([
     supabase.from("properties").select("id, name, timezone").eq("status", "active").order("name"),
     supabase.from("room_types").select("id, property_id, name, max_adults, max_children").eq("status", "active").order("name"),
+    supabase.from("rooms").select("id, room_type_id, room_number").eq("operational_status", "active").order("room_number"),
   ]);
   const properties = (propQ.data ?? []) as { id: string; name: string; timezone: string }[];
   const types = (typeQ.data ?? []) as { id: string; property_id: string; name: string; max_adults: number; max_children: number }[];
+  const rooms = (roomQ.data ?? []) as { id: string; room_type_id: string; room_number: string }[];
   // Only properties where the viewer may create bookings (the database checks again on submit).
   const allowed = (await Promise.all(properties.map(async (p) => {
     const { data } = await supabase.rpc("has_permission", { p_property: p.id, p_permission: "reservation.create" });
@@ -80,6 +82,18 @@ export default async function NewReservationPage({ searchParams }: { searchParam
                         </optgroup>
                       ))}
                     </select>
+                  </div>
+                  <div className="sm:col-span-3">
+                    <label htmlFor={`roomId${sfx}`} className="block text-sm">Which room? (optional)</label>
+                    <select id={`roomId${sfx}`} name={`roomId${sfx}`} defaultValue="" className={inputClass}>
+                      <option value="">Any free room of that type</option>
+                      {allowed.flatMap((p) => types.filter((t) => t.property_id === p.id).map((t) => (
+                        <optgroup key={t.id} label={many ? `${p.name}: ${t.name}` : t.name}>
+                          {rooms.filter((r) => r.room_type_id === t.id).map((r) => <option key={r.id} value={r.id}>Room {r.room_number}</option>)}
+                        </optgroup>
+                      )))}
+                    </select>
+                    <p className="mt-1 text-xs text-muted">Pick a room only if the guest asked for it; it must be a room of the type chosen above.</p>
                   </div>
                   <div>
                     <label htmlFor={`adults${sfx}`} className="block text-sm">Adults</label>

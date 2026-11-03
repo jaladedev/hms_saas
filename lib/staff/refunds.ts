@@ -112,7 +112,7 @@ export type ErrorCode =
   | "amount_invalid" | "provider_payment" | "hold_inactive" | "bad_request" | "unknown"
   | "room_not_ready" | "room_not_active" | "payment_required" | "early_checkin" | "stay_ended" | "no_stay_claim"
   | "overpayment" | "method_invalid" | "not_cancellable"
-  | "room_unavailable" | "capacity" | "rate_missing" | "forbidden" | "arrival_past" | "dates_invalid"
+  | "room_unavailable" | "room_choice" | "capacity" | "rate_missing" | "forbidden" | "arrival_past" | "dates_invalid"
   | "guest_name_required" | "too_long_stay" | "room_type_missing" | "guest_failed"
   | "block_conflict" | "block_past" | "block_invalid" | "room_retired"
   | "invoice_exists" | "invoice_has_payments" | "invoice_void"
@@ -166,6 +166,7 @@ export function classifyRpcError(message: string): { code: ErrorCode; refundable
   if (/FORBIDDEN/.test(message)) return { code: "forbidden" };
   if (/arrival in the past/.test(message)) return { code: "arrival_past" };
   if (/departure must follow/.test(message)) return { code: "dates_invalid" };
+  if (/NOT_FOUND: requested room/.test(message)) return { code: "room_choice" };
   if (/NOT_FOUND: room type|NOT_FOUND: property/.test(message)) return { code: "room_type_missing" };
   if (/invoice exists/.test(message)) return { code: "invoice_exists" };
   if (/invoice has payments/.test(message)) return { code: "invoice_has_payments" };
@@ -270,7 +271,8 @@ export function errorMessage(code: string, refundable: number | null, formatMino
     case "overpayment": return refundable !== null ? `That is more than is owed. At most ${formatMinor(refundable)} is outstanding.` : "That is more than is owed on this reservation.";
     case "method_invalid": return "Choose how the money was received.";
     case "not_cancellable": return "This reservation can no longer be cancelled because a guest has already checked in or it has ended.";
-    case "room_unavailable": return "No room of that type is free for all of those nights. Try other dates or another room type.";
+    case "room_unavailable": return "No room of that type is free for all of those nights, or the room you chose is taken. Nothing was booked. Try other dates, another room, or leave the room as \"any free room\".";
+    case "room_choice": return "That room does not belong to the room type chosen for it. Choose a room of that type, or leave the room as \"any free room\".";
     case "capacity": return "That room type cannot take that many adults and children.";
     case "rate_missing": return "There is no rate set for those dates, so the price cannot be worked out. Set the rates first.";
     case "forbidden": return "You do not have permission to create reservations at this property.";
