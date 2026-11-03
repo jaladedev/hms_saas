@@ -86,14 +86,14 @@ export async function recordPayment(formData: FormData) {
   if (!isPaymentMethod(parsed.data.method)) return back(page, { err: "method_invalid" });
 
   const supabase = await staffClient();
-  const { error } = await supabase.rpc("record_manual_payment", {
+  const { data, error } = await supabase.rpc("record_manual_payment", {
     p_reservation_id: parsed.data.reservationId, p_amount_minor: minor, p_method: parsed.data.method,
     p_reference: parsed.data.reference?.trim() || null, p_note: parsed.data.note?.trim() || null,
     p_idempotency_key: parsed.data.idempotencyKey,
   });
   if (error) return fail(page, error.message);
   refresh(parsed.data.reservationId);
-  return ok(page, "payment_recorded");
+  return ok(page, (data as { confirmed?: boolean } | null)?.confirmed === true ? "payment_confirmed" : "payment_recorded");
 }
 
 export async function createManualReservation(formData: FormData) {
@@ -123,7 +123,7 @@ export async function createManualReservation(formData: FormData) {
     guestId = created.id;
   }
 
-  const { data, error } = await supabase.rpc("create_reservation", {
+  const { data, error } = await supabase.rpc(value.holdUntilPaid ? "create_staff_hold" : "create_reservation", {
     p_property_id: value.propertyId, p_primary_guest_id: guestId, p_source: value.source,
     p_arrival: value.arrival, p_departure: value.departure, p_rooms: roomsPayload(value),
     p_idempotency_key: idempotencyKey.data,
@@ -131,8 +131,9 @@ export async function createManualReservation(formData: FormData) {
   if (error) return fail(NEW, error.message);
   const reservationId = (data as { reservation_id?: string } | null)?.reservation_id;
   revalidatePath(LIST);
-  if (!reservationId) return back(LIST, { ok: "created" });
-  return ok(pageFor(reservationId), "created");
+  const okCode = value.holdUntilPaid ? "created_hold" : "created";
+  if (!reservationId) return back(LIST, { ok: okCode });
+  return ok(pageFor(reservationId), okCode);
 }
 
 export async function issueInvoice(formData: FormData) {

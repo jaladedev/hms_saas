@@ -30,7 +30,7 @@ export default async function NewReservationPage({ searchParams }: { searchParam
     <main className="max-w-2xl">
       <p className="text-sm"><Link href="/app/reservations" className="text-primary-strong underline underline-offset-2">Reservations</Link></p>
       <h1 className="mt-2 font-display text-3xl">New reservation</h1>
-      <p className="mt-2 max-w-prose text-muted">For guests who walk in or book by phone. The rooms are held and the booking is confirmed straight away; record any payment on the booking afterwards.</p>
+      <p className="mt-2 max-w-prose text-muted">For guests who walk in or book by phone. The rooms are held and the booking is confirmed straight away, or you can hold the room until the guest pays.</p>
 
       <div className="mt-6"><Notice search={search} currency="NGN" /></div>
 
@@ -130,6 +130,14 @@ export default async function NewReservationPage({ searchParams }: { searchParam
               </select>
             </div>
           </fieldset>
+
+          <label className="flex max-w-xl items-start gap-2 rounded border border-line bg-white p-4 text-sm">
+            <input type="checkbox" name="holdUntilPaid" className="mt-1" />
+            <span>
+              Hold the room until the guest pays
+              <span className="mt-1 block text-xs text-muted">The booking stays pending and the room is held for the hotel&rsquo;s hold time (20 minutes unless the policy says otherwise). Record the payment on the booking to confirm it; if time runs out first, the room is released.</span>
+            </span>
+          </label>
 
           <div><button type="submit" className={buttonPrimary}>Create reservation</button></div>
         </form>

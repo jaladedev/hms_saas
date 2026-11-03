@@ -8,10 +8,18 @@ const base = { propertyId: P, roomTypeId: T, arrival: "2026-11-05", departure: "
 const bad = (over: Record<string, unknown>) => { const r = validateNewReservation({ ...base, ...over }); return r.ok ? "ok" : r.code; };
 
 describe("validateNewReservation", () => {
+  it("reads the hold-until-paid box: only a ticked box holds", () => {
+    const held = validateNewReservation({ ...base, holdUntilPaid: "on" });
+    expect(held.ok && held.value.holdUntilPaid).toBe(true);
+    for (const v of [undefined, "", "off", "true", "1"]) {
+      const r = validateNewReservation({ ...base, holdUntilPaid: v });
+      expect(r.ok && r.value.holdUntilPaid, String(v)).toBe(false);
+    }
+  });
   it("accepts a good form and cleans it", () => {
     const r = validateNewReservation({ ...base, guestEmail: " ADE@Example.com ", guestPhone: "+234 803 000 0000" });
     expect(r).toEqual({ ok: true, value: {
-      propertyId: P, rooms: [{ roomTypeId: T, requestedRoomId: null, adults: 2, children: 1 }], arrival: "2026-11-05", departure: "2026-11-07", source: "walk_in",
+      propertyId: P, rooms: [{ roomTypeId: T, requestedRoomId: null, adults: 2, children: 1 }], arrival: "2026-11-05", departure: "2026-11-07", source: "walk_in", holdUntilPaid: false,
       guest: { name: "Ade Bello", email: "ade@example.com", phone: "+234 803 000 0000" },
     } });
   });

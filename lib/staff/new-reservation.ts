@@ -19,6 +19,8 @@ export type RoomRequest = { roomTypeId: string; requestedRoomId: string | null; 
 export type NewReservation = {
   propertyId: string; rooms: RoomRequest[]; arrival: string; departure: string;
   source: ManualSource;
+  /** Hold the rooms for the hotel's hold time and confirm when payment is recorded (migration 034), instead of confirming at once. */
+  holdUntilPaid: boolean;
   guest: { name: string; email: string | null; phone: string | null };
 };
 
@@ -68,7 +70,7 @@ export function validateNewReservation(raw: Record<string, unknown>): { ok: true
   const source = MANUAL_SOURCES.find((s) => s.value === raw.source)?.value;
   if (!source) return { ok: false, code: "bad_request" };
 
-  return { ok: true, value: { propertyId, rooms, arrival, departure, source, guest: { name, email: email || null, phone: phone || null } } };
+  return { ok: true, value: { propertyId, rooms, arrival, departure, source, holdUntilPaid: raw.holdUntilPaid === "on", guest: { name, email: email || null, phone: phone || null } } };
 }
 
 /** The `p_rooms` argument for create_reservation. The rate plan is left null so the property's default applies. */

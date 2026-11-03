@@ -7,6 +7,7 @@ import { buttonDanger, buttonPrimary, buttonQuiet, inputClass, Notice, PaymentCh
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { checkoutNote, CHARGE_COLUMNS, folioIsOpen, isFolioResult, owingMinor, PAYMENT_COLUMNS, type ChargeRow, type FolioBalance, type PaymentRow } from "@/lib/staff/folio";
 import { formatDateTime } from "@/lib/staff/format";
+import { holdView } from "@/lib/staff/hold";
 import { stayEditView } from "@/lib/staff/stay-edit";
 import { cancelReservation, checkInRoom, checkOutRoom, issueInvoice, recordPayment, transferRoom, voidInvoice } from "@/lib/staff/reservation-actions";
 import {
@@ -29,7 +30,7 @@ type ResRoom = {
   checked_in_at: string | null; checked_out_at: string | null;
 };
 type Night = { reservation_room_id: string; night_date: string; rate_minor: number; tax_minor: number };
-type Claim = { reservation_room_id: string; room_id: string; start_date: string; end_date: string };
+type Claim = { reservation_room_id: string; room_id: string; start_date: string; end_date: string; claim_type?: string; hold_expires_at?: string | null };
 type Room = { id: string; room_number: string; housekeeping_status: string; operational_status: string };
 type Settlement = { applicable: boolean; held_minor: number; charge_minor: number; charge_due_minor: number; settled: boolean };
 
@@ -46,7 +47,7 @@ export default async function ReservationPage({
 
   const { data: resRow } = await supabase
     .from("reservations")
-    .select("id, property_id, booking_reference, primary_guest_id, source, reservation_status, payment_status, arrival_date, departure_date, currency, subtotal_minor, tax_minor, discount_minor, total_minor, cancellation_charge_minor, cancel_reason, cancelled_at, attention_reason, created_at")
+    .select("id, property_id, booking_reference, primary_guest_id, source, reservation_status, payment_status, arrival_date, departure_date, currency, subtotal_minor, tax_minor, discount_minor, total_minor, cancellation_charge_minor, cancel_reason, cancelled_at, attention_reason, created_at, policy_snapshot")
     .eq("id", id).maybeSingle();
   if (!resRow) notFound();
   const res = resRow as Reservation;
@@ -79,7 +80,7 @@ export default async function ReservationPage({
     roomIds.length ? supabase.from("reservation_nights").select("reservation_room_id, night_date, rate_minor, tax_minor").in("reservation_room_id", roomIds).order("night_date") : { data: [] },
     resRooms.length ? supabase.from("room_types").select("id, name, max_adults, max_children").in("id", [...new Set(resRooms.map((r) => r.room_type_id))]) : { data: [] },
     roomIds.length
-      ? supabase.from("room_inventory_claims").select("reservation_room_id, room_id, start_date, end_date").in("reservation_room_id", roomIds).eq("status", "active").in("claim_type", ["stay", "hold"]).order("start_date")
+      ? supabase.from("room_inventory_claims").select("reservation_room_id, room_id, start_date, end_date, claim_type, hold_expires_at").in("reservation_room_id", roomIds).eq("status", "active").in("claim_type", ["stay", "hold"]).order("start_date")
       : { data: [] },
   ]);
   const nights = (nightsQ.data ?? []) as Night[];
@@ -113,6 +114,8 @@ export default async function ReservationPage({
   const invoices = (invQ.data ?? []) as InvoiceRow[];
   const inv = invoiceActions(res.reservation_status, invoices, { issue: cIssue.data === true, void: cVoid.data === true });
   const money = (m: number) => formatMoney(m, res.currency);
+  const holdTimes = claims.filter((c) => c.claim_type === "hold" && c.hold_expires_at).map((c) => c.hold_expires_at as string).sort();
+  const hold = holdView(res.reservation_status, holdTimes[0] ?? null, new Date(), res.total_minor, (res as { policy_snapshot?: unknown }).policy_snapshot as Parameters<typeof holdView>[4], held);
   const stayNights = nightsBetween(res.arrival_date, res.departure_date);
   const cancelled = res.reservation_status === "cancelled";
   const outstanding = held === null ? null : cancelled ? settlement?.charge_due_minor ?? 0 : Math.max(res.total_minor - held, 0);
@@ -159,6 +162,15 @@ export default async function ReservationPage({
 
       {res.attention_reason && (
         <p className="mb-6 border-l-4 border-pending bg-pending/5 px-4 py-3 text-sm">{attentionText(res.attention_reason)}</p>
+      )}
+
+      {hold.kind === "live" && (
+        <p className="mb-6 border-l-4 border-pending bg-pending/5 px-4 py-3 text-sm">
+          Room held until {formatDateTime(hold.until, tz)}. Record a payment of at least {money(hold.stillNeededMinor)} to confirm the booking; if the time runs out the room is released.
+        </p>
+      )}
+      {hold.kind === "lapsed" && (
+        <p className="mb-6 border-l-4 border-pending bg-pending/5 px-4 py-3 text-sm">The hold on this room has run out, so the room is no longer held and no payment can be taken. Book the room again if it is still free.</p>
       )}
 
       <section aria-labelledby="stay">
