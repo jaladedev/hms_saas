@@ -71,6 +71,8 @@ const arrival = day(40), departure = day(42);
 let res = await site(`/?arrival=${arrival}&departure=${departure}&adults=2&children=0`);
 let html = await res.text();
 check("search page renders room types from the database", res.status === 200 && sees(pageText(html), "Standard", "Solo Suite", "50,000.00"), `status ${res.status}`);
+check("search page names the hotel in the header and the intro, with its check-in and check-out times",
+  sees(pageText(html), "Hotel A Ibadan", "Check in from 14:00", "Check out by 12:00"), pageText(html).slice(0, 300));
 const reserveHref = decode(/href="(\/reserve\?[^"]*type=[^"]*)"/.exec(html)?.[1] ?? "");
 check("search page links to the reserve page", reserveHref.startsWith("/reserve?"), html.slice(0, 300));
 
@@ -78,6 +80,7 @@ check("search page links to the reserve page", reserveHref.startsWith("/reserve?
 res = await fetch(`${SITE}/?arrival=${arrival}&departure=${departure}`, { headers: { "x-forwarded-host": "nobody.example" }, redirect: "manual" });
 html = await res.text();
 check("unknown host shows the not-configured message", sees(pageText(html), "not available on this site yet"));
+check("unknown host gets the plain header and no hotel details", sees(pageText(html), "Book your stay") && doesNotSee(pageText(html), "Hotel A Ibadan", "Check in from"));
 
 // 3. Reserve page, then submit the real server-action form
 res = await site(reserveHref);

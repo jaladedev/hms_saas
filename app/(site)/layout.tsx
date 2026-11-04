@@ -1,12 +1,31 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import { headerName } from "@/lib/guest-site/hotel";
+import { guestHotel, requestHost } from "@/lib/guest-site/server";
 
-export default function SiteLayout({ children }: { children: React.ReactNode }) {
+export const dynamic = "force-dynamic";
+
+/** The hotel behind this host, or null when the host is unknown or the lookup fails (the pages then say so themselves). */
+async function loadHotel() {
+  const result = await guestHotel(await requestHost());
+  return result.ok ? result.data : null;
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const hotel = await loadHotel();
+  if (!hotel) return {};
+  const name = headerName(hotel);
+  return { title: { default: `${name}: book your stay`, template: `%s · ${name}` } };
+}
+
+export default async function SiteLayout({ children }: { children: React.ReactNode }) {
+  const hotel = await loadHotel();
   return (
     <div className="min-h-screen">
       <header className="border-b border-line bg-white">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4">
-          <Link href="/" className="font-display text-xl">Book your stay</Link>
-          <Link href="/booking/find" className="text-sm text-primary underline">Find my booking</Link>
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 py-4">
+          <Link href="/" className="font-display text-xl">{headerName(hotel)}</Link>
+          <Link href="/booking/find" className="shrink-0 text-sm text-primary underline">Find my booking</Link>
         </div>
       </header>
       {children}

@@ -158,6 +158,9 @@ if echo "$MV" | grep -qE 'FAIL|ERROR'; then echo "$MV"; echo "AUDIT MEMBERSHIP V
 GP="$(psql -f "$HERE/30_guest_policy.sql" 2>&1)" || { echo "$GP"; echo "GUEST POLICY TESTS FAILED"; exit 1; }
 echo "$GP" | grep -E 'PASS' || true
 if echo "$GP" | grep -qE 'FAIL|ERROR'; then echo "$GP"; echo "GUEST POLICY TESTS FAILED"; exit 1; fi
+GH="$(psql -f "$HERE/40_guest_hotel.sql" 2>&1)" || { echo "$GH"; echo "GUEST HOTEL TESTS FAILED"; exit 1; }
+echo "$GH" | grep -E 'PASS' || true
+if echo "$GH" | grep -qE 'FAIL|ERROR'; then echo "$GH"; echo "GUEST HOTEL TESTS FAILED"; exit 1; fi
 SGE="$(psql -f "$HERE/31_stay_edit.sql" 2>&1)" || { echo "$SGE"; echo "STAY EDIT TESTS FAILED"; exit 1; }
 echo "$SGE" | grep -E 'PASS' || true
 if echo "$SGE" | grep -qE 'FAIL|ERROR'; then echo "$SGE"; echo "STAY EDIT TESTS FAILED"; exit 1; fi

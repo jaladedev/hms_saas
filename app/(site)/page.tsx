@@ -2,7 +2,8 @@ import { formatMoney } from "@/lib/guest-site/format";
 import { messageForCode } from "@/lib/guest-site/errors";
 import { parseStayParams, stayQuery } from "@/lib/guest-site/params";
 import { checkGuestLimits } from "@/lib/guest-site/limits";
-import { requestHost, searchAvailability } from "@/lib/guest-site/server";
+import { placeLine, timesLine } from "@/lib/guest-site/hotel";
+import { guestHotel, requestHost, searchAvailability } from "@/lib/guest-site/server";
 
 export const dynamic = "force-dynamic";
 
@@ -12,13 +13,26 @@ export default async function GuestHome({ searchParams }: Props) {
   const raw = await searchParams;
   const stay = parseStayParams(raw);
   const limited = stay ? !(await checkGuestLimits({ ip: ["search"] })).allowed : false;
-  const result = stay && !limited ? await searchAvailability(await requestHost(), stay) : null;
+  const host = await requestHost();
+  const [result, hotelResult] = await Promise.all([
+    stay && !limited ? searchAvailability(host, stay) : null,
+    guestHotel(host),
+  ]);
+  const hotel = hotelResult.ok ? hotelResult.data : null;
+  const place = hotel ? placeLine(hotel) : "";
   const today = new Date().toISOString().slice(0, 10);
   const notice = typeof raw.error === "string" ? messageForCode(raw.error) : null;
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8">
       <h1 className="font-display text-3xl">Find a room</h1>
+      {hotel ? (
+        <p className="mt-2 text-sm text-muted">
+          {hotel.name}{place ? ` · ${place}` : ""}
+          <br />
+          {timesLine(hotel)}
+        </p>
+      ) : null}
       {notice ? <p role="alert" className="mt-4 rounded border border-critical/40 bg-white p-3 text-critical">{notice}</p> : null}
 
       <form action="/" method="get" className="mt-6 grid grid-cols-2 gap-4 rounded border border-line bg-white p-4 sm:grid-cols-4">

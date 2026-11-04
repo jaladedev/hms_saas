@@ -1,8 +1,10 @@
 import "server-only";
+import { cache } from "react";
 import { headers } from "next/headers";
 import { createServiceClient } from "@/lib/supabase/service";
 import { friendlyError, type GuestError } from "@/lib/guest-site/errors";
 import type { StayParams } from "@/lib/guest-site/params";
+import type { GuestHotel } from "@/lib/guest-site/hotel";
 
 /** Host the visitor used. It is the ONLY thing that decides which hotel they are booking (tenant_domains). */
 export async function requestHost(): Promise<string> {
@@ -76,6 +78,9 @@ export function searchAvailability(host: string, stay: StayParams) {
     p_host: host, p_arrival: stay.arrival, p_departure: stay.departure, p_adults: stay.adults, p_children: stay.children,
   });
 }
+
+/** The hotel's name, address, town and check-in and check-out times for the host (migration 041). */
+export const guestHotel = cache((host: string) => call<GuestHotel>("guest_hotel", { p_host: host }));
 
 export type GuestPolicy = { currency: string; cancellation_rules: unknown; online_payment: unknown; checkin_payment: unknown; guest_cancellation: unknown };
 
