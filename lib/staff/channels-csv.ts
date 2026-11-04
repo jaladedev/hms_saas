@@ -24,7 +24,7 @@ export function guestsCsv(report: GuestReport): string {
   return out.join("\r\n");
 }
 
-export function channelsFileName(kind: "channels" | "guests", propertyName: string, from: string, to: string): string {
+export function channelsFileName(kind: "channels" | "guests" | "noshows", propertyName: string, from: string, to: string): string {
   const slug = propertyName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "hotel";
   return `${kind}-${slug}-${from}-to-${to}.csv`;
 }

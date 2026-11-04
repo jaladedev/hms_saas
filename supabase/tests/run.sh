@@ -178,6 +178,10 @@ CG="$(psql -f "$HERE/46_channel_guest_reports.sql" 2>&1)" || { echo "$CG"; echo 
 echo "$CG" | grep -E 'PASS' || true
 if echo "$CG" | grep -qE 'FAIL|ERROR'; then echo "$CG"; echo "CHANNEL GUEST REPORT TESTS FAILED"; exit 1; fi
 
+NL="$(psql -f "$HERE/47_no_show_list.sql" 2>&1)" || { echo "$NL"; echo "NO-SHOW LIST TESTS FAILED"; exit 1; }
+echo "$NL" | grep -E 'PASS' || true
+if echo "$NL" | grep -qE 'FAIL|ERROR'; then echo "$NL"; echo "NO-SHOW LIST TESTS FAILED"; exit 1; fi
+
 echo "--- concurrency: last room race (1 room, 50 clients)"
 cat > "$DATA/race_one.sql" <<'SQL'
 select test_try_claim('last_room', '00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', '2027-10-01', '2027-10-03');

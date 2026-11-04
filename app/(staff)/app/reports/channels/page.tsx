@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { buttonPrimary, inputClass } from "@/components/staff/ui";
-import { formatMoney } from "@/lib/guest-site/format";
+import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { countryLabel, lostBp, shareBp, sourceLabel, type ChannelReport, type GuestReport } from "@/lib/staff/channels";
+import { chargedMinor, chargeLabel, isCut, type NoShowList } from "@/lib/staff/no-shows";
 import { formatBp } from "@/lib/staff/occupancy";
 import { MAX_RANGE_DAYS, parseRange, presets } from "@/lib/staff/reports";
 import { todayIn } from "@/lib/staff/reservations";
@@ -34,13 +35,15 @@ export default async function ChannelsPage({ searchParams }: { searchParams: Pro
   const today = todayIn(chosen.timezone, new Date());
   const range = parseRange(search.from, search.to, today);
   const args = { p_property_id: chosen.id, p_from: range.from, p_to: range.to };
-  const [chQ, guQ, exportQ] = await Promise.all([
+  const [chQ, guQ, nsQ, exportQ] = await Promise.all([
     supabase.rpc("channel_report", args),
     supabase.rpc("guest_report", args),
+    supabase.rpc("no_show_list", args),
     supabase.rpc("has_permission", { p_property: chosen.id, p_permission: "report.export" }),
   ]);
   const channels = chQ.error ? null : (chQ.data as ChannelReport);
   const guests = guQ.error ? null : (guQ.data as GuestReport);
+  const noShows = nsQ.error ? null : (nsQ.data as NoShowList);
   const currency = channels?.currency ?? guests?.currency ?? "NGN";
   const money = (n: number) => formatMoney(n, currency);
   const qs = (from: string, to: string) => `?${new URLSearchParams({ property: chosen.id, from, to })}`;
@@ -137,6 +140,59 @@ export default async function ChannelsPage({ searchParams }: { searchParams: Pro
           <ul className="mt-4 max-w-prose list-disc space-y-1 pl-5 text-sm text-muted">
             <li>Bookings, room nights and room revenue count the nights of confirmed, checked-in and checked-out bookings that fall in the range, before tax. Unpaid holds do not count.</li>
             <li>Cancelled and No-shows are bookings that were due to arrive in the range. Lost is those two as a share of everything that was due to arrive.</li>
+          </ul>
+        </>
+      )}
+
+      <h2 className="mt-10 font-display text-2xl">No-shows</h2>
+      {!noShows ? (
+        <p role="alert" className="mt-4 rounded border border-critical/40 bg-white p-3 text-critical">The no-show list could not be loaded. Try again, or choose a shorter range.</p>
+      ) : noShows.total === 0 ? (
+        <p className="mt-4 text-sm text-muted">No bookings marked as no-shows were due to arrive in this range.</p>
+      ) : (
+        <>
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[34rem] text-sm">
+              <caption className="sr-only">No-shows due to arrive from {noShows.from} to {noShows.to}</caption>
+              <thead>
+                <tr className="border-b border-line text-left text-muted">
+                  <th scope="col" className="py-2 pr-3 font-normal">Arrival</th>
+                  {!noShows.links_hidden && <th scope="col" className="px-2 py-2 font-normal">Booking</th>}
+                  {!noShows.names_hidden && <th scope="col" className="px-2 py-2 font-normal">Guest</th>}
+                  <th scope="col" className="px-2 py-2 font-normal">Source</th>
+                  <th scope="col" className="px-2 py-2 text-right font-normal">Nights</th>
+                  <th scope="col" className="px-2 py-2 text-right font-normal">Charge</th>
+                </tr>
+              </thead>
+              <tbody>
+                {noShows.rows.map((r, i) => (
+                  <tr key={r.reservation_id ?? `${r.arrival_date}-${i}`} className="border-b border-line tabular-nums">
+                    <th scope="row" className="py-2 pr-3 text-left font-normal">{formatDate(r.arrival_date)}</th>
+                    {!noShows.links_hidden && (
+                      <td className="px-2 py-2">
+                        {r.reservation_id ? <Link href={`/app/reservations/${r.reservation_id}`} className="text-primary-strong underline underline-offset-2">{r.booking_reference}</Link> : "–"}
+                      </td>
+                    )}
+                    {!noShows.names_hidden && <td className="px-2 py-2">{r.guest_name ?? "–"}</td>}
+                    <td className="px-2 py-2">{sourceLabel(r.source)}</td>
+                    <td className="px-2 py-2 text-right">{r.nights}</td>
+                    <td className="px-2 py-2 text-right">{chargeLabel(r.charge_minor, money)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="font-semibold tabular-nums">
+                  <th scope="row" className="py-2 pr-3 text-left">{noShows.total} {noShows.total === 1 ? "no-show" : "no-shows"}</th>
+                  <td colSpan={2 + (noShows.links_hidden ? 0 : 1) + (noShows.names_hidden ? 0 : 1)} />
+                  <td className="px-2 py-2 text-right">{money(chargedMinor(noShows.rows))}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          {isCut(noShows) && <p role="status" className="mt-3 text-sm text-pending">Showing the newest {noShows.rows.length} of {noShows.total}. Choose a shorter range to see the rest; the charge total covers only the rows shown.</p>}
+          {mayExport && <p className="mt-3 text-sm"><a href={csv("noshows")} className="text-primary-strong underline underline-offset-2">Download no-shows as CSV</a></p>}
+          <ul className="mt-4 max-w-prose list-disc space-y-1 pl-5 text-sm text-muted">
+            <li>Bookings marked as no-shows whose arrival day is in the range. Charge is what the booking&rsquo;s cancellation rules put on it when it was marked; a dash means nothing was charged or it was waived. Booking numbers and guest names show only to people who may see bookings and guests.</li>
           </ul>
         </>
       )}

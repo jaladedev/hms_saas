@@ -28,6 +28,7 @@ describe("labels", () => {
   });
   it("reads the csv kind, defaulting to channels", () => {
     expect(parseKind("guests")).toBe("guests");
+    expect(parseKind("noshows")).toBe("noshows");
     expect(parseKind("channels")).toBe("channels");
     expect(parseKind("x")).toBe("channels");
     expect(parseKind(null)).toBe("channels");

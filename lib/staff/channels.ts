@@ -34,6 +34,6 @@ export function countryLabel(code: string): string {
   try { return COUNTRY_NAMES.of(code.toUpperCase()) ?? code; } catch { return code; }
 }
 
-export const KINDS = ["channels", "guests"] as const;
+export const KINDS = ["channels", "guests", "noshows"] as const;
 export type Kind = (typeof KINDS)[number];
-export const parseKind = (v: string | null | undefined): Kind => (v === "guests" ? "guests" : "channels");
+export const parseKind = (v: string | null | undefined): Kind => (v === "guests" || v === "noshows" ? v : "channels");
