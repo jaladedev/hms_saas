@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { back, ok, staffClient } from "./action-helpers";
 import { checkEffectiveDate, classifyPolicyError, mergeConfig, POLICY_COLUMNS, validatePolicy, versionsOn, type PolicyRow } from "./policies";
 import { todayIn } from "./reservations";
+import type { Json } from "@/types/database";
 
 /**
  * Publishes a new policy version. It runs as the signed-in person; the table's row-level security allows an insert
@@ -34,10 +35,11 @@ export async function publishPolicy(formData: FormData) {
   if (date === "past") return back(PAGE, { err: "policy_past" });
   if (date === "not_after_latest") return back(PAGE, { err: "policy_order" });
 
+  // The merged config is JSON by construction (a jsonb column plus fields this screen validated), so the cast below is safe.
   // Checked here, so two people saving at the same moment hit the unique (property, version) rule: the loser is told to reload.
   const { data, error } = await supabase.from("property_policies").insert({
     tenant_id: prop.tenant_id, property_id: propertyId, version: versionsOn(existing, today).nextVersion,
-    effective_from: effectiveFrom, config: mergeConfig(latest?.config, config), created_by: auth.user?.id ?? null,
+    effective_from: effectiveFrom, config: mergeConfig(latest?.config, config) as NonNullable<Json>, created_by: auth.user?.id ?? null,
   }).select("id");
   if (error) return back(PAGE, { err: classifyPolicyError(error) });
   if (!data || data.length === 0) return back(PAGE, { err: "policy_forbidden" });

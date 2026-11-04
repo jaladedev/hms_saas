@@ -5,6 +5,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { friendlyError, type GuestError } from "@/lib/guest-site/errors";
 import type { StayParams } from "@/lib/guest-site/params";
 import type { GuestHotel } from "@/lib/guest-site/hotel";
+import type { Database } from "@/lib/supabase/database";
 
 /** Host the visitor used. It is the ONLY thing that decides which hotel they are booking (tenant_domains). */
 export async function requestHost(): Promise<string> {
@@ -67,8 +68,12 @@ export type BookingStatus = {
 };
 export type HoldResult = { reservation_id: string; booking_reference: string; hold_expires_at: string; total_minor: number; currency: string };
 
-async function call<T>(fn: string, args: Record<string, unknown>): Promise<Result<T>> {
-  const { data, error } = await createServiceClient().rpc(fn, args);
+/** A database function that exists, so a misspelt name fails the typecheck. */
+type DbFunction = keyof Database["public"]["Functions"];
+
+async function call<T>(fn: DbFunction, args: Record<string, unknown>): Promise<Result<T>> {
+  // The arguments are built by the callers below, from values already validated; the name is what this helper checks.
+  const { data, error } = await createServiceClient().rpc(fn, args as never);
   if (error) return { ok: false, error: friendlyError(error.message) };
   return { ok: true, data: data as T };
 }

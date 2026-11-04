@@ -1,4 +1,5 @@
 import { verifyWebhookSignature, webhookEventSchema, type VerifyResult } from "@/lib/paystack";
+import type { Json } from "@/types/database";
 
 /**
  * Decision logic for Paystack webhooks, free of Next.js and Supabase so it can be tested directly.
@@ -14,7 +15,7 @@ export type ConfirmPaymentArgs = {
   amountMinor: number;
   currency: string;
   channel: string | null;
-  payload: Record<string, unknown>;
+  payload: { [key: string]: Json | undefined };
   tenantId: string;
 };
 export type RefundResultArgs = {
@@ -23,7 +24,7 @@ export type RefundResultArgs = {
   status: "succeeded" | "failed";
   providerRefundId: string | null;
   failureReason: string | null;
-  payload: Record<string, unknown>;
+  payload: { [key: string]: Json | undefined };
 };
 
 export type WebhookDeps = {

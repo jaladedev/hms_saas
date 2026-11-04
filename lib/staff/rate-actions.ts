@@ -48,6 +48,8 @@ export async function setRates(formData: FormData) {
   const v = validateRateRange(Object.fromEntries(formData), true);
   if (!v.ok) return back(PAGE, { err: v.code });
   const { propertyId, roomTypeId, from, to, amountMinor } = v.value;
+  // validateRateRange(…, true) already refuses a missing price; this narrows the type for the insert below.
+  if (amountMinor === null) return back(PAGE, { err: "rate_range_invalid" });
 
   const { supabase, plan, type } = await context(propertyId, roomTypeId);
   if (!plan) return back(PAGE, { err: "rate_no_plan" });
