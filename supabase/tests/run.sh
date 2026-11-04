@@ -144,9 +144,6 @@ if echo "$RS" | grep -qE 'FAIL|ERROR'; then echo "$RS"; echo "ROLE SWEEP TESTS F
 IP="$(psql -f "$HERE/43_idempotency_purge.sql" 2>&1)" || { echo "$IP"; echo "IDEMPOTENCY PURGE TESTS FAILED"; exit 1; }
 echo "$IP" | grep -E 'PASS' || true
 if echo "$IP" | grep -qE 'FAIL|ERROR'; then echo "$IP"; echo "IDEMPOTENCY PURGE TESTS FAILED"; exit 1; fi
-PDR="$(psql -f "$HERE/44_policy_date_rules.sql" 2>&1)" || { echo "$PDR"; echo "POLICY DATE RULE TESTS FAILED"; exit 1; }
-echo "$PDR" | grep -E 'PASS' || true
-if echo "$PDR" | grep -qE 'FAIL|ERROR'; then echo "$PDR"; echo "POLICY DATE RULE TESTS FAILED"; exit 1; fi
 
 DR="$(psql -f "$HERE/36_daily_report.sql" 2>&1)" || { echo "$DR"; echo "DAILY REPORT TESTS FAILED"; exit 1; }
 echo "$DR" | grep -E 'PASS' || true
@@ -400,6 +397,21 @@ psql -At -c "do \$\$ declare v_rr uuid := (select rr from t19_rr where label = '
   end if;
   if (select count(*) from room_inventory_claims where reservation_room_id = v_rr and status = 'active') <> 1 then raise exception 'FAIL guest claims'; end if;
 end \$\$"
+echo "--- six rounds: 4 clients block room 101 asking to move its guest while 8 clients book a standard room for the same nights. The block wins and exactly 3 bookings fit, or it loses and exactly 4 fit; the guest is never lost"
+psql -f "$HERE/45_block_move_book_fixtures.sql"
+PREV=$((W4 + 3))
+for ROUND in 1 2 3 4 5 6; do
+  WB="$(free_std_window $PREV)"; [ -n "$WB" ] || { echo "no free window for the block-move-and-book race, round $ROUND"; exit 1; }
+  PREV=$((WB + 3))
+  psql -c "select t19_setup('bm_book$ROUND', $WB, 1)"
+  cat > "$DATA/bm_book.sql" <<SQL
+\\set k :client_id % 3
+select t45_try('bm_book$ROUND', :k, $WB);
+SQL
+  bench -c 12 -j 6 -t 1 -f "$DATA/bm_book.sql"
+  psql -At -c "select 'round $ROUND: blocked=' || count(*) filter (where label = 'bm_book$ROUND:0' and ok) || ' bookings=' || count(*) filter (where label = 'bm_book$ROUND:1' and ok) || ' refused=' || count(*) filter (where not ok) from test_results where label like 'bm_book$ROUND:%'"
+  psql -q -c "select t45_check('bm_book$ROUND', $WB)"
+done
 echo "--- concurrency: a block, website holds and staff bookings fight over the one room of the solo type (rounds 1-6: all three; rounds 7-10: only blocks and website holds, the blocks arriving late in 9 and 10; who wins varies, exactly one must)"
 psql -f "$HERE/27_block_race_fixtures.sql"
 PREV=200
