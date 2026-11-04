@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { buttonPrimary, inputClass, Notice } from "@/components/staff/ui";
 import { createManualReservation } from "@/lib/staff/reservation-actions";
-import { MANUAL_SOURCES, MAX_NIGHTS, MAX_ROOMS } from "@/lib/staff/new-reservation";
+import { MANUAL_SOURCES, MAX_NIGHTS, MAX_ROOMS, parsePrefill } from "@/lib/staff/new-reservation";
 import { todayIn } from "@/lib/staff/reservations";
 import { createClient } from "@/lib/supabase/server";
 
@@ -25,6 +25,13 @@ export default async function NewReservationPage({ searchParams }: { searchParam
   }))).filter((p): p is (typeof properties)[number] => p !== null);
   const today = todayIn(allowed[0]?.timezone ?? "UTC", new Date());
   const many = allowed.length > 1;
+  // Starting values from the room calendar (?room=&arrival=&departure=). A hint only: see parsePrefill.
+  const typeProperty = new Map(types.map((t) => [t.id, t.property_id]));
+  const prefill = parsePrefill(
+    search, today,
+    rooms.flatMap((r) => { const property_id = typeProperty.get(r.room_type_id); return property_id ? [{ id: r.id, room_type_id: r.room_type_id, property_id }] : []; }),
+    allowed.map((p) => p.id),
+  );
 
   return (
     <main className="max-w-2xl">
@@ -46,7 +53,7 @@ export default async function NewReservationPage({ searchParams }: { searchParam
             {many && (
               <div className="sm:col-span-2">
                 <label htmlFor="propertyId" className="block text-sm">Property</label>
-                <select id="propertyId" name="propertyId" required defaultValue="" className={inputClass}>
+                <select id="propertyId" name="propertyId" required defaultValue={prefill.propertyId ?? ""} className={inputClass}>
                   <option value="" disabled>Choose…</option>
                   {allowed.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
@@ -54,11 +61,11 @@ export default async function NewReservationPage({ searchParams }: { searchParam
             )}
             <div>
               <label htmlFor="arrival" className="block text-sm">Arrival</label>
-              <input id="arrival" name="arrival" type="date" required min={today} defaultValue={today} className={inputClass} />
+              <input id="arrival" name="arrival" type="date" required min={today} defaultValue={prefill.arrival} className={inputClass} />
             </div>
             <div>
               <label htmlFor="departure" className="block text-sm">Departure</label>
-              <input id="departure" name="departure" type="date" required min={today} className={inputClass} />
+              <input id="departure" name="departure" type="date" required min={today} defaultValue={prefill.departure ?? undefined} className={inputClass} />
               <p className="mt-1 text-xs text-muted">Up to {MAX_NIGHTS} nights. The guest leaves on this day.</p>
             </div>
           </fieldset>
@@ -72,7 +79,7 @@ export default async function NewReservationPage({ searchParams }: { searchParam
                 <div key={i} className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_6rem_6rem]">
                   <div>
                     <label htmlFor={`roomTypeId${sfx}`} className="block text-sm">Room {i}{i > 1 ? " (optional)" : ""}</label>
-                    <select id={`roomTypeId${sfx}`} name={`roomTypeId${sfx}`} required={i === 1} defaultValue="" className={inputClass}>
+                    <select id={`roomTypeId${sfx}`} name={`roomTypeId${sfx}`} required={i === 1} defaultValue={i === 1 ? (prefill.roomTypeId ?? "") : ""} className={inputClass}>
                       <option value="">{i === 1 ? "Choose…" : "None"}</option>
                       {allowed.map((p) => (
                         <optgroup key={p.id} label={many ? p.name : "Room types"}>
@@ -85,7 +92,7 @@ export default async function NewReservationPage({ searchParams }: { searchParam
                   </div>
                   <div className="sm:col-span-3">
                     <label htmlFor={`roomId${sfx}`} className="block text-sm">Which room? (optional)</label>
-                    <select id={`roomId${sfx}`} name={`roomId${sfx}`} defaultValue="" className={inputClass}>
+                    <select id={`roomId${sfx}`} name={`roomId${sfx}`} defaultValue={i === 1 ? (prefill.roomId ?? "") : ""} className={inputClass}>
                       <option value="">Any free room of that type</option>
                       {allowed.flatMap((p) => types.filter((t) => t.property_id === p.id).map((t) => (
                         <optgroup key={t.id} label={many ? `${p.name}: ${t.name}` : t.name}>

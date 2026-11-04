@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { buttonPrimary, inputClass } from "@/components/staff/ui";
 import { formatDate } from "@/lib/guest-site/format";
+import { bookFromCalendarHref } from "@/lib/staff/new-reservation";
 import type { BoardClaim, BoardRoom } from "@/lib/staff/room-board";
 import { buildRows, dayHeads, KIND_LABEL, nightTotals, parseWindow, shiftStart, WINDOW_CHOICES, type Bar } from "@/lib/staff/room-calendar";
 import { todayIn } from "@/lib/staff/reservations";
@@ -58,6 +59,10 @@ export default async function RoomCalendarPage({ searchParams }: { searchParams:
   const guestIds = [...new Set([...reservations.values()].map((r) => r.primary_guest_id))];
   const guestQ = guestIds.length ? await supabase.from("guests").select("id, full_name").in("id", guestIds) : { data: [] };
   const guests = new Map(((guestQ.data ?? []) as { id: string; full_name: string }[]).map((g) => [g.id, g.full_name]));
+
+  // An empty night links to a new booking only for people who may create bookings here (the database checks again on submit).
+  const { data: canBookHere } = await supabase.rpc("has_permission", { p_property: property.id, p_permission: "reservation.create" });
+  const canBook = canBookHere === true;
 
   const heads = dayHeads(w, today);
   const rows = buildRows(rooms, claims, w);
@@ -131,7 +136,16 @@ export default async function RoomCalendarPage({ searchParams }: { searchParams:
                 const bar = row.bars.find((b) => b.column === col);
                 if (!bar) {
                   const h = heads[col - 1]!;
-                  cells.push(<td key={`e${col}`} className={`h-9 border-b border-l border-line ${h.isToday ? "bg-primary/5" : h.isWeekend ? "bg-ink/5" : ""}`} />);
+                  const bookable = canBook && row.room.operational_status === "active" && h.date >= today;
+                  cells.push(
+                    <td key={`e${col}`} className={`h-9 border-b border-l border-line p-0 ${h.isToday ? "bg-primary/5" : h.isWeekend ? "bg-ink/5" : ""}`}>
+                      {bookable && (
+                        <Link href={bookFromCalendarHref(row.room.id, h.date)} className="block h-9 w-full hover:bg-primary/15 focus-visible:bg-primary/15">
+                          <span className="sr-only">Book room {row.room.room_number} from {formatDate(h.date)}</span>
+                        </Link>
+                      )}
+                    </td>,
+                  );
                   col += 1;
                   continue;
                 }
@@ -180,6 +194,7 @@ export default async function RoomCalendarPage({ searchParams }: { searchParams:
       </div>
 
       <ul className="mt-6 max-w-prose list-disc space-y-1 pl-5 text-sm text-muted">
+        {canBook && <li>Select an empty night to start a booking for that room. The form opens with the room and the night filled in; change the departure there.</li>}
         <li>Bars are drawn from the booked claims on each room. A booking number and guest name show only to people who may see bookings and guests; everyone else sees the kind of claim.</li>
         <li>Rooms booked counts rooms with a stay that night. Holds and blocks are not stays. Retired rooms are left out.</li>
       </ul>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { classifyRpcError, errorMessage } from "./refunds";
-import { MAX_ROOMS, roomsPayload, validateNewReservation } from "./new-reservation";
+import { bookFromCalendarHref, MAX_NIGHTS, MAX_ROOMS, parsePrefill, roomsPayload, validateNewReservation } from "./new-reservation";
 
 const P = "11111111-1111-4111-8111-111111111111";
 const T = "22222222-2222-4222-8222-222222222222";
@@ -123,5 +123,44 @@ describe("create-reservation refusals", () => {
       expect(classifyRpcError(msg).code, msg).toBe(code);
       expect(errorMessage(code, null, String), code).not.toMatch(/Nothing was changed|ROOM_|POLICY_/);
     }
+  });
+});
+
+describe("bookFromCalendarHref and parsePrefill", () => {
+  const R = "33333333-3333-4333-8333-333333333333";
+  const rooms = [{ id: R, room_type_id: T, property_id: P }];
+  const today = "2026-11-04";
+  const href = (h: string) => Object.fromEntries(new URL(h, "http://x").searchParams);
+
+  it("links to the room, the night, and the next day as departure", () => {
+    expect(href(bookFromCalendarHref(R, "2026-12-31"))).toEqual({ room: R, arrival: "2026-12-31", departure: "2027-01-01" });
+  });
+  it("fills the form from a calendar link", () => {
+    expect(parsePrefill(href(bookFromCalendarHref(R, "2026-11-10")), today, rooms, [P])).toEqual({ propertyId: P, roomTypeId: T, roomId: R, arrival: "2026-11-10", departure: "2026-11-11" });
+  });
+  it("starts empty with today's arrival when nothing is asked", () => {
+    expect(parsePrefill({}, today, rooms, [P])).toEqual({ propertyId: null, roomTypeId: null, roomId: null, arrival: today, departure: null });
+  });
+  it("ignores a room that is unknown or at a property the viewer may not book at", () => {
+    expect(parsePrefill({ room: "nope" }, today, rooms, [P]).roomId).toBeNull();
+    const other = parsePrefill({ room: R, property: P }, today, rooms, []);
+    expect(other).toMatchObject({ propertyId: null, roomId: null, roomTypeId: null });
+  });
+  it("takes a property alone only when it is allowed", () => {
+    expect(parsePrefill({ property: P }, today, rooms, [P]).propertyId).toBe(P);
+    expect(parsePrefill({ property: P }, today, rooms, []).propertyId).toBeNull();
+  });
+  it("moves a past arrival to today and repairs a bad departure", () => {
+    expect(parsePrefill({ arrival: "2026-10-01", departure: "2026-10-03" }, today, rooms, [P])).toMatchObject({ arrival: today, departure: "2026-11-05" });
+    expect(parsePrefill({ arrival: "2026-11-10", departure: "2026-11-10" }, today, rooms, [P]).departure).toBe("2026-11-11");
+    expect(parsePrefill({ arrival: "2026-11-10", departure: "2027-03-01" }, today, rooms, [P]).departure).toBe("2026-11-11");
+    expect(parsePrefill({ arrival: "2026-11-10", departure: "garbage" }, today, rooms, [P]).departure).toBe("2026-11-11");
+  });
+  it("keeps a departure up to the longest stay", () => {
+    expect(parsePrefill({ arrival: "2026-11-10", departure: "2026-12-10" }, today, rooms, [P]).departure).toBe("2026-12-10");
+    expect(MAX_NIGHTS).toBe(30);
+  });
+  it("ignores repeated query values", () => {
+    expect(parsePrefill({ room: [R, R], arrival: ["2026-11-10"] }, today, rooms, [P])).toMatchObject({ roomId: null, arrival: today, departure: null });
   });
 });

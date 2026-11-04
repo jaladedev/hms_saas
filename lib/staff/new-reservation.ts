@@ -1,5 +1,6 @@
 /** Checks the new-reservation form before it reaches the database. Pure, so it can be tested. */
 import { nightsBetween, parseIsoDate } from "./reservations";
+import { addDays } from "./transfer";
 import type { ErrorCode } from "./refunds";
 
 export const MANUAL_SOURCES = [
@@ -76,4 +77,34 @@ export function validateNewReservation(raw: Record<string, unknown>): { ok: true
 /** The `p_rooms` argument for create_reservation. The rate plan is left null so the property's default applies. */
 export function roomsPayload(v: NewReservation) {
   return v.rooms.map((r) => ({ room_type_id: r.roomTypeId, requested_room_id: r.requestedRoomId, rate_plan_id: null, adults: r.adults, children: r.children }));
+}
+
+/** The link an empty night on the room calendar goes to: that room, arriving that night, leaving the next day. The form lets staff change the departure. */
+export function bookFromCalendarHref(roomId: string, date: string): string {
+  return `/app/reservations/new?${new URLSearchParams({ room: roomId, arrival: date, departure: addDays(date, 1) })}`;
+}
+
+export type Prefill = { propertyId: string | null; roomTypeId: string | null; roomId: string | null; arrival: string; departure: string | null };
+
+const one = (v: unknown): string | undefined => (typeof v === "string" ? v : undefined);
+
+/**
+ * Starting values for the new-reservation form from ?room=&property=&arrival=&departure=, used by the room calendar.
+ * Only a hint: a room counts only if it is an active room of a property the viewer may book at, a past arrival becomes today,
+ * and a departure that is not after the arrival, or is more than MAX_NIGHTS away, is dropped. The database still decides on submit.
+ */
+export function parsePrefill(
+  search: Record<string, string | string[] | undefined>,
+  today: string,
+  rooms: { id: string; room_type_id: string; property_id: string }[],
+  allowedPropertyIds: string[],
+): Prefill {
+  const room = rooms.find((r) => r.id === one(search.room) && allowedPropertyIds.includes(r.property_id));
+  const wanted = one(search.property);
+  const propertyId = room?.property_id ?? (wanted && allowedPropertyIds.includes(wanted) ? wanted : null);
+  const asked = parseIsoDate(one(search.arrival));
+  const arrival = asked && asked >= today ? asked : today;
+  const dep = parseIsoDate(one(search.departure));
+  const departure = asked && dep && dep > arrival && nightsBetween(arrival, dep) <= MAX_NIGHTS ? dep : asked ? addDays(arrival, 1) : null;
+  return { propertyId, roomTypeId: room?.room_type_id ?? null, roomId: room?.id ?? null, arrival, departure };
 }
