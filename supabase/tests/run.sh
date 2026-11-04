@@ -141,6 +141,9 @@ if echo "$RI" | grep -qE 'FAIL|ERROR'; then echo "$RI"; echo "ROLE ISOLATION TES
 RS="$(psql -f "$HERE/42_role_sweep.sql" 2>&1)" || { echo "$RS"; echo "ROLE SWEEP TESTS FAILED"; exit 1; }
 echo "$RS" | grep -E 'PASS' || true
 if echo "$RS" | grep -qE 'FAIL|ERROR'; then echo "$RS"; echo "ROLE SWEEP TESTS FAILED"; exit 1; fi
+IP="$(psql -f "$HERE/43_idempotency_purge.sql" 2>&1)" || { echo "$IP"; echo "IDEMPOTENCY PURGE TESTS FAILED"; exit 1; }
+echo "$IP" | grep -E 'PASS' || true
+if echo "$IP" | grep -qE 'FAIL|ERROR'; then echo "$IP"; echo "IDEMPOTENCY PURGE TESTS FAILED"; exit 1; fi
 
 DR="$(psql -f "$HERE/36_daily_report.sql" 2>&1)" || { echo "$DR"; echo "DAILY REPORT TESTS FAILED"; exit 1; }
 echo "$DR" | grep -E 'PASS' || true

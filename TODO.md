@@ -60,7 +60,8 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [x] Staff screens for money: refund queue (`/app/refunds`: request, approve or reject, manual and Paystack payout, needs-a-person list), settlement summary per cancelled booking (`/app/reservations/<id>/settlement`), and cancellation-charge collection (the charge due shows as the outstanding amount on the booking page, where a payment is recorded).
 - [x] Guest self-cancel: the booking page shows a settlement preview (`guest_cancel_preview`) before the guest confirms (`guest_cancel_reservation`); the hotel can turn it off or limit it by policy (migrations 035 and 038, `/booking/<token>/cancel`, tests 34 and 37, e2e)
 - [x] `audit_logs` (insert-only) and `idempotency_keys` (007)
-- [ ] `outbox_events`, `notifications`, `documents`, `booking_access_tokens`; idempotency key expiry job
+- [ ] `outbox_events`, `notifications`, `documents`, `booking_access_tokens`
+- [x] Idempotency key expiry: `purge_old_operational_data()` (called by `/api/cron/maintenance`) now deletes keys older than 30 days and reports `idempotency_keys` (migration 042, `43_idempotency_purge.sql`). 30 days is a retention choice, change it in the function if the hotel wants otherwise. `idem_begin` still replays a key of any age and ignores the 24 hour `expires_at` column, so until a purge runs an old key replays its stored answer
 - [x] `cancel_reservation` (policy charge, releases inventory), `check_in` (readiness gate with override), `check_out` (early departure frees the room, marks dirty) (008)
 - [x] `issue_invoice`, `void_invoice`, `record_manual_payment` (010)
 - [ ] Operation functions still to build: settlement on cancellation, payment verification workflow, early check-in policy, settlement or credit on cancel and early check-out, cancel-resolution for blocks
