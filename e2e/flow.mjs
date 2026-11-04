@@ -777,6 +777,23 @@ check("anon cannot call either report function", [401, 403].includes(chRpcAnon.s
 const guRpcB = await rpc("guest_report", { p_property_id: PROPERTY_A, p_from: tonight, p_to: tonight }, OWNER_B_JWT);
 check("hotel B's owner cannot read hotel A's guests", guRpcB.status >= 400 && !(await guRpcB.text()).includes("Ada Okafor"));
 
+// 17. The room calendar, after section 14 (the owner's checked-in stay in room 201 and the block on room 101, tonight and tomorrow night).
+const calPath = `/app/rooms/calendar?from=${tonight}&days=7`;
+const calOwner = await getPage(calPath, OWNER_COOKIE);
+check("the owner sees every room, the stay as in house with its booking link and guest, and the block with its reason", calOwner.status === 200 && sees(calOwner.text, "Room calendar", "Rooms booked", "Standard", "Solo Suite", "E2E leak in the ceiling", "Ada Okafor") && calOwner.html.includes(`href="/app/reservations/`), calOwner.text.slice(0, 200));
+check("the window has its previous and next links, and a two-night stay is one two-night cell", sees(calOwner.text, "Previous 7 nights", "Next 7 nights") && /colSpan="2"|colspan="2"/.test(calOwner.html));
+const calHk = await getPage(calPath, HK_COOKIE);
+check("housekeeping sees the same rooms and bars but no booking number, link or guest", calHk.status === 200 && sees(calHk.text, "Solo Suite", "In house", "E2E leak in the ceiling") && doesNotSee(calHk.text, "Ada Okafor", "BK-") && !calHk.html.includes("/app/reservations/"), calHk.text.slice(0, 200));
+check("and no price anywhere", doesNotSee(calHk.text, "₦", "NGN"));
+const calAccountant = await getPage(calPath, ACCOUNTANT_COOKIE);
+check("an accountant, who may not see rooms, gets an empty calendar", calAccountant.status === 200 && sees(calAccountant.text, "No rooms to show.") && doesNotSee(calAccountant.text, "Solo Suite", "In house"));
+const calB = await getPage(calPath, OWNER_B_COOKIE);
+check("hotel B's owner sees none of hotel A's rooms", calB.status === 200 && doesNotSee(calB.text, "Solo Suite", "E2E leak in the ceiling", "Ada Okafor"));
+const calBad = await getPage("/app/rooms/calendar?from=2026-13-45&days=999", OWNER_COOKIE);
+check("a bad date and length fall back to today and 14 nights", calBad.status === 200 && sees(calBad.text, "Previous 14 nights") && calBad.html.includes(`value="${tonight}"`), calBad.text.slice(0, 120));
+const calLater = await getPage(`/app/rooms/calendar?from=${dayAfter}&days=7`, OWNER_COOKIE);
+check("a window that starts after the stay has ended shows no in-house bar", calLater.status === 200 && sees(calLater.text, "Room calendar") && doesNotSee(calLater.text, "Ada Okafor", "E2E leak in the ceiling"));
+
 // 14. A refund Paystack cannot finish without the customer's bank details: payout through the real route, the
 // needs-attention event, the bank list, the retry with the bank and account, and the event that completes it.
 // The fake Paystack behaves like the documented endpoints (cursor-paged /bank, a retry that answers 422 unless the refund

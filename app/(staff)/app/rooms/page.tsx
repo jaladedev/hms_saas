@@ -110,6 +110,7 @@ export default async function RoomBoardPage({ searchParams }: { searchParams: Pr
     <main className="max-w-5xl">
       <h1 className="font-display text-3xl">Rooms</h1>
       <p className="mt-2 max-w-prose text-muted">What every room is doing today. Open a booking to check someone in or out.</p>
+      <p className="mt-2 text-sm"><Link href="/app/rooms/calendar" className="text-primary-strong underline underline-offset-2">Room calendar</Link></p>
 
       <div className="mt-6"><Notice search={search} currency="NGN" /></div>
       {loadError && <p role="alert" className="mt-6 border-l-4 border-critical bg-critical/5 px-4 py-3 text-sm text-critical">The rooms could not be loaded. Reload the page.</p>}

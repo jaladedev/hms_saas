@@ -117,7 +117,7 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [x] Payment test matrix, in `supabase/tests/08_provider_payments.sql`: duplicate events, wrong amount, wrong currency, late payment after expiry, failure then a successful retry, a failure or abandonment arriving after success (out of order), success after a failure on the same reference, payment after cancel, another tenant's events
 
 ## Phase 6 and 7
-- [ ] Calendars, room blocks UI, maintenance, reports, notifications, self-service booking management
+- [ ] Calendars (done: the room calendar at `/app/rooms/calendar`; still to do: click-to-book and drag to move, a calendar of arrivals and departures), room blocks UI, notifications, self-service booking management (maintenance and reports are built)
 - [ ] Platform admin, tenant onboarding, entitlements, subscriptions, multi-property switching
 
 ## Decisions still open
