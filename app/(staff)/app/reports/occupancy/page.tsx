@@ -40,7 +40,11 @@ export default async function OccupancyPage({ searchParams }: { searchParams: Pr
 
   return (
     <main>
-      <p className="text-sm"><Link href="/app/reports" className="text-primary-strong underline underline-offset-2">Money and revenue report</Link></p>
+      <p className="text-sm">
+        <Link href="/app/reports" className="text-primary-strong underline underline-offset-2">Money and revenue report</Link>
+        <span aria-hidden="true"> · </span>
+        <Link href={`/app/reports/channels${qs(range.from, range.to)}`} className="text-primary-strong underline underline-offset-2">Channels and guests</Link>
+      </p>
       <h1 className="mt-2 font-display text-3xl">Occupancy</h1>
       <p className="mt-2 max-w-prose text-muted">
         How many rooms were sold each night, what they earned, and what was coming and going. Days are the hotel&rsquo;s own days, and future days show what is booked so far.

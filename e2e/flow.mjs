@@ -737,7 +737,10 @@ check("an accountant may read it, and the page stays readable", occAccountant.st
 const occHk = await getPage(occPath, HK_COOKIE);
 check("housekeeping is told it has no permission, with no figures", occHk.status === 200 && sees(occHk.text, "You do not have permission to see reports.") && doesNotSee(occHk.text, "RevPAR", "ADR"));
 const occBad = await getPage("/app/reports/occupancy?from=2026-13-45&to=nonsense", OWNER_COOKIE);
-check("unreadable dates fall back to the default range with a note", occBad.status === 200 && sees(occBad.text, "That date range was not usable"));
+const weekAgo = new Date(Date.parse(`${tonight}T00:00:00Z`) - 6 * 86400000).toISOString().slice(0, 10);
+check("unreadable dates fall back to the last 7 days ending today", occBad.status === 200 && occBad.html.includes(`value="${weekAgo}"`) && occBad.html.includes(`value="${tonight}"`), occBad.text.slice(0, 120));
+const occLong = await getPage(`/app/reports/occupancy?from=2020-01-01&to=${tonight}`, OWNER_COOKIE);
+check("a range longer than 92 days is cut to the most recent days, with a note", occLong.status === 200 && sees(occLong.text, "longer than 92 days"), occLong.text.slice(0, 120));
 const occCsv = await staff(`/app/reports/occupancy/csv?${new URLSearchParams({ property: PROPERTY_A, from: tonight, to: dayAfter })}`, OWNER_COOKIE);
 const occCsvText = await occCsv.text();
 check("the owner downloads it as CSV with a header, a row per day and a total", occCsv.status === 200 && (occCsv.headers.get("content-type") ?? "").startsWith("text/csv") && occCsvText.includes("Date,Rooms in service,Blocked,Available,Sold,Occupancy %") && occCsvText.includes(`${tonight},`) && /Total,/.test(occCsvText) && (occCsv.headers.get("content-disposition") ?? "").includes("occupancy-"), `${occCsv.status} ${occCsvText.slice(0, 120)}`);
@@ -749,6 +752,30 @@ const occRpcAnon = await rpc("occupancy_report", { p_property_id: PROPERTY_A, p_
 check("anon cannot call the report function", occRpcAnon.status === 401 || occRpcAnon.status === 403, `${occRpcAnon.status}`);
 const occRpcB = await rpc("occupancy_report", { p_property_id: PROPERTY_A, p_from: tonight, p_to: tonight }, OWNER_B_JWT);
 check("hotel B's owner cannot read hotel A's occupancy", occRpcB.status >= 400, `${occRpcB.status}`);
+
+// 16. The channel and guest reports (migration 044), after sections 14 and 15: the owner's staff-entry booking for tonight is the only stay in the range.
+const chPath = `/app/reports/channels?from=${tonight}&to=${dayAfter}`;
+const chOwner = await getPage(chPath, OWNER_COOKIE);
+check("the owner sees the channel table, the guest tiles and the top guest by name", chOwner.status === 200 && sees(chOwner.text, "Booking channels", "Staff entry", "Walk-in", "Guests who stayed", "Returning", "Top guests by room revenue", "Ada Okafor", "Download channels as CSV", "Download guests as CSV"), chOwner.text.slice(0, 200));
+check("all five sources are listed even when nothing came through them", sees(chOwner.text, "Website", "Phone", "Partner"));
+const chAccountant = await getPage(chPath, ACCOUNTANT_COOKIE);
+check("an accountant, who may view guests, sees the same page", chAccountant.status === 200 && sees(chAccountant.text, "Booking channels", "Ada Okafor"));
+const chHk = await getPage(chPath, HK_COOKIE);
+check("housekeeping is told it has no permission, with no figures and no names", chHk.status === 200 && sees(chHk.text, "You do not have permission to see reports.") && doesNotSee(chHk.text, "Ada Okafor", "Staff entry"));
+const chCsvUrl = (kind, extra = {}) => `/app/reports/channels/csv?${new URLSearchParams({ property: PROPERTY_A, from: tonight, to: dayAfter, kind, ...extra })}`;
+const chCsv = await staff(chCsvUrl("channels"), OWNER_COOKIE);
+const chCsvText = await chCsv.text();
+check("the owner downloads the channel table as CSV", chCsv.status === 200 && (chCsv.headers.get("content-type") ?? "").startsWith("text/csv") && chCsvText.includes("Source,Bookings,Room nights,Room revenue") && chCsvText.includes("Staff entry,") && /Total,/.test(chCsvText) && (chCsv.headers.get("content-disposition") ?? "").includes("channels-"), `${chCsv.status} ${chCsvText.slice(0, 120)}`);
+const guCsv = await staff(chCsvUrl("guests"), OWNER_COOKIE);
+const guCsvText = await guCsv.text();
+check("and the guest report as CSV, with the guest's name", guCsv.status === 200 && guCsvText.includes("Guests,New,Returning") && guCsvText.includes("Ada Okafor") && (guCsv.headers.get("content-disposition") ?? "").includes("guests-"), `${guCsv.status} ${guCsvText.slice(0, 160)}`);
+const chCsvHk = await staff(chCsvUrl("channels"), HK_COOKIE);
+check("housekeeping cannot download either", chCsvHk.status === 404, `${chCsvHk.status}`);
+const chRpcAnon = await rpc("channel_report", { p_property_id: PROPERTY_A, p_from: tonight, p_to: tonight }, jwt("anon"));
+const guRpcAnon = await rpc("guest_report", { p_property_id: PROPERTY_A, p_from: tonight, p_to: tonight }, jwt("anon"));
+check("anon cannot call either report function", [401, 403].includes(chRpcAnon.status) && [401, 403].includes(guRpcAnon.status), `${chRpcAnon.status} ${guRpcAnon.status}`);
+const guRpcB = await rpc("guest_report", { p_property_id: PROPERTY_A, p_from: tonight, p_to: tonight }, OWNER_B_JWT);
+check("hotel B's owner cannot read hotel A's guests", guRpcB.status >= 400 && !(await guRpcB.text()).includes("Ada Okafor"));
 
 // 14. A refund Paystack cannot finish without the customer's bank details: payout through the real route, the
 // needs-attention event, the bank list, the retry with the bank and account, and the event that completes it.

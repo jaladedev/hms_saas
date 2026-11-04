@@ -174,6 +174,10 @@ SH="$(psql -f "$HERE/33_staff_hold.sql" 2>&1)" || { echo "$SH"; echo "STAFF HOLD
 echo "$SH" | grep -E 'PASS' || true
 if echo "$SH" | grep -qE 'FAIL|ERROR'; then echo "$SH"; echo "STAFF HOLD TESTS FAILED"; exit 1; fi
 
+CG="$(psql -f "$HERE/46_channel_guest_reports.sql" 2>&1)" || { echo "$CG"; echo "CHANNEL GUEST REPORT TESTS FAILED"; exit 1; }
+echo "$CG" | grep -E 'PASS' || true
+if echo "$CG" | grep -qE 'FAIL|ERROR'; then echo "$CG"; echo "CHANNEL GUEST REPORT TESTS FAILED"; exit 1; fi
+
 echo "--- concurrency: last room race (1 room, 50 clients)"
 cat > "$DATA/race_one.sql" <<'SQL'
 select test_try_claim('last_room', '00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', '2027-10-01', '2027-10-03');

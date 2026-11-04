@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { buttonPrimary, inputClass } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { dayOccupancy, parseRange, totals, type ReportDay } from "@/lib/staff/reports";
@@ -36,6 +37,11 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   return (
     <main className="max-w-5xl">
       {heading}
+      <p className="mt-2 text-sm">
+        <Link href={`/app/reports/occupancy?${new URLSearchParams({ property: property.id })}`} className="text-primary-strong underline underline-offset-2">Occupancy</Link>
+        <span aria-hidden="true"> · </span>
+        <Link href={`/app/reports/channels?${new URLSearchParams({ property: property.id })}`} className="text-primary-strong underline underline-offset-2">Channels and guests</Link>
+      </p>
       <p className="mt-2 max-w-prose text-muted">Nights sold, what the hotel earned and what it received, day by day. Amounts are in naira. Cancelled, pending and no-show stays are not counted as sold.</p>
 
       <form method="get" className="mt-6 flex flex-wrap items-end gap-4">
