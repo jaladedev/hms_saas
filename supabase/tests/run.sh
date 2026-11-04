@@ -141,6 +141,10 @@ if echo "$RI" | grep -qE 'FAIL|ERROR'; then echo "$RI"; echo "ROLE ISOLATION TES
 RS="$(psql -f "$HERE/42_role_sweep.sql" 2>&1)" || { echo "$RS"; echo "ROLE SWEEP TESTS FAILED"; exit 1; }
 echo "$RS" | grep -E 'PASS' || true
 if echo "$RS" | grep -qE 'FAIL|ERROR'; then echo "$RS"; echo "ROLE SWEEP TESTS FAILED"; exit 1; fi
+# Wired in again: commit 5cc27f3 dropped this one by accident.
+PDR="$(psql -f "$HERE/44_policy_date_rules.sql" 2>&1)" || { echo "$PDR"; echo "POLICY DATE RULE TESTS FAILED"; exit 1; }
+echo "$PDR" | grep -E 'PASS' || true
+if echo "$PDR" | grep -qE 'FAIL|ERROR'; then echo "$PDR"; echo "POLICY DATE RULE TESTS FAILED"; exit 1; fi
 IP="$(psql -f "$HERE/43_idempotency_purge.sql" 2>&1)" || { echo "$IP"; echo "IDEMPOTENCY PURGE TESTS FAILED"; exit 1; }
 echo "$IP" | grep -E 'PASS' || true
 if echo "$IP" | grep -qE 'FAIL|ERROR'; then echo "$IP"; echo "IDEMPOTENCY PURGE TESTS FAILED"; exit 1; fi
@@ -173,6 +177,25 @@ if echo "$SGE" | grep -qE 'FAIL|ERROR'; then echo "$SGE"; echo "STAY EDIT TESTS 
 SH="$(psql -f "$HERE/33_staff_hold.sql" 2>&1)" || { echo "$SH"; echo "STAFF HOLD TESTS FAILED"; exit 1; }
 echo "$SH" | grep -E 'PASS' || true
 if echo "$SH" | grep -qE 'FAIL|ERROR'; then echo "$SH"; echo "STAFF HOLD TESTS FAILED"; exit 1; fi
+
+# Wired in again: commit 1a9f9bb dropped these from this file by accident, so they had stopped running.
+# Not wired: 35_daily_report.sql. It tests an older daily_report that returned jsonb; the migration now returns a table
+# and 36_daily_report.sql tests that.
+GC="$(psql -f "$HERE/34_guest_cancel.sql" 2>&1)" || { echo "$GC"; echo "GUEST CANCEL TESTS FAILED"; exit 1; }
+echo "$GC" | grep -E 'PASS' || true
+if echo "$GC" | grep -qE 'FAIL|ERROR'; then echo "$GC"; echo "GUEST CANCEL TESTS FAILED"; exit 1; fi
+NS="$(psql -f "$HERE/36_no_show.sql" 2>&1)" || { echo "$NS"; echo "NO SHOW TESTS FAILED"; exit 1; }
+echo "$NS" | grep -E 'PASS' || true
+if echo "$NS" | grep -qE 'FAIL|ERROR'; then echo "$NS"; echo "NO SHOW TESTS FAILED"; exit 1; fi
+GS="$(psql -f "$HERE/37_guest_cancel_setting.sql" 2>&1)" || { echo "$GS"; echo "GUEST CANCEL SETTING TESTS FAILED"; exit 1; }
+echo "$GS" | grep -E 'PASS' || true
+if echo "$GS" | grep -qE 'FAIL|ERROR'; then echo "$GS"; echo "GUEST CANCEL SETTING TESTS FAILED"; exit 1; fi
+RB="$(psql -f "$HERE/38_room_board_views.sql" 2>&1)" || { echo "$RB"; echo "ROOM BOARD VIEW TESTS FAILED"; exit 1; }
+echo "$RB" | grep -E 'PASS' || true
+if echo "$RB" | grep -qE 'FAIL|ERROR'; then echo "$RB"; echo "ROOM BOARD VIEW TESTS FAILED"; exit 1; fi
+OC="$(psql -f "$HERE/39_occupancy_report.sql" 2>&1)" || { echo "$OC"; echo "OCCUPANCY REPORT TESTS FAILED"; exit 1; }
+echo "$OC" | grep -E 'PASS' || true
+if echo "$OC" | grep -qE 'FAIL|ERROR'; then echo "$OC"; echo "OCCUPANCY REPORT TESTS FAILED"; exit 1; fi
 
 CG="$(psql -f "$HERE/46_channel_guest_reports.sql" 2>&1)" || { echo "$CG"; echo "CHANNEL GUEST REPORT TESTS FAILED"; exit 1; }
 echo "$CG" | grep -E 'PASS' || true

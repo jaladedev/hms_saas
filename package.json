@@ -8,6 +8,8 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "db:test": "bash supabase/tests/run.sh",
+    "db:types": "npx supabase gen types typescript --linked --schema public > types/database.ts",
+    "db:types:local": "npx supabase gen types typescript --local --schema public > types/database.ts",
     "test": "vitest run",
     "e2e": "bash e2e/run.sh",
     "lint": "npm run lint --prefix tools/lint"
