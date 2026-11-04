@@ -127,6 +127,25 @@ do $$ declare t date := property_today('00000000-0000-0000-0000-0000000000a2'); 
   raise notice 'PASS no-shows: counted on the arrival day, never as sold or arriving';
 end $$;
 
+-- 4b. The shape mark_no_show leaves (037): status cancelled with no_show_at set. 040 once counted status 'no_show', which nothing sets,
+-- so real no-shows never showed. A plain cancellation on the same kind of day is not a no-show.
+do $$ declare t date := property_today('00000000-0000-0000-0000-0000000000a2'); ns uuid; plain uuid; after jsonb; begin
+  perform t_sys();
+  ns := t07_res(1450, 1, 't39-b4');
+  plain := t07_res(1451, 1, 't39-b5');
+  perform t_as('00000000-0000-0000-0000-00000000aa01');
+  perform cancel_reservation(ns, 'no-show', 't39-b4-c');
+  perform cancel_reservation(plain, 'changed plans', 't39-b5-c');
+  perform t_sys();
+  update reservations set no_show_at = now() where id = ns;
+  perform t_as('00000000-0000-0000-0000-00000000aa05');
+  after := t39_rep(t + 1450, t + 1451);
+  perform t_sys();
+  if t39_n(after, 'no_shows') <> 1 then raise exception 'FAIL real no-show shape: one no-show expected, a plain cancellation must not count %', after -> 'totals'; end if;
+  if t39_n(after, 'rooms_sold') <> 0 or t39_n(after, 'arrivals') <> 0 then raise exception 'FAIL a cancelled no-show counted as sold or arriving %', after -> 'totals'; end if;
+  raise notice 'PASS no-shows as mark_no_show records them: counted on the arrival day, a plain cancellation is not one';
+end $$;
+
 -- 5. The function is closed to anon
 do $$ begin
   perform set_config('request.jwt.claim.sub', '', true);

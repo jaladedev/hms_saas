@@ -131,6 +131,30 @@ begin
   raise notice 'PASS guests: new and returning, countries with unknown last, top guests by revenue, names only with guest.view';
 end $$;
 
+-- 3b. The shape mark_no_show leaves (037): status cancelled with no_show_at set. 044 once counted status 'no_show', which nothing sets,
+-- so real no-shows never showed and were counted under cancelled. Offsets 1700 and up are used by nothing else.
+do $$ declare
+  t date := property_today('00000000-0000-0000-0000-0000000000a2'); g uuid := gen_random_uuid(); ns uuid; plain uuid; r jsonb;
+begin
+  perform t_sys();
+  insert into guests (id, tenant_id, full_name) select g, tenant_id, 'T44 No-show' from properties where id = '00000000-0000-0000-0000-0000000000a2';
+  ns := t40_book(g, 'phone', 1700, 1, 't44-ns');
+  plain := t40_book(g, 'phone', 1701, 1, 't44-plain');
+  perform t_as('00000000-0000-0000-0000-00000000aa01');
+  perform cancel_reservation(ns, 'no-show', 't44-ns-c');
+  perform cancel_reservation(plain, 'changed plans', 't44-plain-c');
+  perform t_sys();
+  update reservations set no_show_at = now() where id = ns;
+  perform t_as('00000000-0000-0000-0000-00000000aa05');
+  r := t40_ch(t + 1700, t + 1701);
+  perform t_sys();
+  if t40_row(r, 'phone', 'no_shows') <> 1 or t40_row(r, 'phone', 'cancelled') <> 1
+    then raise exception 'FAIL one no-show and one plain cancellation expected, not counted twice %', r -> 'rows'; end if;
+  if (r #>> '{totals,no_shows}')::int <> 1 or (r #>> '{totals,cancelled}')::int <> 1 or (r #>> '{totals,bookings}')::int <> 0
+    then raise exception 'FAIL totals %', r -> 'totals'; end if;
+  raise notice 'PASS no-shows as mark_no_show records them: counted once under no-shows, not under cancelled';
+end $$;
+
 -- 4. Closed to anon
 do $$ begin
   perform set_config('request.jwt.claim.sub', '', true);
