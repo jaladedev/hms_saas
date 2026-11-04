@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { DeskRow } from "./front-desk";
-import { buildTasks, countRefunds, countRepairs, todayFigures, type RefundBrief, type RequestBrief } from "./overview";
+import { buildTasks, countCleaning, countRefunds, countRepairs, todayFigures, type RefundBrief, type RequestBrief } from "./overview";
 
 const NOW = new Date("2026-10-31T12:00:00Z");
 const ME = "11111111-1111-1111-1111-111111111111";
@@ -75,5 +75,19 @@ describe("todayFigures", () => {
   it("counts everyone checked in as in house, including those leaving today or overdue", () => {
     const f = todayFigures({ arrivals: [row("a"), row("b")], departures: [row("c")], inHouse: [row("d"), row("e")], overdue: [row("f")], lateArrivals: [row("g")] });
     expect(f).toEqual({ arriving: 2, departing: 1, inHouse: 4 });
+  });
+});
+
+describe("countCleaning", () => {
+  const room = (housekeeping_status: string, operational_status = "active") => ({ housekeeping_status, operational_status });
+  it("counts dirty and in-progress rooms, and says how many of them are being cleaned now", () => {
+    expect(countCleaning([room("dirty"), room("dirty"), room("in_progress"), room("clean"), room("inspected")])).toEqual({ toClean: 2, inProgress: 1, total: 3 });
+  });
+  it("leaves out retired rooms but counts a room that is out of service", () => {
+    expect(countCleaning([room("dirty", "retired"), room("in_progress", "retired"), room("dirty", "out_of_service")])).toEqual({ toClean: 1, inProgress: 0, total: 1 });
+  });
+  it("is zero for no rooms, and ignores a status it does not know", () => {
+    expect(countCleaning([])).toEqual({ toClean: 0, inProgress: 0, total: 0 });
+    expect(countCleaning([room("mystery")])).toEqual({ toClean: 0, inProgress: 0, total: 0 });
   });
 });

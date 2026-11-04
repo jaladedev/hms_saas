@@ -202,6 +202,9 @@ export function classifyPolicyError(err: { code?: string; message?: string }): "
   const msg = err.message ?? "";
   if (err.code === "42501" || /row-level security/i.test(msg)) return "policy_forbidden";
   if (err.code === "23505") return "policy_conflict";
+  // Migration 043: the database's own date rules. Losing a race to another person's newer version means reload; a past date is invalid.
+  if (/POLICY_VIOLATION: policy date not after the latest version/.test(msg)) return "policy_conflict";
+  if (/POLICY_VIOLATION: policy date in the past/.test(msg)) return "policy_invalid";
   if (err.code === "23514" || err.code === "22P02" || err.code === "22007" || err.code === "22008") return "policy_invalid";
   return "unknown";
 }

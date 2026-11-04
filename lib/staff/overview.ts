@@ -54,6 +54,24 @@ export function countRepairs(rows: RequestBrief[], now: Date): RepairCounts {
   return { open: c.open, overdue: c.overdue, highPriority: c.highPriority };
 }
 
+/** A room's two status columns, as the overview reads them. */
+export type RoomBrief = { housekeeping_status: string; operational_status: string };
+
+/**
+ * Rooms still waiting for a cleaner: dirty or being cleaned. A retired room is not cleaned, so it is left out; a room out
+ * of service is counted, because it still has to be made ready before it goes back on sale.
+ */
+export function countCleaning(rows: RoomBrief[]): { toClean: number; inProgress: number; total: number } {
+  let toClean = 0;
+  let inProgress = 0;
+  for (const r of rows) {
+    if (r.operational_status === "retired") continue;
+    if (r.housekeeping_status === "dirty") toClean++;
+    else if (r.housekeeping_status === "in_progress") inProgress++;
+  }
+  return { toClean, inProgress, total: toClean + inProgress };
+}
+
 export type OverviewInput = {
   desk: Pick<DeskGroups, "overdue" | "lateArrivals">;
   flaggedReservations: number;

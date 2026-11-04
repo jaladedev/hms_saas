@@ -163,6 +163,8 @@ describe("wording", () => {
 describe("classifyPolicyError", () => {
   it("never shows the database's words", () => {
     expect(classifyPolicyError({ code: "42501" })).toBe("policy_forbidden");
+    expect(classifyPolicyError({ code: "P0001", message: "POLICY_VIOLATION: policy date not after the latest version" })).toBe("policy_conflict");
+    expect(classifyPolicyError({ code: "P0001", message: "POLICY_VIOLATION: policy date in the past" })).toBe("policy_invalid");
     expect(classifyPolicyError({ message: "new row violates row-level security policy" })).toBe("policy_forbidden");
     expect(classifyPolicyError({ code: "23505" })).toBe("policy_conflict");
     expect(classifyPolicyError({ code: "23514" })).toBe("policy_invalid");

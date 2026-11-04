@@ -2,7 +2,7 @@ import Link from "next/link";
 import { formatDate } from "@/lib/guest-site/format";
 import { loadDeskRows } from "@/lib/staff/desk-query";
 import { bucketFrontDesk } from "@/lib/staff/front-desk";
-import { buildTasks, countRefunds, countRepairs, todayFigures, type RefundBrief, type RequestBrief } from "@/lib/staff/overview";
+import { buildTasks, countCleaning, countRefunds, countRepairs, todayFigures, type RefundBrief, type RequestBrief, type RoomBrief } from "@/lib/staff/overview";
 import { todayIn } from "@/lib/staff/reservations";
 import { createClient } from "@/lib/supabase/server";
 
@@ -30,7 +30,7 @@ export default async function Dashboard() {
 
   // Each source is read on its own and may come back empty: row level security decides what this person can see,
   // and a failed read is reported at the top rather than shown as "all clear".
-  const [desk, flaggedQ, refundQ, emailQ, repairQ, canSeeRepairs] = await Promise.all([
+  const [desk, flaggedQ, refundQ, emailQ, repairQ, canSeeRepairs, roomQ, canSeeCleaning] = await Promise.all([
     earliest && latest ? loadDeskRows(supabase, earliest, latest) : Promise.resolve({ rows: [], error: null }),
     supabase.from("reservations").select("id", { count: "exact", head: true }).not("attention_reason", "is", null),
     supabase.from("refunds").select("refund_status, requested_by, attention_note, provider_call_started_at").in("refund_status", ["requested", "approved", "processing"]).limit(500),
@@ -39,15 +39,19 @@ export default async function Dashboard() {
     supabase.from("maintenance_requests").select("status, priority, assigned_to, due_at").in("status", ["open", "in_progress"]).limit(500),
     // The repair figure is shown only to people who can read requests, so "0 open" is never shown to a role that sees none.
     anyPermission(supabase, properties.map((p) => p.id), ["maintenance.view", "maintenance.manage"]),
+    // Rooms not yet clean: two status columns only. Shown only to people who can open housekeeping, for the same reason.
+    supabase.from("rooms").select("housekeeping_status, operational_status").in("housekeeping_status", ["dirty", "in_progress"]).limit(1000),
+    anyPermission(supabase, properties.map((p) => p.id), ["housekeeping.view", "housekeeping.update"]),
   ]);
 
   const groups = bucketFrontDesk(desk.rows, todayByProperty);
   const refunds = countRefunds((refundQ.data ?? []) as RefundBrief[], auth.user?.id ?? null, now);
   const repairs = countRepairs((repairQ.data ?? []) as RequestBrief[], now);
+  const cleaning = countCleaning((roomQ.data ?? []) as RoomBrief[]);
   const failedEmails = ((emailQ.data ?? []) as { state: string }[]).filter((e) => e.state === "failed").length;
   const tasks = buildTasks({ desk: groups, flaggedReservations: flaggedQ.count ?? 0, refunds, repairs, failedEmails });
   const figures = todayFigures(groups);
-  const loadFailed = Boolean(propQ.error || desk.error || flaggedQ.error || refundQ.error || repairQ.error);
+  const loadFailed = Boolean(propQ.error || desk.error || flaggedQ.error || refundQ.error || repairQ.error || roomQ.error);
 
   return (
     <main className="max-w-4xl">
@@ -68,6 +72,7 @@ export default async function Dashboard() {
             ["Departing", figures.departing],
             ["In house", figures.inHouse],
             ...(canSeeRepairs ? ([["Open repairs", repairs.open]] as const) : []),
+            ...(canSeeCleaning ? ([["Rooms to clean", cleaning.total]] as const) : []),
           ] as readonly (readonly [string, number])[]).map(([label, n], i) => (
             <div key={label} className={`min-w-32 flex-1 px-4 py-4 ${i > 0 ? "border-l border-line" : "pl-0"}`}>
               <dt className="text-sm text-muted">{label}</dt>
@@ -77,6 +82,12 @@ export default async function Dashboard() {
         </dl>
         <p className="mt-2 text-sm">
           <Link href="/app/front-desk" className="text-primary-strong underline underline-offset-2">Open the front desk</Link>
+          {canSeeCleaning && (
+            <>
+              {" · "}
+              <Link href="/app/housekeeping" className="text-primary-strong underline underline-offset-2">Open housekeeping</Link>
+            </>
+          )}
           {canSeeRepairs && (
             <>
               {" · "}
