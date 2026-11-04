@@ -1,6 +1,8 @@
 import Link from "next/link";
-import { buttonPrimary, inputClass } from "@/components/staff/ui";
+import { CalendarDrag } from "@/components/staff/calendar-drag";
+import { buttonPrimary, inputClass, Notice } from "@/components/staff/ui";
 import { formatDate } from "@/lib/guest-site/format";
+import { canMoveBar } from "@/lib/staff/calendar-move";
 import { bookFromCalendarHref } from "@/lib/staff/new-reservation";
 import type { BoardClaim, BoardRoom } from "@/lib/staff/room-board";
 import { buildRows, dayHeads, KIND_LABEL, nightTotals, parseWindow, shiftStart, WINDOW_CHOICES, type Bar } from "@/lib/staff/room-calendar";
@@ -63,6 +65,8 @@ export default async function RoomCalendarPage({ searchParams }: { searchParams:
   // An empty night links to a new booking only for people who may create bookings here (the database checks again on submit).
   const { data: canBookHere } = await supabase.rpc("has_permission", { p_property: property.id, p_permission: "reservation.create" });
   const canBook = canBookHere === true;
+  const { data: canAssignHere } = await supabase.rpc("has_permission", { p_property: property.id, p_permission: "room.assign" });
+  const canMove = canAssignHere === true;
 
   const heads = dayHeads(w, today);
   const rows = buildRows(rooms, claims, w);
@@ -78,7 +82,9 @@ export default async function RoomCalendarPage({ searchParams }: { searchParams:
         Every room for the nights ahead. A stay covers the nights it is booked for; the departure day is free for the next guest.
       </p>
 
-      <form method="get" className="mt-6 flex flex-wrap items-end gap-3">
+      <div className="mt-4"><Notice search={search} currency="NGN" /></div>
+
+      <form method="get" className="mt-2 flex flex-wrap items-end gap-3">
         {withRooms.length > 1 && (
           <div>
             <label htmlFor="property" className="block text-sm">Property</label>
@@ -111,7 +117,7 @@ export default async function RoomCalendarPage({ searchParams }: { searchParams:
         ))}
       </p>
 
-      <div className="mt-4 overflow-x-auto">
+      <div id="room-calendar" className="mt-4 overflow-x-auto">
         <table className="w-full border-separate border-spacing-0 text-xs" style={{ minWidth: `${9 + w.days * 3}rem` }}>
           <caption className="sr-only">Rooms of {property.name} from {w.start} to {lastNight}</caption>
           <thead>
@@ -138,7 +144,7 @@ export default async function RoomCalendarPage({ searchParams }: { searchParams:
                   const h = heads[col - 1]!;
                   const bookable = canBook && row.room.operational_status === "active" && h.date >= today;
                   cells.push(
-                    <td key={`e${col}`} className={`h-9 border-b border-l border-line p-0 ${h.isToday ? "bg-primary/5" : h.isWeekend ? "bg-ink/5" : ""}`}>
+                    <td key={`e${col}`} data-date={h.date} className={`h-9 border-b border-l border-line p-0 ${h.isToday ? "bg-primary/5" : h.isWeekend ? "bg-ink/5" : ""}`}>
                       {bookable && (
                         <Link href={bookFromCalendarHref(row.room.id, h.date)} className="block h-9 w-full hover:bg-primary/15 focus-visible:bg-primary/15">
                           <span className="sr-only">Book room {row.room.room_number} from {formatDate(h.date)}</span>
@@ -150,13 +156,19 @@ export default async function RoomCalendarPage({ searchParams }: { searchParams:
                   continue;
                 }
                 const res = bar.claim.reservation_room_id ? resOfRr.get(bar.claim.reservation_room_id) : undefined;
+                const movable = Boolean(res) && canMoveBar(bar.claim, today, canMove);
                 const guest = res ? guests.get(res.primary_guest_id) : undefined;
                 const label = bar.claim.claim_type === "block" ? (bar.claim.block_reason ?? KIND_LABEL.blocked) : res ? res.booking_reference : KIND_LABEL[bar.kind];
                 const detail = `${KIND_LABEL[bar.kind]}${guest ? `, ${guest}` : ""}: ${formatDate(bar.claim.start_date)} to ${formatDate(bar.claim.end_date)}`;
                 cells.push(
-                  <td key={bar.claim.id} colSpan={bar.span} className="h-9 border-b border-l border-line p-0.5">
+                  <td key={bar.claim.id} colSpan={bar.span} data-date={heads[col - 1]!.date} className="h-9 border-b border-l border-line p-0.5">
                     {res ? (
-                      <Link href={`/app/reservations/${res.id}`} title={detail} className={`block truncate rounded px-1.5 py-1.5 font-medium ${BAR[bar.kind]} ${bar.continuesBefore ? "rounded-l-none" : ""} ${bar.continuesAfter ? "rounded-r-none" : ""}`}>
+                      <Link href={`/app/reservations/${res.id}`} title={detail}
+                        {...(movable ? {
+                          draggable: true, "data-move-rr": bar.claim.reservation_room_id!, "data-move-room": row.room.id, "data-move-type": row.room.room_type_id,
+                          "data-move-room-number": row.room.room_number, "data-move-label": res.booking_reference, "data-move-start": bar.claim.start_date, "data-move-end": bar.claim.end_date,
+                        } : {})}
+                        className={`${movable ? "cursor-grab " : ""}block truncate rounded px-1.5 py-1.5 font-medium ${BAR[bar.kind]} ${bar.continuesBefore ? "rounded-l-none" : ""} ${bar.continuesAfter ? "rounded-r-none" : ""}`}>
                         {bar.continuesBefore && <span aria-hidden="true">‹ </span>}{label}{guest ? ` · ${guest}` : ""}{bar.continuesAfter && <span aria-hidden="true"> ›</span>}
                       </Link>
                     ) : (
@@ -169,7 +181,7 @@ export default async function RoomCalendarPage({ searchParams }: { searchParams:
                 col += bar.span;
               }
               return (
-                <tr key={row.room.id} className={row.room.operational_status === "out_of_service" ? "opacity-70" : ""}>
+                <tr key={row.room.id} data-room-id={row.room.id} data-room-type={row.room.room_type_id} data-room-number={row.room.room_number} data-room-status={row.room.operational_status} className={row.room.operational_status === "out_of_service" ? "opacity-70" : ""}>
                   <th scope="row" className="sticky left-0 z-10 w-36 min-w-36 border-b border-line bg-white py-1 pr-3 text-left font-normal">
                     <span className="font-semibold">{row.room.room_number}</span>
                     {showType && row.room.room_type_name && <span className="ml-2 text-muted">{row.room.room_type_name}</span>}
@@ -193,8 +205,11 @@ export default async function RoomCalendarPage({ searchParams }: { searchParams:
         </table>
       </div>
 
+      {canMove && <CalendarDrag containerId="room-calendar" today={today} property={property.id} from={w.start} days={w.days} />}
+
       <ul className="mt-6 max-w-prose list-disc space-y-1 pl-5 text-sm text-muted">
         {canBook && <li>Select an empty night to start a booking for that room. The form opens with the room and the night filled in; change the departure there.</li>}
+        {canMove && <li>To move a guest, drag their bar onto another room of the same room type and confirm. Dropping on a night moves the stay from that night; elsewhere on the row moves what is left of it. Drag works with a mouse; on a phone, open the booking and use &ldquo;Move to another room&rdquo;.</li>}
         <li>Bars are drawn from the booked claims on each room. A booking number and guest name show only to people who may see bookings and guests; everyone else sees the kind of claim.</li>
         <li>Rooms booked counts rooms with a stay that night. Holds and blocks are not stays. Retired rooms are left out.</li>
       </ul>

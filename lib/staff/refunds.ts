@@ -249,6 +249,7 @@ export const OK_MESSAGES = {
   mt_priority: "Priority changed.",
   mt_block_linked: "Room block linked to this request.",
   mt_block_unlinked: "Room block link removed. The block itself is unchanged.",
+  calendar_moved: "Guest moved. The bar now sits on the new room. If the guest was in the old room, it is now marked dirty.",
   transferred: "Room changed. The booking shows the new room below. If the guest was in the old room, it is now marked dirty.",
   fo_posted: "Charge added to the folio.",
   fo_voided: "Charge voided. It no longer counts toward what the guest owes.",
