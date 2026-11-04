@@ -40,8 +40,8 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   const myRepairs = mineQ.error ? 0 : (mineQ.count ?? 0);
 
   return (
-    <div className="flex min-h-screen">
-      <aside className="w-60 shrink-0 bg-navy-900 p-4 text-sm text-white">
+    <div className="flex min-h-screen print:block print:min-h-0">
+      <aside className="w-60 shrink-0 bg-navy-900 p-4 text-sm text-white print:hidden">
         <div className="font-display text-xl">HMS</div>
         <nav className="mt-6 space-y-2 text-white/80">
           {NAV.map((item) =>
@@ -67,7 +67,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
           </form>
         </div>
       </aside>
-      <div className="flex-1 p-6">{children}</div>
+      <div className="flex-1 p-6 print:p-0">{children}</div>
     </div>
   );
 }

@@ -22,3 +22,25 @@ body {
   color: var(--color-ink);
   font-family: var(--font-sans);
 }
+
+/* Printing (the reports under /app/reports): plain white paper, rows and totals kept whole, a heading kept
+   with the table under it. The sidebar and the controls are hidden with `print:hidden` where they are used. */
+@media print {
+  body {
+    background: #fff;
+  }
+  tr,
+  section > div {
+    break-inside: avoid;
+  }
+  h2,
+  h3 {
+    break-after: avoid;
+  }
+  thead {
+    display: table-header-group;
+  }
+}
+@page {
+  margin: 14mm;
+}

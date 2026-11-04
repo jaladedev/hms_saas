@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { PrintButton } from "@/components/staff/print-button";
+import { PrintHeader } from "@/components/staff/print-header";
 import { buttonPrimary, inputClass } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { countryLabel, lostBp, shareBp, sourceLabel, type ChannelReport, type GuestReport } from "@/lib/staff/channels";
@@ -52,17 +54,18 @@ export default async function ChannelsPage({ searchParams }: { searchParams: Pro
 
   return (
     <main>
-      <p className="text-sm">
+      <p className="text-sm print:hidden">
         <Link href="/app/reports" className="text-primary-strong underline underline-offset-2">Money and revenue report</Link>
         <span aria-hidden="true"> · </span>
         <Link href={`/app/reports/occupancy${qs(range.from, range.to)}`} className="text-primary-strong underline underline-offset-2">Occupancy</Link>
       </p>
       <h1 className="mt-2 font-display text-3xl">Channels and guests</h1>
+      <PrintHeader hotel={chosen.name} from={range.from} to={range.to} />
       <p className="mt-2 max-w-prose text-muted">
         Where bookings came from and who stayed, for the nights in the range. Days are the hotel&rsquo;s own days.
       </p>
 
-      <form method="get" className="mt-6 flex flex-wrap items-end gap-3">
+      <form method="get" className="mt-6 flex flex-wrap items-end gap-3 print:hidden">
         {allowed.length > 1 && (
           <div>
             <label htmlFor="property" className="block text-sm">Property</label>
@@ -80,8 +83,9 @@ export default async function ChannelsPage({ searchParams }: { searchParams: Pro
           <input id="to" name="to" type="date" required defaultValue={range.to} className={inputClass} />
         </div>
         <button type="submit" className={buttonPrimary}>Show</button>
+        <PrintButton />
       </form>
-      <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+      <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm print:hidden">
         {presets(today).map((p) => (
           <Link key={p.label} href={qs(p.from, p.to)} className="text-primary-strong underline underline-offset-2">{p.label}</Link>
         ))}
@@ -93,8 +97,8 @@ export default async function ChannelsPage({ searchParams }: { searchParams: Pro
         <p role="alert" className="mt-4 rounded border border-critical/40 bg-white p-3 text-critical">The channel report could not be loaded. Try again, or choose a shorter range.</p>
       ) : (
         <>
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[40rem] text-sm">
+          <div className="mt-4 overflow-x-auto print:overflow-visible">
+            <table className="w-full min-w-[40rem] text-sm print:min-w-0">
               <caption className="sr-only">Bookings by channel from {channels.from} to {channels.to}</caption>
               <thead>
                 <tr className="border-b border-line text-left text-muted">
@@ -136,7 +140,7 @@ export default async function ChannelsPage({ searchParams }: { searchParams: Pro
               </tfoot>
             </table>
           </div>
-          {mayExport && <p className="mt-3 text-sm"><a href={csv("channels")} className="text-primary-strong underline underline-offset-2">Download channels as CSV</a></p>}
+          {mayExport && <p className="mt-3 text-sm print:hidden"><a href={csv("channels")} className="text-primary-strong underline underline-offset-2">Download channels as CSV</a></p>}
           <ul className="mt-4 max-w-prose list-disc space-y-1 pl-5 text-sm text-muted">
             <li>Bookings, room nights and room revenue count the nights of confirmed, checked-in and checked-out bookings that fall in the range, before tax. Unpaid holds do not count.</li>
             <li>Cancelled and No-shows are bookings that were due to arrive in the range. Lost is those two as a share of everything that was due to arrive.</li>
@@ -151,8 +155,8 @@ export default async function ChannelsPage({ searchParams }: { searchParams: Pro
         <p className="mt-4 text-sm text-muted">No bookings marked as no-shows were due to arrive in this range.</p>
       ) : (
         <>
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[34rem] text-sm">
+          <div className="mt-4 overflow-x-auto print:overflow-visible">
+            <table className="w-full min-w-[34rem] text-sm print:min-w-0">
               <caption className="sr-only">No-shows due to arrive from {noShows.from} to {noShows.to}</caption>
               <thead>
                 <tr className="border-b border-line text-left text-muted">
@@ -190,7 +194,7 @@ export default async function ChannelsPage({ searchParams }: { searchParams: Pro
             </table>
           </div>
           {isCut(noShows) && <p role="status" className="mt-3 text-sm text-pending">Showing the newest {noShows.rows.length} of {noShows.total}. Choose a shorter range to see the rest; the charge total covers only the rows shown.</p>}
-          {mayExport && <p className="mt-3 text-sm"><a href={csv("noshows")} className="text-primary-strong underline underline-offset-2">Download no-shows as CSV</a></p>}
+          {mayExport && <p className="mt-3 text-sm print:hidden"><a href={csv("noshows")} className="text-primary-strong underline underline-offset-2">Download no-shows as CSV</a></p>}
           <ul className="mt-4 max-w-prose list-disc space-y-1 pl-5 text-sm text-muted">
             <li>Bookings marked as no-shows whose arrival day is in the range. Charge is what the booking&rsquo;s cancellation rules put on it when it was marked; a dash means nothing was charged or it was waived. Booking numbers and guest names show only to people who may see bookings and guests.</li>
           </ul>
@@ -260,7 +264,7 @@ export default async function ChannelsPage({ searchParams }: { searchParams: Pro
               )}
             </div>
           </div>
-          {mayExport && <p className="mt-3 text-sm"><a href={csv("guests")} className="text-primary-strong underline underline-offset-2">Download guests as CSV</a></p>}
+          {mayExport && <p className="mt-3 text-sm print:hidden"><a href={csv("guests")} className="text-primary-strong underline underline-offset-2">Download guests as CSV</a></p>}
         </>
       )}
     </main>

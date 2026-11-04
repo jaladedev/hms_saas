@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { PrintButton } from "@/components/staff/print-button";
+import { PrintHeader } from "@/components/staff/print-header";
 import { buttonPrimary, inputClass } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { dayOccupancy, parseRange, totals, type ReportDay } from "@/lib/staff/reports";
@@ -37,14 +39,15 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   return (
     <main className="max-w-5xl">
       {heading}
-      <p className="mt-2 text-sm">
+      <PrintHeader hotel={property.name} from={range.from} to={range.to} />
+      <p className="mt-2 text-sm print:hidden">
         <Link href={`/app/reports/occupancy?${new URLSearchParams({ property: property.id })}`} className="text-primary-strong underline underline-offset-2">Occupancy</Link>
         <span aria-hidden="true"> · </span>
         <Link href={`/app/reports/channels?${new URLSearchParams({ property: property.id })}`} className="text-primary-strong underline underline-offset-2">Channels and guests</Link>
       </p>
       <p className="mt-2 max-w-prose text-muted">Nights sold, what the hotel earned and what it received, day by day. Amounts are in naira. Cancelled, pending and no-show stays are not counted as sold.</p>
 
-      <form method="get" className="mt-6 flex flex-wrap items-end gap-4">
+      <form method="get" className="mt-6 flex flex-wrap items-end gap-4 print:hidden">
         {allowed.length > 1 && (
           <label className="text-sm">Hotel
             <select name="property" defaultValue={property.id} className={`${inputClass} mt-1 block`}>
@@ -55,6 +58,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         <label className="text-sm">From<input type="date" name="from" defaultValue={range.from} className={`${inputClass} mt-1 block`} /></label>
         <label className="text-sm">To<input type="date" name="to" defaultValue={range.to} className={`${inputClass} mt-1 block`} /></label>
         <button type="submit" className={buttonPrimary}>Show</button>
+        <PrintButton />
       </form>
       {range.trimmed && <p role="status" className="mt-3 text-sm text-muted">Showing the most recent 92 days of the range you asked for.</p>}
 
@@ -80,8 +84,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
             </div>
           </section>
 
-          <div className="mt-6 overflow-x-auto">
-            <table className="w-full min-w-[44rem] text-left text-sm">
+          <div className="mt-6 overflow-x-auto print:overflow-visible">
+            <table className="w-full min-w-[44rem] text-left text-sm print:min-w-0">
               <caption className="sr-only">Daily figures from {formatDate(range.from)} to {formatDate(range.to)}</caption>
               <thead className="border-b border-line text-muted">
                 <tr>
@@ -112,7 +116,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
               </tbody>
             </table>
           </div>
-          {mayExport === true && <p className="mt-4"><a href={csvHref} className="text-sm font-medium text-primary-strong focus-visible:outline-2 focus-visible:outline-primary">Download as CSV</a></p>}
+          {mayExport === true && <p className="mt-4 print:hidden"><a href={csvHref} className="text-sm font-medium text-primary-strong focus-visible:outline-2 focus-visible:outline-primary">Download as CSV</a></p>}
         </>
       )}
     </main>

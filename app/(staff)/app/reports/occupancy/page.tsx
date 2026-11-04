@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { PrintButton } from "@/components/staff/print-button";
+import { PrintHeader } from "@/components/staff/print-header";
 import { inputClass, buttonPrimary } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { adrMinor, formatBp, isQuietDay, occupancyBp, revparMinor, type OccupancyReport } from "@/lib/staff/occupancy";
@@ -40,17 +42,18 @@ export default async function OccupancyPage({ searchParams }: { searchParams: Pr
 
   return (
     <main>
-      <p className="text-sm">
+      <p className="text-sm print:hidden">
         <Link href="/app/reports" className="text-primary-strong underline underline-offset-2">Money and revenue report</Link>
         <span aria-hidden="true"> · </span>
         <Link href={`/app/reports/channels${qs(range.from, range.to)}`} className="text-primary-strong underline underline-offset-2">Channels and guests</Link>
       </p>
       <h1 className="mt-2 font-display text-3xl">Occupancy</h1>
+      <PrintHeader hotel={chosen.name} from={range.from} to={range.to} />
       <p className="mt-2 max-w-prose text-muted">
         How many rooms were sold each night, what they earned, and what was coming and going. Days are the hotel&rsquo;s own days, and future days show what is booked so far.
       </p>
 
-      <form method="get" className="mt-6 flex flex-wrap items-end gap-3">
+      <form method="get" className="mt-6 flex flex-wrap items-end gap-3 print:hidden">
         {allowed.length > 1 && (
           <div>
             <label htmlFor="property" className="block text-sm">Property</label>
@@ -68,14 +71,15 @@ export default async function OccupancyPage({ searchParams }: { searchParams: Pr
           <input id="to" name="to" type="date" required defaultValue={range.to} className={inputClass} />
         </div>
         <button type="submit" className={buttonPrimary}>Show</button>
+        <PrintButton />
       </form>
-      <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+      <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm print:hidden">
         {presets(today).map((p) => (
           <Link key={p.label} href={qs(p.from, p.to)} className="text-primary-strong underline underline-offset-2">{p.label}</Link>
         ))}
       </p>
       {mayExport === true && report && (
-        <p className="mt-3 text-sm">
+        <p className="mt-3 text-sm print:hidden">
           <a href={`/app/reports/occupancy/csv?${new URLSearchParams({ property: chosen.id, from: range.from, to: range.to })}`} className="text-primary-strong underline underline-offset-2">Download as CSV</a>
         </p>
       )}
@@ -92,8 +96,8 @@ export default async function OccupancyPage({ searchParams }: { searchParams: Pr
             <Tile label="Room revenue" value={money(report.totals.room_revenue_minor)} note={`${report.totals.arrivals} arrivals, ${report.totals.departures} departures`} />
           </section>
 
-          <div className="mt-6 overflow-x-auto">
-            <table className="w-full min-w-[48rem] text-sm">
+          <div className="mt-6 overflow-x-auto print:overflow-visible">
+            <table className="w-full min-w-[48rem] text-sm print:min-w-0 print:text-xs">
               <caption className="sr-only">Occupancy from {report.from} to {report.to}</caption>
               <thead>
                 <tr className="border-b border-line text-left text-muted">
