@@ -179,8 +179,8 @@ echo "$SH" | grep -E 'PASS' || true
 if echo "$SH" | grep -qE 'FAIL|ERROR'; then echo "$SH"; echo "STAFF HOLD TESTS FAILED"; exit 1; fi
 
 # Wired in again: commit 1a9f9bb dropped these from this file by accident, so they had stopped running.
-# Not wired: 35_daily_report.sql. It tests an older daily_report that returned jsonb; the migration now returns a table
-# and 36_daily_report.sql tests that.
+# 35_daily_report.sql (tested an older daily_report that returned jsonb) was deleted; what it covered that 36_daily_report.sql
+# did not (reversed payments, refunds paid, pending holds, cancelled bookings) is now blocks 4 and 5 of 36_daily_report.sql.
 GC="$(psql -f "$HERE/34_guest_cancel.sql" 2>&1)" || { echo "$GC"; echo "GUEST CANCEL TESTS FAILED"; exit 1; }
 echo "$GC" | grep -E 'PASS' || true
 if echo "$GC" | grep -qE 'FAIL|ERROR'; then echo "$GC"; echo "GUEST CANCEL TESTS FAILED"; exit 1; fi
