@@ -143,6 +143,10 @@ DR="$(psql -f "$HERE/36_daily_report.sql" 2>&1)" || { echo "$DR"; echo "DAILY RE
 echo "$DR" | grep -E 'PASS' || true
 if echo "$DR" | grep -qE 'FAIL|ERROR'; then echo "$DR"; echo "DAILY REPORT TESTS FAILED"; exit 1; fi
 
+PS="$(psql -f "$HERE/40_property_scoped_roles.sql" 2>&1)" || { echo "$PS"; echo "PROPERTY SCOPED ROLE TESTS FAILED"; exit 1; }
+echo "$PS" | grep -E 'PASS' || true
+if echo "$PS" | grep -qE 'FAIL|ERROR'; then echo "$PS"; echo "PROPERTY SCOPED ROLE TESTS FAILED"; exit 1; fi
+
 AN="$(psql -f "$HERE/27_audit_actor_names.sql" 2>&1)" || { echo "$AN"; echo "AUDIT ACTOR NAME TESTS FAILED"; exit 1; }
 echo "$AN" | grep -E 'PASS' || true
 if echo "$AN" | grep -qE 'FAIL|ERROR'; then echo "$AN"; echo "AUDIT ACTOR NAME TESTS FAILED"; exit 1; fi
