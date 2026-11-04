@@ -204,6 +204,9 @@ if echo "$CG" | grep -qE 'FAIL|ERROR'; then echo "$CG"; echo "CHANNEL GUEST REPO
 NL="$(psql -f "$HERE/47_no_show_list.sql" 2>&1)" || { echo "$NL"; echo "NO-SHOW LIST TESTS FAILED"; exit 1; }
 echo "$NL" | grep -E 'PASS' || true
 if echo "$NL" | grep -qE 'FAIL|ERROR'; then echo "$NL"; echo "NO-SHOW LIST TESTS FAILED"; exit 1; fi
+RM="$(psql -f "$HERE/48_report_money_rules.sql" 2>&1)" || { echo "$RM"; echo "REPORT MONEY RULE TESTS FAILED"; exit 1; }
+echo "$RM" | grep -E 'PASS' || true
+if echo "$RM" | grep -qE 'FAIL|ERROR'; then echo "$RM"; echo "REPORT MONEY RULE TESTS FAILED"; exit 1; fi
 
 echo "--- concurrency: last room race (1 room, 50 clients)"
 cat > "$DATA/race_one.sql" <<'SQL'
