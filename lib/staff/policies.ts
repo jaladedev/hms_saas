@@ -171,11 +171,18 @@ export function validatePolicy(input: PolicyInput):
   return { ok: true, value: { propertyId: propertyId.data, effectiveFrom, config: { cancellation_rules: sortRules(rules), online_payment: online, checkin_payment: checkin, guest_cancellation: guestCancel } } };
 }
 
-/** The config to store: the previous version's keys this screen does not manage are kept, the managed ones replaced. */
+/**
+ * The config to store: the previous version's keys this screen does not manage are kept, the managed ones replaced.
+ *
+ * `checkin_payment` is stored only as "full". "No payment needed at check-in" is the key being absent, which is what
+ * check_in (008) and guest_policy (032) read, and what the database check in migration 035 requires: it refuses any
+ * other value, so writing "none" would make every such policy fail to save.
+ */
 export function mergeConfig(previous: unknown, next: PolicyConfig): Record<string, unknown> {
   const base = isObject(previous) ? { ...previous } : {};
   delete base.cancellation_rules; delete base.online_payment; delete base.checkin_payment; delete base.guest_cancellation;
-  return { ...base, ...next };
+  const { checkin_payment, ...rest } = next;
+  return { ...base, ...rest, ...(checkin_payment === "full" ? { checkin_payment } : {}) };
 }
 
 /**

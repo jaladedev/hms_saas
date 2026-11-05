@@ -102,11 +102,22 @@ describe("mergeConfig", () => {
     const next = readConfig({ online_payment: { mode: "deposit_percent", value: 20 } });
     const merged = mergeConfig({ check_in_time: "15:00", checkin_payment: "full", cancellation_rules: [1] }, next);
     expect(merged.check_in_time).toBe("15:00");
-    expect(merged.checkin_payment).toBe("none");
+    // The old version asked for payment before check-in; the new one does not, so the key is gone, not "none".
+    expect(merged).not.toHaveProperty("checkin_payment");
     expect(merged.cancellation_rules).toEqual([]);
   });
   it("copes with no previous version", () => {
-    expect(mergeConfig(null, readConfig({}))).toEqual({ cancellation_rules: [], online_payment: { mode: "full" }, checkin_payment: "none", guest_cancellation: "on" });
+    expect(mergeConfig(null, readConfig({}))).toEqual({ cancellation_rules: [], online_payment: { mode: "full" }, guest_cancellation: "on" });
+  });
+  it("stores checkin_payment only as \"full\", the one value the database accepts (migration 035)", () => {
+    expect(mergeConfig(null, readConfig({ checkin_payment: "full" })).checkin_payment).toBe("full");
+    for (const none of [readConfig({}), readConfig({ checkin_payment: "none" })]) {
+      expect(Object.values(mergeConfig({ checkin_payment: "full" }, none))).not.toContain("none");
+    }
+    // What the screen validates from the form with "no payment" chosen must also store without the key.
+    const v = validatePolicy({ ...base, checkinPayment: "none" });
+    expect(v.ok).toBe(true);
+    if (v.ok) expect(mergeConfig(null, v.value.config)).not.toHaveProperty("checkin_payment");
   });
 });
 

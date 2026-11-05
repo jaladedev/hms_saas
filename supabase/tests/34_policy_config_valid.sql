@@ -31,6 +31,7 @@ do $$ declare c record; begin
     ('a deposit with no amount', '{"online_payment":{"mode":"deposit_percent"}}', false),
     ('a deposit over 100', '{"online_payment":{"mode":"deposit_percent","value":150}}', false),
     ('payment before check-in set to something else', '{"checkin_payment":"half"}', false),
+    ('payment before check-in set to "none" (not needed is the key being absent; the policies screen once stored this)', '{"checkin_payment":"none"}', false),
     ('a check-in time that is not a time', '{"check_in_time":"teatime"}', false)
   ) as t(label, config, expected) loop
     if policy_config_valid(c.config::jsonb) is distinct from c.expected then
