@@ -1,0 +1,15 @@
+# Describes how the code is already written, so an editor keeps it that way. It changes no existing file.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# The original requirement documents are kept exactly as received.
+[docs/specs/*.md]
+insert_final_newline = unset
+trim_trailing_whitespace = unset
