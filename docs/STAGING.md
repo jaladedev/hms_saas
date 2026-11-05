@@ -62,7 +62,7 @@ auth schema, and `01_seed.sql` is test data.
 
 ## 4. Check the security setup
 
-Run these five in the SQL editor. The expected results were produced by applying all 48 migrations to a scratch
+Run these five in the SQL editor. The expected results were produced by applying all 50 migrations to a scratch
 PostgreSQL with the same default privileges Supabase uses.
 
 ```sql
@@ -111,7 +111,28 @@ Anything different from the expected result is a stop: Supabase grants execute o
 
 ## 5. Create the first hotel
 
-There is no onboarding screen yet (Phase 7), so the first hotel is created in SQL.
+Two ways. The first hotel needs SQL, because nobody can sign in to the platform screen until one platform admin exists.
+Every hotel after that can be added on the `/platform` screen (see "From the platform screen" below).
+
+### Make yourself the first platform admin
+
+Create your own login (Authentication, Users, Add user), copy its id and run:
+
+```sql
+insert into platform_admins (user_id, level) values ('<your-user-id>', 'admin');
+```
+
+Sign in at `/login`. A platform admin who belongs to no hotel lands on `/platform`. Level `support` can look but not change.
+
+### From the platform screen
+
+`/platform/new` creates the group, its first property, its booking address and its owner (invited by email when they
+have no login). Two things differ from the SQL below: the booking address starts **unverified** and the Paystack
+account starts **inactive**, so open the hotel's page and mark the address verified and the account active when
+you are ready for guests. A platform admin never sees reservations, guests or payments, and every action is recorded
+in the audit log under their own login.
+
+### In SQL
 
 1. Authentication, Users, Add user: create the owner's login with a password and confirm the email. Copy the user's id.
 2. Pick the staging address the guest site will answer on (for example `book.staging.example`). It must match the host

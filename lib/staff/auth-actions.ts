@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { classifyAuthError, classifyUpdateError, safeNext, siteOrigin, validateNewPassword } from "./auth";
+import { afterSignIn, classifyAuthError, classifyUpdateError, safeNext, siteOrigin, validateNewPassword } from "./auth";
 
 function toLogin(code: string, next: string | undefined): never {
   const qs = new URLSearchParams({ err: code });
@@ -30,17 +30,21 @@ export async function signIn(formData: FormData) {
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error) return toLogin(classifyAuthError(error), next);
 
-  const { data: memberships, error: memberError } = await supabase
-    .from("tenant_memberships").select("id").eq("status", "active").limit(1);
-  if (memberError) {
+  // Access is an active place at a hotel, or a platform admin login (no hotel of their own; they run /platform).
+  const [{ data: memberships, error: memberError }, level] = await Promise.all([
+    supabase.from("tenant_memberships").select("id").eq("status", "active").limit(1),
+    supabase.rpc("platform_level"),
+  ]);
+  if (memberError || level.error) {
     await supabase.auth.signOut();
     return toLogin("unavailable", next);
   }
-  if (!memberships || memberships.length === 0) {
+  const access = { member: Boolean(memberships && memberships.length > 0), platform: level.data !== null };
+  if (!access.member && !access.platform) {
     await supabase.auth.signOut();
     return toLogin("no_access", next);
   }
-  redirect(safeNext(next));
+  redirect(afterSignIn(next, access));
 }
 
 export async function signOut() {

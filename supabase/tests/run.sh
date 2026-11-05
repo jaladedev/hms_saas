@@ -148,6 +148,9 @@ if echo "$PDR" | grep -qE 'FAIL|ERROR'; then echo "$PDR"; echo "POLICY DATE RULE
 CA="$(psql -f "$HERE/49_config_audit.sql" 2>&1)" || { echo "$CA"; echo "CONFIG AUDIT TESTS FAILED"; exit 1; }
 echo "$CA" | grep -E 'PASS' || true
 if echo "$CA" | grep -qE 'FAIL|ERROR'; then echo "$CA"; echo "CONFIG AUDIT TESTS FAILED"; exit 1; fi
+PA="$(psql -f "$HERE/51_platform_admin.sql" 2>&1)" || { echo "$PA"; echo "PLATFORM ADMIN TESTS FAILED"; exit 1; }
+echo "$PA" | grep -E 'PASS' || true
+if echo "$PA" | grep -qE 'FAIL|ERROR'; then echo "$PA"; echo "PLATFORM ADMIN TESTS FAILED"; exit 1; fi
 IP="$(psql -f "$HERE/43_idempotency_purge.sql" 2>&1)" || { echo "$IP"; echo "IDEMPOTENCY PURGE TESTS FAILED"; exit 1; }
 echo "$IP" | grep -E 'PASS' || true
 if echo "$IP" | grep -qE 'FAIL|ERROR'; then echo "$IP"; echo "IDEMPOTENCY PURGE TESTS FAILED"; exit 1; fi

@@ -1,17 +1,29 @@
 /** Rules for staff sign-in. Pure functions, tested without a server. */
 
 /**
- * Where to send someone after signing in. Only paths inside /app are allowed, so a crafted
+ * Where to send someone after signing in. Only paths inside /app or /platform are allowed, so a crafted
  * /login?next=https://evil.example (or //evil.example, or /\evil.example) cannot bounce a signed-in
  * person to another site. Anything else falls back to the dashboard.
  */
 export function safeNext(value: string | null | undefined): string {
   if (!value || value.length > 500) return "/app";
-  if (!/^\/app(?:[/?#]|$)/.test(value)) return "/app";
+  if (!/^\/(?:app|platform)(?:[/?#]|$)/.test(value)) return "/app";
   // Control characters are rejected on purpose.
   // eslint-disable-next-line no-control-regex
   if (/[\\\s\u0000-\u001f]/.test(value) || value.includes("//")) return "/app";
   return value;
+}
+
+/**
+ * Where a signed-in person lands. A hotel member goes where they were headed, or to /app. A platform admin with no hotel
+ * membership has nothing to see in /app, so they go to /platform; and nobody is sent into /platform unless they are a
+ * platform admin (the page checks again, this only avoids a dead end).
+ */
+export function afterSignIn(next: string | null | undefined, access: { member: boolean; platform: boolean }): string {
+  const wanted = safeNext(next);
+  if (wanted.startsWith("/platform")) return access.platform ? wanted : "/app";
+  if (!access.member && access.platform) return "/platform";
+  return wanted;
 }
 
 export type SignInErrorCode = "invalid" | "no_access" | "rate" | "unavailable";

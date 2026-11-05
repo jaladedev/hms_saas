@@ -1,0 +1,35 @@
+import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
+import { signOut } from "@/lib/staff/auth-actions";
+import { createClient } from "@/lib/supabase/server";
+
+export const dynamic = "force-dynamic";
+
+/** Every /platform page needs a signed-in platform admin or support user. Anyone else sees "not found", so the area is not advertised. */
+export default async function PlatformLayout({ children }: { children: React.ReactNode }) {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) redirect("/login?next=/platform");
+  const level = await supabase.rpc("platform_level");
+  if (level.error || !level.data) notFound();
+
+  return (
+    <div className="flex min-h-screen">
+      <aside className="w-60 shrink-0 bg-navy-900 p-4 text-sm text-white">
+        <div className="font-display text-xl">HMS platform</div>
+        <nav className="mt-6 space-y-2">
+          <Link href="/platform" className="block text-white focus-visible:outline-2 focus-visible:outline-white">Hotels</Link>
+          {level.data === "admin" && <Link href="/platform/new" className="block text-white focus-visible:outline-2 focus-visible:outline-white">Add a hotel</Link>}
+        </nav>
+        <div className="mt-10 border-t border-white/15 pt-4">
+          <p className="truncate text-white/70" title={data.user.email ?? undefined}>{data.user.email}</p>
+          <p className="text-white/70">{level.data === "admin" ? "Platform admin" : "Platform support (read only)"}</p>
+          <form action={signOut} className="mt-2">
+            <button type="submit" className="text-white underline underline-offset-2 hover:text-white/80 focus-visible:outline-2 focus-visible:outline-white">Sign out</button>
+          </form>
+        </div>
+      </aside>
+      <div className="flex-1 p-6">{children}</div>
+    </div>
+  );
+}

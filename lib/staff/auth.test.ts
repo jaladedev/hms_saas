@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  callbackTarget, classifyAuthError, classifyUpdateError, resetErrorMessage, safeNext, signInErrorMessage, signInNotice, siteOrigin,
+  afterSignIn, callbackTarget, classifyAuthError, classifyUpdateError, resetErrorMessage, safeNext, signInErrorMessage, signInNotice, siteOrigin,
   validateNewPassword,
 } from "./auth";
 
@@ -76,5 +76,39 @@ describe("recovery flow rules", () => {
   it("shows the reset notice only for the known code", () => {
     expect(signInNotice("reset")).toMatch(/password was changed/);
     expect(signInNotice("x")).toBeNull();
+  });
+});
+
+describe("safeNext and /platform", () => {
+  it("allows paths inside /platform and nothing that only starts with the word", () => {
+    expect(safeNext("/platform")).toBe("/platform");
+    expect(safeNext("/platform/5e0bf524-147f-43a5-8476-e0baecadd7e9?ok=created")).toBe("/platform/5e0bf524-147f-43a5-8476-e0baecadd7e9?ok=created");
+    expect(safeNext("/platformer")).toBe("/app");
+    expect(safeNext("/platform//evil.example")).toBe("/app");
+    expect(safeNext("/platform\\evil")).toBe("/app");
+  });
+});
+
+describe("afterSignIn", () => {
+  const member = { member: true, platform: false };
+  const both = { member: true, platform: true };
+  const platformOnly = { member: false, platform: true };
+  it("sends a hotel member where they were going, or to /app", () => {
+    expect(afterSignIn(undefined, member)).toBe("/app");
+    expect(afterSignIn("/app/refunds", member)).toBe("/app/refunds");
+  });
+  it("sends a platform admin with no hotel to /platform, whatever the default", () => {
+    expect(afterSignIn(undefined, platformOnly)).toBe("/platform");
+    expect(afterSignIn("/app/refunds", platformOnly)).toBe("/platform");
+    expect(afterSignIn("/platform/abc", platformOnly)).toBe("/platform/abc");
+  });
+  it("lets someone who is both go where they asked", () => {
+    expect(afterSignIn("/platform", both)).toBe("/platform");
+    expect(afterSignIn("/app/guests", both)).toBe("/app/guests");
+    expect(afterSignIn(undefined, both)).toBe("/app");
+  });
+  it("never sends a hotel member into /platform", () => {
+    expect(afterSignIn("/platform", member)).toBe("/app");
+    expect(afterSignIn("/platform/abc", member)).toBe("/app");
   });
 });

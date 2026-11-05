@@ -2734,6 +2734,43 @@ export type Database = {
         Returns: number
       }
       policy_config_valid: { Args: { p: Json }; Returns: boolean }
+      platform_add_domain: {
+        Args: { p_host: string; p_property: string; p_tenant: string }
+        Returns: Json
+      }
+      platform_create_tenant: {
+        Args: {
+          p_city: string
+          p_currency: string
+          p_host: string
+          p_name: string
+          p_owner_user_id: string
+          p_paystack_mode: string
+          p_paystack_secret_reference: string
+          p_property_code: string
+          p_property_name: string
+          p_slug: string
+          p_state: string
+          p_timezone: string
+        }
+        Returns: Json
+      }
+      platform_level: { Args: Record<PropertyKey, never>; Returns: string }
+      platform_list_tenants: { Args: Record<PropertyKey, never>; Returns: Json }
+      platform_require: { Args: { p_min: string }; Returns: string }
+      platform_set_domain_verified: {
+        Args: { p_domain: string; p_verified: boolean }
+        Returns: Json
+      }
+      platform_set_provider_status: {
+        Args: { p_account: string; p_status: string }
+        Returns: Json
+      }
+      platform_set_tenant_status: {
+        Args: { p_reason: string; p_status: string; p_tenant: string }
+        Returns: Json
+      }
+      platform_tenant_detail: { Args: { p_tenant: string }; Returns: Json }
       post_folio_charge: {
         Args: {
           p_category: string
