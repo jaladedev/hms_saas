@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { buttonPrimary, inputClass, Notice, linkClass, EmptyState, PageIntro } from "@/components/staff/ui";
+import { buttonPrimary, inputClass, Notice, linkClass, EmptyState, PageIntro, PageTitle } from "@/components/staff/ui";
 import { createManualReservation } from "@/lib/staff/reservation-actions";
 import { MANUAL_SOURCES, MAX_NIGHTS, MAX_ROOMS, parsePrefill } from "@/lib/staff/new-reservation";
 import { todayIn } from "@/lib/staff/reservations";
@@ -36,7 +36,7 @@ export default async function NewReservationPage({ searchParams }: { searchParam
   return (
     <main className="max-w-2xl">
       <p className="text-sm"><Link href="/app/reservations" className={linkClass}>Reservations</Link></p>
-      <h1 className="mt-2 font-display text-3xl">New reservation</h1>
+      <PageTitle className="mt-2">New reservation</PageTitle>
       <PageIntro>For guests who walk in or book by phone. The rooms are held and the booking is confirmed straight away, or you can hold the room until the guest pays.</PageIntro>
 
       <div className="mt-6"><Notice search={search} currency="NGN" /></div>

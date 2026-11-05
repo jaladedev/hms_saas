@@ -1,4 +1,4 @@
-import { buttonPrimary, buttonQuiet, inputClass, Notice, ErrorBanner, PageIntro } from "@/components/staff/ui";
+import { buttonPrimary, buttonQuiet, inputClass, Notice, ErrorBanner, PageIntro, PageTitle } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { todayIn } from "@/lib/staff/reservations";
 import { addTaxRule, setExtrasTax, updateTaxRule } from "@/lib/staff/tax-actions";
@@ -38,7 +38,7 @@ export default async function TaxRulesPage({ searchParams }: { searchParams: Pro
 
   return (
     <main className="max-w-4xl">
-      <h1 className="font-display text-3xl">Tax rules</h1>
+      <PageTitle>Tax rules</PageTitle>
       <PageIntro>
         Every tax rule in force is added to each night of a stay. Extras posted to a guest's folio, such as the minibar or laundry, are taxed only by the percentage rules you switch on here. Nothing is switched on until you do it, so until then extras carry no tax.
       </PageIntro>

@@ -1,4 +1,4 @@
-import { buttonPrimary, inputClass, Notice, ErrorBanner, PageIntro } from "@/components/staff/ui";
+import { buttonPrimary, inputClass, Notice, ErrorBanner, PageIntro, PageTitle } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { MAX_RULES, POLICY_COLUMNS, CHARGE_LABEL, describeWindow, guestSummary, readConfig, versionsOn, type PolicyRow } from "@/lib/staff/policies";
 import { minorToInput } from "@/lib/staff/money-input";
@@ -36,7 +36,7 @@ export default async function PoliciesPage({ searchParams }: { searchParams: Pro
 
   return (
     <main className="max-w-4xl">
-      <h1 className="font-display text-3xl">Cancellation and payment policies</h1>
+      <PageTitle>Cancellation and payment policies</PageTitle>
       <PageIntro>
         These rules apply to bookings made from the date a policy starts. A booking keeps the policy it was made under, so saving a new one never changes a booking that already exists.
       </PageIntro>

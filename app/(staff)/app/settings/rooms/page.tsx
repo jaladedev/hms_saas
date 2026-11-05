@@ -1,4 +1,4 @@
-import { buttonPrimary, buttonQuiet, inputClass, Notice, ErrorBanner, PageIntro } from "@/components/staff/ui";
+import { buttonPrimary, buttonQuiet, inputClass, Notice, ErrorBanner, PageIntro, PageTitle } from "@/components/staff/ui";
 import { formatMoney } from "@/lib/guest-site/format";
 import { ROOM_STATUSES } from "@/lib/staff/room-setup";
 import { compareRoomNumbers } from "@/lib/staff/room-board";
@@ -35,7 +35,7 @@ export default async function RoomSetupPage({ searchParams }: { searchParams: Pr
 
   return (
     <main className="max-w-4xl">
-      <h1 className="font-display text-3xl">Room types and rooms</h1>
+      <PageTitle>Room types and rooms</PageTitle>
       <PageIntro>
         A room type is a kind of room you sell, with its capacity and standard price. Rooms are the actual doors. Guests book a type; the system picks a free room of that type.
       </PageIntro>

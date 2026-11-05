@@ -1,4 +1,4 @@
-import { buttonDanger, buttonPrimary, inputClass, Notice, ErrorBanner, PageIntro } from "@/components/staff/ui";
+import { buttonDanger, buttonPrimary, inputClass, Notice, ErrorBanner, PageIntro, PageTitle } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { createDefaultPlan, clearRates, setRates } from "@/lib/staff/rate-actions";
 import { groupRanges, type StoredRate } from "@/lib/staff/rates";
@@ -40,7 +40,7 @@ export default async function RatesPage({ searchParams }: { searchParams: Promis
 
   return (
     <main className="max-w-4xl">
-      <h1 className="font-display text-3xl">Rates</h1>
+      <PageTitle>Rates</PageTitle>
       <PageIntro>
         Each room type has a standard nightly price. Set a different price for a date range, such as a holiday week, and bookings for those nights use it. Prices already booked do not change.
       </PageIntro>

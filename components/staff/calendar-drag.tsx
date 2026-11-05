@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { buttonPrimary, buttonQuiet, inputClass } from "./ui";
+import { buttonPrimary, buttonQuiet, inputClass, SectionTitle } from "@/components/staff/ui";
 import { formatDate } from "@/lib/guest-site/format";
 import { canDropOn, moveEffective, moveSummary } from "@/lib/staff/calendar-move";
 import { moveStayFromCalendar } from "@/lib/staff/calendar-actions";
@@ -101,7 +101,7 @@ export function CalendarDrag({ containerId, today, property, from, days }: { con
           <input type="hidden" name="property" value={property} />
           <input type="hidden" name="from" value={from} />
           <input type="hidden" name="days" value={String(days)} />
-          <h2 id="move-title" className="font-display text-xl">Move guest to room {pending.toNumber}?</h2>
+          <SectionTitle id="move-title">Move guest to room {pending.toNumber}?</SectionTitle>
           <p className="text-sm">
             {moveSummary({ label: pending.label, from: pending.fromNumber, to: pending.toNumber, effective: pending.effective, start: pending.start, end: pending.end, dateText: formatDate })}
           </p>

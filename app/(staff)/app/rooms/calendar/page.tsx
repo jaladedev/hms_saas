@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { CalendarDrag } from "@/components/staff/calendar-drag";
-import { buttonPrimary, inputClass, Notice, linkClass, ErrorBanner, EmptyState, PageIntro } from "@/components/staff/ui";
+import { buttonPrimary, inputClass, Notice, linkClass, ErrorBanner, EmptyState, PageIntro, PageTitle } from "@/components/staff/ui";
 import { formatDate } from "@/lib/guest-site/format";
 import { canMoveBar } from "@/lib/staff/calendar-move";
 import { bookFromCalendarHref } from "@/lib/staff/new-reservation";
@@ -32,7 +32,7 @@ export default async function RoomCalendarPage({ searchParams }: { searchParams:
   const allRooms = (roomQ.data ?? []) as BoardRoom[];
   const withRooms = properties.filter((p) => allRooms.some((r) => r.property_id === p.id));
   const property = withRooms.find((p) => p.id === search.property) ?? withRooms[0];
-  const heading = <h1 className="font-display text-3xl">Room calendar</h1>;
+  const heading = <PageTitle>Room calendar</PageTitle>;
 
   if (roomQ.error || propQ.error) {
     return <main className="max-w-5xl">{heading}<ErrorBanner className="mt-6">The calendar could not be loaded. Reload the page.</ErrorBanner></main>;

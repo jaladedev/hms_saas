@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { PayoutButton } from "@/components/staff/payout-button";
 import { RefundDetailsForm } from "@/components/staff/refund-details-form";
-import { buttonDanger, buttonPrimary, inputClass, Notice, StatusChip, ErrorBanner, EmptyState, PageIntro } from "@/components/staff/ui";
+import { buttonDanger, buttonPrimary, inputClass, Notice, StatusChip, ErrorBanner, EmptyState, PageIntro, PageTitle, SectionTitle } from "@/components/staff/ui";
 import { formatMoney } from "@/lib/guest-site/format";
 import { decideRefund, recordManualPayout } from "@/lib/staff/refund-actions";
 import { formatAge, formatDateTime } from "@/lib/staff/format";
@@ -153,7 +153,7 @@ export default async function RefundsPage({ searchParams }: { searchParams: Prom
     if (items.length === 0) return null;
     return (
       <section className="mt-10 first:mt-0">
-        <h2 className="font-display text-xl">{title} <span className="text-base text-muted">({items.length})</span></h2>
+        <SectionTitle>{title} <span className="text-base text-muted">({items.length})</span></SectionTitle>
         {hint && <p className="mt-1 max-w-prose text-sm text-muted">{hint}</p>}
         <ul className="mt-2 border-t border-line">{items.map((r) => <Row key={r.id} r={r} />)}</ul>
       </section>
@@ -162,7 +162,7 @@ export default async function RefundsPage({ searchParams }: { searchParams: Prom
 
   return (
     <main className="max-w-5xl">
-      <h1 className="font-display text-3xl">Refunds</h1>
+      <PageTitle>Refunds</PageTitle>
       <PageIntro>
         Money going back to guests takes two people: one asks, another approves. Card refunds are then paid out through Paystack; cash and transfers are paid by hand and recorded here.
       </PageIntro>

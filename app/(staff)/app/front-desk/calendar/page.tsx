@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { PrintButton } from "@/components/staff/print-button";
 import { PrintHeader } from "@/components/staff/print-header";
-import { buttonPrimary, inputClass, PaymentChip, ReservationChip, linkClass, ErrorBanner, EmptyState, PageIntro, tdNum, thNum, headRow, thRowHead, totalRow } from "@/components/staff/ui";
+import { buttonPrimary, inputClass, PaymentChip, ReservationChip, linkClass, ErrorBanner, EmptyState, PageIntro, tdNum, thNum, headRow, thRowHead, totalRow, PageTitle, SectionTitle } from "@/components/staff/ui";
 import { formatDate } from "@/lib/guest-site/format";
 import { AGENDA_LIMIT, AGENDA_STATUSES, agendaTotals, buildAgenda, busyDays, type AgendaRow } from "@/lib/staff/arrivals-calendar";
 import { todayIn, nightsBetween } from "@/lib/staff/reservations";
@@ -19,7 +19,7 @@ export default async function ArrivalsCalendarPage({ searchParams }: { searchPar
   const { data: props, error: propError } = await supabase.from("properties").select("id, name, timezone").eq("status", "active").order("name");
   const properties = (props ?? []) as { id: string; name: string; timezone: string }[];
   const property = properties.find((p) => p.id === search.property) ?? properties[0];
-  const heading = <h1 className="font-display text-3xl">Arrivals and departures</h1>;
+  const heading = <PageTitle>Arrivals and departures</PageTitle>;
   const back = <p className="text-sm print:hidden"><Link href="/app/front-desk" className={linkClass}>Front desk</Link></p>;
 
   if (propError) {
@@ -157,9 +157,9 @@ export default async function ArrivalsCalendarPage({ searchParams }: { searchPar
         {busy.length === 0 && !resQ.error && <EmptyState>Nobody is due to arrive or leave in these {w.days} days.</EmptyState>}
         {busy.map((d) => (
           <section key={d.date} id={`d-${d.date}`} aria-labelledby={`h-${d.date}`} className="scroll-mt-4">
-            <h2 id={`h-${d.date}`} className="font-display text-xl">
+            <SectionTitle id={`h-${d.date}`}>
               {dayLabel(d.date)}{headOf.get(d.date)!.isToday && <span className="ml-2 text-base text-primary-strong">Today</span>}
-            </h2>
+            </SectionTitle>
             <div className="mt-3 grid gap-6 md:grid-cols-2 print:grid-cols-1">
               <List title="Arriving" items={d.arrivals} />
               <List title="Departing" items={d.departures} />

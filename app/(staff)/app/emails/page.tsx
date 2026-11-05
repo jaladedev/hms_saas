@@ -1,4 +1,4 @@
-import { buttonPrimary, Notice, StatusChip, ErrorBanner, EmptyState, PageIntro } from "@/components/staff/ui";
+import { buttonPrimary, Notice, StatusChip, ErrorBanner, EmptyState, PageIntro, PageTitle, SectionTitle } from "@/components/staff/ui";
 import { createMailer } from "@/lib/email/mailer";
 import { resendEmail } from "@/lib/staff/email-actions";
 import { canOfferResend, errorAdvice, holdEnded, kindLabel, splitEmails, type FailedEmail } from "@/lib/staff/emails";
@@ -71,7 +71,7 @@ export default async function EmailsPage({ searchParams }: { searchParams: Promi
     if (items.length === 0) return null;
     return (
       <section className="mt-10 first:mt-0">
-        <h2 className="font-display text-xl">{title} <span className="text-base text-muted">({items.length})</span></h2>
+        <SectionTitle>{title} <span className="text-base text-muted">({items.length})</span></SectionTitle>
         {hint && <p className="mt-1 max-w-prose text-sm text-muted">{hint}</p>}
         <ul className="mt-2 border-t border-line">{items.map((e) => <Row key={e.id} e={e} />)}</ul>
       </section>
@@ -80,7 +80,7 @@ export default async function EmailsPage({ searchParams }: { searchParams: Promi
 
   return (
     <main className="max-w-5xl">
-      <h1 className="font-display text-3xl">Guest emails</h1>
+      <PageTitle>Guest emails</PageTitle>
       <PageIntro>
         Emails to guests that could not be delivered. The system retries a few times by itself; the ones that gave up are listed first, and you can send them again.
       </PageIntro>

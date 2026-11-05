@@ -1,4 +1,4 @@
-import { buttonDanger, buttonPrimary, buttonQuiet, inputClass, Notice, ErrorBanner, PageIntro } from "@/components/staff/ui";
+import { buttonDanger, buttonPrimary, buttonQuiet, inputClass, Notice, ErrorBanner, PageIntro, PageTitle, SectionTitle } from "@/components/staff/ui";
 import { assignTask, cancelTask, claimTask, completeTask, createTask, startTask } from "@/lib/staff/housekeeping-actions";
 import {
   activityByRoom, actionsFor, filterByPerson, formatDue, groupLive, PRIORITY_LABEL, recentlyDone, roomsWithoutTask, sortTasks,
@@ -168,7 +168,7 @@ export default async function HousekeepingPage({ searchParams }: { searchParams:
     if (items.length === 0) return null;
     return (
       <section className="mt-8 first:mt-0" aria-label={title}>
-        <h2 className="font-display text-xl">{title} <span className="text-base text-muted">({items.length})</span></h2>
+        <SectionTitle>{title} <span className="text-base text-muted">({items.length})</span></SectionTitle>
         {hint && <p className="mt-1 max-w-prose text-sm text-muted">{hint}</p>}
         <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{items.map((t) => <TaskCard key={t.id} t={t} />)}</ul>
       </section>
@@ -179,7 +179,7 @@ export default async function HousekeepingPage({ searchParams }: { searchParams:
 
   return (
     <main className="max-w-5xl">
-      <h1 className="font-display text-3xl">Housekeeping</h1>
+      <PageTitle>Housekeeping</PageTitle>
       <PageIntro>Tasks to do, most urgent first.</PageIntro>
 
       <div className="mt-6"><Notice search={search} currency="NGN" /></div>
@@ -212,7 +212,7 @@ export default async function HousekeepingPage({ searchParams }: { searchParams:
 
         {orphans.length > 0 && (
           <section className="mt-8" aria-label="Rooms without a task">
-            <h2 className="font-display text-xl">Rooms without a task <span className="text-base text-muted">({orphans.length})</span></h2>
+            <SectionTitle>Rooms without a task <span className="text-base text-muted">({orphans.length})</span></SectionTitle>
             <p className="mt-1 max-w-prose text-sm text-muted">These rooms are marked dirty or being cleaned but have no cleaning task. Create one so the work shows up above.</p>
             <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {orphans.map((r) => (
@@ -236,7 +236,7 @@ export default async function HousekeepingPage({ searchParams }: { searchParams:
 
         {done.length > 0 && (
           <section className="mt-8" aria-label="Done recently">
-            <h2 className="font-display text-xl">Done in the last 24 hours <span className="text-base text-muted">({done.length})</span></h2>
+            <SectionTitle>Done in the last 24 hours <span className="text-base text-muted">({done.length})</span></SectionTitle>
             <ul className="mt-3 divide-y divide-line rounded border border-line bg-white text-sm">
               {done.map((t) => (
                 <li key={t.id} className="flex flex-wrap items-baseline justify-between gap-2 px-3 py-2">
@@ -250,7 +250,7 @@ export default async function HousekeepingPage({ searchParams }: { searchParams:
 
         {createRooms.length > 0 && (
           <section className="mt-8" aria-label="Add a task">
-            <h2 className="font-display text-xl">Add a task</h2>
+            <SectionTitle>Add a task</SectionTitle>
             <form action={createTask} className="mt-3 grid max-w-2xl gap-3 rounded border border-line bg-white p-3 sm:grid-cols-2">
               <label className="text-sm">
                 <span className="mb-1 block text-muted">Room</span>

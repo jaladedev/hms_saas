@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { buttonPrimary, buttonQuiet, inputClass, PaymentChip, ReservationChip, ErrorBanner, EmptyState, PageIntro } from "@/components/staff/ui";
+import { buttonPrimary, buttonQuiet, inputClass, PaymentChip, ReservationChip, ErrorBanner, EmptyState, PageIntro, PageTitle } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import {
   listQuery, nightsBetween, PAGE_SIZE, parseFilters, SOURCE_LABEL, sortAscending, STATUS_FILTERS, statusesFor,
@@ -83,7 +83,7 @@ export default async function ReservationsPage({ searchParams }: { searchParams:
     <main className="max-w-5xl">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="font-display text-3xl">Reservations</h1>
+          <PageTitle>Reservations</PageTitle>
           <PageIntro>Find a booking, then open it to check guests in and out, take a payment or cancel.</PageIntro>
         </div>
         <Link href="/app/reservations/new" className={buttonPrimary}>New reservation</Link>

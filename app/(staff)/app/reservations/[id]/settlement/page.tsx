@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
-import { buttonPrimary, inputClass, Notice, StatusChip, linkClass, EmptyState, PageIntro } from "@/components/staff/ui";
+import { buttonPrimary, inputClass, Notice, StatusChip, linkClass, EmptyState, PageIntro, PageTitle, SectionTitle } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { formatDateTime } from "@/lib/staff/format";
 import { minorToInput } from "@/lib/staff/money-input";
@@ -86,7 +86,7 @@ export default async function SettlementPage({
   return (
     <main className="max-w-4xl">
       <p className="text-sm"><Link href="/app/refunds" className={linkClass}>Refunds</Link></p>
-      <h1 className="mt-2 font-display text-3xl">{res.booking_reference}</h1>
+      <PageTitle className="mt-2">{res.booking_reference}</PageTitle>
       <p className="mt-1 text-muted">
         {guestName ? `${guestName}, ` : ""}{formatDate(res.arrival_date)} to {formatDate(res.departure_date)}
       </p>
@@ -106,7 +106,7 @@ export default async function SettlementPage({
       ) : (
         <>
           <section aria-labelledby="statement">
-            <h2 id="statement" className="font-display text-xl">Settlement</h2>
+            <SectionTitle id="statement">Settlement</SectionTitle>
             {settlement && !settlement.applicable ? (
               <PageIntro>
                 This reservation is not cancelled, so there is nothing to settle. Money held now is {money(settlement.held_minor)} of {money(res.total_minor)}.
@@ -155,7 +155,7 @@ export default async function SettlementPage({
           </section>
 
           <section className="mt-10" aria-labelledby="payments">
-            <h2 id="payments" className="font-display text-xl">Payments</h2>
+            <SectionTitle id="payments">Payments</SectionTitle>
             {payments.length === 0 ? <p className="mt-2 text-muted">No payments recorded.</p> : (
               <ul className="mt-2 border-t border-line">
                 {payments.map((p) => {
@@ -209,7 +209,7 @@ export default async function SettlementPage({
           </section>
 
           <section className="mt-10" aria-labelledby="refunds">
-            <h2 id="refunds" className="font-display text-xl">Refunds on this reservation</h2>
+            <SectionTitle id="refunds">Refunds on this reservation</SectionTitle>
             {refunds.length === 0 ? <p className="mt-2 text-muted">None yet.</p> : (
               <ul className="mt-2 border-t border-line">
                 {refunds.map((r) => (
@@ -231,7 +231,7 @@ export default async function SettlementPage({
 
           {invoices.length > 0 && (
             <section className="mt-10" aria-labelledby="invoices">
-              <h2 id="invoices" className="font-display text-xl">Invoices</h2>
+              <SectionTitle id="invoices">Invoices</SectionTitle>
               <ul className="mt-2 border-t border-line">
                 {invoices.map((i) => (
                   <li key={i.id} className="flex flex-wrap items-baseline justify-between gap-x-6 border-b border-line py-3">

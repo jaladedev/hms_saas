@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ReportForm } from "@/components/staff/maintenance-bits";
-import { buttonDanger, buttonPrimary, buttonQuiet, inputClass, Notice, linkClass, ErrorBanner, EmptyState, PageIntro } from "@/components/staff/ui";
+import { buttonDanger, buttonPrimary, buttonQuiet, inputClass, Notice, linkClass, ErrorBanner, EmptyState, PageIntro, PageTitle, SectionTitle } from "@/components/staff/ui";
 import { formatDate } from "@/lib/guest-site/format";
 import { historyByRoom, historyLine, type TaskRow } from "@/lib/staff/housekeeping-tasks";
 import {
@@ -108,7 +108,7 @@ export default async function RoomBoardPage({ searchParams }: { searchParams: Pr
 
   return (
     <main className="max-w-5xl">
-      <h1 className="font-display text-3xl">Rooms</h1>
+      <PageTitle>Rooms</PageTitle>
       <PageIntro>What every room is doing today. Open a booking to check someone in or out.</PageIntro>
       <p className="mt-2 text-sm"><Link href="/app/rooms/calendar" className={linkClass}>Room calendar</Link></p>
 
@@ -127,7 +127,7 @@ export default async function RoomBoardPage({ searchParams }: { searchParams: Pr
 
       {[...groups].map(([title, items]) => (
         <section key={title} className="mt-10" aria-label={title}>
-          <h2 className="font-display text-xl">{title} <span className="text-base text-muted">({items.length})</span></h2>
+          <SectionTitle>{title} <span className="text-base text-muted">({items.length})</span></SectionTitle>
           <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {items.map((v) => {
               const res = v.current?.reservation_room_id ? resOfRr.get(v.current.reservation_room_id) : undefined;

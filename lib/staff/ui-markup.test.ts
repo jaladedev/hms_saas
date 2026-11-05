@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { EmptyState, ErrorBanner, headRow, linkClass, PageIntro, StatTile, tdNum, thNum, thRowHead, totalRow } from "@/components/staff/ui";
+import { EmptyState, ErrorBanner, headRow, linkClass, PageIntro, PageTitle, SectionTitle, StatTile, tdNum, thNum, thRowHead, totalRow } from "@/components/staff/ui";
 
 // These pieces replaced markup that was written out by hand on many pages. The expected strings below are that
 // original markup, so a change here that alters what a page shows fails this test instead of passing unnoticed.
@@ -25,6 +25,20 @@ describe("shared staff UI pieces keep the markup they replaced", () => {
       .toBe('<p class="mt-6 rounded border border-line bg-white px-4 py-6 text-muted">Nothing here</p>');
     expect(html(createElement(EmptyState, { children: "Nothing here" })))
       .toBe('<p class="rounded border border-line bg-white px-4 py-6 text-muted">Nothing here</p>');
+  });
+
+  it("PageTitle with and without spacing", () => {
+    expect(html(createElement(PageTitle, { className: "mt-2", children: "Reports" })))
+      .toBe('<h1 class="mt-2 font-display text-3xl">Reports</h1>');
+    expect(html(createElement(PageTitle, { children: "Reports" })))
+      .toBe('<h1 class="font-display text-3xl">Reports</h1>');
+  });
+
+  it("SectionTitle with and without an id", () => {
+    expect(html(createElement(SectionTitle, { id: "stay", children: "Stay" })))
+      .toBe('<h2 id="stay" class="font-display text-xl">Stay</h2>');
+    expect(html(createElement(SectionTitle, { children: "Stay" })))
+      .toBe('<h2 class="font-display text-xl">Stay</h2>');
   });
 
   it("PageIntro", () => {

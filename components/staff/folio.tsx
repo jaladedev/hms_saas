@@ -1,4 +1,4 @@
-import { buttonDanger, buttonPrimary, inputClass, Notice } from "@/components/staff/ui";
+import { buttonDanger, buttonPrimary, inputClass, Notice, SectionTitle } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import {
   CATEGORY_LABEL, FOLIO_CATEGORIES, FOLIO_LIMITS, folioActions, isFolioResult, owingNotice, prefillPayment, splitCharges, splitPayments,
@@ -45,7 +45,7 @@ export function FolioSection({
 
   return (
     <section className="mt-10 scroll-mt-6" id="folio" aria-labelledby="folio-title">
-      <h2 id="folio-title" className="font-display text-xl">Folio</h2>
+      <SectionTitle id="folio-title">Folio</SectionTitle>
       <p className="mt-1 max-w-xl text-sm text-muted">
         Extras charged during the stay, such as the minibar or laundry, and the money taken for them. They are kept apart from the
         booking&rsquo;s price and payments above and are not on its invoice.

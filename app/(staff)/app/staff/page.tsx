@@ -1,4 +1,4 @@
-import { buttonDanger, buttonPrimary, buttonQuiet, inputClass, MemberStatusChip, Notice, ErrorBanner, EmptyState, PageIntro } from "@/components/staff/ui";
+import { buttonDanger, buttonPrimary, buttonQuiet, inputClass, MemberStatusChip, Notice, ErrorBanner, EmptyState, PageIntro, PageTitle, SectionTitle } from "@/components/staff/ui";
 import { addStaffRole, inviteStaff, removeStaffRole, setStaffStatus } from "@/lib/staff/staff-actions";
 import { memberActions, memberLabel, ROLE_HELP, scopeLabel, type Member } from "@/lib/staff/staff-rules";
 import { createClient } from "@/lib/supabase/server";
@@ -28,7 +28,7 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
   if (!dirQ.error && members.length === 0) {
     return (
       <main className="max-w-3xl">
-        <h1 className="font-display text-3xl">Staff & permissions</h1>
+        <PageTitle>Staff & permissions</PageTitle>
         <EmptyState className="mt-4">Only a hotel owner can manage staff. If you need someone added or changed, ask an owner.</EmptyState>
       </main>
     );
@@ -124,7 +124,7 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
 
   return (
     <main className="max-w-5xl">
-      <h1 className="font-display text-3xl">Staff & permissions</h1>
+      <PageTitle>Staff & permissions</PageTitle>
       <PageIntro>
         Who can sign in, and what each person can do. Changes take effect on their next action. Everything here is recorded in the audit log.
       </PageIntro>
@@ -135,7 +135,7 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
       </div>
 
       <section aria-labelledby="invite" className="border-y border-line py-6">
-        <h2 id="invite" className="font-display text-xl">Add someone</h2>
+        <SectionTitle id="invite">Add someone</SectionTitle>
         <p className="mt-1 max-w-prose text-sm text-muted">
           New people get an email with a link to choose a password. Someone who already has an account just gets the new access. You can only give roles whose permissions you hold yourself.
         </p>
@@ -157,7 +157,7 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
       </section>
 
       <section className="mt-10" aria-labelledby="current">
-        <h2 id="current" className="font-display text-xl">Staff <span className="text-base text-muted">({current.length})</span></h2>
+        <SectionTitle id="current">Staff <span className="text-base text-muted">({current.length})</span></SectionTitle>
         <ul className="mt-2 border-t border-line">{current.map((m) => <Row key={m.membership_id} m={m} />)}</ul>
       </section>
 

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { inputClass, buttonPrimary, ErrorBanner, EmptyState, PageIntro } from "@/components/staff/ui";
+import { inputClass, buttonPrimary, ErrorBanner, EmptyState, PageIntro, PageTitle } from "@/components/staff/ui";
 import { formatDate } from "@/lib/guest-site/format";
 import { searchPattern, stayLine, summariseStays, type StayRow } from "@/lib/staff/guests";
 import { todayIn } from "@/lib/staff/reservations";
@@ -31,7 +31,7 @@ export default async function GuestsPage({ searchParams }: { searchParams: Promi
 
   return (
     <main className="max-w-4xl">
-      <h1 className="font-display text-3xl">Guests</h1>
+      <PageTitle>Guests</PageTitle>
       <PageIntro>Everyone who has booked with the hotel. Search by name, email or phone.</PageIntro>
 
       <form method="get" className="mt-6 flex max-w-xl gap-2" role="search">

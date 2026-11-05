@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PaymentChip, ReservationChip, linkClass, ErrorBanner, PageIntro } from "@/components/staff/ui";
+import { PaymentChip, ReservationChip, linkClass, ErrorBanner, PageIntro, PageTitle } from "@/components/staff/ui";
 import { formatDate } from "@/lib/guest-site/format";
 import { loadDeskRows, type DeskReservation } from "@/lib/staff/desk-query";
 import { bucketFrontDesk, deskFlag, type DeskRow } from "@/lib/staff/front-desk";
@@ -76,7 +76,7 @@ export default async function FrontDeskPage() {
 
   return (
     <main className="max-w-5xl">
-      <h1 className="font-display text-3xl">Front desk</h1>
+      <PageTitle>Front desk</PageTitle>
       <PageIntro>
         Today{earliest ? `, ${formatDate(earliest)}` : ""}. Open a booking to check guests in or out.
       </PageIntro>

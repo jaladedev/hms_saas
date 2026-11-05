@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { PriorityChip, ReportForm, StatusBadge } from "@/components/staff/maintenance-bits";
-import { buttonPrimary, buttonQuiet, inputClass, Notice, ErrorBanner, EmptyState, PageIntro } from "@/components/staff/ui";
+import { buttonPrimary, buttonQuiet, inputClass, Notice, ErrorBanner, EmptyState, PageIntro, PageTitle, SectionTitle } from "@/components/staff/ui";
 import {
   actionsFor, countRequests, filterByPerson, formatDue, groupLive, placeOf, recentlyResolved, REQUEST_COLUMNS, sortRequests, type RequestRow,
 } from "@/lib/staff/maintenance";
@@ -130,7 +130,7 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
     if (items.length === 0) return null;
     return (
       <section className="mt-8 first:mt-0" aria-label={title}>
-        <h2 className="font-display text-xl">{title} <span className="text-base text-muted">({items.length})</span></h2>
+        <SectionTitle>{title} <span className="text-base text-muted">({items.length})</span></SectionTitle>
         {hint && <p className="mt-1 max-w-prose text-sm text-muted">{hint}</p>}
         <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{items.map((r) => <RequestCard key={r.id} r={r} />)}</ul>
       </section>
@@ -139,7 +139,7 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
 
   return (
     <main className="max-w-5xl">
-      <h1 className="font-display text-3xl">Maintenance</h1>
+      <PageTitle>Maintenance</PageTitle>
       <PageIntro>What is broken and who is fixing it, most urgent first. A repair never takes a room out of sale by itself; blocks are made on the room board.</PageIntro>
 
       <div className="mt-6"><Notice search={search} currency="NGN" /></div>
@@ -175,7 +175,7 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
 
         {resolved.length > 0 && (
           <section className="mt-8" aria-label="Resolved lately">
-            <h2 className="font-display text-xl">Resolved in the last 7 days <span className="text-base text-muted">({resolved.length})</span></h2>
+            <SectionTitle>Resolved in the last 7 days <span className="text-base text-muted">({resolved.length})</span></SectionTitle>
             <ul className="mt-3 divide-y divide-line rounded border border-line bg-white text-sm">
               {resolved.map((r) => (
                 <li key={r.id} className="flex flex-wrap items-baseline justify-between gap-2 px-3 py-2">
@@ -192,7 +192,7 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
 
         {reportable.length > 0 && (
           <section className="mt-8" aria-label="Report a fault">
-            <h2 className="font-display text-xl">Report a fault</h2>
+            <SectionTitle>Report a fault</SectionTitle>
             <div className="mt-3">
               <ReportForm
                 properties={reportable.map((p) => ({ id: p.id, name: p.name }))}

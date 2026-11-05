@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PriorityChip, StatusBadge } from "@/components/staff/maintenance-bits";
-import { buttonDanger, buttonPrimary, buttonQuiet, inputClass, Notice, linkClass } from "@/components/staff/ui";
+import { buttonDanger, buttonPrimary, buttonQuiet, inputClass, Notice, linkClass, PageTitle, SectionTitle } from "@/components/staff/ui";
 import { formatDate } from "@/lib/guest-site/format";
 import {
   actionsFor, blocksForRequest, formatDue, formatShort, PRIORITY_LABEL, REQUEST_COLUMNS, REQUEST_PRIORITIES, STATUS_LABEL, type RequestRow,
@@ -84,7 +84,7 @@ export default async function MaintenanceRequestPage({ params, searchParams }: {
   return (
     <main className="max-w-3xl">
       <p className="text-sm"><Link href="/app/maintenance" className={linkClass}>All maintenance</Link></p>
-      <h1 className="mt-2 font-display text-3xl">{r.title}</h1>
+      <PageTitle className="mt-2">{r.title}</PageTitle>
       <p className="mt-2 flex flex-wrap items-center gap-2 text-sm">
         <span className="font-medium">{place}</span>
         <PriorityChip priority={r.priority} />
@@ -107,7 +107,7 @@ export default async function MaintenanceRequestPage({ params, searchParams }: {
 
       {r.room_id && (
         <section className="mt-8" aria-label="Room block">
-          <h2 className="font-display text-xl">Room block</h2>
+          <SectionTitle>Room block</SectionTitle>
           {linked ? (
             <p className="mt-2 max-w-prose text-sm">
               This room is out of sale for this: <span className="font-medium">{describeBlock(linked)}</span>.
@@ -134,7 +134,7 @@ export default async function MaintenanceRequestPage({ params, searchParams }: {
 
       {(a.claim || a.start || a.resolve) && (
         <section className="mt-8" aria-label="Work on this request">
-          <h2 className="font-display text-xl">Work on it</h2>
+          <SectionTitle>Work on it</SectionTitle>
           <div className="mt-3 flex flex-wrap items-start gap-2">
             {a.claim && <form action={claimRequest}>{hidden()}<button type="submit" className={buttonQuiet}>Take it</button></form>}
             {a.start && <form action={startRequest}>{hidden()}<button type="submit" className={buttonQuiet}>Start</button></form>}
@@ -152,7 +152,7 @@ export default async function MaintenanceRequestPage({ params, searchParams }: {
 
       {(a.assign || a.priority) && (
         <section className="mt-8" aria-label="Manage this request">
-          <h2 className="font-display text-xl">Manage</h2>
+          <SectionTitle>Manage</SectionTitle>
           {a.assign && (
             <form action={assignRequest} className="mt-3 flex flex-wrap items-center gap-2">
               {hidden()}

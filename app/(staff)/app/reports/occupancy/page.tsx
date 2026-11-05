@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { PrintButton } from "@/components/staff/print-button";
 import { PrintHeader } from "@/components/staff/print-header";
-import { inputClass, buttonPrimary, linkClass, EmptyState, PageIntro, StatTile, tdNum, thNum, headRow, totalRow } from "@/components/staff/ui";
+import { inputClass, buttonPrimary, linkClass, EmptyState, PageIntro, StatTile, tdNum, thNum, headRow, totalRow, PageTitle } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { adrMinor, formatBp, isQuietDay, occupancyBp, revparMinor, type OccupancyReport } from "@/lib/staff/occupancy";
 import { MAX_RANGE_DAYS, parseRange, presets } from "@/lib/staff/reports";
@@ -25,7 +25,7 @@ export default async function OccupancyPage({ searchParams }: { searchParams: Pr
   if (allowed.length === 0) {
     return (
       <main className="max-w-2xl">
-        <h1 className="font-display text-3xl">Occupancy</h1>
+        <PageTitle>Occupancy</PageTitle>
         <EmptyState className="mt-4">You do not have permission to see reports.</EmptyState>
       </main>
     );
@@ -47,7 +47,7 @@ export default async function OccupancyPage({ searchParams }: { searchParams: Pr
         <span aria-hidden="true"> · </span>
         <Link href={`/app/reports/channels${qs(range.from, range.to)}`} className={linkClass}>Channels and guests</Link>
       </p>
-      <h1 className="mt-2 font-display text-3xl">Occupancy</h1>
+      <PageTitle className="mt-2">Occupancy</PageTitle>
       <PrintHeader hotel={chosen.name} from={range.from} to={range.to} />
       <PageIntro>
         How many rooms were sold each night, what they earned, and what was coming and going. Days are the hotel&rsquo;s own days, and future days show what is booked so far.

@@ -96,6 +96,16 @@ export function EmptyState({ className, children }: { className?: string; childr
   return <p className={withClass(className, "rounded border border-line bg-white px-4 py-6 text-muted")}>{children}</p>;
 }
 
+/** The heading at the top of a page. `className` carries spacing, for example "mt-2" under a back link. */
+export function PageTitle({ className, children }: { className?: string; children: React.ReactNode }) {
+  return <h1 className={withClass(className, "font-display text-3xl")}>{children}</h1>;
+}
+
+/** The heading of a section within a page. Pass `id` when the section is named by `aria-labelledby`. */
+export function SectionTitle({ id, children }: { id?: string; children: React.ReactNode }) {
+  return <h2 id={id} className="font-display text-xl">{children}</h2>;
+}
+
 /** The grey paragraph under a page heading. */
 export function PageIntro({ children }: { children: React.ReactNode }) {
   return <p className="mt-2 max-w-prose text-muted">{children}</p>;

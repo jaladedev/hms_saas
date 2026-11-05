@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { z } from "zod";
 import { FolioSection } from "@/components/staff/folio";
 import { StayEdit } from "@/components/staff/stay-edit";
-import { buttonDanger, buttonPrimary, buttonQuiet, inputClass, Notice, PaymentChip, ReservationChip, linkClass } from "@/components/staff/ui";
+import { buttonDanger, buttonPrimary, buttonQuiet, inputClass, Notice, PaymentChip, ReservationChip, linkClass, PageTitle, SectionTitle } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { checkoutNote, CHARGE_COLUMNS, folioIsOpen, isFolioResult, owingMinor, PAYMENT_COLUMNS, type ChargeRow, type FolioBalance, type PaymentRow } from "@/lib/staff/folio";
 import { formatDateTime } from "@/lib/staff/format";
@@ -154,7 +154,7 @@ export default async function ReservationPage({
   return (
     <main className="max-w-4xl">
       <p className="text-sm"><Link href="/app/reservations" className={linkClass}>Reservations</Link></p>
-      <h1 className="mt-2 font-display text-3xl">{res.booking_reference}</h1>
+      <PageTitle className="mt-2">{res.booking_reference}</PageTitle>
       <p className="mt-1 text-muted">
         {guest ? <Link href={`/app/guests/${res.primary_guest_id}`} className="underline underline-offset-2">{guest.full_name}</Link> : "Guest not visible to you"}{propertyName ? `, ${propertyName}` : ""}
       </p>
@@ -176,7 +176,7 @@ export default async function ReservationPage({
       )}
 
       <section aria-labelledby="stay">
-        <h2 id="stay" className="font-display text-xl">Stay</h2>
+        <SectionTitle id="stay">Stay</SectionTitle>
         <dl className="mt-3 grid max-w-xl grid-cols-[9rem_1fr] gap-y-1.5 text-sm">
           <dt className="text-muted">Arrival</dt><dd>{formatDate(res.arrival_date)}</dd>
           <dt className="text-muted">Departure</dt><dd>{formatDate(res.departure_date)} ({stayNights} {stayNights === 1 ? "night" : "nights"})</dd>
@@ -196,7 +196,7 @@ export default async function ReservationPage({
       </section>
 
       <section className="mt-10" aria-labelledby="rooms">
-        <h2 id="rooms" className="font-display text-xl">Rooms</h2>
+        <SectionTitle id="rooms">Rooms</SectionTitle>
         {resRooms.length === 0 ? <p className="mt-2 text-muted">No rooms are visible on this booking.</p> : (
           <ul className="mt-2 border-t border-line">
             {resRooms.map((rr, i) => {
@@ -300,7 +300,7 @@ export default async function ReservationPage({
       </section>
 
       <section className="mt-10" aria-labelledby="money">
-        <h2 id="money" className="font-display text-xl">Money</h2>
+        <SectionTitle id="money">Money</SectionTitle>
         <dl className="mt-3 max-w-md text-sm">
           {[
             ["Room charges", money(res.subtotal_minor)],
@@ -382,7 +382,7 @@ export default async function ReservationPage({
 
       {(invoices.length > 0 || inv.canIssue) && (
         <section className="mt-10" aria-labelledby="invoices">
-          <h2 id="invoices" className="font-display text-xl">Invoices</h2>
+          <SectionTitle id="invoices">Invoices</SectionTitle>
           {invoices.length > 0 && (
             <ul className="mt-2 border-t border-line">
               {invoices.map((i) => (
@@ -422,7 +422,7 @@ export default async function ReservationPage({
 
       {noShowOffered && (
         <section className="mt-10" aria-labelledby="no-show">
-          <h2 id="no-show" className="font-display text-xl">Guest did not arrive</h2>
+          <SectionTitle id="no-show">Guest did not arrive</SectionTitle>
           <details className="mt-3">
             <summary className={`${buttonDanger} inline-block cursor-pointer list-none`}>Mark as no-show</summary>
             <form action={markNoShow} className="mt-3 grid max-w-md gap-3">
@@ -447,7 +447,7 @@ export default async function ReservationPage({
 
       {act.cancel && (
         <section className="mt-10" aria-labelledby="cancel">
-          <h2 id="cancel" className="font-display text-xl">Cancel this reservation</h2>
+          <SectionTitle id="cancel">Cancel this reservation</SectionTitle>
           <details className="mt-3">
             <summary className={`${buttonDanger} inline-block cursor-pointer list-none`}>Cancel reservation</summary>
             <form action={cancelReservation} className="mt-3 grid max-w-md gap-3">

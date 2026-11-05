@@ -5,7 +5,7 @@ import { bucketFrontDesk } from "@/lib/staff/front-desk";
 import { buildTasks, countCleaning, countRefunds, countRepairs, todayFigures, type RefundBrief, type RequestBrief, type RoomBrief } from "@/lib/staff/overview";
 import { todayIn } from "@/lib/staff/reservations";
 import { createClient } from "@/lib/supabase/server";
-import { linkClass, ErrorBanner } from "@/components/staff/ui";
+import { linkClass, ErrorBanner, PageTitle, SectionTitle } from "@/components/staff/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -56,7 +56,7 @@ export default async function Dashboard() {
 
   return (
     <main className="max-w-4xl">
-      <h1 className="font-display text-3xl">Overview</h1>
+      <PageTitle>Overview</PageTitle>
       <p className="mt-2 text-muted">{earliest ? `Today, ${formatDate(earliest)}.` : "No property is visible to this account."}</p>
 
       {loadFailed && (
@@ -66,7 +66,7 @@ export default async function Dashboard() {
       )}
 
       <section className="mt-8" aria-labelledby="today">
-        <h2 id="today" className="font-display text-xl">Today</h2>
+        <SectionTitle id="today">Today</SectionTitle>
         <dl className="mt-3 flex flex-wrap border-y border-line">
           {([
             ["Arriving", figures.arriving],
@@ -99,7 +99,7 @@ export default async function Dashboard() {
       </section>
 
       <section className="mt-10" aria-labelledby="needs">
-        <h2 id="needs" className="font-display text-xl">Needs a person</h2>
+        <SectionTitle id="needs">Needs a person</SectionTitle>
         {tasks.length === 0 ? (
           <p className="mt-3 rounded border border-line bg-white px-4 py-5 text-muted">
             {loadFailed ? "Nothing could be confirmed." : "Nothing is waiting on anyone."}

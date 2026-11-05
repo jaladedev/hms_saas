@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { buttonPrimary, buttonQuiet, inputClass, ErrorBanner, EmptyState, PageIntro } from "@/components/staff/ui";
+import { buttonPrimary, buttonQuiet, inputClass, ErrorBanner, EmptyState, PageIntro, PageTitle } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { formatDateTime } from "@/lib/staff/format";
 import {
@@ -37,7 +37,7 @@ export default async function SetupHistoryPage({ searchParams }: { searchParams:
   if (viewable.length === 0) {
     return (
       <main className="max-w-3xl">
-        <h1 className="font-display text-3xl">Setup history</h1>
+        <PageTitle>Setup history</PageTitle>
         {propError
           ? <ErrorBanner className="mt-4">The history could not be loaded. Reload the page.</ErrorBanner>
           : <EmptyState className="mt-4">Only people who may view the audit trail, such as the owner and the general manager, can see who changed the hotel&apos;s setup. Ask one of them if you need to know.</EmptyState>}
@@ -80,7 +80,7 @@ export default async function SetupHistoryPage({ searchParams }: { searchParams:
 
   return (
     <main className="max-w-4xl">
-      <h1 className="font-display text-3xl">Setup history</h1>
+      <PageTitle>Setup history</PageTitle>
       <PageIntro>
         Who changed the hotel&apos;s room types, rooms, rates, tax rules, policies and staff access, newest first. Each line says who made the change and what it was; edits show the old and the new value. Nothing here can be changed or deleted.
       </PageIntro>

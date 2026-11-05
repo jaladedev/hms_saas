@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { PrintButton } from "@/components/staff/print-button";
 import { PrintHeader } from "@/components/staff/print-header";
-import { buttonPrimary, inputClass, linkClass, ErrorBanner, PageIntro } from "@/components/staff/ui";
+import { buttonPrimary, inputClass, linkClass, ErrorBanner, PageIntro, PageTitle } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { dayOccupancy, parseRange, totals, type ReportDay } from "@/lib/staff/reports";
 import { todayIn } from "@/lib/staff/reservations";
@@ -24,7 +24,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     return data === true ? p : null;
   }))).filter((p): p is { id: string; name: string; timezone: string } => p !== null);
 
-  const heading = <h1 className="font-display text-3xl">Reports</h1>;
+  const heading = <PageTitle>Reports</PageTitle>;
   if (propQ.error) return <main className="max-w-5xl">{heading}<ErrorBanner className="mt-4">The hotels could not be loaded. Try again.</ErrorBanner></main>;
   const property = allowed.find((p) => p.id === first(search.property)) ?? allowed[0];
   if (!property) return <main className="max-w-5xl">{heading}<p className="mt-4 max-w-prose text-muted">Reports are for the owner, general manager and accountant. Ask one of them if you need a figure.</p></main>;

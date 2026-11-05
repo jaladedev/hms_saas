@@ -2,7 +2,7 @@ import { ReconciliationForm } from "@/components/staff/reconciliation-form";
 import { parseRange } from "@/lib/staff/reports";
 import { todayIn } from "@/lib/staff/reservations";
 import { createClient } from "@/lib/supabase/server";
-import { ErrorBanner, PageIntro } from "@/components/staff/ui";
+import { ErrorBanner, PageIntro, PageTitle } from "@/components/staff/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +22,7 @@ export default async function ReconciliationPage() {
     return verify.data === true && money.data === true ? p : null;
   }))).filter((p): p is Prop => p !== null);
 
-  const heading = <h1 className="font-display text-3xl">Reconcile payments</h1>;
+  const heading = <PageTitle>Reconcile payments</PageTitle>;
   if (propQ.error) return <main className="max-w-5xl">{heading}<ErrorBanner className="mt-4">The hotels could not be loaded. Refresh the page, and tell the owner if it keeps happening.</ErrorBanner></main>;
   if (allowed.length === 0) return <main className="max-w-5xl">{heading}<p className="mt-4 max-w-prose text-muted">Checking payments against Paystack is for the owner, general manager and accountant. Ask one of them if you need it.</p></main>;
 
