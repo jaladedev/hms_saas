@@ -379,7 +379,7 @@ export default async function ReservationPage({
           today={today} timeZone={tz} balance={folio} charges={(folioChargesQ?.data ?? []) as ChargeRow[]}
           payments={(folioPaymentsQ?.data ?? []) as PaymentRow[]} rooms={folioRooms}
           viewer={{ charge: cFolio?.data === true, record: cPay.data === true, reverse: cReverse?.data === true }}
-          invoices={(folioInvQ?.data ?? []) as FolioInvoiceRow[]} invoiceViewer={{ issue: cIssue.data === true, void: cVoid.data === true }} search={search}
+          invoices={(folioInvQ?.data ?? []) as FolioInvoiceRow[]} invoiceViewer={{ issue: cIssue.data === true, void: cVoid.data === true }} guestEmail={guest ? guest.email?.trim() || null : undefined} search={search}
         />
       )}
 

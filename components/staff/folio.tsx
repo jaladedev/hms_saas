@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { buttonDanger, buttonPrimary, inputClass, linkClass, Notice, SectionTitle } from "@/components/staff/ui";
+import { buttonDanger, buttonPrimary, buttonQuiet, inputClass, linkClass, Notice, SectionTitle } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import {
   CATEGORY_LABEL, FOLIO_CATEGORIES, FOLIO_LIMITS, folioActions, folioIsOpen, isFolioResult, owingNotice, prefillPayment, splitCharges, splitPayments,
   type ChargeRow, type FolioBalance, type FolioViewer, type PaymentRow,
 } from "@/lib/staff/folio";
-import { issueFolioInvoice, postFolioCharge, recordFolioPayment, reverseFolioPayment, voidFolioCharge, voidFolioInvoice } from "@/lib/staff/folio-actions";
+import { emailFolioInvoice, issueFolioInvoice, postFolioCharge, recordFolioPayment, reverseFolioPayment, voidFolioCharge, voidFolioInvoice } from "@/lib/staff/folio-actions";
 import { folioInvoicePath, invoiceActions, invoiceNumberOf, splitInvoices, type FolioInvoiceRow, type InvoiceViewer } from "@/lib/staff/folio-invoice";
 import { formatDateTime } from "@/lib/staff/format";
 import { PAYMENT_METHODS } from "@/lib/staff/reservations";
@@ -20,7 +20,7 @@ const METHOD_LABEL: Record<string, string> = Object.fromEntries(PAYMENT_METHODS.
  * database decides again on every action.
  */
 export function FolioSection({
-  reservationId, currency, reservationStatus, arrival, today, timeZone, balance, charges, payments, rooms, viewer, invoices, invoiceViewer, search,
+  reservationId, currency, reservationStatus, arrival, today, timeZone, balance, charges, payments, rooms, viewer, invoices, invoiceViewer, guestEmail, search,
 }: {
   reservationId: string;
   currency: string;
@@ -38,6 +38,8 @@ export function FolioSection({
   /** Numbered invoices for the extras (migration 048), and what the viewer may do with them. */
   invoices: FolioInvoiceRow[];
   invoiceViewer: InvoiceViewer;
+  /** Where an invoice for extras can be sent: the guest's address, null when they have none, undefined when the viewer may not see guests (the database still knows). */
+  guestEmail: string | null | undefined;
   search: Search;
 }) {
   const money = (m: number) => formatMoney(m, currency);
@@ -159,6 +161,17 @@ export function FolioSection({
                     <span className="tabular-nums">{money(i.total_minor)}</span>
                   </div>
                   <p className="mt-0.5 text-sm"><Link href={folioInvoicePath(reservationId, i.id)} className={linkClass}>View or print</Link></p>
+                  {invoiceViewer.issue && (guestEmail !== null ? (
+                    <form action={emailFolioInvoice} className="mt-2">
+                      <input type="hidden" name="reservationId" value={reservationId} />
+                      <input type="hidden" name="invoiceId" value={i.id} />
+                      <input type="hidden" name="idempotencyKey" value={crypto.randomUUID()} />
+                      <button type="submit" className={buttonQuiet}>Email to guest</button>
+                      {guestEmail && <span className="ml-2 text-xs text-muted">{guestEmail}</span>}
+                    </form>
+                  ) : (
+                    <p className="mt-2 text-xs text-muted">The guest has no email address on file, so this invoice cannot be emailed.</p>
+                  ))}
                   {inv.void(i) && (
                     <details className="mt-2">
                       <summary className="cursor-pointer text-sm text-muted">Void this invoice</summary>

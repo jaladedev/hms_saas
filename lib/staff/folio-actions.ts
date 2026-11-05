@@ -1,8 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { drainNow } from "@/lib/email/server";
 import { back, staffClient } from "./action-helpers";
 import { classifyFolioError, parseChargeForm, parsePaymentForm, parseReason } from "./folio";
 import type { OkCode } from "./refunds";
@@ -100,6 +102,20 @@ export async function issueFolioInvoice(formData: FormData) {
   const supabase = await staffClient();
   const { error } = await supabase.rpc("issue_folio_invoice", { p_reservation_id: id, p_idempotency_key: ids.data.idempotencyKey });
   return finish(id, error, "fo_invoiced");
+}
+
+/**
+ * Emails an issued invoice for extras to the booking's guest (migration 049). The database queues the email; the send is
+ * started in the background right away, and the maintenance route is the backstop, so nothing here waits on the mail provider.
+ */
+export async function emailFolioInvoice(formData: FormData) {
+  const ids = z.object({ reservationId: uuid, invoiceId: uuid, idempotencyKey: key }).safeParse(Object.fromEntries(formData));
+  if (!ids.success) return back(LIST, { err: "bad_request" });
+
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("email_folio_invoice", { p_invoice_id: ids.data.invoiceId, p_idempotency_key: ids.data.idempotencyKey });
+  if (!error) after(() => { drainNow(5).catch(() => {}); });
+  return finish(ids.data.reservationId, error, "fo_emailed");
 }
 
 /** Withdraws an invoice for extras, with a reason, and frees its extras to be invoiced again. No money moves. */

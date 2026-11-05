@@ -25,6 +25,7 @@ const KIND: Record<string, string> = {
   refund_processed: "Refund sent",
   booking_cancelled: "Booking cancelled",
   payment_no_room: "Paid, room unavailable",
+  folio_invoice: "Invoice for extras",
 };
 export const kindLabel = (kind: string) => KIND[kind] ?? kind.replace(/_/g, " ");
 

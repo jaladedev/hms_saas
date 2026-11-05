@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { renderEmail, escapeHtml } from "@/lib/email/templates";
+import { renderEmail, escapeHtml, invoiceLinesFrom } from "@/lib/email/templates";
 import { LogMailer, ResendMailer, createMailer } from "@/lib/email/mailer";
 import { drainOutbox, type ClaimedEmail, type DrainDeps } from "@/lib/email/outbox";
 import type { BookingStatus } from "@/lib/guest-site/server";
@@ -48,6 +48,33 @@ describe("email templates", () => {
     expect(e.text).toContain("separate email");
     expect(renderEmail({ kind: "booking_cancelled", booking, link: LINK, payload: { charge_minor: 0, refund_due_minor: 0 } }).text).toContain("No charge applies");
     expect(renderEmail({ kind: "booking_cancelled", booking, link: LINK }).text).toContain("No charge applies");
+  });
+  it("folio_invoice: number, each line, tax, total, and the note that payments are not on it", () => {
+    const payload = {
+      invoice_number: "INV-HTL-2026-000012", currency: "NGN", total_minor: 1322500, tax_minor: 22500,
+      lines: [
+        { service_date: "2026-11-02", description: "Water", quantity: 2, unit_amount_minor: 150000, tax_minor: 22500, line_total_minor: 322500 },
+        { service_date: "2026-11-03", description: "Dinner", quantity: 1, unit_amount_minor: 1000000, tax_minor: 0, line_total_minor: 1000000 },
+      ],
+    };
+    const e = renderEmail({ kind: "folio_invoice", booking, link: LINK, payload });
+    expect(e.subject).toBe("Invoice INV-HTL-2026-000012 for extras at " + booking.property_name);
+    expect(e.text).toContain("INV-HTL-2026-000012");
+    expect(e.text).toMatch(/Water, 2 x \S*1,500\.00 = \S*3,225\.00 \(tax \S*225\.00 included\)/);
+    expect(e.text).toMatch(/Dinner, 1 x \S*10,000\.00 = \S*10,000\.00\n/);
+    expect(e.text).toMatch(/Total: \S*13,225\.00, of which tax \S*225\.00\./);
+    expect(e.text).toContain("Money you have paid for extras is not shown");
+    expect(e.html).toContain("Your invoice for extras");
+  });
+  it("folio_invoice: a payload with no or bad lines still renders, and nothing in a line is trusted as HTML", () => {
+    const bare = renderEmail({ kind: "folio_invoice", booking, link: LINK });
+    expect(bare.subject).toBe("Invoice for extras at " + booking.property_name);
+    expect(invoiceLinesFrom(undefined)).toEqual([]);
+    expect(invoiceLinesFrom({ lines: "nope" })).toEqual([]);
+    expect(invoiceLinesFrom({ lines: [null, 3, { description: "x" }, { description: 5, quantity: 1, unit_amount_minor: 1, tax_minor: 0, line_total_minor: 1 }] })).toEqual([]);
+    const evil = renderEmail({ kind: "folio_invoice", booking, link: LINK, payload: { lines: [{ description: "<script>x</script>", quantity: 1, unit_amount_minor: 100, tax_minor: 0, line_total_minor: 100 }] } });
+    expect(evil.html).not.toContain("<script>");
+    expect(evil.html).toContain("&lt;script&gt;");
   });
   it("escapes all HTML-significant characters", () => {
     expect(escapeHtml(`<a href="x">&'</a>`)).toBe("&lt;a href=&quot;x&quot;&gt;&amp;&#39;&lt;/a&gt;");

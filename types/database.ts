@@ -2540,6 +2540,10 @@ export type Database = {
           rooms_sold: number
         }[]
       }
+      email_folio_invoice: {
+        Args: { p_idempotency_key: string; p_invoice_id: string }
+        Returns: Json
+      }
       enqueue_booking_email: {
         Args: {
           p_dedupe: string

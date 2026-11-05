@@ -1,7 +1,7 @@
 import { formatDate, formatMoney, formatTime } from "@/lib/guest-site/format";
 import type { BookingStatus } from "@/lib/guest-site/server";
 
-export type EmailKind = "booking_held" | "booking_confirmed" | "booking_link" | "refund_processed" | "booking_cancelled" | "payment_no_room";
+export type EmailKind = "booking_held" | "booking_confirmed" | "booking_link" | "refund_processed" | "booking_cancelled" | "payment_no_room" | "folio_invoice";
 export type RenderedEmail = { subject: string; text: string; html: string };
 
 export function escapeHtml(value: string): string {
@@ -10,6 +10,24 @@ export function escapeHtml(value: string): string {
 
 function timeInZone(iso: string, timeZone: string): string {
   return new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", timeZone }).format(new Date(iso));
+}
+
+type InvoiceLine = { date: string; description: string; quantity: number; unit: number; tax: number; total: number };
+
+/** Reads the frozen copy of an invoice for extras out of an email's payload. Anything that is not the expected shape is left out. */
+export function invoiceLinesFrom(payload: Record<string, unknown> | undefined): InvoiceLine[] {
+  const raw = payload?.lines;
+  if (!Array.isArray(raw)) return [];
+  const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+  const out: InvoiceLine[] = [];
+  for (const l of raw) {
+    if (typeof l !== "object" || l === null) continue;
+    const o = l as Record<string, unknown>;
+    const quantity = num(o.quantity), unit = num(o.unit_amount_minor), tax = num(o.tax_minor), total = num(o.line_total_minor);
+    if (typeof o.description !== "string" || quantity === null || unit === null || tax === null || total === null) continue;
+    out.push({ date: typeof o.service_date === "string" ? o.service_date : "", description: o.description, quantity, unit, tax, total });
+  }
+  return out;
 }
 
 /**
@@ -87,6 +105,23 @@ export function renderEmail(input: {
         ? `We received your payment of ${formatMoney(paid, currency)} for booking ${b.booking_reference} at ${b.property_name} (${stay}). Unfortunately the room had been taken by the time it reached us.`
         : `We received your payment for booking ${b.booking_reference} at ${b.property_name} (${stay}). Unfortunately the room had been taken by the time it reached us.`);
       lines.push("You do not need to pay again. The hotel will contact you to arrange either another room for your dates or a full refund of what you paid.");
+      break;
+    }
+    case "folio_invoice": {
+      const number = typeof input.payload?.invoice_number === "string" ? input.payload.invoice_number : "";
+      const currency = typeof input.payload?.currency === "string" ? input.payload.currency : b.currency;
+      const sum = typeof input.payload?.total_minor === "number" ? input.payload.total_minor : null;
+      const tax = typeof input.payload?.tax_minor === "number" ? input.payload.tax_minor : 0;
+      subject = number ? `Invoice ${number} for extras at ${b.property_name}` : `Invoice for extras at ${b.property_name}`;
+      heading = "Your invoice for extras";
+      button = "View your booking";
+      lines.push(`Here is your invoice${number ? ` ${number}` : ""} for the extras charged during your stay at ${b.property_name} (${stay}).`);
+      for (const l of invoiceLinesFrom(input.payload)) {
+        const when = l.date ? `${formatDate(l.date)}: ` : "";
+        lines.push(`${when}${l.description}, ${l.quantity} x ${formatMoney(l.unit, currency)} = ${formatMoney(l.total, currency)}${l.tax > 0 ? ` (tax ${formatMoney(l.tax, currency)} included)` : ""}`);
+      }
+      if (sum !== null) lines.push(`Total: ${formatMoney(sum, currency)}${tax > 0 ? `, of which tax ${formatMoney(tax, currency)}` : ""}.`);
+      lines.push("Money you have paid for extras is not shown on this invoice. If anything looks wrong, please speak to the hotel.");
       break;
     }
     case "booking_link":

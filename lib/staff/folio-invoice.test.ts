@@ -91,13 +91,17 @@ describe("refusals and messages", () => {
   it("words the two new refusals before the general not-open one", () => {
     expect(classifyFolioError("INVALID_STATE: on an invoice")).toEqual({ code: "fo_on_invoice" });
     expect(classifyFolioError("INVALID_STATE: nothing to invoice")).toEqual({ code: "fo_nothing" });
+    expect(classifyFolioError("INVALID_STATE: void")).toEqual({ code: "fo_invoice_void" });
+    expect(classifyFolioError("POLICY_VIOLATION: no email")).toEqual({ code: "fo_no_email" });
     expect(classifyFolioError("INVALID_STATE: checked_in")).toEqual({ code: "fo_not_open" });
     expect(classifyFolioError("INVALID_STATE: folio paid")).toEqual({ code: "fo_paid" });
   });
   it("has a plain sentence for each new code", () => {
     expect(errorMessage("fo_on_invoice", null, String)).toMatch(/Void the invoice first/);
     expect(errorMessage("fo_nothing", null, String)).toMatch(/already on an invoice/);
-    for (const code of ["fo_invoiced", "fo_invoice_voided"] as const) {
+    expect(errorMessage("fo_no_email", null, String)).toMatch(/no email address/);
+    expect(errorMessage("fo_invoice_void", null, String)).toMatch(/voided/);
+    for (const code of ["fo_invoiced", "fo_invoice_voided", "fo_emailed"] as const) {
       expect(FOLIO_OK_CODES).toContain(code);
       expect(OK_MESSAGES[code]).toBeTruthy();
     }

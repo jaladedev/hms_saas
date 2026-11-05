@@ -220,6 +220,8 @@ export function classifyFolioError(message: string): { code: ErrorCode; n?: numb
   if (/IDEMPOTENCY_MISMATCH/.test(message)) return { code: "fo_duplicate" };
   if (/INVALID_STATE: folio paid/.test(message)) return { code: "fo_paid" };
   if (/INVALID_STATE: on an invoice/.test(message)) return { code: "fo_on_invoice" };
+  if (/INVALID_STATE: void/.test(message)) return { code: "fo_invoice_void" };
+  if (/POLICY_VIOLATION: no email/.test(message)) return { code: "fo_no_email" };
   if (/INVALID_STATE: nothing to invoice/.test(message)) return { code: "fo_nothing" };
   if (/INVALID_STATE/.test(message)) return { code: "fo_not_open" };
   if (/POLICY_VIOLATION: category/.test(message)) return { code: "fo_category" };
@@ -236,7 +238,7 @@ export function classifyFolioError(message: string): { code: ErrorCode; n?: numb
 }
 
 /** Success codes the folio actions send back (worded in `OK_MESSAGES`). */
-export const FOLIO_OK_CODES = ["fo_posted", "fo_voided", "fo_payment", "fo_reversed", "fo_invoiced", "fo_invoice_voided"] as const;
+export const FOLIO_OK_CODES = ["fo_posted", "fo_voided", "fo_payment", "fo_reversed", "fo_invoiced", "fo_invoice_voided", "fo_emailed"] as const;
 
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);

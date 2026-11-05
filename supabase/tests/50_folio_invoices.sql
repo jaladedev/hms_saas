@@ -203,3 +203,63 @@ do $$ begin
   perform set_config('role', 'postgres', true);
   raise notice 'PASS anon cannot run either function';
 end $$;
+
+-- 10. Emailing an invoice (migration 049): permission, void, no address, double click, a frozen copy
+do $$ declare
+  res uuid := t50_res(); v_live uuid := (select val::uuid from t50_ctx where label = 'inv2'); v_void uuid := (select val::uuid from t50_ctx where label = 'inv');
+  v_guest uuid; r jsonb; r2 jsonb; v_row email_outbox%rowtype; v_n integer;
+begin
+  perform t_sys();
+  select primary_guest_id into v_guest from reservations where id = res;
+  update guests set email = 'Guest.Fi@Example.test' where id = v_guest;
+
+  perform t_as('00000000-0000-0000-0000-00000000aa02');
+  perform t_expect(format('select email_folio_invoice(%L, %L)', v_live, 'fi-mail-hk-01'), 'NOT_FOUND');
+  perform t_as('00000000-0000-0000-0000-00000000bb01');
+  perform t_expect(format('select email_folio_invoice(%L, %L)', v_live, 'fi-mail-b-001'), 'NOT_FOUND');
+  perform t_as('00000000-0000-0000-0000-00000000aa04');
+  perform t_expect(format('select email_folio_invoice(%L, %L)', gen_random_uuid(), 'fi-mail-none1'), 'NOT_FOUND');
+  perform t_expect(format('select email_folio_invoice(%L, %L)', v_live, 'short'), 'POLICY_VIOLATION: key');
+  perform t_expect(format('select email_folio_invoice(%L, null)', v_live), 'POLICY_VIOLATION: key');
+  perform t_expect(format('select email_folio_invoice(%L, %L)', v_void, 'fi-mail-void-1'), 'INVALID_STATE: void');
+
+  r := email_folio_invoice(v_live, 'fi-mail-key-01');
+  r2 := email_folio_invoice(v_live, 'fi-mail-key-01');   -- a double click
+  perform t_sys();
+  if (r ->> 'queued')::boolean is not true or (r2 ->> 'queued')::boolean is not false then raise exception 'FAIL queued flags % %', r, r2; end if;
+  select count(*) into v_n from email_outbox where kind = 'folio_invoice' and reservation_id = res;
+  if v_n <> 1 then raise exception 'FAIL one email for one key (%)', v_n; end if;
+  select * into v_row from email_outbox where kind = 'folio_invoice' and reservation_id = res;
+  if v_row.to_email <> 'guest.fi@example.test' or v_row.status <> 'pending' then raise exception 'FAIL row % %', v_row.to_email, v_row.status; end if;
+  if v_row.payload ->> 'invoice_number' <> (select invoice_number from folio_invoices where id = v_live)
+     or (v_row.payload ->> 'total_minor')::bigint <> 50000 or jsonb_array_length(v_row.payload -> 'lines') <> 1
+     or (v_row.payload #>> '{lines,0,description}') <> 'Call' then raise exception 'FAIL payload %', v_row.payload; end if;
+  if (select count(*) from audit_logs where action = 'folio_invoice.emailed' and entity_id = v_live) <> 1 then raise exception 'FAIL audit once per queued email'; end if;
+
+  -- a new key sends again; the first email is untouched
+  perform t_as('00000000-0000-0000-0000-00000000aa05');
+  r := email_folio_invoice(v_live, 'fi-mail-key-02');
+  perform t_sys();
+  select count(*) into v_n from email_outbox where kind = 'folio_invoice' and reservation_id = res;
+  if v_n <> 2 or (r ->> 'queued')::boolean is not true then raise exception 'FAIL a new key should queue a second email (%)', v_n; end if;
+
+  -- the copy is frozen: a later void does not change what was queued
+  perform t_as('00000000-0000-0000-0000-00000000aa05');
+  perform void_folio_invoice(v_live, 'sent in error');
+  perform t_sys();
+  if (select count(*) from email_outbox where kind = 'folio_invoice' and reservation_id = res and (payload ->> 'total_minor')::bigint = 50000) <> 2 then raise exception 'FAIL queued copies changed'; end if;
+  perform t_as('00000000-0000-0000-0000-00000000aa04');
+  perform t_expect(format('select email_folio_invoice(%L, %L)', v_live, 'fi-mail-key-03'), 'INVALID_STATE: void');
+
+  -- no address on the guest: refused, nothing queued (a fresh invoice is needed: the others are void by now)
+  perform t_as('00000000-0000-0000-0000-00000000aa04');
+  perform issue_folio_invoice(res, 'fi-issue-5');
+  perform t_sys();
+  update guests set email = null where id = v_guest;
+  perform t_as('00000000-0000-0000-0000-00000000aa04');
+  perform t_expect(format('select email_folio_invoice((select id from folio_invoices where reservation_id = %L and invoice_status = %L order by issued_at desc limit 1), %L)', res, 'issued', 'fi-mail-key-04'), 'POLICY_VIOLATION: no email');
+  perform t_sys();
+  select count(*) into v_n from email_outbox where kind = 'folio_invoice' and reservation_id = res;
+  if v_n <> 2 then raise exception 'FAIL a refused call queued an email (%)', v_n; end if;
+  raise notice 'PASS email: invoice.issue only, issued invoices only, needs an address, one email per key, a new key sends again, queued copies are frozen, audited once per email';
+end $$;
