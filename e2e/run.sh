@@ -19,6 +19,15 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# A server left over from an earlier run would answer in place of this run's build, and the checks would test old code.
+# So refuse to start if any port the harness uses is already taken.
+for port in 3100 3001 3002 4010 4011 "$PORT"; do
+  if (exec 3<>"/dev/tcp/127.0.0.1/$port") 2>/dev/null; then
+    echo "e2e: port $port is already in use (a server from an earlier run?). Stop it and run again." >&2
+    exit 1
+  fi
+done
+
 export PGRST_JWT_SECRET="e2e-jwt-secret-e2e-jwt-secret-e2e-jwt-secret"
 export PAYSTACK_SECRET_E2E="sk_test_e2e_secret_value"
 export PGHOST=/tmp PGPORT=$PORT PGUSER=postgres PGDATABASE=hms_e2e
@@ -88,7 +97,8 @@ export PAYSTACK_API_BASE_URL=http://127.0.0.1:4010
 export RESEND_API_KEY="$RESEND_API_KEY_E2E" EMAIL_FROM="Hotel A <bookings@hotel-a.test>" RESEND_API_BASE_URL=http://127.0.0.1:4011 EMAIL_LINK_SCHEME=http
 export CRON_SECRET="e2e-cron-secret-e2e-cron-secret-e2e-cron-secret"
 (cd "$ROOT" && npx next build >/tmp/e2e-build.log 2>&1) || { tail -30 /tmp/e2e-build.log; exit 1; }
-(cd "$ROOT" && npx next start -p 3100 >/tmp/e2e-next.log 2>&1) & PIDS+=($!)
+# exec + node, not npx: npx starts a chain of wrappers, and killing $! would stop only the first one, leaving the server running.
+(cd "$ROOT" && exec node node_modules/next/dist/bin/next start -p 3100 >/tmp/e2e-next.log 2>&1) & PIDS+=($!)
 
 for i in $(seq 1 60); do curl -s -o /dev/null http://127.0.0.1:3100/login && break; sleep 1; done
 for i in $(seq 1 30); do curl -s -o /dev/null http://127.0.0.1:3001/ && break; sleep 1; done
