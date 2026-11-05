@@ -6,6 +6,7 @@ import { StayEdit } from "@/components/staff/stay-edit";
 import { buttonDanger, buttonPrimary, buttonQuiet, inputClass, Notice, PaymentChip, ReservationChip, linkClass, PageTitle, SectionTitle } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { checkoutNote, CHARGE_COLUMNS, folioIsOpen, isFolioResult, owingMinor, PAYMENT_COLUMNS, type ChargeRow, type FolioBalance, type PaymentRow } from "@/lib/staff/folio";
+import { FOLIO_INVOICE_COLUMNS, type FolioInvoiceRow } from "@/lib/staff/folio-invoice";
 import { formatDateTime } from "@/lib/staff/format";
 import { holdView } from "@/lib/staff/hold";
 import { canMarkNoShow, NOTE_MAX } from "@/lib/staff/no-show";
@@ -57,7 +58,7 @@ export default async function ReservationPage({
   // A guest who has not arrived has no folio, so nothing is read for one. A person who may not see it gets an error from
   // folio_balance (the database answers "not found"), and then the whole section is left out.
   const showFolio = folioIsOpen(res.reservation_status);
-  const [roomsQ, guestQ, propQ, settleQ, cCancel, cIn, cOut, cPay, invQ, cIssue, cVoid, cAssign, folioBalQ, folioChargesQ, folioPaymentsQ, cFolio, cReverse, cModify, payCountQ] = await Promise.all([
+  const [roomsQ, guestQ, propQ, settleQ, cCancel, cIn, cOut, cPay, invQ, cIssue, cVoid, cAssign, folioBalQ, folioChargesQ, folioPaymentsQ, cFolio, cReverse, folioInvQ, cModify, payCountQ] = await Promise.all([
     supabase.from("reservation_rooms").select("id, room_type_id, room_status, adults, children, checked_in_at, checked_out_at").eq("reservation_id", id).order("created_at"),
     supabase.from("guests").select("full_name, email, phone").eq("id", res.primary_guest_id).maybeSingle(),
     supabase.from("properties").select("name, timezone").eq("id", res.property_id).maybeSingle(),
@@ -69,6 +70,7 @@ export default async function ReservationPage({
     showFolio ? supabase.from("folio_charges").select(CHARGE_COLUMNS).eq("reservation_id", id) : null,
     showFolio ? supabase.from("folio_payments").select(PAYMENT_COLUMNS).eq("reservation_id", id) : null,
     showFolio ? can("folio.charge") : null, showFolio ? can("refund.approve") : null,
+    showFolio ? supabase.from("folio_invoices").select(FOLIO_INVOICE_COLUMNS).eq("reservation_id", id) : null,
     // Editing dates and guests: only a confirmed booking can be edited, so nothing is read for any other.
     res.reservation_status === "confirmed" ? can("reservation.modify") : null,
     res.reservation_status === "confirmed" ? supabase.from("payments").select("id", { count: "exact", head: true }).eq("reservation_id", id) : null,
@@ -376,7 +378,8 @@ export default async function ReservationPage({
           reservationId={res.id} currency={res.currency} reservationStatus={res.reservation_status} arrival={res.arrival_date}
           today={today} timeZone={tz} balance={folio} charges={(folioChargesQ?.data ?? []) as ChargeRow[]}
           payments={(folioPaymentsQ?.data ?? []) as PaymentRow[]} rooms={folioRooms}
-          viewer={{ charge: cFolio?.data === true, record: cPay.data === true, reverse: cReverse?.data === true }} search={search}
+          viewer={{ charge: cFolio?.data === true, record: cPay.data === true, reverse: cReverse?.data === true }}
+          invoices={(folioInvQ?.data ?? []) as FolioInvoiceRow[]} invoiceViewer={{ issue: cIssue.data === true, void: cVoid.data === true }} search={search}
         />
       )}
 

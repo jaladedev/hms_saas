@@ -91,6 +91,32 @@ export async function recordFolioPayment(formData: FormData) {
   return finish(id, error, "fo_payment");
 }
 
+/** Numbers every extra that is not yet on an invoice, together, as one invoice (migration 048). */
+export async function issueFolioInvoice(formData: FormData) {
+  const ids = z.object({ reservationId: uuid, idempotencyKey: key }).safeParse(Object.fromEntries(formData));
+  if (!ids.success) return back(LIST, { err: "bad_request" });
+  const id = ids.data.reservationId;
+
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("issue_folio_invoice", { p_reservation_id: id, p_idempotency_key: ids.data.idempotencyKey });
+  return finish(id, error, "fo_invoiced");
+}
+
+/** Withdraws an invoice for extras, with a reason, and frees its extras to be invoiced again. No money moves. */
+export async function voidFolioInvoice(formData: FormData) {
+  const raw = Object.fromEntries(formData);
+  const ids = z.object({ reservationId: uuid, invoiceId: uuid }).safeParse(raw);
+  if (!ids.success) return back(LIST, { err: "bad_request" });
+  const id = ids.data.reservationId;
+
+  const reason = parseReason(raw.reason);
+  if (!reason.ok) return toFolio(id, { err: reason.code });
+
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("void_folio_invoice", { p_invoice_id: ids.data.invoiceId, p_reason: reason.value });
+  return finish(id, error, "fo_invoice_voided");
+}
+
 /** Undoes a payment recorded by mistake. It puts the amount back on what the guest owes; it pays nothing back. */
 export async function reverseFolioPayment(formData: FormData) {
   const raw = Object.fromEntries(formData);

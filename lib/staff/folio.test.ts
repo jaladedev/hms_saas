@@ -13,7 +13,7 @@ const ROOM = "6f1c1c1e-2b7a-4a55-9a43-1d2a8d9a1f10";
 
 const charge = (id: string, over: Partial<ChargeRow> = {}): ChargeRow => ({
   id, reservation_room_id: null, category: "minibar", description: `Item ${id}`, quantity: 1, unit_amount_minor: 100000, tax_minor: 0,
-  total_minor: 100000, charge_date: "2026-11-02", status: "posted", created_at: "2026-11-02T10:00:00Z", voided_at: null, void_reason: null, ...over,
+  total_minor: 100000, charge_date: "2026-11-02", status: "posted", created_at: "2026-11-02T10:00:00Z", voided_at: null, void_reason: null, folio_invoice_id: null, ...over,
 });
 const payment = (id: string, over: Partial<PaymentRow> = {}): PaymentRow => ({
   id, payment_method: "cash", provider_reference: null, internal_reference: `FOL-${id}`, amount_minor: 100000, payment_status: "succeeded",

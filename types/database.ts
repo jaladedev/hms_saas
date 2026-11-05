@@ -178,6 +178,7 @@ export type Database = {
           created_at: string
           currency: string
           description: string
+          folio_invoice_id: string | null
           id: string
           posted_by: string | null
           property_id: string
@@ -201,6 +202,7 @@ export type Database = {
           created_at?: string
           currency: string
           description: string
+          folio_invoice_id?: string | null
           id?: string
           posted_by?: string | null
           property_id: string
@@ -223,6 +225,7 @@ export type Database = {
           created_at?: string
           currency?: string
           description?: string
+          folio_invoice_id?: string | null
           id?: string
           posted_by?: string | null
           property_id?: string
@@ -241,6 +244,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "folio_charges_folio_invoice_id_fkey"
+            columns: ["folio_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "folio_invoices"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "folio_charges_reservation_room_id_fkey"
             columns: ["reservation_room_id"]
             isOneToOne: false
@@ -256,6 +266,146 @@ export type Database = {
           },
           {
             foreignKeyName: "folio_charges_tenant_id_property_id_reservation_id_fkey"
+            columns: ["tenant_id", "property_id", "reservation_id"]
+            isOneToOne: false
+            referencedRelation: "reservations"
+            referencedColumns: ["tenant_id", "property_id", "id"]
+          },
+        ]
+      }
+      folio_invoice_lines: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          folio_charge_id: string
+          folio_invoice_id: string
+          id: string
+          line_total_minor: number
+          property_id: string
+          quantity: number
+          service_date: string
+          tax_minor: number
+          tenant_id: string
+          unit_amount_minor: number
+        }
+        ComputedFields: never
+        Insert: {
+          category: string
+          created_at?: string
+          description: string
+          folio_charge_id: string
+          folio_invoice_id: string
+          id?: string
+          line_total_minor: number
+          property_id: string
+          quantity: number
+          service_date: string
+          tax_minor: number
+          tenant_id: string
+          unit_amount_minor: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          folio_charge_id?: string
+          folio_invoice_id?: string
+          id?: string
+          line_total_minor?: number
+          property_id?: string
+          quantity?: number
+          service_date?: string
+          tax_minor?: number
+          tenant_id?: string
+          unit_amount_minor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folio_invoice_lines_folio_charge_id_fkey"
+            columns: ["folio_charge_id"]
+            isOneToOne: false
+            referencedRelation: "folio_charges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "folio_invoice_lines_folio_invoice_id_fkey"
+            columns: ["folio_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "folio_invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      folio_invoices: {
+        Row: {
+          created_at: string
+          currency: string
+          id: string
+          invoice_number: string
+          invoice_status: string
+          issued_at: string
+          issued_by: string | null
+          property_id: string
+          reservation_id: string
+          subtotal_minor: number
+          tax_minor: number
+          tenant_id: string
+          total_minor: number
+          updated_at: string
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        ComputedFields: never
+        Insert: {
+          created_at?: string
+          currency: string
+          id?: string
+          invoice_number: string
+          invoice_status?: string
+          issued_at?: string
+          issued_by?: string | null
+          property_id: string
+          reservation_id: string
+          subtotal_minor: number
+          tax_minor: number
+          tenant_id: string
+          total_minor: number
+          updated_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          id?: string
+          invoice_number?: string
+          invoice_status?: string
+          issued_at?: string
+          issued_by?: string | null
+          property_id?: string
+          reservation_id?: string
+          subtotal_minor?: number
+          tax_minor?: number
+          tenant_id?: string
+          total_minor?: number
+          updated_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folio_invoices_tenant_id_property_id_fkey"
+            columns: ["tenant_id", "property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "folio_invoices_tenant_id_property_id_reservation_id_fkey"
             columns: ["tenant_id", "property_id", "reservation_id"]
             isOneToOne: false
             referencedRelation: "reservations"
@@ -2485,6 +2635,10 @@ export type Database = {
         Returns: undefined
       }
       is_system_caller: { Args: Record<PropertyKey, never>; Returns: boolean }
+      issue_folio_invoice: {
+        Args: { p_idempotency_key: string; p_reservation_id: string }
+        Returns: Json
+      }
       issue_invoice: {
         Args: { p_idempotency_key: string; p_reservation_id: string }
         Returns: Json
@@ -2844,6 +2998,10 @@ export type Database = {
       }
       void_folio_charge: {
         Args: { p_charge_id: string; p_reason: string }
+        Returns: Json
+      }
+      void_folio_invoice: {
+        Args: { p_invoice_id: string; p_reason: string }
         Returns: Json
       }
       void_invoice: {

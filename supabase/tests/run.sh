@@ -619,4 +619,10 @@ psql -At -c "do \$\$ declare v record; begin
   end loop;
 end \$\$"
 
+# Last on purpose: this file adds a sixth standard room to Hotel A (earlier tests have used all five for today), and the
+# race loops above count on exactly five.
+FI="$(psql -f "$HERE/50_folio_invoices.sql" 2>&1)" || { echo "$FI"; echo "FOLIO INVOICE TESTS FAILED"; exit 1; }
+echo "$FI" | grep -E 'PASS' || true
+if echo "$FI" | grep -qE 'FAIL|ERROR'; then echo "$FI"; echo "FOLIO INVOICE TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

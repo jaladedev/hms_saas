@@ -1,10 +1,12 @@
-import { buttonDanger, buttonPrimary, inputClass, Notice, SectionTitle } from "@/components/staff/ui";
+import Link from "next/link";
+import { buttonDanger, buttonPrimary, inputClass, linkClass, Notice, SectionTitle } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import {
-  CATEGORY_LABEL, FOLIO_CATEGORIES, FOLIO_LIMITS, folioActions, isFolioResult, owingNotice, prefillPayment, splitCharges, splitPayments,
+  CATEGORY_LABEL, FOLIO_CATEGORIES, FOLIO_LIMITS, folioActions, folioIsOpen, isFolioResult, owingNotice, prefillPayment, splitCharges, splitPayments,
   type ChargeRow, type FolioBalance, type FolioViewer, type PaymentRow,
 } from "@/lib/staff/folio";
-import { postFolioCharge, recordFolioPayment, reverseFolioPayment, voidFolioCharge } from "@/lib/staff/folio-actions";
+import { issueFolioInvoice, postFolioCharge, recordFolioPayment, reverseFolioPayment, voidFolioCharge, voidFolioInvoice } from "@/lib/staff/folio-actions";
+import { folioInvoicePath, invoiceActions, invoiceNumberOf, splitInvoices, type FolioInvoiceRow, type InvoiceViewer } from "@/lib/staff/folio-invoice";
 import { formatDateTime } from "@/lib/staff/format";
 import { PAYMENT_METHODS } from "@/lib/staff/reservations";
 
@@ -18,7 +20,7 @@ const METHOD_LABEL: Record<string, string> = Object.fromEntries(PAYMENT_METHODS.
  * database decides again on every action.
  */
 export function FolioSection({
-  reservationId, currency, reservationStatus, arrival, today, timeZone, balance, charges, payments, rooms, viewer, search,
+  reservationId, currency, reservationStatus, arrival, today, timeZone, balance, charges, payments, rooms, viewer, invoices, invoiceViewer, search,
 }: {
   reservationId: string;
   currency: string;
@@ -33,6 +35,9 @@ export function FolioSection({
   /** The rooms of the booking, offered on the form only when there is more than one. */
   rooms: { id: string; label: string }[];
   viewer: FolioViewer;
+  /** Numbered invoices for the extras (migration 048), and what the viewer may do with them. */
+  invoices: FolioInvoiceRow[];
+  invoiceViewer: InvoiceViewer;
   search: Search;
 }) {
   const money = (m: number) => formatMoney(m, currency);
@@ -42,6 +47,8 @@ export function FolioSection({
   const owing = Math.max(balance.balance_minor, 0);
   const warning = owingNotice(reservationStatus, owing, money);
   const roomLabel = new Map(rooms.map((r) => [r.id, r.label]));
+  const inv = invoiceActions(folioIsOpen(reservationStatus), charges, invoiceViewer);
+  const { live: liveInvoices, voided: voidedInvoices } = splitInvoices(invoices);
 
   return (
     <section className="mt-10 scroll-mt-6" id="folio" aria-labelledby="folio-title">
@@ -71,7 +78,11 @@ export function FolioSection({
                 {formatDate(c.charge_date)}, {c.quantity} &times; {money(c.unit_amount_minor)}
                 {c.tax_minor > 0 ? `, ${money(c.tax_minor)} tax included` : ""}
                 {c.reservation_room_id && roomLabel.get(c.reservation_room_id) ? `, ${roomLabel.get(c.reservation_room_id)}` : ""}
+                {invoiceNumberOf(c.folio_invoice_id, invoices) ? `, on ${invoiceNumberOf(c.folio_invoice_id, invoices)}` : ""}
               </p>
+              {c.folio_invoice_id && viewer.charge && (
+                <p className="mt-2 text-xs text-muted">This charge is on an invoice. Void the invoice first if it has to change.</p>
+              )}
               {act.voidCharge(c) && (
                 <details className="mt-2">
                   <summary className="cursor-pointer text-sm text-muted">Void this charge</summary>
@@ -129,6 +140,66 @@ export function FolioSection({
             <dt>Still owed for extras</dt><dd className="tabular-nums">{money(owing)}</dd>
           </div>
         </dl>
+      )}
+
+      {(liveInvoices.length > 0 || voidedInvoices.length > 0 || inv.issue) && (
+        <div className="mt-5" id="folio-invoices">
+          <h3 className="text-sm font-medium">Invoices for extras</h3>
+          {liveInvoices.length === 0 ? (
+            <p className="mt-1 text-sm text-muted">No invoice has been issued for the extras.</p>
+          ) : (
+            <ul className="mt-2 border-t border-line">
+              {liveInvoices.map((i) => (
+                <li key={i.id} className="border-b border-line py-3">
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+                    <span>
+                      <span className="font-medium">{i.invoice_number}</span>
+                      <span className="ml-2 text-xs text-muted">{formatDateTime(i.issued_at, timeZone)}</span>
+                    </span>
+                    <span className="tabular-nums">{money(i.total_minor)}</span>
+                  </div>
+                  <p className="mt-0.5 text-sm"><Link href={folioInvoicePath(reservationId, i.id)} className={linkClass}>View or print</Link></p>
+                  {inv.void(i) && (
+                    <details className="mt-2">
+                      <summary className="cursor-pointer text-sm text-muted">Void this invoice</summary>
+                      <form action={voidFolioInvoice} className="mt-2 grid max-w-md gap-2">
+                        <input type="hidden" name="reservationId" value={reservationId} />
+                        <input type="hidden" name="invoiceId" value={i.id} />
+                        <label htmlFor={`void-inv-${i.id}`} className="block text-sm">Why is it being voided?</label>
+                        <textarea id={`void-inv-${i.id}`} name="reason" required maxLength={FOLIO_LIMITS.reasonMax} rows={2} className={inputClass} />
+                        <p className="text-xs text-muted">An invoice cannot be edited. Void it, and its extras can be invoiced again. No money moves: payments for extras stay on the folio.</p>
+                        <div><button type="submit" className={buttonDanger}>Void invoice</button></div>
+                      </form>
+                    </details>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+          {inv.issue && (
+            <form action={issueFolioInvoice} className="mt-3 grid max-w-md gap-2">
+              <input type="hidden" name="reservationId" value={reservationId} />
+              <input type="hidden" name="idempotencyKey" value={crypto.randomUUID()} />
+              <p className="text-xs text-muted">
+                Numbers {inv.uninvoicedCount === 1 ? "the extra" : `all ${inv.uninvoicedCount} extras`} not yet on an invoice, {money(inv.uninvoicedTotalMinor)} in all, as one invoice. It cannot be edited afterwards.
+              </p>
+              <div><button type="submit" className={buttonPrimary}>Issue invoice for extras</button></div>
+            </form>
+          )}
+          {voidedInvoices.length > 0 && (
+            <details className="mt-3">
+              <summary className="cursor-pointer text-sm text-muted">Voided invoices ({voidedInvoices.length})</summary>
+              <ul className="mt-2 border-t border-line">
+                {voidedInvoices.map((i) => (
+                  <li key={i.id} className="border-b border-line py-2 text-sm text-muted">
+                    <span className="line-through">{i.invoice_number}, {money(i.total_minor)}</span>
+                    <span className="block text-xs">Voided {formatDateTime(i.voided_at, timeZone)}{i.void_reason ? `: ${i.void_reason}` : ""}. <Link href={folioInvoicePath(reservationId, i.id)} className={linkClass}>View</Link></span>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+        </div>
       )}
 
       {received.length > 0 && (

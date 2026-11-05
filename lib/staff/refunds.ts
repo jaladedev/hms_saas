@@ -126,7 +126,7 @@ export type ErrorCode =
   | "task_taken" | "task_forbidden" | "task_assignee" | "task_reason" | "task_invalid"
   | "mt_taken" | "mt_forbidden" | "mt_assignee" | "mt_reason" | "mt_place" | "mt_block" | "mt_invalid" | "mt_duplicate"
   | "fo_category" | "fo_description" | "fo_quantity" | "fo_amount" | "fo_date" | "fo_room" | "fo_reason" | "fo_method" | "fo_too_long"
-  | "fo_overpay" | "fo_not_open" | "fo_paid" | "fo_not_found" | "fo_duplicate" | "fo_unknown"
+  | "fo_overpay" | "fo_not_open" | "fo_paid" | "fo_not_found" | "fo_duplicate" | "fo_unknown" | "fo_on_invoice" | "fo_nothing"
   | "se_dates" | "se_too_long" | "se_reason" | "se_room" | "se_capacity" | "se_arrival_past" | "se_unavailable" | "se_rate" | "se_paid" | "se_invoiced"
   | "se_payment_started" | "se_split" | "se_not_editable" | "se_discount" | "se_not_found" | "se_duplicate" | "se_unknown"
   | "hold_lapsed" | "hold_source" | "ns_early" | "ns_note";
@@ -254,6 +254,8 @@ export const OK_MESSAGES = {
   fo_posted: "Charge added to the folio.",
   fo_voided: "Charge voided. It no longer counts toward what the guest owes.",
   fo_payment: "Payment recorded against the extras.",
+  fo_invoiced: "Invoice issued for the extras. It is numbered and cannot be edited; to correct it, void it and issue it again.",
+  fo_invoice_voided: "Invoice voided. Its extras can be invoiced again. No money has moved: payments for extras stay on the folio.",
   fo_reversed: "Payment reversed. The amount is owed again. No money has been paid back to the guest.",
   se_changed: "Booking updated. The nights already booked keep their price; any new nights are priced at today\u2019s rates.",
   se_changed_moved: "Booking updated, and a guest had to be given a different room because the old one is not free for the new dates. Check the room number below and tell the guest.",
@@ -365,6 +367,8 @@ export function errorMessage(code: string, refundable: number | null, formatMino
     case "fo_too_long": return "The receipt number (up to 100 characters) or the note (up to 500) is too long.";
     case "fo_overpay": return refundable !== null ? `That is more than the extras still owed. At most ${formatMinor(refundable)} is outstanding.` : "That is more than the extras still owed.";
     case "fo_not_open": return "Extras can be charged and paid only while the guest is in the house or has just checked out.";
+    case "fo_on_invoice": return "That charge is on an invoice. Void the invoice first, then void the charge.";
+    case "fo_nothing": return "Every extra is already on an invoice, so there is nothing new to invoice.";
     case "fo_paid": return "That charge cannot be voided while the money collected would be more than the charges left. Reverse a payment first.";
     case "fo_not_found": return "That reservation, charge or payment was not found, or you do not have permission to change it.";
     case "fo_duplicate": return "That form was already sent with different words. Reload the page and try again.";

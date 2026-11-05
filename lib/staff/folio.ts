@@ -42,6 +42,8 @@ export type ChargeRow = {
   created_at: string;
   voided_at: string | null;
   void_reason: string | null;
+  /** The live invoice for extras this charge is on (migration 048), or null. A charge on an invoice cannot be voided. */
+  folio_invoice_id: string | null;
 };
 export type PaymentRow = {
   id: string;
@@ -57,7 +59,7 @@ export type PaymentRow = {
 };
 /** Every column the screen reads. Who posted or voided is not shown, so those columns are not read. */
 export const CHARGE_COLUMNS =
-  "id, reservation_room_id, category, description, quantity, unit_amount_minor, tax_minor, total_minor, charge_date, status, created_at, voided_at, void_reason";
+  "id, reservation_room_id, category, description, quantity, unit_amount_minor, tax_minor, total_minor, charge_date, status, created_at, voided_at, void_reason, folio_invoice_id";
 export const PAYMENT_COLUMNS =
   "id, payment_method, provider_reference, internal_reference, amount_minor, payment_status, note, received_at, reversed_at, reverse_reason";
 
@@ -97,6 +99,9 @@ export type FolioViewer = {
   reverse: boolean;
 };
 
+/** What the void rules read of a charge. A charge on an invoice is not offered for voiding: the invoice has to be voided first. */
+type ChargeLike = Pick<ChargeRow, "status" | "total_minor"> & { folio_invoice_id?: string | null };
+
 export type FolioActions = {
   post: boolean;
   /** Money can be taken only while something is owed; the database refuses more than the balance. */
@@ -104,9 +109,9 @@ export type FolioActions = {
   /** What a payment may not exceed: the balance. */
   payableCeilingMinor: number;
   /** A charge can be voided unless the money already collected would then be more than the charges that remain. */
-  voidCharge: (c: Pick<ChargeRow, "status" | "total_minor">) => boolean;
+  voidCharge: (c: ChargeLike) => boolean;
   /** A posted charge the viewer could void, were it not for money collected against it: the screen says why instead. */
-  voidBlockedByPayment: (c: Pick<ChargeRow, "status" | "total_minor">) => boolean;
+  voidBlockedByPayment: (c: ChargeLike) => boolean;
   reversePayment: (p: Pick<PaymentRow, "payment_status">) => boolean;
 };
 
@@ -119,8 +124,8 @@ export function folioActions(reservationStatus: string, balance: FolioBalance, v
     post: viewer.charge && open,
     recordPayment: viewer.record && open && owing > 0,
     payableCeilingMinor: owing,
-    voidCharge: (c) => viewer.charge && open && c.status === "posted" && !wouldOverpay(c),
-    voidBlockedByPayment: (c) => viewer.charge && open && c.status === "posted" && wouldOverpay(c),
+    voidCharge: (c) => viewer.charge && open && c.status === "posted" && !c.folio_invoice_id && !wouldOverpay(c),
+    voidBlockedByPayment: (c) => viewer.charge && open && c.status === "posted" && !c.folio_invoice_id && wouldOverpay(c),
     reversePayment: (p) => viewer.reverse && open && p.payment_status === "succeeded",
   };
 }
@@ -214,6 +219,8 @@ export function classifyFolioError(message: string): { code: ErrorCode; n?: numb
   if (over) return { code: "fo_overpay", n: Number(over[1]) };
   if (/IDEMPOTENCY_MISMATCH/.test(message)) return { code: "fo_duplicate" };
   if (/INVALID_STATE: folio paid/.test(message)) return { code: "fo_paid" };
+  if (/INVALID_STATE: on an invoice/.test(message)) return { code: "fo_on_invoice" };
+  if (/INVALID_STATE: nothing to invoice/.test(message)) return { code: "fo_nothing" };
   if (/INVALID_STATE/.test(message)) return { code: "fo_not_open" };
   if (/POLICY_VIOLATION: category/.test(message)) return { code: "fo_category" };
   if (/POLICY_VIOLATION: description/.test(message)) return { code: "fo_description" };
@@ -229,7 +236,7 @@ export function classifyFolioError(message: string): { code: ErrorCode; n?: numb
 }
 
 /** Success codes the folio actions send back (worded in `OK_MESSAGES`). */
-export const FOLIO_OK_CODES = ["fo_posted", "fo_voided", "fo_payment", "fo_reversed"] as const;
+export const FOLIO_OK_CODES = ["fo_posted", "fo_voided", "fo_payment", "fo_reversed", "fo_invoiced", "fo_invoice_voided"] as const;
 
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
