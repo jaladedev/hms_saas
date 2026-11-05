@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { PrintButton } from "@/components/staff/print-button";
+import { PrintHeader } from "@/components/staff/print-header";
 import { buttonPrimary, inputClass, PaymentChip, ReservationChip } from "@/components/staff/ui";
 import { formatDate } from "@/lib/guest-site/format";
 import { AGENDA_LIMIT, AGENDA_STATUSES, agendaTotals, buildAgenda, busyDays, type AgendaRow } from "@/lib/staff/arrivals-calendar";
@@ -18,7 +20,7 @@ export default async function ArrivalsCalendarPage({ searchParams }: { searchPar
   const properties = (props ?? []) as { id: string; name: string; timezone: string }[];
   const property = properties.find((p) => p.id === search.property) ?? properties[0];
   const heading = <h1 className="font-display text-3xl">Arrivals and departures</h1>;
-  const back = <p className="text-sm"><Link href="/app/front-desk" className="text-primary-strong underline underline-offset-2">Front desk</Link></p>;
+  const back = <p className="text-sm print:hidden"><Link href="/app/front-desk" className="text-primary-strong underline underline-offset-2">Front desk</Link></p>;
 
   if (propError) {
     return <main className="max-w-5xl">{back}<div className="mt-2">{heading}</div><p role="alert" className="mt-6 border-l-4 border-critical bg-critical/5 px-4 py-3 text-sm text-critical">The calendar could not be loaded. Reload the page.</p></main>;
@@ -75,9 +77,10 @@ export default async function ArrivalsCalendarPage({ searchParams }: { searchPar
     <main className="max-w-5xl">
       {back}
       <div className="mt-2">{heading}</div>
+      <PrintHeader hotel={property.name} from={w.start} to={lastNight} />
       <p className="mt-2 max-w-prose text-muted">Who is due to arrive and leave on each day, and how many bookings have a night that day.</p>
 
-      <form method="get" className="mt-6 flex flex-wrap items-end gap-3">
+      <form method="get" className="mt-6 flex flex-wrap items-end gap-3 print:hidden">
         {properties.length > 1 && (
           <div>
             <label htmlFor="property" className="block text-sm">Property</label>
@@ -97,8 +100,9 @@ export default async function ArrivalsCalendarPage({ searchParams }: { searchPar
           </select>
         </div>
         <button type="submit" className={buttonPrimary}>Show</button>
+        <PrintButton />
       </form>
-      <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+      <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm print:hidden">
         <Link href={qs({ from: shiftStart(w, -1) })} className="text-primary-strong underline underline-offset-2">Previous {w.days} days</Link>
         <Link href={qs({ from: today })} className="text-primary-strong underline underline-offset-2">Today</Link>
         <Link href={qs({ from: shiftStart(w, 1) })} className="text-primary-strong underline underline-offset-2">Next {w.days} days</Link>
@@ -110,8 +114,8 @@ export default async function ArrivalsCalendarPage({ searchParams }: { searchPar
         </p>
       )}
 
-      <div className="mt-6 overflow-x-auto">
-        <table className="w-full min-w-[22rem] text-sm">
+      <div className="mt-6 overflow-x-auto print:overflow-visible">
+        <table className="w-full min-w-[22rem] text-sm print:min-w-0">
           <caption className="sr-only">Arrivals, departures and bookings staying, {property.name}, {w.start} to {lastNight}</caption>
           <thead>
             <tr className="border-b border-line text-left text-muted">
@@ -156,7 +160,7 @@ export default async function ArrivalsCalendarPage({ searchParams }: { searchPar
             <h2 id={`h-${d.date}`} className="font-display text-xl">
               {dayLabel(d.date)}{headOf.get(d.date)!.isToday && <span className="ml-2 text-base text-primary-strong">Today</span>}
             </h2>
-            <div className="mt-3 grid gap-6 md:grid-cols-2">
+            <div className="mt-3 grid gap-6 md:grid-cols-2 print:grid-cols-1">
               <List title="Arriving" items={d.arrivals} />
               <List title="Departing" items={d.departures} />
             </div>
