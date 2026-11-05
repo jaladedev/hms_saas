@@ -72,6 +72,18 @@ export function Notice({ search, currency }: { search: Search; currency: string 
 /** Link text inside a page: teal and underlined (back links, links in a table row, "Download as CSV"). */
 export const linkClass = "text-primary-strong underline underline-offset-2";
 
+// Table styles shared by the report and list tables.
+/** A header cell over a column of numbers. */
+export const thNum = "px-2 py-2 text-right font-normal";
+/** A cell holding a number or an amount. */
+export const tdNum = "px-2 py-2 text-right";
+/** The header cell that names its row (the first column). */
+export const thRowHead = "py-2 pr-3 text-left font-normal";
+/** The row of column headings. */
+export const headRow = "border-b border-line text-left text-muted";
+/** The totals row at the foot of a table. */
+export const totalRow = "font-semibold tabular-nums";
+
 const withClass = (extra: string | undefined, base: string) => (extra ? `${extra} ${base}` : base);
 
 /** A failure to load or to act: a red bar on the left, read out by screen readers. `className` carries the spacing, for example "mt-6". */

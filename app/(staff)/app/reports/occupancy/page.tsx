@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { PrintButton } from "@/components/staff/print-button";
 import { PrintHeader } from "@/components/staff/print-header";
-import { inputClass, buttonPrimary, linkClass, EmptyState, PageIntro, StatTile } from "@/components/staff/ui";
+import { inputClass, buttonPrimary, linkClass, EmptyState, PageIntro, StatTile, tdNum, thNum, headRow, totalRow } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { adrMinor, formatBp, isQuietDay, occupancyBp, revparMinor, type OccupancyReport } from "@/lib/staff/occupancy";
 import { MAX_RANGE_DAYS, parseRange, presets } from "@/lib/staff/reports";
@@ -100,50 +100,50 @@ export default async function OccupancyPage({ searchParams }: { searchParams: Pr
             <table className="w-full min-w-[48rem] text-sm print:min-w-0 print:text-xs">
               <caption className="sr-only">Occupancy from {report.from} to {report.to}</caption>
               <thead>
-                <tr className="border-b border-line text-left text-muted">
+                <tr className={headRow}>
                   <th scope="col" className="py-2 pr-3 font-normal">Day</th>
-                  <th scope="col" className="px-2 py-2 text-right font-normal">In service</th>
-                  <th scope="col" className="px-2 py-2 text-right font-normal">Blocked</th>
-                  <th scope="col" className="px-2 py-2 text-right font-normal">Sold</th>
-                  <th scope="col" className="px-2 py-2 text-right font-normal">Occupancy</th>
-                  <th scope="col" className="px-2 py-2 text-right font-normal">Room revenue</th>
-                  <th scope="col" className="px-2 py-2 text-right font-normal">ADR</th>
-                  <th scope="col" className="px-2 py-2 text-right font-normal">RevPAR</th>
-                  <th scope="col" className="px-2 py-2 text-right font-normal">Arrivals</th>
-                  <th scope="col" className="px-2 py-2 text-right font-normal">Departures</th>
-                  <th scope="col" className="px-2 py-2 text-right font-normal">No-shows</th>
+                  <th scope="col" className={thNum}>In service</th>
+                  <th scope="col" className={thNum}>Blocked</th>
+                  <th scope="col" className={thNum}>Sold</th>
+                  <th scope="col" className={thNum}>Occupancy</th>
+                  <th scope="col" className={thNum}>Room revenue</th>
+                  <th scope="col" className={thNum}>ADR</th>
+                  <th scope="col" className={thNum}>RevPAR</th>
+                  <th scope="col" className={thNum}>Arrivals</th>
+                  <th scope="col" className={thNum}>Departures</th>
+                  <th scope="col" className={thNum}>No-shows</th>
                 </tr>
               </thead>
               <tbody>
                 {report.days.map((d) => (
                   <tr key={d.date} className={`border-b border-line tabular-nums ${isQuietDay(d) ? "text-muted" : ""}`}>
                     <th scope="row" className="whitespace-nowrap py-2 pr-3 text-left font-normal">{formatDate(d.date)}</th>
-                    <td className="px-2 py-2 text-right">{d.rooms_total}</td>
-                    <td className="px-2 py-2 text-right">{d.rooms_blocked || "–"}</td>
-                    <td className="px-2 py-2 text-right">{d.rooms_sold || "–"}</td>
+                    <td className={tdNum}>{d.rooms_total}</td>
+                    <td className={tdNum}>{d.rooms_blocked || "–"}</td>
+                    <td className={tdNum}>{d.rooms_sold || "–"}</td>
                     <td className="px-2 py-2 text-right font-medium">{formatBp(occupancyBp(d))}</td>
-                    <td className="px-2 py-2 text-right">{d.room_revenue_minor ? money(d.room_revenue_minor) : "–"}</td>
-                    <td className="px-2 py-2 text-right">{money(adrMinor(d))}</td>
-                    <td className="px-2 py-2 text-right">{d.room_revenue_minor ? money(revparMinor(d)) : "–"}</td>
-                    <td className="px-2 py-2 text-right">{d.arrivals || "–"}</td>
-                    <td className="px-2 py-2 text-right">{d.departures || "–"}</td>
-                    <td className="px-2 py-2 text-right">{d.no_shows || "–"}</td>
+                    <td className={tdNum}>{d.room_revenue_minor ? money(d.room_revenue_minor) : "–"}</td>
+                    <td className={tdNum}>{money(adrMinor(d))}</td>
+                    <td className={tdNum}>{d.room_revenue_minor ? money(revparMinor(d)) : "–"}</td>
+                    <td className={tdNum}>{d.arrivals || "–"}</td>
+                    <td className={tdNum}>{d.departures || "–"}</td>
+                    <td className={tdNum}>{d.no_shows || "–"}</td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
-                <tr className="font-semibold tabular-nums">
+                <tr className={totalRow}>
                   <th scope="row" className="py-2 pr-3 text-left">Total</th>
-                  <td className="px-2 py-2 text-right" title="Room nights in service">{report.totals.rooms_total}</td>
-                  <td className="px-2 py-2 text-right">{report.totals.rooms_blocked}</td>
-                  <td className="px-2 py-2 text-right">{report.totals.rooms_sold}</td>
-                  <td className="px-2 py-2 text-right">{formatBp(occupancyBp(report.totals))}</td>
-                  <td className="px-2 py-2 text-right">{money(report.totals.room_revenue_minor)}</td>
-                  <td className="px-2 py-2 text-right">{money(adrMinor(report.totals))}</td>
-                  <td className="px-2 py-2 text-right">{money(revparMinor(report.totals))}</td>
-                  <td className="px-2 py-2 text-right">{report.totals.arrivals}</td>
-                  <td className="px-2 py-2 text-right">{report.totals.departures}</td>
-                  <td className="px-2 py-2 text-right">{report.totals.no_shows}</td>
+                  <td className={tdNum} title="Room nights in service">{report.totals.rooms_total}</td>
+                  <td className={tdNum}>{report.totals.rooms_blocked}</td>
+                  <td className={tdNum}>{report.totals.rooms_sold}</td>
+                  <td className={tdNum}>{formatBp(occupancyBp(report.totals))}</td>
+                  <td className={tdNum}>{money(report.totals.room_revenue_minor)}</td>
+                  <td className={tdNum}>{money(adrMinor(report.totals))}</td>
+                  <td className={tdNum}>{money(revparMinor(report.totals))}</td>
+                  <td className={tdNum}>{report.totals.arrivals}</td>
+                  <td className={tdNum}>{report.totals.departures}</td>
+                  <td className={tdNum}>{report.totals.no_shows}</td>
                 </tr>
               </tfoot>
             </table>

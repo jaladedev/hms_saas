@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { PrintButton } from "@/components/staff/print-button";
 import { PrintHeader } from "@/components/staff/print-header";
-import { buttonPrimary, inputClass, linkClass, EmptyState, PageIntro, StatTile } from "@/components/staff/ui";
+import { buttonPrimary, inputClass, linkClass, EmptyState, PageIntro, StatTile, tdNum, thNum, headRow, thRowHead, totalRow } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { countryLabel, lostBp, shareBp, sourceLabel, type ChannelReport, type GuestReport } from "@/lib/staff/channels";
 import { chargedMinor, chargeLabel, isCut, type NoShowList } from "@/lib/staff/no-shows";
@@ -101,41 +101,41 @@ export default async function ChannelsPage({ searchParams }: { searchParams: Pro
             <table className="w-full min-w-[40rem] text-sm print:min-w-0">
               <caption className="sr-only">Bookings by channel from {channels.from} to {channels.to}</caption>
               <thead>
-                <tr className="border-b border-line text-left text-muted">
+                <tr className={headRow}>
                   <th scope="col" className="py-2 pr-3 font-normal">Source</th>
-                  <th scope="col" className="px-2 py-2 text-right font-normal">Bookings</th>
-                  <th scope="col" className="px-2 py-2 text-right font-normal">Room nights</th>
-                  <th scope="col" className="px-2 py-2 text-right font-normal">Room revenue</th>
-                  <th scope="col" className="px-2 py-2 text-right font-normal">Share</th>
-                  <th scope="col" className="px-2 py-2 text-right font-normal">Cancelled</th>
-                  <th scope="col" className="px-2 py-2 text-right font-normal">No-shows</th>
-                  <th scope="col" className="px-2 py-2 text-right font-normal">Lost</th>
+                  <th scope="col" className={thNum}>Bookings</th>
+                  <th scope="col" className={thNum}>Room nights</th>
+                  <th scope="col" className={thNum}>Room revenue</th>
+                  <th scope="col" className={thNum}>Share</th>
+                  <th scope="col" className={thNum}>Cancelled</th>
+                  <th scope="col" className={thNum}>No-shows</th>
+                  <th scope="col" className={thNum}>Lost</th>
                 </tr>
               </thead>
               <tbody>
                 {channels.rows.map((r) => (
                   <tr key={r.source} className={`border-b border-line tabular-nums ${r.bookings + r.cancelled + r.no_shows === 0 ? "text-muted" : ""}`}>
-                    <th scope="row" className="py-2 pr-3 text-left font-normal">{sourceLabel(r.source)}</th>
-                    <td className="px-2 py-2 text-right">{r.bookings || "–"}</td>
-                    <td className="px-2 py-2 text-right">{r.room_nights || "–"}</td>
-                    <td className="px-2 py-2 text-right">{r.room_revenue_minor ? money(r.room_revenue_minor) : "–"}</td>
-                    <td className="px-2 py-2 text-right">{formatBp(shareBp(r.room_revenue_minor, channels.totals.room_revenue_minor))}</td>
-                    <td className="px-2 py-2 text-right">{r.cancelled || "–"}</td>
-                    <td className="px-2 py-2 text-right">{r.no_shows || "–"}</td>
-                    <td className="px-2 py-2 text-right">{formatBp(lostBp(r))}</td>
+                    <th scope="row" className={thRowHead}>{sourceLabel(r.source)}</th>
+                    <td className={tdNum}>{r.bookings || "–"}</td>
+                    <td className={tdNum}>{r.room_nights || "–"}</td>
+                    <td className={tdNum}>{r.room_revenue_minor ? money(r.room_revenue_minor) : "–"}</td>
+                    <td className={tdNum}>{formatBp(shareBp(r.room_revenue_minor, channels.totals.room_revenue_minor))}</td>
+                    <td className={tdNum}>{r.cancelled || "–"}</td>
+                    <td className={tdNum}>{r.no_shows || "–"}</td>
+                    <td className={tdNum}>{formatBp(lostBp(r))}</td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
-                <tr className="font-semibold tabular-nums">
+                <tr className={totalRow}>
                   <th scope="row" className="py-2 pr-3 text-left">Total</th>
-                  <td className="px-2 py-2 text-right">{channels.totals.bookings}</td>
-                  <td className="px-2 py-2 text-right">{channels.totals.room_nights}</td>
-                  <td className="px-2 py-2 text-right">{money(channels.totals.room_revenue_minor)}</td>
-                  <td className="px-2 py-2 text-right">{formatBp(shareBp(channels.totals.room_revenue_minor, channels.totals.room_revenue_minor))}</td>
-                  <td className="px-2 py-2 text-right">{channels.totals.cancelled}</td>
-                  <td className="px-2 py-2 text-right">{channels.totals.no_shows}</td>
-                  <td className="px-2 py-2 text-right">{formatBp(lostBp(channels.totals))}</td>
+                  <td className={tdNum}>{channels.totals.bookings}</td>
+                  <td className={tdNum}>{channels.totals.room_nights}</td>
+                  <td className={tdNum}>{money(channels.totals.room_revenue_minor)}</td>
+                  <td className={tdNum}>{formatBp(shareBp(channels.totals.room_revenue_minor, channels.totals.room_revenue_minor))}</td>
+                  <td className={tdNum}>{channels.totals.cancelled}</td>
+                  <td className={tdNum}>{channels.totals.no_shows}</td>
+                  <td className={tdNum}>{formatBp(lostBp(channels.totals))}</td>
                 </tr>
               </tfoot>
             </table>
@@ -159,19 +159,19 @@ export default async function ChannelsPage({ searchParams }: { searchParams: Pro
             <table className="w-full min-w-[34rem] text-sm print:min-w-0">
               <caption className="sr-only">No-shows due to arrive from {noShows.from} to {noShows.to}</caption>
               <thead>
-                <tr className="border-b border-line text-left text-muted">
+                <tr className={headRow}>
                   <th scope="col" className="py-2 pr-3 font-normal">Arrival</th>
                   {!noShows.links_hidden && <th scope="col" className="px-2 py-2 font-normal">Booking</th>}
                   {!noShows.names_hidden && <th scope="col" className="px-2 py-2 font-normal">Guest</th>}
                   <th scope="col" className="px-2 py-2 font-normal">Source</th>
-                  <th scope="col" className="px-2 py-2 text-right font-normal">Nights</th>
-                  <th scope="col" className="px-2 py-2 text-right font-normal">Charge</th>
+                  <th scope="col" className={thNum}>Nights</th>
+                  <th scope="col" className={thNum}>Charge</th>
                 </tr>
               </thead>
               <tbody>
                 {noShows.rows.map((r, i) => (
                   <tr key={r.reservation_id ?? `${r.arrival_date}-${i}`} className="border-b border-line tabular-nums">
-                    <th scope="row" className="py-2 pr-3 text-left font-normal">{formatDate(r.arrival_date)}</th>
+                    <th scope="row" className={thRowHead}>{formatDate(r.arrival_date)}</th>
                     {!noShows.links_hidden && (
                       <td className="px-2 py-2">
                         {r.reservation_id ? <Link href={`/app/reservations/${r.reservation_id}`} className={linkClass}>{r.booking_reference}</Link> : "–"}
@@ -179,16 +179,16 @@ export default async function ChannelsPage({ searchParams }: { searchParams: Pro
                     )}
                     {!noShows.names_hidden && <td className="px-2 py-2">{r.guest_name ?? "–"}</td>}
                     <td className="px-2 py-2">{sourceLabel(r.source)}</td>
-                    <td className="px-2 py-2 text-right">{r.nights}</td>
-                    <td className="px-2 py-2 text-right">{chargeLabel(r.charge_minor, money)}</td>
+                    <td className={tdNum}>{r.nights}</td>
+                    <td className={tdNum}>{chargeLabel(r.charge_minor, money)}</td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
-                <tr className="font-semibold tabular-nums">
+                <tr className={totalRow}>
                   <th scope="row" className="py-2 pr-3 text-left">{noShows.total} {noShows.total === 1 ? "no-show" : "no-shows"}</th>
                   <td colSpan={2 + (noShows.links_hidden ? 0 : 1) + (noShows.names_hidden ? 0 : 1)} />
-                  <td className="px-2 py-2 text-right">{money(chargedMinor(noShows.rows))}</td>
+                  <td className={tdNum}>{money(chargedMinor(noShows.rows))}</td>
                 </tr>
               </tfoot>
             </table>
@@ -218,17 +218,17 @@ export default async function ChannelsPage({ searchParams }: { searchParams: Pro
               {guests.countries.length === 0 ? <p className="mt-2 text-sm text-muted">No stays in this range.</p> : (
                 <table className="mt-2 w-full text-sm">
                   <caption className="sr-only">Guests by country</caption>
-                  <thead><tr className="border-b border-line text-left text-muted">
+                  <thead><tr className={headRow}>
                     <th scope="col" className="py-2 pr-3 font-normal">Country</th>
-                    <th scope="col" className="px-2 py-2 text-right font-normal">Guests</th>
-                    <th scope="col" className="px-2 py-2 text-right font-normal">Room nights</th>
+                    <th scope="col" className={thNum}>Guests</th>
+                    <th scope="col" className={thNum}>Room nights</th>
                   </tr></thead>
                   <tbody>
                     {guests.countries.map((c) => (
                       <tr key={c.country} className="border-b border-line tabular-nums">
-                        <th scope="row" className="py-2 pr-3 text-left font-normal">{countryLabel(c.country)}</th>
-                        <td className="px-2 py-2 text-right">{c.guests}</td>
-                        <td className="px-2 py-2 text-right">{c.room_nights}</td>
+                        <th scope="row" className={thRowHead}>{countryLabel(c.country)}</th>
+                        <td className={tdNum}>{c.guests}</td>
+                        <td className={tdNum}>{c.room_nights}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -244,19 +244,19 @@ export default async function ChannelsPage({ searchParams }: { searchParams: Pro
               ) : (
                 <table className="mt-2 w-full text-sm">
                   <caption className="sr-only">Top guests</caption>
-                  <thead><tr className="border-b border-line text-left text-muted">
+                  <thead><tr className={headRow}>
                     <th scope="col" className="py-2 pr-3 font-normal">Guest</th>
-                    <th scope="col" className="px-2 py-2 text-right font-normal">Stays</th>
-                    <th scope="col" className="px-2 py-2 text-right font-normal">Nights</th>
-                    <th scope="col" className="px-2 py-2 text-right font-normal">Room revenue</th>
+                    <th scope="col" className={thNum}>Stays</th>
+                    <th scope="col" className={thNum}>Nights</th>
+                    <th scope="col" className={thNum}>Room revenue</th>
                   </tr></thead>
                   <tbody>
                     {guests.top_guests.map((g) => (
                       <tr key={g.guest_id} className="border-b border-line tabular-nums">
-                        <th scope="row" className="py-2 pr-3 text-left font-normal">{g.name}</th>
-                        <td className="px-2 py-2 text-right">{g.stays}</td>
-                        <td className="px-2 py-2 text-right">{g.room_nights}</td>
-                        <td className="px-2 py-2 text-right">{money(g.room_revenue_minor)}</td>
+                        <th scope="row" className={thRowHead}>{g.name}</th>
+                        <td className={tdNum}>{g.stays}</td>
+                        <td className={tdNum}>{g.room_nights}</td>
+                        <td className={tdNum}>{money(g.room_revenue_minor)}</td>
                       </tr>
                     ))}
                   </tbody>

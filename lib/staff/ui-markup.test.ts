@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { EmptyState, ErrorBanner, linkClass, PageIntro, StatTile } from "@/components/staff/ui";
+import { EmptyState, ErrorBanner, headRow, linkClass, PageIntro, StatTile, tdNum, thNum, thRowHead, totalRow } from "@/components/staff/ui";
 
 // These pieces replaced markup that was written out by hand on many pages. The expected strings below are that
 // original markup, so a change here that alters what a page shows fails this test instead of passing unnoticed.
@@ -39,5 +39,13 @@ describe("shared staff UI pieces keep the markup they replaced", () => {
 
   it("linkClass is the link style that was repeated on the pages", () => {
     expect(linkClass).toBe("text-primary-strong underline underline-offset-2");
+  });
+
+  it("table styles are the strings the report and calendar tables used", () => {
+    expect(thNum).toBe("px-2 py-2 text-right font-normal");
+    expect(tdNum).toBe("px-2 py-2 text-right");
+    expect(thRowHead).toBe("py-2 pr-3 text-left font-normal");
+    expect(headRow).toBe("border-b border-line text-left text-muted");
+    expect(totalRow).toBe("font-semibold tabular-nums");
   });
 });

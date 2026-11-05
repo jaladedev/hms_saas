@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { PrintButton } from "@/components/staff/print-button";
 import { PrintHeader } from "@/components/staff/print-header";
-import { buttonPrimary, inputClass, PaymentChip, ReservationChip, linkClass, ErrorBanner, EmptyState, PageIntro } from "@/components/staff/ui";
+import { buttonPrimary, inputClass, PaymentChip, ReservationChip, linkClass, ErrorBanner, EmptyState, PageIntro, tdNum, thNum, headRow, thRowHead, totalRow } from "@/components/staff/ui";
 import { formatDate } from "@/lib/guest-site/format";
 import { AGENDA_LIMIT, AGENDA_STATUSES, agendaTotals, buildAgenda, busyDays, type AgendaRow } from "@/lib/staff/arrivals-calendar";
 import { todayIn, nightsBetween } from "@/lib/staff/reservations";
@@ -118,11 +118,11 @@ export default async function ArrivalsCalendarPage({ searchParams }: { searchPar
         <table className="w-full min-w-[22rem] text-sm print:min-w-0">
           <caption className="sr-only">Arrivals, departures and bookings staying, {property.name}, {w.start} to {lastNight}</caption>
           <thead>
-            <tr className="border-b border-line text-left text-muted">
+            <tr className={headRow}>
               <th scope="col" className="py-2 pr-3 font-normal">Day</th>
-              <th scope="col" className="px-2 py-2 text-right font-normal">Arriving</th>
-              <th scope="col" className="px-2 py-2 text-right font-normal">Departing</th>
-              <th scope="col" className="px-2 py-2 text-right font-normal">Staying</th>
+              <th scope="col" className={thNum}>Arriving</th>
+              <th scope="col" className={thNum}>Departing</th>
+              <th scope="col" className={thNum}>Staying</th>
             </tr>
           </thead>
           <tbody>
@@ -131,22 +131,22 @@ export default async function ArrivalsCalendarPage({ searchParams }: { searchPar
               const quiet = d.arrivals.length === 0 && d.departures.length === 0;
               return (
                 <tr key={d.date} className={`border-b border-line tabular-nums ${h.isToday ? "bg-primary/5" : h.isWeekend ? "bg-ink/5" : ""}`}>
-                  <th scope="row" className="py-2 pr-3 text-left font-normal">
+                  <th scope="row" className={thRowHead}>
                     {quiet ? dayLabel(d.date) : <a href={`#d-${d.date}`} className={linkClass}>{dayLabel(d.date)}</a>}
                     {h.isToday && <span className="ml-2 text-xs text-primary-strong">Today</span>}
                   </th>
-                  <td className="px-2 py-2 text-right">{d.arrivals.length || "–"}</td>
-                  <td className="px-2 py-2 text-right">{d.departures.length || "–"}</td>
-                  <td className="px-2 py-2 text-right">{d.staying || "–"}</td>
+                  <td className={tdNum}>{d.arrivals.length || "–"}</td>
+                  <td className={tdNum}>{d.departures.length || "–"}</td>
+                  <td className={tdNum}>{d.staying || "–"}</td>
                 </tr>
               );
             })}
           </tbody>
           <tfoot>
-            <tr className="font-semibold tabular-nums">
+            <tr className={totalRow}>
               <th scope="row" className="py-2 pr-3 text-left">{w.days} days</th>
-              <td className="px-2 py-2 text-right">{totals.arrivals}</td>
-              <td className="px-2 py-2 text-right">{totals.departures}</td>
+              <td className={tdNum}>{totals.arrivals}</td>
+              <td className={tdNum}>{totals.departures}</td>
               <td />
             </tr>
           </tfoot>
