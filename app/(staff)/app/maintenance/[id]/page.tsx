@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PriorityChip, StatusBadge } from "@/components/staff/maintenance-bits";
-import { buttonDanger, buttonPrimary, buttonQuiet, inputClass, Notice } from "@/components/staff/ui";
+import { buttonDanger, buttonPrimary, buttonQuiet, inputClass, Notice, linkClass } from "@/components/staff/ui";
 import { formatDate } from "@/lib/guest-site/format";
 import {
   actionsFor, blocksForRequest, formatDue, formatShort, PRIORITY_LABEL, REQUEST_COLUMNS, REQUEST_PRIORITIES, STATUS_LABEL, type RequestRow,
@@ -83,7 +83,7 @@ export default async function MaintenanceRequestPage({ params, searchParams }: {
 
   return (
     <main className="max-w-3xl">
-      <p className="text-sm"><Link href="/app/maintenance" className="text-primary-strong underline underline-offset-2">All maintenance</Link></p>
+      <p className="text-sm"><Link href="/app/maintenance" className={linkClass}>All maintenance</Link></p>
       <h1 className="mt-2 font-display text-3xl">{r.title}</h1>
       <p className="mt-2 flex flex-wrap items-center gap-2 text-sm">
         <span className="font-medium">{place}</span>
@@ -117,7 +117,7 @@ export default async function MaintenanceRequestPage({ params, searchParams }: {
           ) : (
             <p className="mt-2 max-w-prose text-sm text-muted">No block is linked. A repair does not stop the room being booked; a block does, and blocks are made on the room board.</p>
           )}
-          <p className="mt-2 text-sm"><Link href="/app/rooms" className="text-primary-strong underline underline-offset-2">Open the room board</Link></p>
+          <p className="mt-2 text-sm"><Link href="/app/rooms" className={linkClass}>Open the room board</Link></p>
           {a.linkBlock && (
             <form action={linkBlock} className="mt-3 flex flex-wrap items-center gap-2">
               {hidden()}

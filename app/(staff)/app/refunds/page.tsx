@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { PayoutButton } from "@/components/staff/payout-button";
 import { RefundDetailsForm } from "@/components/staff/refund-details-form";
-import { buttonDanger, buttonPrimary, inputClass, Notice, StatusChip } from "@/components/staff/ui";
+import { buttonDanger, buttonPrimary, inputClass, Notice, StatusChip, ErrorBanner, EmptyState, PageIntro } from "@/components/staff/ui";
 import { formatMoney } from "@/lib/guest-site/format";
 import { decideRefund, recordManualPayout } from "@/lib/staff/refund-actions";
 import { formatAge, formatDateTime } from "@/lib/staff/format";
@@ -163,16 +163,16 @@ export default async function RefundsPage({ searchParams }: { searchParams: Prom
   return (
     <main className="max-w-5xl">
       <h1 className="font-display text-3xl">Refunds</h1>
-      <p className="mt-2 max-w-prose text-muted">
+      <PageIntro>
         Money going back to guests takes two people: one asks, another approves. Card refunds are then paid out through Paystack; cash and transfers are paid by hand and recorded here.
-      </p>
+      </PageIntro>
 
       <div className="mt-6">
         <Notice search={search} currency={currency} />
-        {loadError && <p role="alert" className="mb-5 border-l-4 border-critical bg-critical/5 px-4 py-3 text-sm text-critical">The refund list could not be loaded. Reload the page.</p>}
+        {loadError && <ErrorBanner className="mb-5">The refund list could not be loaded. Reload the page.</ErrorBanner>}
       </div>
 
-      {!loadError && !anyOpen && <p className="rounded border border-line bg-white px-4 py-6 text-muted">Nothing is waiting on anyone.</p>}
+      {!loadError && !anyOpen && <EmptyState>Nothing is waiting on anyone.</EmptyState>}
 
       <Section title="Needs a person" hint="A payout was sent and its result is unknown or overdue. Check Paystack before doing anything else." items={groups.attention} />
       <Section title="Awaiting approval" items={groups.awaitingApproval} />

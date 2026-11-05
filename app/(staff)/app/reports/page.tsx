@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { PrintButton } from "@/components/staff/print-button";
 import { PrintHeader } from "@/components/staff/print-header";
-import { buttonPrimary, inputClass } from "@/components/staff/ui";
+import { buttonPrimary, inputClass, linkClass, ErrorBanner, PageIntro } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { dayOccupancy, parseRange, totals, type ReportDay } from "@/lib/staff/reports";
 import { todayIn } from "@/lib/staff/reservations";
@@ -25,7 +25,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   }))).filter((p): p is { id: string; name: string; timezone: string } => p !== null);
 
   const heading = <h1 className="font-display text-3xl">Reports</h1>;
-  if (propQ.error) return <main className="max-w-5xl">{heading}<p role="alert" className="mt-4 border-l-4 border-critical bg-critical/5 px-4 py-3 text-sm text-critical">The hotels could not be loaded. Try again.</p></main>;
+  if (propQ.error) return <main className="max-w-5xl">{heading}<ErrorBanner className="mt-4">The hotels could not be loaded. Try again.</ErrorBanner></main>;
   const property = allowed.find((p) => p.id === first(search.property)) ?? allowed[0];
   if (!property) return <main className="max-w-5xl">{heading}<p className="mt-4 max-w-prose text-muted">Reports are for the owner, general manager and accountant. Ask one of them if you need a figure.</p></main>;
 
@@ -41,11 +41,11 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       {heading}
       <PrintHeader hotel={property.name} from={range.from} to={range.to} />
       <p className="mt-2 text-sm print:hidden">
-        <Link href={`/app/reports/occupancy?${new URLSearchParams({ property: property.id })}`} className="text-primary-strong underline underline-offset-2">Occupancy</Link>
+        <Link href={`/app/reports/occupancy?${new URLSearchParams({ property: property.id })}`} className={linkClass}>Occupancy</Link>
         <span aria-hidden="true"> · </span>
-        <Link href={`/app/reports/channels?${new URLSearchParams({ property: property.id })}`} className="text-primary-strong underline underline-offset-2">Channels and guests</Link>
+        <Link href={`/app/reports/channels?${new URLSearchParams({ property: property.id })}`} className={linkClass}>Channels and guests</Link>
       </p>
-      <p className="mt-2 max-w-prose text-muted">Nights sold, what the hotel earned and what it received, day by day. Amounts are in naira. Cancelled, pending and no-show stays are not counted as sold.</p>
+      <PageIntro>Nights sold, what the hotel earned and what it received, day by day. Amounts are in naira. Cancelled, pending and no-show stays are not counted as sold.</PageIntro>
 
       <form method="get" className="mt-6 flex flex-wrap items-end gap-4 print:hidden">
         {allowed.length > 1 && (
@@ -63,7 +63,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       {range.trimmed && <p role="status" className="mt-3 text-sm text-muted">Showing the most recent 92 days of the range you asked for.</p>}
 
       {error ? (
-        <p role="alert" className="mt-6 border-l-4 border-critical bg-critical/5 px-4 py-3 text-sm text-critical">The report could not be loaded. Try again.</p>
+        <ErrorBanner className="mt-6">The report could not be loaded. Try again.</ErrorBanner>
       ) : (
         <>
           <section aria-label="Totals" className="mt-6 grid gap-4 sm:grid-cols-3">

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { PrintButton } from "@/components/staff/print-button";
 import { PrintHeader } from "@/components/staff/print-header";
-import { inputClass, buttonPrimary } from "@/components/staff/ui";
+import { inputClass, buttonPrimary, linkClass, EmptyState, PageIntro, StatTile } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { adrMinor, formatBp, isQuietDay, occupancyBp, revparMinor, type OccupancyReport } from "@/lib/staff/occupancy";
 import { MAX_RANGE_DAYS, parseRange, presets } from "@/lib/staff/reports";
@@ -26,7 +26,7 @@ export default async function OccupancyPage({ searchParams }: { searchParams: Pr
     return (
       <main className="max-w-2xl">
         <h1 className="font-display text-3xl">Occupancy</h1>
-        <p className="mt-4 rounded border border-line bg-white px-4 py-6 text-muted">You do not have permission to see reports.</p>
+        <EmptyState className="mt-4">You do not have permission to see reports.</EmptyState>
       </main>
     );
   }
@@ -43,15 +43,15 @@ export default async function OccupancyPage({ searchParams }: { searchParams: Pr
   return (
     <main>
       <p className="text-sm print:hidden">
-        <Link href="/app/reports" className="text-primary-strong underline underline-offset-2">Money and revenue report</Link>
+        <Link href="/app/reports" className={linkClass}>Money and revenue report</Link>
         <span aria-hidden="true"> · </span>
-        <Link href={`/app/reports/channels${qs(range.from, range.to)}`} className="text-primary-strong underline underline-offset-2">Channels and guests</Link>
+        <Link href={`/app/reports/channels${qs(range.from, range.to)}`} className={linkClass}>Channels and guests</Link>
       </p>
       <h1 className="mt-2 font-display text-3xl">Occupancy</h1>
       <PrintHeader hotel={chosen.name} from={range.from} to={range.to} />
-      <p className="mt-2 max-w-prose text-muted">
+      <PageIntro>
         How many rooms were sold each night, what they earned, and what was coming and going. Days are the hotel&rsquo;s own days, and future days show what is booked so far.
-      </p>
+      </PageIntro>
 
       <form method="get" className="mt-6 flex flex-wrap items-end gap-3 print:hidden">
         {allowed.length > 1 && (
@@ -75,12 +75,12 @@ export default async function OccupancyPage({ searchParams }: { searchParams: Pr
       </form>
       <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm print:hidden">
         {presets(today).map((p) => (
-          <Link key={p.label} href={qs(p.from, p.to)} className="text-primary-strong underline underline-offset-2">{p.label}</Link>
+          <Link key={p.label} href={qs(p.from, p.to)} className={linkClass}>{p.label}</Link>
         ))}
       </p>
       {mayExport === true && report && (
         <p className="mt-3 text-sm print:hidden">
-          <a href={`/app/reports/occupancy/csv?${new URLSearchParams({ property: chosen.id, from: range.from, to: range.to })}`} className="text-primary-strong underline underline-offset-2">Download as CSV</a>
+          <a href={`/app/reports/occupancy/csv?${new URLSearchParams({ property: chosen.id, from: range.from, to: range.to })}`} className={linkClass}>Download as CSV</a>
         </p>
       )}
       {range.trimmed && <p role="status" className="mt-3 text-sm text-pending">That range is longer than {MAX_RANGE_DAYS} days, so the most recent {MAX_RANGE_DAYS} days are shown.</p>}
@@ -90,10 +90,10 @@ export default async function OccupancyPage({ searchParams }: { searchParams: Pr
       ) : (
         <>
           <section aria-label="Totals" className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Tile label="Occupancy" value={formatBp(occupancyBp(report.totals))} note={`${report.totals.rooms_sold} of ${report.totals.rooms_available} room nights`} />
-            <Tile label="ADR" value={money(adrMinor(report.totals))} note="room revenue per sold night, before tax" />
-            <Tile label="RevPAR" value={money(revparMinor(report.totals))} note="room revenue per available night, before tax" />
-            <Tile label="Room revenue" value={money(report.totals.room_revenue_minor)} note={`${report.totals.arrivals} arrivals, ${report.totals.departures} departures`} />
+            <StatTile label="Occupancy" value={formatBp(occupancyBp(report.totals))} note={`${report.totals.rooms_sold} of ${report.totals.rooms_available} room nights`} />
+            <StatTile label="ADR" value={money(adrMinor(report.totals))} note="room revenue per sold night, before tax" />
+            <StatTile label="RevPAR" value={money(revparMinor(report.totals))} note="room revenue per available night, before tax" />
+            <StatTile label="Room revenue" value={money(report.totals.room_revenue_minor)} note={`${report.totals.arrivals} arrivals, ${report.totals.departures} departures`} />
           </section>
 
           <div className="mt-6 overflow-x-auto print:overflow-visible">
@@ -161,12 +161,3 @@ export default async function OccupancyPage({ searchParams }: { searchParams: Pr
   );
 }
 
-function Tile({ label, value, note }: { label: string; value: string; note: string }) {
-  return (
-    <div className="rounded border border-line bg-white p-4">
-      <p className="text-sm text-muted">{label}</p>
-      <p className="mt-1 font-display text-2xl tabular-nums">{value}</p>
-      <p className="mt-1 text-xs text-muted">{note}</p>
-    </div>
-  );
-}

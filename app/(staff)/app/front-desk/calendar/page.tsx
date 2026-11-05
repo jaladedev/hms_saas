@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { PrintButton } from "@/components/staff/print-button";
 import { PrintHeader } from "@/components/staff/print-header";
-import { buttonPrimary, inputClass, PaymentChip, ReservationChip } from "@/components/staff/ui";
+import { buttonPrimary, inputClass, PaymentChip, ReservationChip, linkClass, ErrorBanner, EmptyState, PageIntro } from "@/components/staff/ui";
 import { formatDate } from "@/lib/guest-site/format";
 import { AGENDA_LIMIT, AGENDA_STATUSES, agendaTotals, buildAgenda, busyDays, type AgendaRow } from "@/lib/staff/arrivals-calendar";
 import { todayIn, nightsBetween } from "@/lib/staff/reservations";
@@ -20,13 +20,13 @@ export default async function ArrivalsCalendarPage({ searchParams }: { searchPar
   const properties = (props ?? []) as { id: string; name: string; timezone: string }[];
   const property = properties.find((p) => p.id === search.property) ?? properties[0];
   const heading = <h1 className="font-display text-3xl">Arrivals and departures</h1>;
-  const back = <p className="text-sm print:hidden"><Link href="/app/front-desk" className="text-primary-strong underline underline-offset-2">Front desk</Link></p>;
+  const back = <p className="text-sm print:hidden"><Link href="/app/front-desk" className={linkClass}>Front desk</Link></p>;
 
   if (propError) {
-    return <main className="max-w-5xl">{back}<div className="mt-2">{heading}</div><p role="alert" className="mt-6 border-l-4 border-critical bg-critical/5 px-4 py-3 text-sm text-critical">The calendar could not be loaded. Reload the page.</p></main>;
+    return <main className="max-w-5xl">{back}<div className="mt-2">{heading}</div><ErrorBanner className="mt-6">The calendar could not be loaded. Reload the page.</ErrorBanner></main>;
   }
   if (!property) {
-    return <main className="max-w-5xl">{back}<div className="mt-2">{heading}</div><p className="mt-6 rounded border border-line bg-white px-4 py-6 text-muted">No hotel to show.</p></main>;
+    return <main className="max-w-5xl">{back}<div className="mt-2">{heading}</div><EmptyState className="mt-6">No hotel to show.</EmptyState></main>;
   }
 
   const today = todayIn(property.timezone, new Date());
@@ -78,7 +78,7 @@ export default async function ArrivalsCalendarPage({ searchParams }: { searchPar
       {back}
       <div className="mt-2">{heading}</div>
       <PrintHeader hotel={property.name} from={w.start} to={lastNight} />
-      <p className="mt-2 max-w-prose text-muted">Who is due to arrive and leave on each day, and how many bookings have a night that day.</p>
+      <PageIntro>Who is due to arrive and leave on each day, and how many bookings have a night that day.</PageIntro>
 
       <form method="get" className="mt-6 flex flex-wrap items-end gap-3 print:hidden">
         {properties.length > 1 && (
@@ -103,9 +103,9 @@ export default async function ArrivalsCalendarPage({ searchParams }: { searchPar
         <PrintButton />
       </form>
       <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm print:hidden">
-        <Link href={qs({ from: shiftStart(w, -1) })} className="text-primary-strong underline underline-offset-2">Previous {w.days} days</Link>
-        <Link href={qs({ from: today })} className="text-primary-strong underline underline-offset-2">Today</Link>
-        <Link href={qs({ from: shiftStart(w, 1) })} className="text-primary-strong underline underline-offset-2">Next {w.days} days</Link>
+        <Link href={qs({ from: shiftStart(w, -1) })} className={linkClass}>Previous {w.days} days</Link>
+        <Link href={qs({ from: today })} className={linkClass}>Today</Link>
+        <Link href={qs({ from: shiftStart(w, 1) })} className={linkClass}>Next {w.days} days</Link>
       </p>
 
       {(resQ.error || cut) && (
@@ -132,7 +132,7 @@ export default async function ArrivalsCalendarPage({ searchParams }: { searchPar
               return (
                 <tr key={d.date} className={`border-b border-line tabular-nums ${h.isToday ? "bg-primary/5" : h.isWeekend ? "bg-ink/5" : ""}`}>
                   <th scope="row" className="py-2 pr-3 text-left font-normal">
-                    {quiet ? dayLabel(d.date) : <a href={`#d-${d.date}`} className="text-primary-strong underline underline-offset-2">{dayLabel(d.date)}</a>}
+                    {quiet ? dayLabel(d.date) : <a href={`#d-${d.date}`} className={linkClass}>{dayLabel(d.date)}</a>}
                     {h.isToday && <span className="ml-2 text-xs text-primary-strong">Today</span>}
                   </th>
                   <td className="px-2 py-2 text-right">{d.arrivals.length || "–"}</td>
@@ -154,7 +154,7 @@ export default async function ArrivalsCalendarPage({ searchParams }: { searchPar
       </div>
 
       <div className="mt-10 space-y-10">
-        {busy.length === 0 && !resQ.error && <p className="rounded border border-line bg-white px-4 py-6 text-muted">Nobody is due to arrive or leave in these {w.days} days.</p>}
+        {busy.length === 0 && !resQ.error && <EmptyState>Nobody is due to arrive or leave in these {w.days} days.</EmptyState>}
         {busy.map((d) => (
           <section key={d.date} id={`d-${d.date}`} aria-labelledby={`h-${d.date}`} className="scroll-mt-4">
             <h2 id={`h-${d.date}`} className="font-display text-xl">

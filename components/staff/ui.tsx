@@ -60,16 +60,43 @@ export function Notice({ search, currency }: { search: Search; currency: string 
   if (err) {
     const n = one(search.n);
     const refundable = n && /^\d+$/.test(n) ? Number(n) : null;
-    return (
-      <p role="alert" className="mb-5 border-l-4 border-critical bg-critical/5 px-4 py-3 text-sm text-critical">
-        {errorMessage(err, refundable, (m) => formatMoney(m, currency))}
-      </p>
-    );
+    return <ErrorBanner className="mb-5">{errorMessage(err, refundable, (m) => formatMoney(m, currency))}</ErrorBanner>;
   }
   const text = ok && ok in OK_MESSAGES ? OK_MESSAGES[ok as OkCode] : null;
   if (!text) return null;
   return (
     <p role="status" className="mb-5 border-l-4 border-primary bg-primary/5 px-4 py-3 text-sm text-primary-strong">{text}</p>
+  );
+}
+
+/** Link text inside a page: teal and underlined (back links, links in a table row, "Download as CSV"). */
+export const linkClass = "text-primary-strong underline underline-offset-2";
+
+const withClass = (extra: string | undefined, base: string) => (extra ? `${extra} ${base}` : base);
+
+/** A failure to load or to act: a red bar on the left, read out by screen readers. `className` carries the spacing, for example "mt-6". */
+export function ErrorBanner({ className, children }: { className?: string; children: React.ReactNode }) {
+  return <p role="alert" className={withClass(className, "border-l-4 border-critical bg-critical/5 px-4 py-3 text-sm text-critical")}>{children}</p>;
+}
+
+/** A box that says there is nothing to show, or that this person may not see it. `className` carries the spacing. */
+export function EmptyState({ className, children }: { className?: string; children: React.ReactNode }) {
+  return <p className={withClass(className, "rounded border border-line bg-white px-4 py-6 text-muted")}>{children}</p>;
+}
+
+/** The grey paragraph under a page heading. */
+export function PageIntro({ children }: { children: React.ReactNode }) {
+  return <p className="mt-2 max-w-prose text-muted">{children}</p>;
+}
+
+/** A figure with its label above and a note below (the totals on the report pages). */
+export function StatTile({ label, value, note }: { label: string; value: string; note: string }) {
+  return (
+    <div className="rounded border border-line bg-white p-4">
+      <p className="text-sm text-muted">{label}</p>
+      <p className="mt-1 font-display text-2xl tabular-nums">{value}</p>
+      <p className="mt-1 text-xs text-muted">{note}</p>
+    </div>
   );
 }
 

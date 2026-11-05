@@ -2,6 +2,7 @@ import { ReconciliationForm } from "@/components/staff/reconciliation-form";
 import { parseRange } from "@/lib/staff/reports";
 import { todayIn } from "@/lib/staff/reservations";
 import { createClient } from "@/lib/supabase/server";
+import { ErrorBanner, PageIntro } from "@/components/staff/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,7 @@ export default async function ReconciliationPage() {
   }))).filter((p): p is Prop => p !== null);
 
   const heading = <h1 className="font-display text-3xl">Reconcile payments</h1>;
-  if (propQ.error) return <main className="max-w-5xl">{heading}<p role="alert" className="mt-4 border-l-4 border-critical bg-critical/5 px-4 py-3 text-sm text-critical">The hotels could not be loaded. Refresh the page, and tell the owner if it keeps happening.</p></main>;
+  if (propQ.error) return <main className="max-w-5xl">{heading}<ErrorBanner className="mt-4">The hotels could not be loaded. Refresh the page, and tell the owner if it keeps happening.</ErrorBanner></main>;
   if (allowed.length === 0) return <main className="max-w-5xl">{heading}<p className="mt-4 max-w-prose text-muted">Checking payments against Paystack is for the owner, general manager and accountant. Ask one of them if you need it.</p></main>;
 
   const range = parseRange(undefined, undefined, todayIn(allowed[0]!.timezone, new Date()));
@@ -30,11 +31,11 @@ export default async function ReconciliationPage() {
   return (
     <main className="max-w-5xl">
       {heading}
-      <p className="mt-2 max-w-prose text-muted">
+      <PageIntro>
         Compare Paystack&apos;s own record of the payments with what this system recorded, to catch a payment that was made but never confirmed here.
         In the Paystack Dashboard open Transactions, filter to the days you want, choose Export CSV and make sure the file includes the reference, amount and
         status columns. Then enter the same first and last day below. Nothing is changed by this page; it only lists differences for you to look at.
-      </p>
+      </PageIntro>
       <div className="mt-6">
         <ReconciliationForm properties={allowed.map((p) => ({ id: p.id, name: p.name }))} defaultFrom={range.from} defaultTo={range.to} />
       </div>

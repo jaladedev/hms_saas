@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { buildChecklist, countsFor, progressOf } from "@/lib/staff/setup-checklist";
 import { createClient } from "@/lib/supabase/server";
+import { PageIntro } from "@/components/staff/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +42,7 @@ export default async function SettingsPage() {
   return (
     <main className="max-w-3xl">
       <h1 className="font-display text-3xl">Settings</h1>
-      <p className="mt-2 max-w-prose text-muted">Set up the hotel. A new hotel needs room types, rooms and a standard rate plan before it can take a booking.</p>
+      <PageIntro>Set up the hotel. A new hotel needs room types, rooms and a standard rate plan before it can take a booking.</PageIntro>
       {setup.map(({ property, steps, progress }) => (
         <section key={property.id} aria-label={`Setup for ${property.name}`} className="mt-6 border-l-4 border-primary/40 bg-white px-4 py-4">
           <h2 className="font-display text-xl">{properties.length > 1 ? `Set up ${property.name}` : "Set up your hotel"}</h2>

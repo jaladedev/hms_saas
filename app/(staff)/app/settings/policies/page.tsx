@@ -1,4 +1,4 @@
-import { buttonPrimary, inputClass, Notice } from "@/components/staff/ui";
+import { buttonPrimary, inputClass, Notice, ErrorBanner, PageIntro } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { MAX_RULES, POLICY_COLUMNS, CHARGE_LABEL, describeWindow, guestSummary, readConfig, versionsOn, type PolicyRow } from "@/lib/staff/policies";
 import { minorToInput } from "@/lib/staff/money-input";
@@ -37,12 +37,12 @@ export default async function PoliciesPage({ searchParams }: { searchParams: Pro
   return (
     <main className="max-w-4xl">
       <h1 className="font-display text-3xl">Cancellation and payment policies</h1>
-      <p className="mt-2 max-w-prose text-muted">
+      <PageIntro>
         These rules apply to bookings made from the date a policy starts. A booking keeps the policy it was made under, so saving a new one never changes a booking that already exists.
-      </p>
+      </PageIntro>
 
       <div className="mt-6"><Notice search={search} currency="NGN" /></div>
-      {loadError && <p role="alert" className="mb-6 border-l-4 border-critical bg-critical/5 px-4 py-3 text-sm text-critical">The policies could not be loaded. Reload the page.</p>}
+      {loadError && <ErrorBanner className="mb-6">The policies could not be loaded. Reload the page.</ErrorBanner>}
 
       {properties.map((p) => {
         const mine = policies.filter((x) => x.property_id === p.id);

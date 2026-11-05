@@ -1,4 +1,4 @@
-import { buttonDanger, buttonPrimary, buttonQuiet, inputClass, Notice } from "@/components/staff/ui";
+import { buttonDanger, buttonPrimary, buttonQuiet, inputClass, Notice, ErrorBanner, PageIntro } from "@/components/staff/ui";
 import { assignTask, cancelTask, claimTask, completeTask, createTask, startTask } from "@/lib/staff/housekeeping-actions";
 import {
   activityByRoom, actionsFor, filterByPerson, formatDue, groupLive, PRIORITY_LABEL, recentlyDone, roomsWithoutTask, sortTasks,
@@ -180,10 +180,10 @@ export default async function HousekeepingPage({ searchParams }: { searchParams:
   return (
     <main className="max-w-5xl">
       <h1 className="font-display text-3xl">Housekeeping</h1>
-      <p className="mt-2 max-w-prose text-muted">Tasks to do, most urgent first.</p>
+      <PageIntro>Tasks to do, most urgent first.</PageIntro>
 
       <div className="mt-6"><Notice search={search} currency="NGN" /></div>
-      {loadError && <p role="alert" className="mb-6 border-l-4 border-critical bg-critical/5 px-4 py-3 text-sm text-critical">The tasks could not be loaded. Reload the page.</p>}
+      {loadError && <ErrorBanner className="mb-6">The tasks could not be loaded. Reload the page.</ErrorBanner>}
 
       {!loadError && (
         <p className="text-sm text-muted">

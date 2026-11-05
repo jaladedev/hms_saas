@@ -5,6 +5,7 @@ import { bucketFrontDesk } from "@/lib/staff/front-desk";
 import { buildTasks, countCleaning, countRefunds, countRepairs, todayFigures, type RefundBrief, type RequestBrief, type RoomBrief } from "@/lib/staff/overview";
 import { todayIn } from "@/lib/staff/reservations";
 import { createClient } from "@/lib/supabase/server";
+import { linkClass, ErrorBanner } from "@/components/staff/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -59,9 +60,9 @@ export default async function Dashboard() {
       <p className="mt-2 text-muted">{earliest ? `Today, ${formatDate(earliest)}.` : "No property is visible to this account."}</p>
 
       {loadFailed && (
-        <p role="alert" className="mt-6 border-l-4 border-critical bg-critical/5 px-4 py-3 text-sm text-critical">
+        <ErrorBanner className="mt-6">
           Part of this page could not be loaded, so the lists below may be incomplete. Reload the page.
-        </p>
+        </ErrorBanner>
       )}
 
       <section className="mt-8" aria-labelledby="today">
@@ -81,17 +82,17 @@ export default async function Dashboard() {
           ))}
         </dl>
         <p className="mt-2 text-sm">
-          <Link href="/app/front-desk" className="text-primary-strong underline underline-offset-2">Open the front desk</Link>
+          <Link href="/app/front-desk" className={linkClass}>Open the front desk</Link>
           {canSeeCleaning && (
             <>
               {" · "}
-              <Link href="/app/housekeeping" className="text-primary-strong underline underline-offset-2">Open housekeeping</Link>
+              <Link href="/app/housekeeping" className={linkClass}>Open housekeeping</Link>
             </>
           )}
           {canSeeRepairs && (
             <>
               {" · "}
-              <Link href="/app/maintenance" className="text-primary-strong underline underline-offset-2">Open maintenance</Link>
+              <Link href="/app/maintenance" className={linkClass}>Open maintenance</Link>
             </>
           )}
         </p>

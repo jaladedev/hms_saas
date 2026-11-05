@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { CalendarDrag } from "@/components/staff/calendar-drag";
-import { buttonPrimary, inputClass, Notice } from "@/components/staff/ui";
+import { buttonPrimary, inputClass, Notice, linkClass, ErrorBanner, EmptyState, PageIntro } from "@/components/staff/ui";
 import { formatDate } from "@/lib/guest-site/format";
 import { canMoveBar } from "@/lib/staff/calendar-move";
 import { bookFromCalendarHref } from "@/lib/staff/new-reservation";
@@ -35,10 +35,10 @@ export default async function RoomCalendarPage({ searchParams }: { searchParams:
   const heading = <h1 className="font-display text-3xl">Room calendar</h1>;
 
   if (roomQ.error || propQ.error) {
-    return <main className="max-w-5xl">{heading}<p role="alert" className="mt-6 border-l-4 border-critical bg-critical/5 px-4 py-3 text-sm text-critical">The calendar could not be loaded. Reload the page.</p></main>;
+    return <main className="max-w-5xl">{heading}<ErrorBanner className="mt-6">The calendar could not be loaded. Reload the page.</ErrorBanner></main>;
   }
   if (!property) {
-    return <main className="max-w-5xl">{heading}<p className="mt-6 rounded border border-line bg-white px-4 py-6 text-muted">No rooms to show. Rooms are added in the hotel setup.</p></main>;
+    return <main className="max-w-5xl">{heading}<EmptyState className="mt-6">No rooms to show. Rooms are added in the hotel setup.</EmptyState></main>;
   }
 
   const today = todayIn(property.timezone, new Date());
@@ -76,11 +76,11 @@ export default async function RoomCalendarPage({ searchParams }: { searchParams:
 
   return (
     <main>
-      <p className="flex flex-wrap gap-x-4 gap-y-1 text-sm"><Link href="/app/rooms" className="text-primary-strong underline underline-offset-2">Room board</Link><Link href="/app/front-desk/calendar" className="text-primary-strong underline underline-offset-2">Arrivals and departures</Link></p>
+      <p className="flex flex-wrap gap-x-4 gap-y-1 text-sm"><Link href="/app/rooms" className={linkClass}>Room board</Link><Link href="/app/front-desk/calendar" className={linkClass}>Arrivals and departures</Link></p>
       <div className="mt-2">{heading}</div>
-      <p className="mt-2 max-w-prose text-muted">
+      <PageIntro>
         Every room for the nights ahead. A stay covers the nights it is booked for; the departure day is free for the next guest.
-      </p>
+      </PageIntro>
 
       <div className="mt-4"><Notice search={search} currency="NGN" /></div>
 
@@ -106,9 +106,9 @@ export default async function RoomCalendarPage({ searchParams }: { searchParams:
         <button type="submit" className={buttonPrimary}>Show</button>
       </form>
       <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
-        <Link href={qs({ from: shiftStart(w, -1) })} className="text-primary-strong underline underline-offset-2">Previous {w.days} nights</Link>
-        <Link href={qs({ from: today })} className="text-primary-strong underline underline-offset-2">Today</Link>
-        <Link href={qs({ from: shiftStart(w, 1) })} className="text-primary-strong underline underline-offset-2">Next {w.days} nights</Link>
+        <Link href={qs({ from: shiftStart(w, -1) })} className={linkClass}>Previous {w.days} nights</Link>
+        <Link href={qs({ from: today })} className={linkClass}>Today</Link>
+        <Link href={qs({ from: shiftStart(w, 1) })} className={linkClass}>Next {w.days} nights</Link>
       </p>
 
       <p className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted" aria-label="Key">

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
-import { buttonPrimary, inputClass, Notice, StatusChip } from "@/components/staff/ui";
+import { buttonPrimary, inputClass, Notice, StatusChip, linkClass, EmptyState, PageIntro } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { formatDateTime } from "@/lib/staff/format";
 import { minorToInput } from "@/lib/staff/money-input";
@@ -85,7 +85,7 @@ export default async function SettlementPage({
 
   return (
     <main className="max-w-4xl">
-      <p className="text-sm"><Link href="/app/refunds" className="text-primary-strong underline underline-offset-2">Refunds</Link></p>
+      <p className="text-sm"><Link href="/app/refunds" className={linkClass}>Refunds</Link></p>
       <h1 className="mt-2 font-display text-3xl">{res.booking_reference}</h1>
       <p className="mt-1 text-muted">
         {guestName ? `${guestName}, ` : ""}{formatDate(res.arrival_date)} to {formatDate(res.departure_date)}
@@ -102,16 +102,16 @@ export default async function SettlementPage({
       )}
 
       {!canSeeMoney ? (
-        <p className="rounded border border-line bg-white px-4 py-6 text-muted">You do not have access to this reservation's payments.</p>
+        <EmptyState>You do not have access to this reservation's payments.</EmptyState>
       ) : (
         <>
           <section aria-labelledby="statement">
             <h2 id="statement" className="font-display text-xl">Settlement</h2>
             {settlement && !settlement.applicable ? (
-              <p className="mt-2 max-w-prose text-muted">
+              <PageIntro>
                 This reservation is not cancelled, so there is nothing to settle. Money held now is {money(settlement.held_minor)} of {money(res.total_minor)}.
                 If it is cancelled, the stay invoice is voided, any cancellation charge is invoiced, and refund requests are made for the rest.
-              </p>
+              </PageIntro>
             ) : settlement && (
               <>
                 {res.cancel_reason && <p className="mt-1 text-sm text-muted">Cancelled{res.cancelled_at ? ` ${formatDateTime(res.cancelled_at, tz)}` : ""}: {res.cancel_reason}</p>}
@@ -225,7 +225,7 @@ export default async function SettlementPage({
               </ul>
             )}
             {refunds.some((r) => r.refund_status !== "succeeded" && r.refund_status !== "rejected" && r.refund_status !== "failed") && (
-              <p className="mt-3 text-sm"><Link href="/app/refunds" className="text-primary-strong underline underline-offset-2">Approve or pay out on the refund queue</Link></p>
+              <p className="mt-3 text-sm"><Link href="/app/refunds" className={linkClass}>Approve or pay out on the refund queue</Link></p>
             )}
           </section>
 

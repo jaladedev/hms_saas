@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ReportForm } from "@/components/staff/maintenance-bits";
-import { buttonDanger, buttonPrimary, buttonQuiet, inputClass, Notice } from "@/components/staff/ui";
+import { buttonDanger, buttonPrimary, buttonQuiet, inputClass, Notice, linkClass, ErrorBanner, EmptyState, PageIntro } from "@/components/staff/ui";
 import { formatDate } from "@/lib/guest-site/format";
 import { historyByRoom, historyLine, type TaskRow } from "@/lib/staff/housekeeping-tasks";
 import {
@@ -109,11 +109,11 @@ export default async function RoomBoardPage({ searchParams }: { searchParams: Pr
   return (
     <main className="max-w-5xl">
       <h1 className="font-display text-3xl">Rooms</h1>
-      <p className="mt-2 max-w-prose text-muted">What every room is doing today. Open a booking to check someone in or out.</p>
-      <p className="mt-2 text-sm"><Link href="/app/rooms/calendar" className="text-primary-strong underline underline-offset-2">Room calendar</Link></p>
+      <PageIntro>What every room is doing today. Open a booking to check someone in or out.</PageIntro>
+      <p className="mt-2 text-sm"><Link href="/app/rooms/calendar" className={linkClass}>Room calendar</Link></p>
 
       <div className="mt-6"><Notice search={search} currency="NGN" /></div>
-      {loadError && <p role="alert" className="mt-6 border-l-4 border-critical bg-critical/5 px-4 py-3 text-sm text-critical">The rooms could not be loaded. Reload the page.</p>}
+      {loadError && <ErrorBanner className="mt-6">The rooms could not be loaded. Reload the page.</ErrorBanner>}
 
       {views.length > 0 && (
         <p className="mt-6 flex flex-wrap gap-x-5 gap-y-1 text-sm" aria-label="Room totals">
@@ -123,7 +123,7 @@ export default async function RoomBoardPage({ searchParams }: { searchParams: Pr
         </p>
       )}
 
-      {!loadError && views.length === 0 && <p className="mt-6 rounded border border-line bg-white px-4 py-6 text-muted">No rooms to show. Rooms are added in the hotel setup.</p>}
+      {!loadError && views.length === 0 && <EmptyState className="mt-6">No rooms to show. Rooms are added in the hotel setup.</EmptyState>}
 
       {[...groups].map(([title, items]) => (
         <section key={title} className="mt-10" aria-label={title}>

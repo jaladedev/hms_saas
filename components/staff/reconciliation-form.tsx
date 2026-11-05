@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { formatMoney } from "@/lib/guest-site/format";
 import type { Finding, FindingKind, ReconcileResult } from "@/lib/staff/reconciliation";
-import { buttonPrimary, inputClass } from "./ui";
+import { buttonPrimary, inputClass, linkClass, ErrorBanner } from "@/components/staff/ui";
 
 type Property = { id: string; name: string };
 type Response = {
@@ -95,7 +95,7 @@ export function ReconciliationForm({ properties, defaultFrom, defaultTo }: { pro
         </div>
       </form>
 
-      {error && <p role="alert" className="mt-4 border-l-4 border-critical bg-critical/5 px-4 py-3 text-sm text-critical">{error}</p>}
+      {error && <ErrorBanner className="mt-4">{error}</ErrorBanner>}
 
       {data && (
         <div className="mt-6" aria-live="polite">
@@ -127,7 +127,7 @@ export function ReconciliationForm({ properties, defaultFrom, defaultTo }: { pro
                       <tr key={`${f.kind}-${f.reference}`} className="border-t border-line">
                         <td className="px-3 py-2 font-mono text-xs">{f.reference}</td>
                         <td className="px-3 py-2">{describe(f, money)}</td>
-                        <td className="px-3 py-2">{"reservationId" in f ? <Link href={`/app/reservations/${f.reservationId}`} className="text-primary-strong underline underline-offset-2">Open</Link> : <span className="text-muted">—</span>}</td>
+                        <td className="px-3 py-2">{"reservationId" in f ? <Link href={`/app/reservations/${f.reservationId}`} className={linkClass}>Open</Link> : <span className="text-muted">—</span>}</td>
                       </tr>
                     ))}
                   </tbody>

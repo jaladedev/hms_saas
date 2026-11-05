@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { buttonPrimary, inputClass, Notice } from "@/components/staff/ui";
+import { buttonPrimary, inputClass, Notice, linkClass, EmptyState, PageIntro } from "@/components/staff/ui";
 import { createManualReservation } from "@/lib/staff/reservation-actions";
 import { MANUAL_SOURCES, MAX_NIGHTS, MAX_ROOMS, parsePrefill } from "@/lib/staff/new-reservation";
 import { todayIn } from "@/lib/staff/reservations";
@@ -35,14 +35,14 @@ export default async function NewReservationPage({ searchParams }: { searchParam
 
   return (
     <main className="max-w-2xl">
-      <p className="text-sm"><Link href="/app/reservations" className="text-primary-strong underline underline-offset-2">Reservations</Link></p>
+      <p className="text-sm"><Link href="/app/reservations" className={linkClass}>Reservations</Link></p>
       <h1 className="mt-2 font-display text-3xl">New reservation</h1>
-      <p className="mt-2 max-w-prose text-muted">For guests who walk in or book by phone. The rooms are held and the booking is confirmed straight away, or you can hold the room until the guest pays.</p>
+      <PageIntro>For guests who walk in or book by phone. The rooms are held and the booking is confirmed straight away, or you can hold the room until the guest pays.</PageIntro>
 
       <div className="mt-6"><Notice search={search} currency="NGN" /></div>
 
       {allowed.length === 0 ? (
-        <p className="rounded border border-line bg-white px-4 py-6 text-muted">You do not have permission to create reservations, or no property is set up yet.</p>
+        <EmptyState>You do not have permission to create reservations, or no property is set up yet.</EmptyState>
       ) : (
         <form action={createManualReservation} className="mt-6 grid gap-5">
           <input type="hidden" name="idempotencyKey" value={crypto.randomUUID()} />

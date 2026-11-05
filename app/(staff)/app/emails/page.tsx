@@ -1,4 +1,4 @@
-import { buttonPrimary, Notice, StatusChip } from "@/components/staff/ui";
+import { buttonPrimary, Notice, StatusChip, ErrorBanner, EmptyState, PageIntro } from "@/components/staff/ui";
 import { createMailer } from "@/lib/email/mailer";
 import { resendEmail } from "@/lib/staff/email-actions";
 import { canOfferResend, errorAdvice, holdEnded, kindLabel, splitEmails, type FailedEmail } from "@/lib/staff/emails";
@@ -81,13 +81,13 @@ export default async function EmailsPage({ searchParams }: { searchParams: Promi
   return (
     <main className="max-w-5xl">
       <h1 className="font-display text-3xl">Guest emails</h1>
-      <p className="mt-2 max-w-prose text-muted">
+      <PageIntro>
         Emails to guests that could not be delivered. The system retries a few times by itself; the ones that gave up are listed first, and you can send them again.
-      </p>
+      </PageIntro>
 
       <div className="mt-6">
         <Notice search={search} currency="NGN" />
-        {listQ.error && <p role="alert" className="mb-5 border-l-4 border-critical bg-critical/5 px-4 py-3 text-sm text-critical">The list could not be loaded. Reload the page.</p>}
+        {listQ.error && <ErrorBanner className="mb-5">The list could not be loaded. Reload the page.</ErrorBanner>}
         {!mailConfigured && (
           <p className="mb-5 border-l-4 border-pending bg-pending/5 px-4 py-3 text-sm">
             Email sending is not set up on this server (no mail provider key or sender address), so emails wait in the queue and resending will not deliver anything until it is.
@@ -95,7 +95,7 @@ export default async function EmailsPage({ searchParams }: { searchParams: Promi
         )}
       </div>
 
-      {!listQ.error && rows.length === 0 && <p className="rounded border border-line bg-white px-4 py-6 text-muted">No failed or retrying guest emails.</p>}
+      {!listQ.error && rows.length === 0 && <EmptyState>No failed or retrying guest emails.</EmptyState>}
 
       <Section title="Gave up" hint="Five attempts failed. Check the reason, fix it if it is something on our side, then send again." items={failed} />
       <Section title="Still retrying" items={retrying} />

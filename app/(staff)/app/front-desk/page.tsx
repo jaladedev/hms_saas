@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PaymentChip, ReservationChip } from "@/components/staff/ui";
+import { PaymentChip, ReservationChip, linkClass, ErrorBanner, PageIntro } from "@/components/staff/ui";
 import { formatDate } from "@/lib/guest-site/format";
 import { loadDeskRows, type DeskReservation } from "@/lib/staff/desk-query";
 import { bucketFrontDesk, deskFlag, type DeskRow } from "@/lib/staff/front-desk";
@@ -77,12 +77,12 @@ export default async function FrontDeskPage() {
   return (
     <main className="max-w-5xl">
       <h1 className="font-display text-3xl">Front desk</h1>
-      <p className="mt-2 max-w-prose text-muted">
+      <PageIntro>
         Today{earliest ? `, ${formatDate(earliest)}` : ""}. Open a booking to check guests in or out.
-      </p>
-      <p className="mt-2 text-sm"><Link href="/app/front-desk/calendar" className="text-primary-strong underline underline-offset-2">Arrivals and departures for the days ahead</Link></p>
+      </PageIntro>
+      <p className="mt-2 text-sm"><Link href="/app/front-desk/calendar" className={linkClass}>Arrivals and departures for the days ahead</Link></p>
 
-      {loadError && <p role="alert" className="mt-6 border-l-4 border-critical bg-critical/5 px-4 py-3 text-sm text-critical">The front desk list could not be loaded. Reload the page.</p>}
+      {loadError && <ErrorBanner className="mt-6">The front desk list could not be loaded. Reload the page.</ErrorBanner>}
 
       <div className="mt-8">
         <Section title="Overdue departures" hint="These guests are still marked in house past their departure date. Check them out or extend the stay." items={g.overdue} tone="warn" />

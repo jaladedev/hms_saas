@@ -1,4 +1,4 @@
-import { buttonPrimary, buttonQuiet, inputClass, Notice } from "@/components/staff/ui";
+import { buttonPrimary, buttonQuiet, inputClass, Notice, ErrorBanner, PageIntro } from "@/components/staff/ui";
 import { formatMoney } from "@/lib/guest-site/format";
 import { ROOM_STATUSES } from "@/lib/staff/room-setup";
 import { compareRoomNumbers } from "@/lib/staff/room-board";
@@ -36,12 +36,12 @@ export default async function RoomSetupPage({ searchParams }: { searchParams: Pr
   return (
     <main className="max-w-4xl">
       <h1 className="font-display text-3xl">Room types and rooms</h1>
-      <p className="mt-2 max-w-prose text-muted">
+      <PageIntro>
         A room type is a kind of room you sell, with its capacity and standard price. Rooms are the actual doors. Guests book a type; the system picks a free room of that type.
-      </p>
+      </PageIntro>
 
       <div className="mt-6"><Notice search={search} currency="NGN" /></div>
-      {loadError && <p role="alert" className="mb-6 border-l-4 border-critical bg-critical/5 px-4 py-3 text-sm text-critical">The setup could not be loaded. Reload the page.</p>}
+      {loadError && <ErrorBanner className="mb-6">The setup could not be loaded. Reload the page.</ErrorBanner>}
       {editable.length === 0 && !loadError && (
         <p className="mb-6 rounded border border-line bg-white px-4 py-3 text-sm text-muted">You can look at the setup but not change it. Changes need hotel-setup permission.</p>
       )}

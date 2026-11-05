@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { PrintButton } from "@/components/staff/print-button";
 import { PrintHeader } from "@/components/staff/print-header";
-import { buttonPrimary, inputClass } from "@/components/staff/ui";
+import { buttonPrimary, inputClass, linkClass, EmptyState, PageIntro, StatTile } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { countryLabel, lostBp, shareBp, sourceLabel, type ChannelReport, type GuestReport } from "@/lib/staff/channels";
 import { chargedMinor, chargeLabel, isCut, type NoShowList } from "@/lib/staff/no-shows";
@@ -28,7 +28,7 @@ export default async function ChannelsPage({ searchParams }: { searchParams: Pro
     return (
       <main className="max-w-2xl">
         <h1 className="font-display text-3xl">Channels and guests</h1>
-        <p className="mt-4 rounded border border-line bg-white px-4 py-6 text-muted">You do not have permission to see reports.</p>
+        <EmptyState className="mt-4">You do not have permission to see reports.</EmptyState>
       </main>
     );
   }
@@ -55,15 +55,15 @@ export default async function ChannelsPage({ searchParams }: { searchParams: Pro
   return (
     <main>
       <p className="text-sm print:hidden">
-        <Link href="/app/reports" className="text-primary-strong underline underline-offset-2">Money and revenue report</Link>
+        <Link href="/app/reports" className={linkClass}>Money and revenue report</Link>
         <span aria-hidden="true"> · </span>
-        <Link href={`/app/reports/occupancy${qs(range.from, range.to)}`} className="text-primary-strong underline underline-offset-2">Occupancy</Link>
+        <Link href={`/app/reports/occupancy${qs(range.from, range.to)}`} className={linkClass}>Occupancy</Link>
       </p>
       <h1 className="mt-2 font-display text-3xl">Channels and guests</h1>
       <PrintHeader hotel={chosen.name} from={range.from} to={range.to} />
-      <p className="mt-2 max-w-prose text-muted">
+      <PageIntro>
         Where bookings came from and who stayed, for the nights in the range. Days are the hotel&rsquo;s own days.
-      </p>
+      </PageIntro>
 
       <form method="get" className="mt-6 flex flex-wrap items-end gap-3 print:hidden">
         {allowed.length > 1 && (
@@ -87,7 +87,7 @@ export default async function ChannelsPage({ searchParams }: { searchParams: Pro
       </form>
       <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm print:hidden">
         {presets(today).map((p) => (
-          <Link key={p.label} href={qs(p.from, p.to)} className="text-primary-strong underline underline-offset-2">{p.label}</Link>
+          <Link key={p.label} href={qs(p.from, p.to)} className={linkClass}>{p.label}</Link>
         ))}
       </p>
       {range.trimmed && <p role="status" className="mt-3 text-sm text-pending">That range is longer than {MAX_RANGE_DAYS} days, so the most recent {MAX_RANGE_DAYS} days are shown.</p>}
@@ -140,7 +140,7 @@ export default async function ChannelsPage({ searchParams }: { searchParams: Pro
               </tfoot>
             </table>
           </div>
-          {mayExport && <p className="mt-3 text-sm print:hidden"><a href={csv("channels")} className="text-primary-strong underline underline-offset-2">Download channels as CSV</a></p>}
+          {mayExport && <p className="mt-3 text-sm print:hidden"><a href={csv("channels")} className={linkClass}>Download channels as CSV</a></p>}
           <ul className="mt-4 max-w-prose list-disc space-y-1 pl-5 text-sm text-muted">
             <li>Bookings, room nights and room revenue count the nights of confirmed, checked-in and checked-out bookings that fall in the range, before tax. Unpaid holds do not count.</li>
             <li>Cancelled and No-shows are bookings that were due to arrive in the range. Lost is those two as a share of everything that was due to arrive.</li>
@@ -174,7 +174,7 @@ export default async function ChannelsPage({ searchParams }: { searchParams: Pro
                     <th scope="row" className="py-2 pr-3 text-left font-normal">{formatDate(r.arrival_date)}</th>
                     {!noShows.links_hidden && (
                       <td className="px-2 py-2">
-                        {r.reservation_id ? <Link href={`/app/reservations/${r.reservation_id}`} className="text-primary-strong underline underline-offset-2">{r.booking_reference}</Link> : "–"}
+                        {r.reservation_id ? <Link href={`/app/reservations/${r.reservation_id}`} className={linkClass}>{r.booking_reference}</Link> : "–"}
                       </td>
                     )}
                     {!noShows.names_hidden && <td className="px-2 py-2">{r.guest_name ?? "–"}</td>}
@@ -194,7 +194,7 @@ export default async function ChannelsPage({ searchParams }: { searchParams: Pro
             </table>
           </div>
           {isCut(noShows) && <p role="status" className="mt-3 text-sm text-pending">Showing the newest {noShows.rows.length} of {noShows.total}. Choose a shorter range to see the rest; the charge total covers only the rows shown.</p>}
-          {mayExport && <p className="mt-3 text-sm print:hidden"><a href={csv("noshows")} className="text-primary-strong underline underline-offset-2">Download no-shows as CSV</a></p>}
+          {mayExport && <p className="mt-3 text-sm print:hidden"><a href={csv("noshows")} className={linkClass}>Download no-shows as CSV</a></p>}
           <ul className="mt-4 max-w-prose list-disc space-y-1 pl-5 text-sm text-muted">
             <li>Bookings marked as no-shows whose arrival day is in the range. Charge is what the booking&rsquo;s cancellation rules put on it when it was marked; a dash means nothing was charged or it was waived. Booking numbers and guest names show only to people who may see bookings and guests.</li>
           </ul>
@@ -207,9 +207,9 @@ export default async function ChannelsPage({ searchParams }: { searchParams: Pro
       ) : (
         <>
           <section aria-label="Guest totals" className="mt-4 grid gap-3 sm:grid-cols-3">
-            <Tile label="Guests who stayed" value={String(guests.guests_total)} note="different primary guests with a night in the range" />
-            <Tile label="New" value={String(guests.guests_new)} note="no earlier stay at this hotel" />
-            <Tile label="Returning" value={String(guests.guests_returning)} note="stayed here before the range" />
+            <StatTile label="Guests who stayed" value={String(guests.guests_total)} note="different primary guests with a night in the range" />
+            <StatTile label="New" value={String(guests.guests_new)} note="no earlier stay at this hotel" />
+            <StatTile label="Returning" value={String(guests.guests_returning)} note="stayed here before the range" />
           </section>
 
           <div className="mt-6 grid gap-8 lg:grid-cols-2">
@@ -264,19 +264,10 @@ export default async function ChannelsPage({ searchParams }: { searchParams: Pro
               )}
             </div>
           </div>
-          {mayExport && <p className="mt-3 text-sm print:hidden"><a href={csv("guests")} className="text-primary-strong underline underline-offset-2">Download guests as CSV</a></p>}
+          {mayExport && <p className="mt-3 text-sm print:hidden"><a href={csv("guests")} className={linkClass}>Download guests as CSV</a></p>}
         </>
       )}
     </main>
   );
 }
 
-function Tile({ label, value, note }: { label: string; value: string; note: string }) {
-  return (
-    <div className="rounded border border-line bg-white p-4">
-      <p className="text-sm text-muted">{label}</p>
-      <p className="mt-1 font-display text-2xl tabular-nums">{value}</p>
-      <p className="mt-1 text-xs text-muted">{note}</p>
-    </div>
-  );
-}

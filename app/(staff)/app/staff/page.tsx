@@ -1,4 +1,4 @@
-import { buttonDanger, buttonPrimary, buttonQuiet, inputClass, MemberStatusChip, Notice } from "@/components/staff/ui";
+import { buttonDanger, buttonPrimary, buttonQuiet, inputClass, MemberStatusChip, Notice, ErrorBanner, EmptyState, PageIntro } from "@/components/staff/ui";
 import { addStaffRole, inviteStaff, removeStaffRole, setStaffStatus } from "@/lib/staff/staff-actions";
 import { memberActions, memberLabel, ROLE_HELP, scopeLabel, type Member } from "@/lib/staff/staff-rules";
 import { createClient } from "@/lib/supabase/server";
@@ -29,7 +29,7 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
     return (
       <main className="max-w-3xl">
         <h1 className="font-display text-3xl">Staff & permissions</h1>
-        <p className="mt-4 rounded border border-line bg-white px-4 py-6 text-muted">Only a hotel owner can manage staff. If you need someone added or changed, ask an owner.</p>
+        <EmptyState className="mt-4">Only a hotel owner can manage staff. If you need someone added or changed, ask an owner.</EmptyState>
       </main>
     );
   }
@@ -125,13 +125,13 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
   return (
     <main className="max-w-5xl">
       <h1 className="font-display text-3xl">Staff & permissions</h1>
-      <p className="mt-2 max-w-prose text-muted">
+      <PageIntro>
         Who can sign in, and what each person can do. Changes take effect on their next action. Everything here is recorded in the audit log.
-      </p>
+      </PageIntro>
 
       <div className="mt-6">
         <Notice search={search} currency="NGN" />
-        {dirQ.error && <p role="alert" className="mb-5 border-l-4 border-critical bg-critical/5 px-4 py-3 text-sm text-critical">The staff list could not be loaded. Reload the page.</p>}
+        {dirQ.error && <ErrorBanner className="mb-5">The staff list could not be loaded. Reload the page.</ErrorBanner>}
       </div>
 
       <section aria-labelledby="invite" className="border-y border-line py-6">

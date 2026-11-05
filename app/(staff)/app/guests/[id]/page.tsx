@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
-import { buttonPrimary, inputClass, Notice } from "@/components/staff/ui";
+import { buttonPrimary, inputClass, Notice, linkClass } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { updateGuest } from "@/lib/staff/guest-actions";
 import { createClient } from "@/lib/supabase/server";
@@ -34,7 +34,7 @@ export default async function GuestPage({ params, searchParams }: { params: Prom
 
   return (
     <main className="max-w-4xl">
-      <p className="text-sm"><Link href="/app/guests" className="text-primary-strong underline underline-offset-2">Guests</Link></p>
+      <p className="text-sm"><Link href="/app/guests" className={linkClass}>Guests</Link></p>
       <h1 className="mt-2 font-display text-3xl">{guest.full_name}</h1>
       <p className="mt-1 text-sm text-muted">Guest since {formatDate(guest.created_at.slice(0, 10))}</p>
 

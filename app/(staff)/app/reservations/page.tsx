@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { buttonPrimary, buttonQuiet, inputClass, PaymentChip, ReservationChip } from "@/components/staff/ui";
+import { buttonPrimary, buttonQuiet, inputClass, PaymentChip, ReservationChip, ErrorBanner, EmptyState, PageIntro } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import {
   listQuery, nightsBetween, PAGE_SIZE, parseFilters, SOURCE_LABEL, sortAscending, STATUS_FILTERS, statusesFor,
@@ -84,7 +84,7 @@ export default async function ReservationsPage({ searchParams }: { searchParams:
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl">Reservations</h1>
-          <p className="mt-2 max-w-prose text-muted">Find a booking, then open it to check guests in and out, take a payment or cancel.</p>
+          <PageIntro>Find a booking, then open it to check guests in and out, take a payment or cancel.</PageIntro>
         </div>
         <Link href="/app/reservations/new" className={buttonPrimary}>New reservation</Link>
       </div>
@@ -114,12 +114,12 @@ export default async function ReservationsPage({ searchParams }: { searchParams:
         </div>
       </form>
 
-      {error && <p role="alert" className="mt-6 border-l-4 border-critical bg-critical/5 px-4 py-3 text-sm text-critical">The reservations could not be loaded. Reload the page.</p>}
+      {error && <ErrorBanner className="mt-6">The reservations could not be loaded. Reload the page.</ErrorBanner>}
 
       {!error && rows.length === 0 && (
-        <p className="mt-6 rounded border border-line bg-white px-4 py-6 text-muted">
+        <EmptyState className="mt-6">
           {filtered ? "No reservations match. Try a different search or clear the filters." : "There are no open reservations."}
-        </p>
+        </EmptyState>
       )}
 
       {rows.length > 0 && (

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { inputClass, buttonPrimary } from "@/components/staff/ui";
+import { inputClass, buttonPrimary, ErrorBanner, EmptyState, PageIntro } from "@/components/staff/ui";
 import { formatDate } from "@/lib/guest-site/format";
 import { searchPattern, stayLine, summariseStays, type StayRow } from "@/lib/staff/guests";
 import { todayIn } from "@/lib/staff/reservations";
@@ -32,7 +32,7 @@ export default async function GuestsPage({ searchParams }: { searchParams: Promi
   return (
     <main className="max-w-4xl">
       <h1 className="font-display text-3xl">Guests</h1>
-      <p className="mt-2 max-w-prose text-muted">Everyone who has booked with the hotel. Search by name, email or phone.</p>
+      <PageIntro>Everyone who has booked with the hotel. Search by name, email or phone.</PageIntro>
 
       <form method="get" className="mt-6 flex max-w-xl gap-2" role="search">
         <label htmlFor="q" className="sr-only">Search guests</label>
@@ -40,13 +40,13 @@ export default async function GuestsPage({ searchParams }: { searchParams: Promi
         <button type="submit" className={buttonPrimary}>Search</button>
       </form>
 
-      {guestQ.error && <p role="alert" className="mt-6 border-l-4 border-critical bg-critical/5 px-4 py-3 text-sm text-critical">The guest list could not be loaded. Reload the page.</p>}
+      {guestQ.error && <ErrorBanner className="mt-6">The guest list could not be loaded. Reload the page.</ErrorBanner>}
       {q && !pattern && <p className="mt-4 text-sm text-muted">Type at least two letters or digits.</p>}
 
       {!guestQ.error && guests.length === 0 ? (
-        <p className="mt-6 rounded border border-line bg-white px-4 py-6 text-muted">
+        <EmptyState className="mt-6">
           {pattern ? "No guest matches that." : "No guests yet, or your role cannot see guest details."}
-        </p>
+        </EmptyState>
       ) : (
         <ul className="mt-6 border-t border-line">
           {guests.map((g) => (

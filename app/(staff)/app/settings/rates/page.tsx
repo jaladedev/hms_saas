@@ -1,4 +1,4 @@
-import { buttonDanger, buttonPrimary, inputClass, Notice } from "@/components/staff/ui";
+import { buttonDanger, buttonPrimary, inputClass, Notice, ErrorBanner, PageIntro } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { createDefaultPlan, clearRates, setRates } from "@/lib/staff/rate-actions";
 import { groupRanges, type StoredRate } from "@/lib/staff/rates";
@@ -41,12 +41,12 @@ export default async function RatesPage({ searchParams }: { searchParams: Promis
   return (
     <main className="max-w-4xl">
       <h1 className="font-display text-3xl">Rates</h1>
-      <p className="mt-2 max-w-prose text-muted">
+      <PageIntro>
         Each room type has a standard nightly price. Set a different price for a date range, such as a holiday week, and bookings for those nights use it. Prices already booked do not change.
-      </p>
+      </PageIntro>
 
       <div className="mt-6"><Notice search={search} currency="NGN" /></div>
-      {loadError && <p role="alert" className="mb-6 border-l-4 border-critical bg-critical/5 px-4 py-3 text-sm text-critical">The rates could not be loaded. Reload the page.</p>}
+      {loadError && <ErrorBanner className="mb-6">The rates could not be loaded. Reload the page.</ErrorBanner>}
 
       {properties.map((p) => {
         const plan = plans.get(p.id);

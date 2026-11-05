@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { buttonPrimary, buttonQuiet, inputClass } from "@/components/staff/ui";
+import { buttonPrimary, buttonQuiet, inputClass, ErrorBanner, EmptyState, PageIntro } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { formatDateTime } from "@/lib/staff/format";
 import {
@@ -39,8 +39,8 @@ export default async function SetupHistoryPage({ searchParams }: { searchParams:
       <main className="max-w-3xl">
         <h1 className="font-display text-3xl">Setup history</h1>
         {propError
-          ? <p role="alert" className="mt-4 border-l-4 border-critical bg-critical/5 px-4 py-3 text-sm text-critical">The history could not be loaded. Reload the page.</p>
-          : <p className="mt-4 rounded border border-line bg-white px-4 py-6 text-muted">Only people who may view the audit trail, such as the owner and the general manager, can see who changed the hotel&apos;s setup. Ask one of them if you need to know.</p>}
+          ? <ErrorBanner className="mt-4">The history could not be loaded. Reload the page.</ErrorBanner>
+          : <EmptyState className="mt-4">Only people who may view the audit trail, such as the owner and the general manager, can see who changed the hotel&apos;s setup. Ask one of them if you need to know.</EmptyState>}
       </main>
     );
   }
@@ -81,9 +81,9 @@ export default async function SetupHistoryPage({ searchParams }: { searchParams:
   return (
     <main className="max-w-4xl">
       <h1 className="font-display text-3xl">Setup history</h1>
-      <p className="mt-2 max-w-prose text-muted">
+      <PageIntro>
         Who changed the hotel&apos;s room types, rooms, rates, tax rules, policies and staff access, newest first. Each line says who made the change and what it was; edits show the old and the new value. Nothing here can be changed or deleted.
-      </p>
+      </PageIntro>
 
       <form method="get" className="mt-6 flex flex-wrap items-end gap-4" aria-label="Filter the history">
         {many && (
@@ -108,12 +108,12 @@ export default async function SetupHistoryPage({ searchParams }: { searchParams:
         <p className="mt-3 text-sm text-muted">Suspensions, reinstatements and removals apply to the whole hotel group, so they show under All properties.</p>
       )}
 
-      {logError && <p role="alert" className="mt-6 border-l-4 border-critical bg-critical/5 px-4 py-3 text-sm text-critical">The history could not be loaded. Reload the page.</p>}
+      {logError && <ErrorBanner className="mt-6">The history could not be loaded. Reload the page.</ErrorBanner>}
 
       {!logError && rows.length === 0 && (
-        <p className="mt-6 rounded border border-line bg-white px-4 py-6 text-muted">
+        <EmptyState className="mt-6">
           {f.page > 1 ? "There is nothing further back." : "Nothing has been recorded for this selection yet."}
-        </p>
+        </EmptyState>
       )}
 
       {rows.length > 0 && (

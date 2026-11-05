@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { PriorityChip, ReportForm, StatusBadge } from "@/components/staff/maintenance-bits";
-import { buttonPrimary, buttonQuiet, inputClass, Notice } from "@/components/staff/ui";
+import { buttonPrimary, buttonQuiet, inputClass, Notice, ErrorBanner, EmptyState, PageIntro } from "@/components/staff/ui";
 import {
   actionsFor, countRequests, filterByPerson, formatDue, groupLive, placeOf, recentlyResolved, REQUEST_COLUMNS, sortRequests, type RequestRow,
 } from "@/lib/staff/maintenance";
@@ -140,10 +140,10 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
   return (
     <main className="max-w-5xl">
       <h1 className="font-display text-3xl">Maintenance</h1>
-      <p className="mt-2 max-w-prose text-muted">What is broken and who is fixing it, most urgent first. A repair never takes a room out of sale by itself; blocks are made on the room board.</p>
+      <PageIntro>What is broken and who is fixing it, most urgent first. A repair never takes a room out of sale by itself; blocks are made on the room board.</PageIntro>
 
       <div className="mt-6"><Notice search={search} currency="NGN" /></div>
-      {loadError && <p role="alert" className="mb-6 border-l-4 border-critical bg-critical/5 px-4 py-3 text-sm text-critical">The requests could not be loaded. Reload the page.</p>}
+      {loadError && <ErrorBanner className="mb-6">The requests could not be loaded. Reload the page.</ErrorBanner>}
 
       {!loadError && (
         <p className="flex flex-wrap gap-x-5 gap-y-1 text-sm" aria-label="Request totals">
@@ -168,7 +168,7 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
       )}
 
       <div className="mt-6">
-        {!loadError && counts.open === 0 && <p className="rounded border border-line bg-white px-4 py-6 text-muted">No open requests right now.</p>}
+        {!loadError && counts.open === 0 && <EmptyState>No open requests right now.</EmptyState>}
         <Section title="My requests" items={groups.mine} />
         <Section title="Nobody has these yet" hint={anyManager ? "Take one, or start it and it becomes yours." : "Maintenance will pick these up."} items={groups.unassigned} />
         <Section title="With others" items={groups.others} />

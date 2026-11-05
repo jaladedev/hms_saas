@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { z } from "zod";
 import { FolioSection } from "@/components/staff/folio";
 import { StayEdit } from "@/components/staff/stay-edit";
-import { buttonDanger, buttonPrimary, buttonQuiet, inputClass, Notice, PaymentChip, ReservationChip } from "@/components/staff/ui";
+import { buttonDanger, buttonPrimary, buttonQuiet, inputClass, Notice, PaymentChip, ReservationChip, linkClass } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { checkoutNote, CHARGE_COLUMNS, folioIsOpen, isFolioResult, owingMinor, PAYMENT_COLUMNS, type ChargeRow, type FolioBalance, type PaymentRow } from "@/lib/staff/folio";
 import { formatDateTime } from "@/lib/staff/format";
@@ -153,7 +153,7 @@ export default async function ReservationPage({
 
   return (
     <main className="max-w-4xl">
-      <p className="text-sm"><Link href="/app/reservations" className="text-primary-strong underline underline-offset-2">Reservations</Link></p>
+      <p className="text-sm"><Link href="/app/reservations" className={linkClass}>Reservations</Link></p>
       <h1 className="mt-2 font-display text-3xl">{res.booking_reference}</h1>
       <p className="mt-1 text-muted">
         {guest ? <Link href={`/app/guests/${res.primary_guest_id}`} className="underline underline-offset-2">{guest.full_name}</Link> : "Guest not visible to you"}{propertyName ? `, ${propertyName}` : ""}
@@ -333,7 +333,7 @@ export default async function ReservationPage({
         {held === null && <p className="mt-2 text-sm text-muted">You do not have access to this reservation's payments.</p>}
         {held !== null && (
           <p className="mt-3 text-sm">
-            <Link href={`/app/reservations/${res.id}/settlement`} className="text-primary-strong underline underline-offset-2">
+            <Link href={`/app/reservations/${res.id}/settlement`} className={linkClass}>
               {cancelled ? "Settlement, payments and refunds" : "Payments and refunds"}
             </Link>
           </p>

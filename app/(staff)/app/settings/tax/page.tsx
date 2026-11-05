@@ -1,4 +1,4 @@
-import { buttonPrimary, buttonQuiet, inputClass, Notice } from "@/components/staff/ui";
+import { buttonPrimary, buttonQuiet, inputClass, Notice, ErrorBanner, PageIntro } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { todayIn } from "@/lib/staff/reservations";
 import { addTaxRule, setExtrasTax, updateTaxRule } from "@/lib/staff/tax-actions";
@@ -39,12 +39,12 @@ export default async function TaxRulesPage({ searchParams }: { searchParams: Pro
   return (
     <main className="max-w-4xl">
       <h1 className="font-display text-3xl">Tax rules</h1>
-      <p className="mt-2 max-w-prose text-muted">
+      <PageIntro>
         Every tax rule in force is added to each night of a stay. Extras posted to a guest's folio, such as the minibar or laundry, are taxed only by the percentage rules you switch on here. Nothing is switched on until you do it, so until then extras carry no tax.
-      </p>
+      </PageIntro>
 
       <div className="mt-6"><Notice search={search} currency="NGN" /></div>
-      {loadError && <p role="alert" className="mb-6 border-l-4 border-critical bg-critical/5 px-4 py-3 text-sm text-critical">The tax rules could not be loaded. Reload the page.</p>}
+      {loadError && <ErrorBanner className="mb-6">The tax rules could not be loaded. Reload the page.</ErrorBanner>}
 
       {properties.map((p) => {
         const mine = rules.filter((r) => r.property_id === p.id);
