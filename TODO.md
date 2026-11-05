@@ -104,7 +104,8 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [ ] Hotel runs one full real day in staging with no spreadsheet fallback
 
 ## Phase 4: Hardening and launch
-- [ ] Audit coverage review; monitoring and alerts (System Design 9.5)
+- [ ] Monitoring and alerts (System Design 9.5)
+- [x] Audit coverage review (`docs/AUDIT_COVERAGE.md`): built from the database's own triggers, grants and functions. Two gaps closed in migration 047 (`49_config_audit.sql`): platform configuration (tenants, properties, domains, provider accounts, subscriptions, entitlements, platform admins) is audited by trigger, and guests can only be changed through the audited `update_guest`. Open items are listed in the document: who can read which rows, no actor for service-role changes, `audit_logs` retention
 - [ ] Backup restore rehearsal; record the real recovery point and time for the plan
 - [ ] Tax and levy rules confirmed by a qualified Nigerian adviser
 - [ ] Privacy review and data-processing agreement with the hotel; incident runbook and tabletop
