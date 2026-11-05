@@ -76,7 +76,7 @@ export default async function RoomCalendarPage({ searchParams }: { searchParams:
 
   return (
     <main>
-      <p className="text-sm"><Link href="/app/rooms" className="text-primary-strong underline underline-offset-2">Room board</Link></p>
+      <p className="flex flex-wrap gap-x-4 gap-y-1 text-sm"><Link href="/app/rooms" className="text-primary-strong underline underline-offset-2">Room board</Link><Link href="/app/front-desk/calendar" className="text-primary-strong underline underline-offset-2">Arrivals and departures</Link></p>
       <div className="mt-2">{heading}</div>
       <p className="mt-2 max-w-prose text-muted">
         Every room for the nights ahead. A stay covers the nights it is booked for; the departure day is free for the next guest.

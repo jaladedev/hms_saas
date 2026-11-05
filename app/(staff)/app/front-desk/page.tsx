@@ -80,6 +80,7 @@ export default async function FrontDeskPage() {
       <p className="mt-2 max-w-prose text-muted">
         Today{earliest ? `, ${formatDate(earliest)}` : ""}. Open a booking to check guests in or out.
       </p>
+      <p className="mt-2 text-sm"><Link href="/app/front-desk/calendar" className="text-primary-strong underline underline-offset-2">Arrivals and departures for the days ahead</Link></p>
 
       {loadError && <p role="alert" className="mt-6 border-l-4 border-critical bg-critical/5 px-4 py-3 text-sm text-critical">The front desk list could not be loaded. Reload the page.</p>}
 
