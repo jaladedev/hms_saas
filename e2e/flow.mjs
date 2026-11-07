@@ -1,5 +1,6 @@
 // End-to-end guest flow against the real app, real PostgREST, real Postgres and a fake Paystack.
 import { createHmac } from "node:crypto";
+import { writeFileSync } from "node:fs";
 
 const SITE = process.env.SITE_URL ?? "http://127.0.0.1:3100";
 const FAKE = process.env.FAKE_PAYSTACK_URL ?? "http://127.0.0.1:4010";
@@ -98,6 +99,8 @@ res = await site(bookingPath);
 html = await res.text();
 check("booking page shows reference, hold and pay button", res.status === 200 && /BK-[A-Z0-9-]+/.test(html) && sees(pageText(html), "Pay now", "Still to pay"));
 const reference = /BK-[A-Z0-9-]+/.exec(html)?.[0];
+// The guest links made above, for e2e/browser.mjs to open in a browser (it runs after this file, against the same data).
+if (process.env.E2E_SHARE_FILE) writeFileSync(process.env.E2E_SHARE_FILE, JSON.stringify({ reservePath: reserveHref, bookingPath }));
 
 // 5. Tampered tokens are not found
 res = await site(bookingPath.slice(0, -3) + "AAA");
@@ -223,6 +226,15 @@ const maint = () => fetch(`${SITE}/api/cron/maintenance`, { headers: { authoriza
 
 let c = await call("cancel_reservation", { p_reservation_id: reservationId, p_reason: "guest asked to cancel", p_idempotency_key: "e2e-cancel-1" }, OWNER);
 check("owner cancels the paid booking", c.status === 200 && c.body?.status === "cancelled", JSON.stringify(c));
+// What the guest sees at their link afterwards: it is cancelled, and nothing is shown as still owed or to pay.
+res = await site(bookingPath);
+const cancelledText = pageText(await res.text());
+check("the guest's booking page says cancelled and shows no amount still to pay, no Pay button and no empty Rooms row",
+  res.status === 200 && sees(cancelledText, "This booking was cancelled") && doesNotSee(cancelledText, "Still to pay", "Pay now") && !/Rooms Total/.test(cancelledText), cancelledText.slice(0, 400));
+// And if the guest opens the cancel link of a booking that is already cancelled, it says so, not that it is a hold that will release itself.
+res = await site(`${bookingPath}/cancel`);
+const alreadyText = pageText(await res.text());
+check("the cancel page of a cancelled booking says it is already cancelled", res.status === 200 && sees(alreadyText, "already cancelled") && doesNotSee(alreadyText, "release itself", "Cancel this booking"), alreadyText.slice(0, 400));
 res = await fetch(`${REST}/refunds?reservation_id=eq.${reservationId}&select=id,refund_status,amount_minor,requested_by`, { headers: { authorization: `Bearer ${ACCOUNTANT}` } });
 const refunds = await res.json();
 check("cancellation requested a refund for everything paid, in the canceller's name", refunds.length === 1 && refunds[0].refund_status === "requested" && refunds[0].amount_minor === 5000000 && refunds[0].requested_by === "00000000-0000-0000-0000-00000000aa01", JSON.stringify(refunds));

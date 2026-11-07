@@ -30,13 +30,20 @@ export function cancelSummary(p: CancelPreview, format: (minor: number, currency
   return { headline, lines };
 }
 
-/** The sentence for a booking that cannot be cancelled online, by the reason the database gave. */
-export function notAllowedText(why: CancelPreview["why_not"]): string {
+/**
+ * The sentence for a booking that cannot be cancelled online, by the reason the database gave. The reason "status" covers
+ * every state but confirmed, so when the booking's own status is known it is used to say what is true: a booking that is
+ * already cancelled is not "a hold that will release itself".
+ */
+export function notAllowedText(why: CancelPreview["why_not"], status?: string): string {
   switch (why) {
     case "too_late": return "It is too late to cancel online because check-in time has passed. Please contact the hotel.";
     case "disabled": return "This hotel does not take cancellations online. Please contact the hotel to cancel.";
     case "started": return "This stay has already started, so it cannot be cancelled online. Please contact the hotel.";
-    case "status": return "This booking cannot be cancelled online. If it is a hold that has not been paid, it will release itself when the time runs out.";
+    case "status":
+      if (status === "cancelled") return "This booking is already cancelled.";
+      if (status === "expired") return "The time to pay for this booking ran out and the rooms were released, so there is nothing to cancel.";
+      return "This booking cannot be cancelled online. If it is a hold that has not been paid, it will release itself when the time runs out.";
     default: return "This booking cannot be cancelled online. Please contact the hotel.";
   }
 }

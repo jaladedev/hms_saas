@@ -58,3 +58,19 @@ describe("guest error wording", () => {
     expect(sql).toMatch(/INVALID_STATE: too late/);
   });
 });
+
+describe("notAllowedText says what is true about the booking's state", () => {
+  it("a cancelled booking is already cancelled, not a hold that will release itself", () => {
+    expect(notAllowedText("status", "cancelled")).toBe("This booking is already cancelled.");
+  });
+  it("an expired hold has nothing to cancel", () => {
+    expect(notAllowedText("status", "expired")).toContain("nothing to cancel");
+  });
+  it("an unpaid hold, or a caller that does not know the status, keeps the hold wording", () => {
+    for (const status of ["pending", undefined]) expect(notAllowedText("status", status)).toContain("release itself");
+  });
+  it("the status changes only the status reason", () => {
+    expect(notAllowedText("too_late", "cancelled")).toBe(notAllowedText("too_late"));
+    expect(notAllowedText("disabled", "cancelled")).toBe(notAllowedText("disabled"));
+  });
+});

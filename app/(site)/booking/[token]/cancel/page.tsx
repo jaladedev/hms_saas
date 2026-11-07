@@ -51,7 +51,7 @@ export default async function CancelPage({ params, searchParams }: Props) {
           </form>
         </section>
       ) : (
-        <p className="mt-6 rounded border border-line bg-white p-4">{notAllowedText(p.why_not)}</p>
+        <p className="mt-6 rounded border border-line bg-white p-4">{notAllowedText(p.why_not, b.status)}</p>
       )}
     </main>
   );

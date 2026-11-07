@@ -12,7 +12,7 @@
 // for a person to open. It also does not click anything: the clicks are flow.mjs's job, over HTTP.
 import { createHmac } from "node:crypto";
 import { createRequire } from "node:module";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
 
 const SITE = process.env.SITE_URL ?? "http://127.0.0.1:3100";
 const REST = process.env.POSTGREST_URL ?? "http://127.0.0.1:3001";
@@ -90,7 +90,10 @@ const staffPages = [
   ...(maintenanceId ? [`/app/maintenance/${maintenanceId}`] : []),
   ...(invoice ? [`/app/reservations/${invoice.reservation_id}/folio-invoice/${invoice.id}`] : []),
 ];
-const guestPages = ["/", "/booking/find", "/login", "/forgot-password"];
+// The guest's own links, made by flow.mjs: the page that quotes a room, the booking page, and the cancel page.
+const shared = (() => { try { return JSON.parse(readFileSync(process.env.E2E_SHARE_FILE ?? "/tmp/e2e-share.json", "utf8")); } catch { return null; } })();
+check("flow.mjs shared the guest booking links", !!shared?.reservePath && !!shared?.bookingPath, "no share file (E2E_SHARE_FILE)");
+const guestPages = ["/", "/booking/find", "/login", "/forgot-password", ...(shared ? [shared.reservePath, shared.bookingPath, `${shared.bookingPath}/cancel`] : [])];
 
 const viewports = [
   { name: "desktop", width: 1280, height: 800, isMobile: false },
@@ -149,13 +152,15 @@ async function visit(path, { guest, viewport }) {
   }), viewport.width).catch(() => ({ h1: 0, over: 0, wide: [], errorPage: true }));
   const landed = new URL(page.url()).pathname;
 
-  const file = `${SHOTS}/${(guest ? "guest" : "staff")}-${path.replace(/[^a-z0-9]+/gi, "_").replace(/^_|_$/g, "") || "home"}-${viewport.name}.png`;
+  // The page's name without its query, record ids or the guest's private token: for the label and the file name.
+  const shortPath = path.replace(/\?.*$/, "").replace(/[0-9a-f]{8}-[0-9a-f-]{27}/g, ":id").replace(/\/booking\/[\w-]+\.[\w-]+/, "/booking/:token");
+  const file = `${SHOTS}/${guest ? "guest" : "staff"}-${shortPath.replace(/[^a-z0-9]+/gi, "_").replace(/^_|_$/g, "") || "home"}-${viewport.name}.png`;
   await page.screenshot({ path: file, fullPage: true }).catch(() => {});
   await context.close();
 
-  const label = `${guest ? "guest" : "staff"} ${path.replace(/[0-9a-f]{8}-[0-9a-f-]{27}/g, ":id")} (${viewport.name})`;
+  const label = `${guest ? "guest" : "staff"} ${shortPath} (${viewport.name})`;
   check(`${label} loads cleanly`, status === 200 && problems.length === 0 && !facts.errorPage, `status ${status} ${problems.slice(0, 3).join(" | ")}`);
-  check(`${label} stays on the page asked for`, landed === path, `landed on ${landed}`);
+  check(`${label} stays on the page asked for`, landed === new URL(path, SITE).pathname, `landed on ${landed}`);
   check(`${label} has a heading`, facts.h1 >= 1, `h1 count ${facts.h1}`);
   check(`${label} does not scroll sideways`, facts.over <= 1, `${facts.over}px too wide, e.g. ${facts.wide.join(", ")}`);
 }

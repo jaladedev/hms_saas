@@ -10,6 +10,7 @@ import { secondsRemaining } from "@/lib/guest-site/hold";
 import { notAllowedText } from "@/lib/guest-site/cancel";
 import { bookingStatus, cancelPreview } from "@/lib/guest-site/server";
 import { payAction } from "./actions";
+import { showsAmountDue } from "@/lib/guest-site/booking-summary";
 
 export const dynamic = "force-dynamic";
 // A booking link is a credential: keep it out of search engines and out of Referer headers.
@@ -75,11 +76,19 @@ export default async function BookingPage({ params, searchParams }: Props) {
         <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
           <dt className="text-muted">Check in</dt><dd>{formatDate(b.arrival_date)}, from {formatTime(b.check_in_time)}</dd>
           <dt className="text-muted">Check out</dt><dd>{formatDate(b.departure_date)}, by {formatTime(b.check_out_time)}</dd>
-          <dt className="text-muted">Rooms</dt>
-          <dd>{b.rooms.map((r, i) => <span key={i} className="block">{r.room_type}: {r.adults} {r.adults === 1 ? "adult" : "adults"}{r.children ? `, ${r.children} children` : ""}</span>)}</dd>
+          {b.rooms.length > 0 ? (
+            <>
+              <dt className="text-muted">Rooms</dt>
+              <dd>{b.rooms.map((r, i) => <span key={i} className="block">{r.room_type}: {r.adults} {r.adults === 1 ? "adult" : "adults"}{r.children ? `, ${r.children} children` : ""}</span>)}</dd>
+            </>
+          ) : null}
           <dt className="text-muted">Total</dt><dd>{formatMoney(b.total_minor, b.currency)}</dd>
           <dt className="text-muted">Paid</dt><dd>{formatMoney(b.paid_minor, b.currency)}</dd>
-          <dt className="text-muted">Still to pay</dt><dd>{formatMoney(b.outstanding_minor, b.currency)}</dd>
+          {showsAmountDue(b.status) ? (
+            <>
+              <dt className="text-muted">Still to pay</dt><dd>{formatMoney(b.outstanding_minor, b.currency)}</dd>
+            </>
+          ) : null}
         </dl>
       </section>
 
