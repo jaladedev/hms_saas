@@ -131,7 +131,7 @@ export const fieldLabel = (key: string): string => LABELS[key] ?? key.replace(/_
 const WORDS: Record<string, Record<string, string>> = {
   status: { active: "Active", inactive: "Switched off" },
   operational_status: { active: "In service", out_of_service: "Out of service", retired: "Retired" },
-  basis: { percent: "A percentage of the night's price", fixed_per_night: "A fixed amount each night" },
+  basis: { percent: "A percentage of the night's price", fixed_per_night: "A fixed amount each night", fixed_per_stay: "A fixed amount once per stay, for each room" },
 };
 
 /** One value as a person reads it. `basis` is the tax rule's kind, which decides what a rate means. */
@@ -148,6 +148,7 @@ export function formatValue(key: string, value: unknown, lookup: Lookup, fmt: Fo
     if (n === null) return String(value);
     if (basis === "percent") return `${Number.parseFloat(n.toFixed(4))}%`;
     if (basis === "fixed_per_night") return `${fmt.money(Math.round(n))} a night`;
+    if (basis === "fixed_per_stay") return `${fmt.money(Math.round(n))} a stay, per room`;
     return String(n);
   }
   if ((key === "effective_from" || key === "effective_to") && typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) return fmt.date(value);

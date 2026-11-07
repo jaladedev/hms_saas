@@ -300,7 +300,7 @@ export function errorMessage(code: string, refundable: number | null, formatMino
     case "rate_forbidden": return "You do not have permission to change rates.";
     case "rate_no_plan": return "This hotel has no standard rate plan yet. Create one first.";
     case "tax_forbidden": return "You do not have permission to change the hotel's tax rules.";
-    case "tax_not_percent": return "Only a percentage tax can be applied to extras. A fixed amount a night cannot.";
+    case "tax_not_percent": return "Only a percentage tax can be applied to extras. A fixed amount cannot.";
     case "tax_not_found": return "That tax rule could not be found, or you may not change it. Reload the page.";
     case "tax_invalid": return "Some of the tax details are not valid. Give it a name (up to 60 characters), a rate above zero (a percentage up to 100, or a naira amount a night), real dates with the last day on or after the first, and an order number from 1 to 999 or leave it blank.";
     case "tax_duplicate": return "Another tax rule with that name is already switched on for some of the same dates, so guests would be taxed twice on those nights. Switch the old rule off, or end it the day before this one starts.";

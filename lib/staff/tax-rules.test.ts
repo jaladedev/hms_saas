@@ -225,3 +225,26 @@ describe("the columns the screen reads", () => {
     for (const c of TAX_RULE_COLUMNS.split(",").map((s) => s.trim())) expect(columns.has(c), c).toBe(true);
   });
 });
+
+describe("fixed amount once per stay", () => {
+  const form = { propertyId: P1, name: "Fee", basis: "percent", rate: "7.5", sequence: "", effectiveFrom: "2026-11-01", effectiveTo: "", compounds: "" };
+  it("is described as a stay amount per room, and cannot be applied to extras", () => {
+    expect(describeRate(rule({ basis: "fixed_per_stay", rate_value: 500000 }), naira)).toBe("₦5000.00 a stay, per room");
+    expect(canApplyToExtras(rule({ basis: "fixed_per_stay" }))).toBe(false);
+    expect(appliesLine(rule({ basis: "fixed_per_stay" }))).toMatch(/once for each room, on its first night.*Cannot be applied to extras/);
+  });
+  it("reads its amount like a nightly amount", () => {
+    expect(parseRateValue("fixed_per_stay", "5,000")).toBe(500000);
+    for (const bad of ["0", "-1", "10.999", "abc", ""]) expect(parseRateValue("fixed_per_stay", bad), bad).toBeNull();
+  });
+  it("is accepted when a rule is added and never as a compounding rule", () => {
+    const r = validateTaxRule({ ...form, name: "Destination fee", basis: "fixed_per_stay", rate: "5,000", compounds: "on", sequence: "4", effectiveFrom: "2027-01-01" });
+    expect(r.ok && r.value.basis).toBe("fixed_per_stay");
+    expect(r.ok && r.value.rateValue).toBe(500000);
+    expect(r.ok && r.value.compounds).toBe(false);
+    expect(validateTaxRule({ ...form, basis: "fixed_per_week", rate: "5,000" })).toEqual({ ok: false, code: "tax_invalid" });
+  });
+  it("is accepted when an existing rule is edited, taking its basis from the row", () => {
+    expect(validateTaxRuleEdit({ ...form, ruleId: P1, rate: "6,000", sequence: "2" }, "fixed_per_stay").ok).toBe(true);
+  });
+});

@@ -42,7 +42,8 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 
 ## Phase 2: Core schema and security
 - [x] Pricing and policy: rate_plans, daily_rates, tax_rules (percent and fixed per night), property_policies (versioned), `resolve_rate`, `calc_night_tax` (005)
-- [ ] Stay-level fixed charges in `tax_rules` (folio taxes: see `applies_to_charges` below); `discount.apply` limits
+- [x] Stay-level fixed charge in `tax_rules` (migration 057): basis `fixed_per_stay`, charged once per room on its first night (stored in that night's tax, with `stay_tax_minor` recording the levy so a date change moves it, never doubles or drops it); not part of compounding; never applied to extras; the guest quote and `create_reservation` agree; older bookings are untouched. Not checked in a browser
+- [ ] `discount.apply` limits
 - [x] Operations, housekeeping: `housekeeping_tasks` with assignment, priority, due time and history (migration 023). The screen at `/app/housekeeping` now works from it (Phase 3)
 - [x] Operations, maintenance: `maintenance_requests` with reporting, assignment, priority, resolution and an optional link to a room block (migration 026). The screens at `/app/maintenance` now work from it (Phase 3)
 - [x] Operations, folio: `folio_charges` and `folio_payments` with per-charge tax and a balance (migration 027), kept beside the reservation's money and not inside it. Charges are posted during a stay or just after check-out by front desk, general manager and owner (`folio.charge`); money for extras is recorded with `payment.record`; a recorded folio payment is undone with `refund.approve`. The screens are below

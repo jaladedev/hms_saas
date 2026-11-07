@@ -648,4 +648,8 @@ FI="$(psql -f "$HERE/50_folio_invoices.sql" 2>&1)" || { echo "$FI"; echo "FOLIO 
 echo "$FI" | grep -E 'PASS' || true
 if echo "$FI" | grep -qE 'FAIL|ERROR'; then echo "$FI"; echo "FOLIO INVOICE TESTS FAILED"; exit 1; fi
 
+FP="$(psql -f "$HERE/58_fixed_per_stay_tax.sql" 2>&1)" || { echo "$FP"; echo "FIXED PER STAY TESTS FAILED"; exit 1; }
+echo "$FP" | grep -E 'PASS' || true
+if echo "$FP" | grep -qE 'FAIL|ERROR'; then echo "$FP"; echo "FIXED PER STAY TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

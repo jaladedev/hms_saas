@@ -16,7 +16,7 @@ export type TaxRuleRow = {
   property_id: string;
   name: string;
   basis: string;
-  /** Percent rules: a percentage (7.5 means 7.5%). Fixed-per-night rules: an amount in kobo. */
+  /** Percent rules: a percentage (7.5 means 7.5%). Fixed rules (a night or a stay): an amount in kobo. */
   rate_value: number | string;
   sequence: number;
   compounds: boolean;
@@ -33,7 +33,7 @@ export function describeRate(r: Pick<TaxRuleRow, "basis" | "rate_value">, format
   const value = Number(r.rate_value);
   if (!Number.isFinite(value)) return "Rate unknown";
   if (r.basis === "percent") return `${Number.parseFloat(value.toFixed(4))}%`;
-  return `${formatMinor(Math.round(value))} a night`;
+  return r.basis === "fixed_per_stay" ? `${formatMinor(Math.round(value))} a stay, per room` : `${formatMinor(Math.round(value))} a night`;
 }
 
 export type RuleState = "in_force" | "upcoming" | "ended" | "switched_off";
@@ -61,8 +61,12 @@ export function sortRules<T extends Pick<TaxRuleRow, "property_id" | "sequence" 
   return [...rules].sort((a, b) => a.property_id.localeCompare(b.property_id) || a.sequence - b.sequence || a.id.localeCompare(b.id));
 }
 
+export type TaxBasis = "percent" | "fixed_per_night" | "fixed_per_stay";
+export const isTaxBasis = (v: unknown): v is TaxBasis => v === "percent" || v === "fixed_per_night" || v === "fixed_per_stay";
+
 /** One line saying what a rule does to nights and to extras, for the row on the screen. */
 export function appliesLine(r: Pick<TaxRuleRow, "basis" | "applies_to_charges">): string {
+  if (r.basis === "fixed_per_stay") return "Charged once for each room, on its first night. Cannot be applied to extras.";
   if (r.basis !== "percent") return "Added to each night of a stay. Cannot be applied to extras.";
   return r.applies_to_charges ? "Added to each night of a stay and to extras posted to a guest's folio." : "Added to each night of a stay. Extras are not taxed by this rule.";
 }
@@ -130,7 +134,7 @@ export function parseRateValue(basis: string, raw: unknown): number | null {
     const value = Number(m[1]);
     return value > 0 && value <= 100 ? value : null;
   }
-  if (basis === "fixed_per_night") return parseAmountToMinor(text);
+  if (basis === "fixed_per_night" || basis === "fixed_per_stay") return parseAmountToMinor(text);
   return null;
 }
 
@@ -152,10 +156,10 @@ export type TaxRuleFields = {
   effectiveTo: string | null;
   status: "active" | "inactive";
 };
-export type TaxRuleInput = TaxRuleFields & { propertyId: string; basis: "percent" | "fixed_per_night" };
+export type TaxRuleInput = TaxRuleFields & { propertyId: string; basis: TaxBasis };
 export type TaxRuleEdit = TaxRuleFields & { ruleId: string; sequence: number };
 
-function parseFields(raw: Record<string, unknown>, basis: "percent" | "fixed_per_night"): { ok: true; value: TaxRuleFields } | { ok: false; code: ErrorCode } {
+function parseFields(raw: Record<string, unknown>, basis: TaxBasis): { ok: true; value: TaxRuleFields } | { ok: false; code: ErrorCode } {
   const name = clean(raw.name, RULE_NAME_MAX + 20);
   if (!name || name.length > RULE_NAME_MAX) return { ok: false, code: "tax_invalid" };
   const rateValue = parseRateValue(basis, raw.rate);
@@ -176,7 +180,7 @@ function parseFields(raw: Record<string, unknown>, basis: "percent" | "fixed_per
 export function validateTaxRule(raw: Record<string, unknown>): { ok: true; value: TaxRuleInput } | { ok: false; code: ErrorCode } {
   const propertyId = clean(raw.propertyId, 40);
   if (!GUID.test(propertyId)) return { ok: false, code: "bad_request" };
-  const basis = raw.basis === "percent" || raw.basis === "fixed_per_night" ? raw.basis : null;
+  const basis = isTaxBasis(raw.basis) ? raw.basis : null;
   if (!basis) return { ok: false, code: "tax_invalid" };
   const fields = parseFields({ ...raw, status: "active" }, basis);
   return fields.ok ? { ok: true, value: { propertyId, basis, ...fields.value } } : fields;
@@ -186,7 +190,7 @@ export function validateTaxRule(raw: Record<string, unknown>): { ok: true; value
 export function validateTaxRuleEdit(raw: Record<string, unknown>, basis: string): { ok: true; value: TaxRuleEdit } | { ok: false; code: ErrorCode } {
   const ruleId = clean(raw.ruleId, 40);
   if (!GUID.test(ruleId)) return { ok: false, code: "bad_request" };
-  if (basis !== "percent" && basis !== "fixed_per_night") return { ok: false, code: "tax_invalid" };
+  if (!isTaxBasis(basis)) return { ok: false, code: "tax_invalid" };
   const fields = parseFields(raw, basis);
   if (!fields.ok) return fields;
   // An edit always carries the order number, so a blank one is refused instead of silently moving the rule.

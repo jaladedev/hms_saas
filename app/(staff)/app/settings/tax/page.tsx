@@ -40,7 +40,7 @@ export default async function TaxRulesPage({ searchParams }: { searchParams: Pro
     <main className="max-w-4xl">
       <PageTitle>Tax rules</PageTitle>
       <PageIntro>
-        Every tax rule in force is added to each night of a stay. Extras posted to a guest's folio, such as the minibar or laundry, are taxed only by the percentage rules you switch on here. Nothing is switched on until you do it, so until then extras carry no tax.
+        Every tax rule in force is added to the stay: percentages and fixed nightly amounts to each night, and a fixed amount "once per stay" once for each room, on its first night. Extras posted to a guest's folio, such as the minibar or laundry, are taxed only by the percentage rules you switch on here. Nothing is switched on until you do it, so until then extras carry no tax.
       </PageIntro>
 
       <div className="mt-6"><Notice search={search} currency="NGN" /></div>
@@ -100,7 +100,7 @@ export default async function TaxRulesPage({ searchParams }: { searchParams: Pro
                               <input id={`tn-${r.id}`} name="name" required maxLength={RULE_NAME_MAX} defaultValue={r.name} className={inputClass} />
                             </div>
                             <div>
-                              <label htmlFor={`tr-${r.id}`} className="block text-sm">{r.basis === "percent" ? "Rate (%)" : "Amount a night (₦)"}</label>
+                              <label htmlFor={`tr-${r.id}`} className="block text-sm">{r.basis === "percent" ? "Rate (%)" : r.basis === "fixed_per_stay" ? "Amount a stay (₦)" : "Amount a night (₦)"}</label>
                               <input id={`tr-${r.id}`} name="rate" inputMode="decimal" required defaultValue={rateInputValue(r)} className={`${inputClass} tabular-nums`} />
                             </div>
                             <div>
@@ -156,13 +156,14 @@ export default async function TaxRulesPage({ searchParams }: { searchParams: Pro
                     <select id={`ab-${p.id}`} name="basis" defaultValue="percent" className={inputClass}>
                       <option value="percent">A percentage of the night&apos;s price</option>
                       <option value="fixed_per_night">A fixed amount each night</option>
+                      <option value="fixed_per_stay">A fixed amount once per stay, for each room</option>
                     </select>
                     <p className="mt-1 text-xs text-muted">This cannot be changed later.</p>
                   </div>
                   <div>
                     <label htmlFor={`ar-${p.id}`} className="block text-sm">Rate</label>
                     <input id={`ar-${p.id}`} name="rate" inputMode="decimal" required placeholder="7.5" className={`${inputClass} tabular-nums`} />
-                    <p className="mt-1 text-xs text-muted">A percentage: 7.5 means 7.5%. A fixed amount: naira a night, such as 1,000.</p>
+                    <p className="mt-1 text-xs text-muted">A percentage: 7.5 means 7.5%. A fixed amount: naira, such as 1,000, a night or once for each room's stay (charged on its first night).</p>
                   </div>
                   <div>
                     <label htmlFor={`as-${p.id}`} className="block text-sm">Order (optional)</label>
