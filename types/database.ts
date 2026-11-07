@@ -2762,6 +2762,14 @@ export type Database = {
         Args: { p_domain: string; p_verified: boolean }
         Returns: Json
       }
+      platform_log_owner_invite: {
+        Args: { p_tenant: string; p_user: string }
+        Returns: undefined
+      }
+      platform_owner_invite_check: {
+        Args: { p_tenant: string; p_user: string }
+        Returns: Json
+      }
       platform_set_entitlement: {
         Args: { p_enabled: boolean; p_feature_key: string; p_tenant: string }
         Returns: Json

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { z } from "zod";
 import { buttonPrimary, buttonQuiet, EmptyState, headRow, inputClass, linkClass, PageTitle, SectionTitle, thRowHead } from "@/components/staff/ui";
 import { PlatformNotice } from "@/components/platform-notice";
-import { addDomain, setDomainVerified, setEntitlement, setProviderStatus, setSubscription, setTenantStatus } from "@/lib/platform/actions";
+import { addDomain, resendOwnerInvite, setDomainVerified, setEntitlement, setProviderStatus, setSubscription, setTenantStatus } from "@/lib/platform/actions";
 import { shortDate } from "@/lib/platform/hotel";
 import { createClient } from "@/lib/supabase/server";
 
@@ -14,7 +14,7 @@ type Detail = {
   properties: { id: string; name: string; code: string; city: string | null; state: string | null; timezone: string; currency: string; status: string }[];
   domains: { id: string; host: string; property_id: string | null; is_primary: boolean; verified_at: string | null }[];
   payment_accounts: { id: string; provider: string; mode: string; label: string; secret_reference: string; status: string }[];
-  owners: { user_id: string; email: string | null; status: string }[];
+  owners: { user_id: string; email: string | null; status: string; accepted: boolean }[];
   subscription: { plan_code: string; status: string; trial_ends_at: string | null; current_period_end: string | null } | null;
   entitlements: { feature_key: string; enabled: boolean }[];
 };
@@ -53,7 +53,15 @@ export default async function HotelDetail({ params, searchParams }: { params: Pr
       <section aria-labelledby="owners">
         <SectionTitle id="owners">Owners</SectionTitle>
         {d.owners.length === 0 ? <EmptyState className="mt-3">No owner.</EmptyState> : (
-          <ul className="mt-3 border-t border-line">{d.owners.map((o) => <li key={o.user_id} className="border-b border-line py-2 text-sm">{o.email ?? "Unknown"} <span className="text-muted">({o.status})</span></li>)}</ul>
+          <ul className="mt-3 border-t border-line">{d.owners.map((o) => <li key={o.user_id} className="flex flex-wrap items-center gap-3 border-b border-line py-2 text-sm">
+            <span>{o.email ?? "Unknown"} <span className="text-muted">({o.status}, {o.accepted ? "has signed up" : "invitation not accepted yet"})</span></span>
+            {admin && !o.accepted && (
+              <form action={resendOwnerInvite} className="ml-auto">
+                <input type="hidden" name="tenantId" value={t.id} /><input type="hidden" name="userId" value={o.user_id} />
+                <button type="submit" className={buttonQuiet}>Send invitation again</button>
+              </form>
+            )}
+          </li>)}</ul>
         )}
       </section>
 
@@ -105,7 +113,7 @@ export default async function HotelDetail({ params, searchParams }: { params: Pr
 
       <section aria-labelledby="sub">
         <SectionTitle id="sub">Plan and features</SectionTitle>
-        <p className="mt-2 max-w-prose text-sm text-muted">One flag is enforced: reports.export. Turned off, the hotel's CSV downloads stop; with no row, or on, they work. Any other key is only recorded and switches nothing.</p>
+        <p className="mt-2 max-w-prose text-sm text-muted">Two flags are enforced. reports.export: turned off, the hotel's CSV downloads stop. online_payments: turned off, guests cannot start a card payment (payments already made, refunds and staff-recorded payments are unaffected). With no row, or on, both work. Any other key is only recorded and switches nothing.</p>
         <p className="mt-3 text-sm">{d.subscription ? `${d.subscription.plan_code} (${d.subscription.status})${d.subscription.trial_ends_at ? `, trial ends ${shortDate(d.subscription.trial_ends_at)}` : ""}${d.subscription.current_period_end ? `, period ends ${shortDate(d.subscription.current_period_end)}` : ""}` : "No plan set."}</p>
         {admin && (
           <form action={setSubscription} className="mt-3 flex flex-wrap items-end gap-3">

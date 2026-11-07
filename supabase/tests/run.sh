@@ -157,6 +157,9 @@ if echo "$PP" | grep -qE 'FAIL|ERROR'; then echo "$PP"; echo "PLATFORM PLAN TEST
 RF="$(psql -f "$HERE/53_report_export_flag.sql" 2>&1)" || { echo "$RF"; echo "REPORT EXPORT FLAG TESTS FAILED"; exit 1; }
 echo "$RF" | grep -E 'PASS' || true
 if echo "$RF" | grep -qE 'FAIL|ERROR'; then echo "$RF"; echo "REPORT EXPORT FLAG TESTS FAILED"; exit 1; fi
+OI="$(psql -f "$HERE/54_owner_invite.sql" 2>&1)" || { echo "$OI"; echo "OWNER INVITE TESTS FAILED"; exit 1; }
+echo "$OI" | grep -E 'PASS' || true
+if echo "$OI" | grep -qE 'FAIL|ERROR'; then echo "$OI"; echo "OWNER INVITE TESTS FAILED"; exit 1; fi
 IP="$(psql -f "$HERE/43_idempotency_purge.sql" 2>&1)" || { echo "$IP"; echo "IDEMPOTENCY PURGE TESTS FAILED"; exit 1; }
 echo "$IP" | grep -E 'PASS' || true
 if echo "$IP" | grep -qE 'FAIL|ERROR'; then echo "$IP"; echo "IDEMPOTENCY PURGE TESTS FAILED"; exit 1; fi

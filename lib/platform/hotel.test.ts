@@ -70,7 +70,7 @@ describe("validateNewHotel", () => {
 
 describe("classifyPlatformError", () => {
   const c = (message: string, code?: string) => classifyPlatformError({ message, ...(code ? { code } : {}) });
-  it("maps every refusal the functions in migrations 050 and 051 raise", () => {
+  it("maps every refusal the functions in migrations 050, 051 and 054 raise", () => {
     expect(c("NOT_FOUND")).toBe("not_found");
     expect(c("NOT_FOUND: owner")).toBe("owner_missing");
     expect(c("NOT_FOUND: property")).toBe("property");
@@ -93,11 +93,11 @@ describe("classifyPlatformError", () => {
   });
 });
 
-describe("migrations 050 and 051 and the wording agree", () => {
+describe("migrations 050, 051 and 054 and the wording agree", () => {
   it("every refusal the migration raises is one the classifier understands", async () => {
     const { readFileSync, readdirSync } = await import("node:fs");
     const dir = "supabase/migrations";
-    const sql = ["_platform_admin.sql", "_platform_plans.sql"].map((end) => readFileSync(`${dir}/${readdirSync(dir).find((f) => f.endsWith(end))!}`, "utf8")).join("\n");
+    const sql = ["_platform_admin.sql", "_platform_plans.sql", "_owner_invite.sql"].map((end) => readFileSync(`${dir}/${readdirSync(dir).find((f) => f.endsWith(end))!}`, "utf8")).join("\n");
     const raised = [...sql.matchAll(/raise exception '((?:POLICY_VIOLATION|NOT_FOUND|CONFLICT)[^']*)'/g)].map((m) => m[1]!);
     expect(raised.length).toBeGreaterThan(10);
     for (const msg of new Set(raised)) expect(classifyPlatformError({ message: msg }), msg).not.toBe("unavailable");

@@ -147,3 +147,25 @@ export async function setEntitlement(formData: FormData) {
   revalidatePath(page);
   return done(page, (data as { changed?: boolean } | null)?.changed === false ? "unchanged" : "feature_set");
 }
+
+/** Sends an owner who has not accepted yet a new invitation. The database confirms the person is an owner of this group first. */
+export async function resendOwnerInvite(formData: FormData) {
+  const p = z.object({ tenantId: uuid, userId: uuid }).safeParse(Object.fromEntries(formData));
+  if (!p.success) return fail(LIST, "bad_request");
+  const page = `/platform/${p.data.tenantId}`;
+  const supabase = await adminClient(page);
+  const check = await supabase.rpc("platform_owner_invite_check", { p_tenant: p.data.tenantId, p_user: p.data.userId });
+  if (check.error) return fail(page, classifyPlatformError(check.error));
+  const info = check.data as { email?: string; accepted?: boolean } | null;
+  if (!info?.email) return fail(page, "not_found");
+  if (info.accepted) return fail(page, "owner_active");
+
+  const origin = siteOrigin(await headers(), process.env.NODE_ENV === "production");
+  if (!origin) return fail(page, "invite_failed");
+  const sent = await createServiceClient().auth.admin.inviteUserByEmail(info.email, { redirectTo: `${origin}/auth/callback?next=/reset-password` });
+  if (sent.error) return fail(page, "invite_failed");
+  const logged = await supabase.rpc("platform_log_owner_invite", { p_tenant: p.data.tenantId, p_user: p.data.userId });
+  if (logged.error) return fail(page, classifyPlatformError(logged.error));
+  revalidatePath(page);
+  return done(page, "invite_resent");
+}
