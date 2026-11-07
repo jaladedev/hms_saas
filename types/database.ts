@@ -104,6 +104,21 @@ export type Database = {
           },
         ]
       }
+      discount_caps: {
+        Row: {
+          max_percent: number
+          role_key: string
+        }
+        Insert: {
+          max_percent: number
+          role_key: string
+        }
+        Update: {
+          max_percent?: number
+          role_key?: string
+        }
+        Relationships: []
+      }
       email_outbox: {
         Row: {
           attempts: number
@@ -1694,6 +1709,8 @@ export type Database = {
           currency: string
           departure_date: string
           discount_minor: number
+          discount_percent: number | null
+          discount_reason: string | null
           id: string
           no_show_at: string | null
           payment_status: string
@@ -1721,6 +1738,8 @@ export type Database = {
           currency?: string
           departure_date: string
           discount_minor?: number
+          discount_percent?: number | null
+          discount_reason?: string | null
           id?: string
           no_show_at?: string | null
           payment_status?: string
@@ -1747,6 +1766,8 @@ export type Database = {
           currency?: string
           departure_date?: string
           discount_minor?: number
+          discount_percent?: number | null
+          discount_reason?: string | null
           id?: string
           no_show_at?: string | null
           payment_status?: string
@@ -2346,6 +2367,15 @@ export type Database = {
           p_role_key: string
           p_tenant: string
           p_user: string
+        }
+        Returns: Json
+      }
+      apply_discount: {
+        Args: {
+          p_idempotency_key: string
+          p_percent: number
+          p_reason: string
+          p_reservation_id: string
         }
         Returns: Json
       }

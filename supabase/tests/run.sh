@@ -652,4 +652,8 @@ FP="$(psql -f "$HERE/58_fixed_per_stay_tax.sql" 2>&1)" || { echo "$FP"; echo "FI
 echo "$FP" | grep -E 'PASS' || true
 if echo "$FP" | grep -qE 'FAIL|ERROR'; then echo "$FP"; echo "FIXED PER STAY TESTS FAILED"; exit 1; fi
 
+DC="$(psql -f "$HERE/59_discounts.sql" 2>&1)" || { echo "$DC"; echo "DISCOUNT TESTS FAILED"; exit 1; }
+echo "$DC" | grep -E 'PASS' || true
+if echo "$DC" | grep -qE 'FAIL|ERROR'; then echo "$DC"; echo "DISCOUNT TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

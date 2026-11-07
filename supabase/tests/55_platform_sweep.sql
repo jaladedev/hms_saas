@@ -8,7 +8,7 @@
 do $$
 declare
   u text; tb text; n bigint; pid uuid; perm text; ctl_tables int := 0; v_props uuid[];
-  allowed text[] := array['roles', 'permissions', 'role_permissions'];   -- reference data, readable by every login on purpose
+  allowed text[] := array['roles', 'permissions', 'role_permissions', 'discount_caps'];   -- global reference data (no hotel in it), readable by every login on purpose
   a_owner text := '00000000-0000-0000-0000-00000000aa01';
   fn record; args text; callers text[]; c text; msg text; calls int := 0;
 begin

@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { z } from "zod";
 import { FolioSection } from "@/components/staff/folio";
 import { StayEdit } from "@/components/staff/stay-edit";
+import { Discount } from "@/components/staff/discount";
+import { discountView } from "@/lib/staff/discount";
 import { buttonDanger, buttonPrimary, buttonQuiet, inputClass, Notice, PaymentChip, ReservationChip, linkClass, PageTitle, SectionTitle } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { checkoutNote, CHARGE_COLUMNS, folioIsOpen, isFolioResult, owingMinor, PAYMENT_COLUMNS, type ChargeRow, type FolioBalance, type PaymentRow } from "@/lib/staff/folio";
@@ -23,7 +25,7 @@ export const dynamic = "force-dynamic";
 type Reservation = {
   id: string; property_id: string; booking_reference: string; primary_guest_id: string; source: string;
   reservation_status: string; payment_status: string; arrival_date: string; departure_date: string; currency: string;
-  subtotal_minor: number; tax_minor: number; discount_minor: number; total_minor: number;
+  subtotal_minor: number; tax_minor: number; discount_minor: number; discount_percent: number | string | null; discount_reason: string | null; total_minor: number;
   cancellation_charge_minor: number; cancel_reason: string | null; cancelled_at: string | null; no_show_at: string | null;
   attention_reason: string | null; created_at: string;
 };
@@ -49,7 +51,7 @@ export default async function ReservationPage({
 
   const { data: resRow } = await supabase
     .from("reservations")
-    .select("id, property_id, booking_reference, primary_guest_id, source, reservation_status, payment_status, arrival_date, departure_date, currency, subtotal_minor, tax_minor, discount_minor, total_minor, cancellation_charge_minor, cancel_reason, cancelled_at, no_show_at, attention_reason, created_at, policy_snapshot")
+    .select("id, property_id, booking_reference, primary_guest_id, source, reservation_status, payment_status, arrival_date, departure_date, currency, subtotal_minor, tax_minor, discount_minor, discount_percent, discount_reason, total_minor, cancellation_charge_minor, cancel_reason, cancelled_at, no_show_at, attention_reason, created_at, policy_snapshot")
     .eq("id", id).maybeSingle();
   if (!resRow) notFound();
   const res = resRow as Reservation;
@@ -58,7 +60,7 @@ export default async function ReservationPage({
   // A guest who has not arrived has no folio, so nothing is read for one. A person who may not see it gets an error from
   // folio_balance (the database answers "not found"), and then the whole section is left out.
   const showFolio = folioIsOpen(res.reservation_status);
-  const [roomsQ, guestQ, propQ, settleQ, cCancel, cIn, cOut, cPay, invQ, cIssue, cVoid, cAssign, folioBalQ, folioChargesQ, folioPaymentsQ, cFolio, cReverse, folioInvQ, cModify, payCountQ] = await Promise.all([
+  const [roomsQ, guestQ, propQ, settleQ, cCancel, cIn, cOut, cPay, invQ, cIssue, cVoid, cAssign, folioBalQ, folioChargesQ, folioPaymentsQ, cFolio, cReverse, folioInvQ, cModify, payCountQ, cDiscount] = await Promise.all([
     supabase.from("reservation_rooms").select("id, room_type_id, room_status, adults, children, checked_in_at, checked_out_at").eq("reservation_id", id).order("created_at"),
     supabase.from("guests").select("full_name, email, phone").eq("id", res.primary_guest_id).maybeSingle(),
     supabase.from("properties").select("name, timezone").eq("id", res.property_id).maybeSingle(),
@@ -74,6 +76,7 @@ export default async function ReservationPage({
     // Editing dates and guests: only a confirmed booking can be edited, so nothing is read for any other.
     res.reservation_status === "confirmed" ? can("reservation.modify") : null,
     res.reservation_status === "confirmed" ? supabase.from("payments").select("id", { count: "exact", head: true }).eq("reservation_id", id) : null,
+    res.reservation_status === "confirmed" ? can("discount.apply") : null,
   ]);
 
   const resRooms = (roomsQ.data ?? []) as ResRoom[];
@@ -144,6 +147,11 @@ export default async function ReservationPage({
   const stayView = stayEditView({
     reservationStatus: res.reservation_status, rooms: resRooms, canModify: cModify?.data === true,
     paymentCount: payCountQ?.count ?? 0, liveInvoiceCount: invoices.filter((i) => i.invoice_status !== "void").length,
+  });
+  const liveInvoices = invoices.filter((i) => i.invoice_status !== "void").length;
+  const discountState = discountView({
+    canApply: cDiscount?.data === true, reservationStatus: res.reservation_status,
+    paymentCount: payCountQ?.count ?? 0, liveInvoiceCount: liveInvoices, currentPercent: res.discount_percent === null ? null : Number(res.discount_percent),
   });
   const stayRooms = resRooms.map((rr, i) => {
     const t = typeRows.find((x) => x.id === rr.room_type_id);
@@ -307,7 +315,7 @@ export default async function ReservationPage({
           {[
             ["Room charges", money(res.subtotal_minor)],
             ["Tax", money(res.tax_minor)],
-            ...(res.discount_minor > 0 ? [["Discount", `− ${money(res.discount_minor)}`]] : []),
+            ...(res.discount_minor > 0 ? [[`Discount${res.discount_percent !== null ? ` (${Number(res.discount_percent)}%)` : ""}`, `− ${money(res.discount_minor)}`]] : []),
           ].map(([label, value]) => (
             <div key={label} className="flex items-baseline justify-between gap-6 py-1.5">
               <dt className="text-muted">{label}</dt><dd className="tabular-nums">{value}</dd>
@@ -332,6 +340,8 @@ export default async function ReservationPage({
             </div>
           )}
         </dl>
+        {res.discount_reason && res.discount_minor > 0 && <p className="mt-1 max-w-md text-sm text-muted">Discount reason: {res.discount_reason}</p>}
+        {discountState.kind !== "hidden" && <Discount reservationId={res.id} view={discountState} />}
         {held === null && <p className="mt-2 text-sm text-muted">You do not have access to this reservation's payments.</p>}
         {held !== null && (
           <p className="mt-3 text-sm">
