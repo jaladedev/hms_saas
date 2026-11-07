@@ -7,6 +7,7 @@ import { Discount } from "@/components/staff/discount";
 import { discountView } from "@/lib/staff/discount";
 import { buttonDanger, buttonPrimary, buttonQuiet, inputClass, Notice, PaymentChip, ReservationChip, linkClass, PageTitle, SectionTitle } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
+import { earlyCheckoutNote, parseEarlyQuote, type EarlyQuote } from "@/lib/staff/early-checkout";
 import { checkoutNote, CHARGE_COLUMNS, folioIsOpen, isFolioResult, owingMinor, PAYMENT_COLUMNS, type ChargeRow, type FolioBalance, type PaymentRow } from "@/lib/staff/folio";
 import { FOLIO_INVOICE_COLUMNS, type FolioInvoiceRow } from "@/lib/staff/folio-invoice";
 import { formatDateTime } from "@/lib/staff/format";
@@ -120,6 +121,13 @@ export default async function ReservationPage({
   const invoices = (invQ.data ?? []) as InvoiceRow[];
   const inv = invoiceActions(res.reservation_status, invoices, { issue: cIssue.data === true, void: cVoid.data === true });
   const money = (m: number) => formatMoney(m, res.currency);
+  // What check-out would do for each guest in the house who is leaving early, under the hotel's policy (migration 060).
+  const earlyQuotes = new Map<string, EarlyQuote>();
+  if (cOut.data === true && today < res.departure_date) {
+    const inHouse = resRooms.filter((x) => x.room_status === "checked_in");
+    const answers = await Promise.all(inHouse.map((x) => supabase.rpc("early_checkout_quote", { p_reservation_room_id: x.id })));
+    answers.forEach((a, i) => { const q = parseEarlyQuote(a.data); if (q) earlyQuotes.set(inHouse[i]!.id, q); });
+  }
   const holdTimes = claims.filter((c) => c.claim_type === "hold" && c.hold_expires_at).map((c) => c.hold_expires_at as string).sort();
   const hold = holdView(res.reservation_status, holdTimes[0] ?? null, new Date(), res.total_minor, (res as { policy_snapshot?: unknown }).policy_snapshot as Parameters<typeof holdView>[4], held);
   const stayNights = nightsBetween(res.arrival_date, res.departure_date);
@@ -295,7 +303,12 @@ export default async function ReservationPage({
                         <input type="hidden" name="reservationId" value={res.id} />
                         <input type="hidden" name="reservationRoomId" value={rr.id} />
                         <button type="submit" className={buttonQuiet}>Check out</button>
-                        {today < res.departure_date && <p className="max-w-xs text-xs text-muted">Leaving before {formatDate(res.departure_date)}: the room is freed for the unused nights.</p>}
+                        {today < res.departure_date && (
+                          <p className="max-w-xs text-xs text-muted">
+                            {(earlyQuotes.get(rr.id) && earlyCheckoutNote(earlyQuotes.get(rr.id)!, formatDate(res.departure_date), money))
+                              ?? `Leaving before ${formatDate(res.departure_date)}: the room is freed for the unused nights.`}
+                          </p>
+                        )}
                         {folioCheckoutNote && (
                           <p className="max-w-xs text-xs text-pending">{folioCheckoutNote} <a href="#folio" className="underline underline-offset-2">See folio</a></p>
                         )}

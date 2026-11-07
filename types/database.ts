@@ -1753,6 +1753,7 @@ export type Database = {
           discount_minor: number
           discount_percent: number | null
           discount_reason: string | null
+          early_checkout_credit_minor: number
           id: string
           no_show_at: string | null
           payment_status: string
@@ -1782,6 +1783,7 @@ export type Database = {
           discount_minor?: number
           discount_percent?: number | null
           discount_reason?: string | null
+          early_checkout_credit_minor?: number
           id?: string
           no_show_at?: string | null
           payment_status?: string
@@ -1810,6 +1812,7 @@ export type Database = {
           discount_minor?: number
           discount_percent?: number | null
           discount_reason?: string | null
+          early_checkout_credit_minor?: number
           id?: string
           no_show_at?: string | null
           payment_status?: string
@@ -2624,6 +2627,7 @@ export type Database = {
           rooms_sold: number
         }[]
       }
+      early_checkout_quote: { Args: { p_reservation_room_id: string }; Returns: Json }
       email_folio_invoice: {
         Args: { p_idempotency_key: string; p_invoice_id: string }
         Returns: Json

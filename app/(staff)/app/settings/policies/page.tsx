@@ -131,6 +131,15 @@ export default async function PoliciesPage({ searchParams }: { searchParams: Pro
                       <p className="mt-1 text-xs text-muted">This applies as soon as the version starts, to bookings already made too. Staff can always cancel. The charge a guest would pay still follows the rules they booked under.</p>
                     </div>
                     <div className="sm:col-span-2">
+                      <label htmlFor={`ec-${p.id}`} className="block text-sm">When a guest checks out early</label>
+                      <select id={`ec-${p.id}`} name="earlyCheckout" defaultValue={cfg.early_checkout} className={inputClass}>
+                        <option value="none">The hotel keeps the whole price</option>
+                        <option value="credit">Nights not stayed come off the booking</option>
+                        <option value="one_night">Nights not stayed come off, but tonight&apos;s night is kept</option>
+                      </select>
+                      <p className="mt-1 text-xs text-muted">Applies at check-out, to the nights from today on. A discount is applied again to the smaller price and a live invoice is replaced. If the guest has paid more than the new total, a refund is flagged for a person to request: nothing is refunded automatically.</p>
+                    </div>
+                    <div className="sm:col-span-2">
                       <label htmlFor={`cp-${p.id}`} className="block text-sm">Before check-in</label>
                       <select id={`cp-${p.id}`} name="checkinPayment" defaultValue={cfg.checkin_payment} className={inputClass}>
                         <option value="none">The balance can be paid at the desk</option>

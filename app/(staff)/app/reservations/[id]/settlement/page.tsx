@@ -23,7 +23,7 @@ type Payment = {
 };
 type Invoice = { id: string; invoice_number: string; invoice_status: string; total_minor: number };
 type Settlement = {
-  applicable: boolean; charge_minor: number; held_minor: number; refunds_in_flight_minor: number; refunded_minor: number;
+  applicable: boolean; kind: "cancelled" | "early_checkout" | null; credit_minor: number; charge_minor: number; held_minor: number; refunds_in_flight_minor: number; refunded_minor: number;
   refund_still_to_request_minor: number; charge_due_minor: number; settled: boolean;
 };
 
@@ -31,6 +31,7 @@ const METHOD: Record<string, string> = { cash: "Cash", bank_transfer: "Bank tran
 
 const ATTENTION: Record<string, string> = {
   cancellation_charge_unpaid: "The cancellation charge has not been fully collected yet. Record a payment for the difference, or decide how to handle it.",
+  early_checkout_refund_due: "The guest left early and has paid more than the reduced total. Request a refund for the difference from the payment below.",
   paid_after_cancel: "The guest paid after this reservation was cancelled. That money should go back to them: request a refund below.",
   paid_inventory_lost: "The guest paid, but the rooms were no longer available. The money needs refunding or the booking re-made by hand.",
 };
@@ -114,11 +115,13 @@ export default async function SettlementPage({
               </PageIntro>
             ) : settlement && (
               <>
+                {settlement.kind === "early_checkout" && <p className="mt-1 text-sm text-muted">The guest left early. Nights not stayed were credited under the hotel&apos;s policy, and the invoice was replaced to match.</p>}
                 {res.cancel_reason && <p className="mt-1 text-sm text-muted">Cancelled{res.cancelled_at ? ` ${formatDateTime(res.cancelled_at, tz)}` : ""}: {res.cancel_reason}</p>}
                 <dl className="mt-4 max-w-md text-sm">
                   {[
                     ["Held now (paid in, less refunded)", money(settlement.held_minor), ""],
-                    ["Cancellation charge", `− ${money(settlement.charge_minor)}`, ""],
+                    ...(settlement.kind === "early_checkout" ? [["Credited for nights not stayed", money(settlement.credit_minor), ""]] : []),
+                    [settlement.kind === "early_checkout" ? "Total after early check-out" : "Cancellation charge", `− ${money(settlement.charge_minor)}`, ""],
                     ["Refunds already requested or paying out", `− ${money(settlement.refunds_in_flight_minor)}`, ""],
                   ].map(([label, value]) => (
                     <div key={label} className="flex items-baseline justify-between gap-6 py-1.5">
@@ -147,7 +150,7 @@ export default async function SettlementPage({
                     : settlement.refund_still_to_request_minor > 0
                       ? "A refund for the amount above has not been requested yet. Request it from the payment below."
                       : settlement.charge_due_minor > 0
-                        ? "Waiting on the guest to cover the cancellation charge."
+                        ? (settlement.kind === "early_checkout" ? "The guest still owes the balance of the reduced total." : "Waiting on the guest to cover the cancellation charge.")
                         : "Refunds are in progress. They finish on the refund queue."}
                 </p>
               </>

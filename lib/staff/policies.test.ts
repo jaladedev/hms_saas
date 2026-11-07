@@ -18,7 +18,7 @@ describe("readConfig", () => {
     expect(cfg.checkin_payment).toBe("full");
   });
   it("falls back to what the database falls back to: full payment, no check-in requirement, no rules", () => {
-    expect(readConfig({})).toEqual({ cancellation_rules: [], online_payment: { mode: "full" }, checkin_payment: "none", guest_cancellation: "on" });
+    expect(readConfig({})).toEqual({ cancellation_rules: [], online_payment: { mode: "full" }, checkin_payment: "none", guest_cancellation: "on", early_checkout: "none" });
     expect(readConfig(null).online_payment).toEqual({ mode: "full" });
     expect(readConfig({ online_payment: { mode: "deposit_percent", value: 0 } }).online_payment).toEqual({ mode: "full" });
   });
@@ -105,6 +105,13 @@ describe("mergeConfig", () => {
     // The old version asked for payment before check-in; the new one does not, so the key is gone, not "none".
     expect(merged).not.toHaveProperty("checkin_payment");
     expect(merged.cancellation_rules).toEqual([]);
+  });
+  it("reads and stores the early check-out policy, storing it only when it is not 'none'", () => {
+    expect(readConfig({ early_checkout: "credit" }).early_checkout).toBe("credit");
+    expect(readConfig({ early_checkout: "one_night" }).early_checkout).toBe("one_night");
+    for (const v of ["CREDIT", "all", false, 0, null]) expect(readConfig({ early_checkout: v }).early_checkout, String(v)).toBe("none");
+    expect(mergeConfig(null, readConfig({ early_checkout: "credit" })).early_checkout).toBe("credit");
+    expect(mergeConfig({ early_checkout: "credit" }, readConfig({})).early_checkout).toBeUndefined();
   });
   it("copes with no previous version", () => {
     expect(mergeConfig(null, readConfig({}))).toEqual({ cancellation_rules: [], online_payment: { mode: "full" }, guest_cancellation: "on" });

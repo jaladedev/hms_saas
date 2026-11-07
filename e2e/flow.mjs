@@ -644,6 +644,9 @@ check("the version is stored: its date, the deposit, three rules, the check-in r
   && polV1.config.cancellation_rules?.length === 3 && polV1.config.cancellation_rules[0].within_hours === 168 && polV1.config.cancellation_rules[0].charge.type === "nights"
   && polV1.config.checkin_payment === "full" && polV1.created_by === OWNER_ID, JSON.stringify(polV1));
 
+check("a version saved without choosing an early check-out rule stores no key (the hotel keeps the whole price)", polV1.config.early_checkout === undefined, JSON.stringify(polV1.config));
+check("the policies page offers the early check-out rule", sees(pageText(polHtml), "When a guest checks out early", "The hotel keeps the whole price", "Nights not stayed come off the booking"), pageText(polHtml).slice(0, 200));
+
 const polRefused = [
   ["a repeated window", { rule_hours_3: "48", rule_type_3: "fixed", rule_value_3: "5000" }, "policy_rules"],
   ["a percentage above 100", { rule_value_1: "150" }, "policy_rules"],
@@ -859,6 +862,14 @@ const vDone = await getPage("/app/payments?view=verified", ACCOUNTANT_COOKIE);
 check("and appears under recently verified with the note", vDone.status === 200 && sees(vDone.text, "E2E-SLIP-77", "E2E statement line 9"), vDone.text.slice(0, 300));
 const vAnon = await staff("/app/payments", "");
 check("signed out, the page redirects to sign in", vAnon.status >= 300 && vAnon.status < 400 && (vAnon.headers.get("location") ?? "").includes("/login"), `status ${vAnon.status}`);
+
+// 20. Early check-out (migration 060): the guest checked in tonight and is booked for two nights, so leaving now is early.
+const earlyPage = await getPage(`/app/reservations/${verifyRes}`, OWNER_COOKIE);
+check("the reservation page says leaving early frees the room and, with the policy off, does not change the price", earlyPage.status === 200 && sees(earlyPage.text, "Check out", "Leaving before", "The price does not change"), earlyPage.text.slice(0, 300));
+const quoteOff = await call("early_checkout_quote", { p_reservation_room_id: boardRr }, OWNER_JWT);
+check("the quote agrees: early, mode none, nothing credited", quoteOff.status === 200 && quoteOff.body?.early === true && quoteOff.body?.mode === "none" && quoteOff.body?.credit_minor === 0, JSON.stringify(quoteOff));
+const quoteHk = await call("early_checkout_quote", { p_reservation_room_id: boardRr }, HK_JWT);
+check("housekeeping cannot ask for it", quoteHk.status >= 400, JSON.stringify(quoteHk));
 
 // 14. A refund Paystack cannot finish without the customer's bank details: payout through the real route, the
 // needs-attention event, the bank list, the retry with the bank and account, and the event that completes it.
