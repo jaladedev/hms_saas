@@ -83,6 +83,13 @@ do $$ declare v_res uuid; c jsonb; acc uuid; begin
   update payment_provider_accounts set status = 'disabled' where id = acc;
   perform t06_expect_err(format('select payment_start_context(%L)', v_res), 'INVALID_STATE: no payment provider configured%');
   update payment_provider_accounts set status = 'active' where id = acc;
+  -- migration 053: the online_payments flag off refuses the same way; a flag on, or no flag, does not
+  insert into tenant_feature_entitlements (tenant_id, feature_key, enabled) values ('00000000-0000-0000-0000-0000000000a1', 'online_payments', false);
+  perform t06_expect_err(format('select payment_start_context(%L)', v_res), 'INVALID_STATE: no payment provider configured%');
+  update tenant_feature_entitlements set enabled = true where tenant_id = '00000000-0000-0000-0000-0000000000a1' and feature_key = 'online_payments';
+  if payment_start_context(v_res) ->> 'guest_email' <> 'ctx1@example.com' then raise exception 'FAIL flag on should allow'; end if;
+  delete from tenant_feature_entitlements where tenant_id = '00000000-0000-0000-0000-0000000000a1' and feature_key = 'online_payments';
+  if payment_start_context(v_res) ->> 'guest_email' <> 'ctx1@example.com' then raise exception 'FAIL no flag row should allow'; end if;
   perform t06_expect_err(format('select payment_start_context(%L)', gen_random_uuid()), 'NOT_FOUND%');
   raise notice 'PASS payment start context: account pointer and guest email, no secrets';
 end $$;
