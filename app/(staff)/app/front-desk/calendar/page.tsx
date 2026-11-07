@@ -7,6 +7,8 @@ import { AGENDA_LIMIT, AGENDA_STATUSES, agendaTotals, buildAgenda, busyDays, typ
 import { todayIn, nightsBetween } from "@/lib/staff/reservations";
 import { dayHeads, parseWindow, shiftStart, WINDOW_CHOICES } from "@/lib/staff/room-calendar";
 import { createClient } from "@/lib/supabase/server";
+import { rememberedProperty } from "@/lib/staff/active-property";
+import { pickProperty } from "@/lib/staff/property-choice";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +20,7 @@ export default async function ArrivalsCalendarPage({ searchParams }: { searchPar
   const supabase = await createClient();
   const { data: props, error: propError } = await supabase.from("properties").select("id, name, timezone").eq("status", "active").order("name");
   const properties = (props ?? []) as { id: string; name: string; timezone: string }[];
-  const property = properties.find((p) => p.id === search.property) ?? properties[0];
+  const property = pickProperty(properties, typeof search.property === "string" ? search.property : undefined, await rememberedProperty());
   const heading = <PageTitle>Arrivals and departures</PageTitle>;
   const back = <p className="text-sm print:hidden"><Link href="/app/front-desk" className={linkClass}>Front desk</Link></p>;
 

@@ -6,6 +6,8 @@ import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { dayOccupancy, parseRange, totals, type ReportDay } from "@/lib/staff/reports";
 import { todayIn } from "@/lib/staff/reservations";
 import { createClient } from "@/lib/supabase/server";
+import { rememberedProperty } from "@/lib/staff/active-property";
+import { pickProperty } from "@/lib/staff/property-choice";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +28,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
 
   const heading = <PageTitle>Reports</PageTitle>;
   if (propQ.error) return <main className="max-w-5xl">{heading}<ErrorBanner className="mt-4">The hotels could not be loaded. Try again.</ErrorBanner></main>;
-  const property = allowed.find((p) => p.id === first(search.property)) ?? allowed[0];
+  const property = pickProperty(allowed, first(search.property), await rememberedProperty());
   if (!property) return <main className="max-w-5xl">{heading}<p className="mt-4 max-w-prose text-muted">Reports are for the owner, general manager and accountant. Ask one of them if you need a figure.</p></main>;
 
   const range = parseRange(first(search.from), first(search.to), todayIn(property.timezone, new Date()));

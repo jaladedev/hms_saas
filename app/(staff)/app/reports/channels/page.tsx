@@ -9,6 +9,8 @@ import { formatBp } from "@/lib/staff/occupancy";
 import { MAX_RANGE_DAYS, parseRange, presets } from "@/lib/staff/reports";
 import { todayIn } from "@/lib/staff/reservations";
 import { createClient } from "@/lib/supabase/server";
+import { rememberedProperty } from "@/lib/staff/active-property";
+import { pickProperty } from "@/lib/staff/property-choice";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +35,7 @@ export default async function ChannelsPage({ searchParams }: { searchParams: Pro
     );
   }
 
-  const chosen = allowed.find((p) => p.id === search.property) ?? allowed[0]!;
+  const chosen = pickProperty(allowed, typeof search.property === "string" ? search.property : undefined, await rememberedProperty())!;
   const today = todayIn(chosen.timezone, new Date());
   const range = parseRange(search.from, search.to, today);
   const args = { p_property_id: chosen.id, p_from: range.from, p_to: range.to };

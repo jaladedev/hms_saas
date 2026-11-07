@@ -8,6 +8,8 @@ import type { BoardClaim, BoardRoom } from "@/lib/staff/room-board";
 import { buildRows, dayHeads, KIND_LABEL, nightTotals, parseWindow, shiftStart, WINDOW_CHOICES, type Bar } from "@/lib/staff/room-calendar";
 import { todayIn } from "@/lib/staff/reservations";
 import { createClient } from "@/lib/supabase/server";
+import { rememberedProperty } from "@/lib/staff/active-property";
+import { pickProperty } from "@/lib/staff/property-choice";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +33,7 @@ export default async function RoomCalendarPage({ searchParams }: { searchParams:
   const properties = (propQ.data ?? []) as { id: string; name: string; timezone: string }[];
   const allRooms = (roomQ.data ?? []) as BoardRoom[];
   const withRooms = properties.filter((p) => allRooms.some((r) => r.property_id === p.id));
-  const property = withRooms.find((p) => p.id === search.property) ?? withRooms[0];
+  const property = pickProperty(withRooms, typeof search.property === "string" ? search.property : undefined, await rememberedProperty());
   const heading = <PageTitle>Room calendar</PageTitle>;
 
   if (roomQ.error || propQ.error) {

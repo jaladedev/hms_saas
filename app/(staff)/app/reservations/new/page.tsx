@@ -4,6 +4,8 @@ import { createManualReservation } from "@/lib/staff/reservation-actions";
 import { MANUAL_SOURCES, MAX_NIGHTS, MAX_ROOMS, parsePrefill } from "@/lib/staff/new-reservation";
 import { todayIn } from "@/lib/staff/reservations";
 import { createClient } from "@/lib/supabase/server";
+import { rememberedProperty } from "@/lib/staff/active-property";
+import { pickProperty } from "@/lib/staff/property-choice";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +27,8 @@ export default async function NewReservationPage({ searchParams }: { searchParam
   }))).filter((p): p is (typeof properties)[number] => p !== null);
   const today = todayIn(allowed[0]?.timezone ?? "UTC", new Date());
   const many = allowed.length > 1;
+  // With no room chosen from the calendar, the property picked in the header is the one the form starts on.
+  const preferred = many ? pickProperty(allowed, undefined, await rememberedProperty()) : undefined;
   // Starting values from the room calendar (?room=&arrival=&departure=). A hint only: see parsePrefill.
   const typeProperty = new Map(types.map((t) => [t.id, t.property_id]));
   const prefill = parsePrefill(
@@ -53,7 +57,7 @@ export default async function NewReservationPage({ searchParams }: { searchParam
             {many && (
               <div className="sm:col-span-2">
                 <label htmlFor="propertyId" className="block text-sm">Property</label>
-                <select id="propertyId" name="propertyId" required defaultValue={prefill.propertyId ?? ""} className={inputClass}>
+                <select id="propertyId" name="propertyId" required defaultValue={prefill.propertyId ?? preferred?.id ?? ""} className={inputClass}>
                   <option value="" disabled>Choose…</option>
                   {allowed.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>

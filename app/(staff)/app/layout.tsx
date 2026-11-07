@@ -2,6 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { NavMenu } from "@/components/staff/nav-menu";
 import { signOut } from "@/lib/staff/auth-actions";
+import { PropertySwitcher } from "@/components/staff/property-switcher";
+import { rememberedProperty } from "@/lib/staff/active-property";
+import { pickProperty } from "@/lib/staff/property-choice";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -40,6 +43,11 @@ export default async function StaffLayout({ children }: { children: React.ReactN
     .eq("assigned_to", data.user.id);
   const myRepairs = mineQ.error ? 0 : (mineQ.count ?? 0);
 
+  // The header switcher appears only for people who can see more than one open property.
+  const propsQ = await supabase.from("properties").select("id, name").eq("status", "active").order("name");
+  const switchable = (propsQ.data ?? []) as { id: string; name: string }[];
+  const current = pickProperty(switchable, undefined, await rememberedProperty());
+
   return (
     <div className="flex min-h-screen flex-col md:flex-row print:block print:min-h-0">
       <aside className="shrink-0 bg-navy-900 p-4 text-sm text-white md:w-60 print:hidden">
@@ -61,6 +69,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
               ),
             )}
           </nav>
+          {switchable.length > 1 && current && <PropertySwitcher properties={switchable} currentId={current.id} />}
           <div className="mt-10 border-t border-white/15 pt-4">
             <p className="truncate text-white/70" title={data.user.email ?? undefined}>{data.user.email}</p>
             <form action={signOut} className="mt-2">
