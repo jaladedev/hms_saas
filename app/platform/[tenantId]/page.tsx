@@ -105,7 +105,7 @@ export default async function HotelDetail({ params, searchParams }: { params: Pr
 
       <section aria-labelledby="sub">
         <SectionTitle id="sub">Plan and features</SectionTitle>
-        <p className="mt-2 max-w-prose text-sm text-muted">These record what the hotel is meant to have. Nothing in the app reads them yet, so changing them does not switch anything on or off.</p>
+        <p className="mt-2 max-w-prose text-sm text-muted">One flag is enforced: reports.export. Turned off, the hotel's CSV downloads stop; with no row, or on, they work. Any other key is only recorded and switches nothing.</p>
         <p className="mt-3 text-sm">{d.subscription ? `${d.subscription.plan_code} (${d.subscription.status})${d.subscription.trial_ends_at ? `, trial ends ${shortDate(d.subscription.trial_ends_at)}` : ""}${d.subscription.current_period_end ? `, period ends ${shortDate(d.subscription.current_period_end)}` : ""}` : "No plan set."}</p>
         {admin && (
           <form action={setSubscription} className="mt-3 flex flex-wrap items-end gap-3">
