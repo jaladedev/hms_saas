@@ -128,7 +128,7 @@ export type ErrorCode =
   | "fo_category" | "fo_description" | "fo_quantity" | "fo_amount" | "fo_date" | "fo_room" | "fo_reason" | "fo_method" | "fo_too_long"
   | "fo_overpay" | "fo_not_open" | "fo_paid" | "fo_not_found" | "fo_duplicate" | "fo_unknown" | "fo_on_invoice" | "fo_nothing" | "fo_no_email" | "fo_invoice_void"
   | "se_dates" | "se_too_long" | "se_reason" | "se_room" | "se_capacity" | "se_arrival_past" | "se_unavailable" | "se_rate" | "se_paid" | "se_invoiced"
-  | "dc_percent" | "dc_reason" | "dc_limit" | "dc_status" | "se_payment_started" | "se_split" | "se_not_editable" | "se_discount" | "se_not_found" | "se_duplicate" | "se_unknown"
+  | "dc_percent" | "dc_reason" | "dc_limit" | "dc_status" | "dc_cap_percent" | "dc_cap_role" | "se_payment_started" | "se_split" | "se_not_editable" | "se_discount" | "se_not_found" | "se_duplicate" | "se_unknown"
   | "hold_lapsed" | "hold_source" | "ns_early" | "ns_note";
 
 /**
@@ -214,6 +214,8 @@ export const OK_MESSAGES = {
   discount_set: "Discount saved.",
   discount_removed: "Discount removed.",
   discount_unchanged: "That discount was already in place. Nothing changed.",
+  discount_cap_set: "Discount limit saved for this hotel.",
+  discount_cap_reset: "That role is back to the standard limit.",
   invoice_voided: "Invoice voided.",
   rate_plan_created: "Standard rate plan created. Bookings can now be made.",
   rates_set: "Nightly prices saved.",
@@ -393,6 +395,8 @@ export function errorMessage(code: string, refundable: number | null, formatMino
     case "se_split": return "This booking has a planned change of room partway through, so its dates cannot be edited. Guest numbers can still be changed. To change the dates, cancel it and book it again.";
     case "se_not_editable": return "This booking can no longer be changed. Only a confirmed booking whose guests have not arrived can be edited.";
     case "se_discount": return "This booking has a discount, so its dates cannot be edited. Remove the discount (Money section), change the dates, then apply it again.";
+    case "dc_cap_percent": return "Enter a percentage from 0 to 100 with at most two decimals, such as 10 or 7.5. Use 0 so the role cannot give discounts.";
+    case "dc_cap_role": return "That role cannot give discounts, so it has no limit to set.";
     case "dc_percent": return "Enter a percentage from 0 to 100 with at most two decimals, such as 10 or 7.5. Use 0 to remove the discount.";
     case "dc_reason": return "Give a reason for the discount (up to 200 characters).";
     case "dc_limit": return "That is more than your role may give. Ask the owner or the general manager.";

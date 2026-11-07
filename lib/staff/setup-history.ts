@@ -32,6 +32,7 @@ export const HISTORY_FILTERS = [
   { value: "tax", label: "Tax rules" },
   { value: "policies", label: "Cancellation and payment policies" },
   { value: "staff", label: "Staff access" },
+  { value: "discounts", label: "Discount limits" },
 ] as const;
 export type HistoryFilter = (typeof HISTORY_FILTERS)[number]["value"];
 
@@ -42,6 +43,7 @@ export const FILTER_ACTIONS: Record<Exclude<HistoryFilter, "all">, string[]> = {
   tax: ["tax_rule.created", "tax_rule.updated", "tax_rule.deleted"],
   policies: ["property_policy.created"],
   staff: ["staff.role_added", "staff.role_removed", "staff.status_changed"],
+  discounts: ["discount_cap.set"],
 };
 export const actionsFor = (what: HistoryFilter): string[] =>
   what === "all" ? Object.values(FILTER_ACTIONS).flat() : FILTER_ACTIONS[what];
@@ -252,6 +254,19 @@ export function describeEvent(row: AuditRow, lookup: Lookup, fmt: Format): { sum
     return {
       summary: `Published ${version === null ? "a new policy version" : `policy version ${version}`}${from ? `, starting ${fmt.date(from)}` : ""}`,
       details: guestSummary(readConfig(values.config), fmt.money),
+    };
+  }
+
+  // How far a role may discount at this hotel (migration 059): the role's key and the effective limit before and after.
+  if (row.action === "discount_cap.set") {
+    const role = (asString(m.role) ?? "a role").replace(/_/g, " ");
+    const to = asNumber(m.to_percent), from = asNumber(m.from_percent);
+    const pct = (n: number | null) => (n === null ? "unknown" : `${Number(n.toFixed(2))}%`);
+    return {
+      summary: m.reset_to_default === true
+        ? `Put the ${role} discount limit back to the standard ${pct(to)}`
+        : `Set the ${role} discount limit to ${pct(to)}`,
+      details: from === null ? [] : [`Was: ${pct(from)}`],
     };
   }
 

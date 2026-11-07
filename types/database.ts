@@ -104,6 +104,48 @@ export type Database = {
           },
         ]
       }
+      discount_cap_overrides: {
+        Row: {
+          max_percent: number
+          property_id: string
+          role_key: string
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          max_percent: number
+          property_id: string
+          role_key: string
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          max_percent?: number
+          property_id?: string
+          role_key?: string
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discount_cap_overrides_role_key_fkey"
+            columns: ["role_key"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "discount_cap_overrides_tenant_id_property_id_fkey"
+            columns: ["tenant_id", "property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
       discount_caps: {
         Row: {
           max_percent: number
@@ -3006,6 +3048,10 @@ export type Database = {
           p_departure: string
           p_host: string
         }
+        Returns: Json
+      }
+      set_discount_cap: {
+        Args: { p_percent: number; p_property_id: string; p_role_key: string }
         Returns: Json
       }
       set_housekeeping_status: {
