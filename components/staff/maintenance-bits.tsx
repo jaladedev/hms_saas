@@ -1,4 +1,4 @@
-import { buttonPrimary, inputClass } from "@/components/staff/ui";
+import { buttonPrimary, cardClass, inputClass } from "@/components/staff/ui";
 import { PRIORITY_LABEL, REQUEST_PRIORITIES, STATUS_LABEL } from "@/lib/staff/maintenance";
 import { reportRequest } from "@/lib/staff/maintenance-actions";
 
@@ -42,7 +42,7 @@ export function ReportForm({ properties, rooms, from, idempotencyKey, fixedRoomI
   const propertyId = fixed?.property_id ?? (single ? properties[0]?.id : undefined);
   const idp = fixedRoomId ?? "new";
   return (
-    <form action={reportRequest} className="grid max-w-2xl gap-3 rounded border border-line bg-white p-3 sm:grid-cols-2">
+    <form action={reportRequest} className={`grid max-w-2xl gap-3 ${cardClass} sm:grid-cols-2`}>
       <input type="hidden" name="idempotencyKey" value={idempotencyKey} />
       <input type="hidden" name="from" value={from} />
       {propertyId ? <input type="hidden" name="propertyId" value={propertyId} /> : null}

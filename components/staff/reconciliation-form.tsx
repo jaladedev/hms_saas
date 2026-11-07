@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { formatMoney } from "@/lib/guest-site/format";
 import type { Finding, FindingKind, ReconcileResult } from "@/lib/staff/reconciliation";
-import { buttonPrimary, inputClass, linkClass, ErrorBanner } from "@/components/staff/ui";
+import { buttonPrimary, cardClass, inputClass, linkClass, ErrorBanner } from "@/components/staff/ui";
 
 type Property = { id: string; name: string };
 type Response = {
@@ -108,12 +108,12 @@ export function ReconciliationForm({ properties, defaultFrom, defaultTo }: { pro
           {data.problems.map((p) => <p key={p} className="mt-2 text-sm text-pending">{p}</p>)}
 
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            <div className="rounded border border-line bg-white p-3"><p className="text-xs text-muted">Matched</p><p className="text-lg font-medium">{data.result.matched.toLocaleString("en")}</p><p className="text-xs text-muted">{money(data.result.matchedMinor)}</p></div>
-            <div className="rounded border border-line bg-white p-3"><p className="text-xs text-muted">Need a look</p><p className="text-lg font-medium">{data.result.findings.length.toLocaleString("en")}</p></div>
-            <div className="rounded border border-line bg-white p-3"><p className="text-xs text-muted">Nothing to do</p><p className="text-lg font-medium">{data.result.ignored.toLocaleString("en")}</p><p className="text-xs text-muted">failed or abandoned, never recorded here</p></div>
+            <div className={cardClass}><p className="text-xs text-muted">Matched</p><p className="text-lg font-medium">{data.result.matched.toLocaleString("en")}</p><p className="text-xs text-muted">{money(data.result.matchedMinor)}</p></div>
+            <div className={cardClass}><p className="text-xs text-muted">Need a look</p><p className="text-lg font-medium">{data.result.findings.length.toLocaleString("en")}</p></div>
+            <div className={cardClass}><p className="text-xs text-muted">Nothing to do</p><p className="text-lg font-medium">{data.result.ignored.toLocaleString("en")}</p><p className="text-xs text-muted">failed or abandoned, never recorded here</p></div>
           </div>
 
-          {grouped.length === 0 && <p className="mt-4 rounded border border-line bg-white p-3 text-sm">Everything in the file matches what is recorded here.</p>}
+          {grouped.length === 0 && <p className={`mt-4 ${cardClass} text-sm`}>Everything in the file matches what is recorded here.</p>}
 
           {grouped.map((g) => (
             <section key={g.kind} className="mt-6">

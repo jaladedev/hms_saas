@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ReportForm } from "@/components/staff/maintenance-bits";
-import { buttonDanger, buttonPrimary, buttonQuiet, inputClass, Notice, linkClass, ErrorBanner, EmptyState, PageIntro, PageTitle, SectionTitle } from "@/components/staff/ui";
+import { buttonDanger, buttonPrimary, buttonQuiet, cardClass, inputClass, Notice, linkClass, ErrorBanner, EmptyState, PageIntro, PageTitle, RoomCardHeader, SectionTitle } from "@/components/staff/ui";
 import { formatDate } from "@/lib/guest-site/format";
 import { historyByRoom, historyLine, type TaskRow } from "@/lib/staff/housekeeping-tasks";
 import {
@@ -134,11 +134,10 @@ export default async function RoomBoardPage({ searchParams }: { searchParams: Pr
               const guest = res ? guests.get(res.primary_guest_id) : undefined;
               const nextRes = v.next?.reservation_room_id ? resOfRr.get(v.next.reservation_room_id) : undefined;
               return (
-                <li key={v.room.id} className="rounded border border-line bg-white p-3">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-lg font-semibold">{v.room.room_number}</span>
+                <li key={v.room.id} className={cardClass}>
+                  <RoomCardHeader roomNumber={v.room.room_number}>
                     <span className={`rounded px-2 py-0.5 text-xs font-medium ${CHIP[v.state]}`}>{STATE_LABEL[v.state]}</span>
-                  </div>
+                  </RoomCardHeader>
                   <p className="mt-1 text-xs text-muted">
                     {v.room.floor !== null ? `Floor ${v.room.floor}, ` : ""}{HOUSEKEEPING[v.room.housekeeping_status] ?? v.room.housekeeping_status}
                   </p>

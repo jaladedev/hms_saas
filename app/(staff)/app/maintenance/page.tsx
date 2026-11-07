@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { PriorityChip, ReportForm, StatusBadge } from "@/components/staff/maintenance-bits";
-import { buttonPrimary, buttonQuiet, inputClass, Notice, ErrorBanner, EmptyState, PageIntro, PageTitle, SectionTitle } from "@/components/staff/ui";
+import { buttonPrimary, buttonQuiet, cardClass, inputClass, Notice, ErrorBanner, EmptyState, PageIntro, PageTitle, SectionTitle } from "@/components/staff/ui";
 import {
   actionsFor, countRequests, filterByPerson, formatDue, groupLive, placeOf, recentlyResolved, REQUEST_COLUMNS, sortRequests, type RequestRow,
 } from "@/lib/staff/maintenance";
@@ -86,7 +86,7 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
     const due = formatDue(r.due_at, tz.get(r.property_id) ?? "UTC", now);
     const place = placeOf(r, roomById);
     return (
-      <li className="rounded border border-line bg-white p-3">
+      <li className={cardClass}>
         <div className="flex items-baseline justify-between gap-2">
           <Link href={`/app/maintenance/${r.id}`} className="font-semibold text-primary-strong underline underline-offset-2">{r.title}</Link>
           <span className="shrink-0 text-xs text-muted">{place}{showProperty ? `, ${propName.get(r.property_id) ?? ""}` : ""}</span>

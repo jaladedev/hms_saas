@@ -111,6 +111,19 @@ export function PageIntro({ children }: { children: React.ReactNode }) {
   return <p className="mt-2 max-w-prose text-muted">{children}</p>;
 }
 
+/** The box around one item in a grid or list: a room, a task, a repair, a form. Add layout classes after it, for example `${cardClass} grid gap-3`. */
+export const cardClass = "rounded border border-line bg-white p-3";
+
+/** The top line of a room card: the room number on the left, a chip or a small grey note (floor, hotel) on the right. */
+export function RoomCardHeader({ roomNumber, children }: { roomNumber: string; children?: React.ReactNode }) {
+  return (
+    <div className="flex items-baseline justify-between gap-2">
+      <span className="text-lg font-semibold">{roomNumber}</span>
+      {children}
+    </div>
+  );
+}
+
 /** A figure with its label above and a note below (the totals on the report pages). */
 export function StatTile({ label, value, note }: { label: string; value: string; note: string }) {
   return (

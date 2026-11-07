@@ -1,4 +1,4 @@
-import { buttonDanger, buttonPrimary, buttonQuiet, inputClass, Notice, ErrorBanner, PageIntro, PageTitle, SectionTitle } from "@/components/staff/ui";
+import { buttonDanger, buttonPrimary, buttonQuiet, cardClass, inputClass, Notice, ErrorBanner, PageIntro, PageTitle, RoomCardHeader, SectionTitle } from "@/components/staff/ui";
 import { assignTask, cancelTask, claimTask, completeTask, createTask, startTask } from "@/lib/staff/housekeeping-actions";
 import {
   activityByRoom, actionsFor, filterByPerson, formatDue, groupLive, PRIORITY_LABEL, recentlyDone, roomsWithoutTask, sortTasks,
@@ -98,13 +98,12 @@ export default async function HousekeepingPage({ searchParams }: { searchParams:
     const tags = [act?.arrivesToday && "Guest arrives today", act?.departsToday && "Guest left today", act?.blockedToday && "Blocked today"].filter(Boolean) as string[];
     const people = staff.get(t.property_id) ?? [];
     return (
-      <li className="rounded border border-line bg-white p-3">
-        <div className="flex items-baseline justify-between gap-2">
-          <span className="text-lg font-semibold">{room?.room_number ?? "Room"}</span>
+      <li className={cardClass}>
+        <RoomCardHeader roomNumber={room?.room_number ?? "Room"}>
           <span className="text-xs text-muted">
             {room?.floor != null ? `Floor ${room.floor}` : ""}{showProperty ? `${room?.floor != null ? ", " : ""}${propName.get(t.property_id) ?? ""}` : ""}
           </span>
-        </div>
+        </RoomCardHeader>
         <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs">
           <span className="font-medium">{TASK_TYPE_LABEL[t.task_type] ?? t.task_type}</span>
           <span className={`rounded px-1.5 py-0.5 font-medium ${PRIORITY_CHIP[t.priority] ?? PRIORITY_CHIP.normal}`}>{PRIORITY_LABEL[t.priority] ?? t.priority}</span>
@@ -216,11 +215,10 @@ export default async function HousekeepingPage({ searchParams }: { searchParams:
             <p className="mt-1 max-w-prose text-sm text-muted">These rooms are marked dirty or being cleaned but have no cleaning task. Create one so the work shows up above.</p>
             <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {orphans.map((r) => (
-                <li key={r.id} className="rounded border border-line bg-white p-3">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-lg font-semibold">{r.room_number}</span>
+                <li key={r.id} className={cardClass}>
+                  <RoomCardHeader roomNumber={r.room_number}>
                     <span className="text-xs text-muted">{r.floor !== null ? `Floor ${r.floor}` : ""}{showProperty ? `${r.floor !== null ? ", " : ""}${propName.get(r.property_id) ?? ""}` : ""}</span>
-                  </div>
+                  </RoomCardHeader>
                   <p className="mt-1 text-xs text-muted">{r.housekeeping_status === "in_progress" ? "Being cleaned" : "Dirty"}</p>
                   <form action={createTask} className="mt-3">
                     <input type="hidden" name="roomId" value={r.id} />
@@ -251,7 +249,7 @@ export default async function HousekeepingPage({ searchParams }: { searchParams:
         {createRooms.length > 0 && (
           <section className="mt-8" aria-label="Add a task">
             <SectionTitle>Add a task</SectionTitle>
-            <form action={createTask} className="mt-3 grid max-w-2xl gap-3 rounded border border-line bg-white p-3 sm:grid-cols-2">
+            <form action={createTask} className={`mt-3 grid max-w-2xl gap-3 ${cardClass} sm:grid-cols-2`}>
               <label className="text-sm">
                 <span className="mb-1 block text-muted">Room</span>
                 <select name="roomId" required className={inputClass} defaultValue="">

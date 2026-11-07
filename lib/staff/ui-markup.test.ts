@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { EmptyState, ErrorBanner, headRow, linkClass, PageIntro, PageTitle, SectionTitle, StatTile, tdNum, thNum, thRowHead, totalRow } from "@/components/staff/ui";
+import { cardClass, EmptyState, ErrorBanner, headRow, linkClass, PageIntro, PageTitle, RoomCardHeader, SectionTitle, StatTile, tdNum, thNum, thRowHead, totalRow } from "@/components/staff/ui";
 
 // These pieces replaced markup that was written out by hand on many pages. The expected strings below are that
 // original markup, so a change here that alters what a page shows fails this test instead of passing unnoticed.
@@ -49,6 +49,17 @@ describe("shared staff UI pieces keep the markup they replaced", () => {
   it("StatTile: label, value and note", () => {
     expect(html(createElement(StatTile, { label: "Occupancy", value: "62%", note: "5 of 8 room nights" })))
       .toBe('<div class="rounded border border-line bg-white p-4"><p class="text-sm text-muted">Occupancy</p><p class="mt-1 font-display text-2xl tabular-nums">62%</p><p class="mt-1 text-xs text-muted">5 of 8 room nights</p></div>');
+  });
+
+  it("cardClass is the box that room, task, repair and form cards wrote out by hand", () => {
+    expect(cardClass).toBe("rounded border border-line bg-white p-3");
+  });
+
+  it("RoomCardHeader: room number left, the caller's chip or note right; works with no note", () => {
+    expect(html(createElement(RoomCardHeader, { roomNumber: "204", children: createElement("span", { className: "text-xs text-muted" }, "Floor 2") })))
+      .toBe('<div class="flex items-baseline justify-between gap-2"><span class="text-lg font-semibold">204</span><span class="text-xs text-muted">Floor 2</span></div>');
+    expect(html(createElement(RoomCardHeader, { roomNumber: "Room" })))
+      .toBe('<div class="flex items-baseline justify-between gap-2"><span class="text-lg font-semibold">Room</span></div>');
   });
 
   it("linkClass is the link style that was repeated on the pages", () => {
