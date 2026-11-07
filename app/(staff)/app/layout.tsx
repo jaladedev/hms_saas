@@ -59,10 +59,10 @@ export default async function StaffLayout({ children }: { children: React.ReactN
     <div className="flex min-h-screen flex-col md:flex-row print:block print:min-h-0">
       <aside className="shrink-0 bg-navy-900 p-4 text-sm text-white md:w-60 print:hidden">
         <NavMenu brand={<div className="font-display text-xl">HMS</div>}>
-          <nav className="mt-6 space-y-2 text-white/80">
+          <nav className="mt-6 space-y-0 text-white/80 md:space-y-2">
             {NAV.map((item) =>
               item.href ? (
-                <Link key={item.label} href={item.href} className="block text-white focus-visible:outline-2 focus-visible:outline-white">
+                <Link key={item.label} href={item.href} className="block py-3 text-white focus-visible:outline-2 focus-visible:outline-white md:py-0">
                   {item.label}
                   {item.href === "/app/notifications" && unread > 0 && (
                     <>
@@ -78,7 +78,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
                   )}
                 </Link>
               ) : (
-                <div key={item.label}>{item.label}</div>
+                <div key={item.label} className="py-3 md:py-0">{item.label}</div>
               ),
             )}
           </nav>

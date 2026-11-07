@@ -23,6 +23,26 @@ body {
   font-family: var(--font-sans);
 }
 
+/* Finger-sized controls on a phone. Buttons, fields and selects were 32 to 34px tall and the open/close toggles (summary)
+   16px, against the 44px usually asked for a thumb (WCAG 2.5.5; 2.5.8 asks 24px at least). Desktop is unchanged. Done here,
+   not on each control, because they are styled one by one across the app. A toggle gets padding rather than a minimum
+   height so its arrow stays and its text stays centred; a checkbox or radio is made 24px, its own label being the rest. */
+@media screen and (max-width: 767px) {
+  button,
+  select,
+  input:not([type="checkbox"], [type="radio"], [type="hidden"]) {
+    min-height: 2.75rem;
+  }
+  summary {
+    padding-block: 0.875rem;
+  }
+  input[type="checkbox"],
+  input[type="radio"] {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+}
+
 /* Printing (the reports under /app/reports): plain white paper, rows and totals kept whole, a heading kept
    with the table under it. The sidebar and the controls are hidden with `print:hidden` where they are used. */
 @media print {

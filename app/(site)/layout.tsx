@@ -24,8 +24,8 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
     <div className="min-h-screen">
       <header className="border-b border-line bg-white">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 py-4">
-          <Link href="/" className="font-display text-xl">{headerName(hotel)}</Link>
-          <Link href="/booking/find" className="shrink-0 text-sm text-primary underline">Find my booking</Link>
+          <Link href="/" className="font-display text-xl max-md:inline-flex max-md:min-h-11 max-md:items-center">{headerName(hotel)}</Link>
+          <Link href="/booking/find" className="shrink-0 text-sm text-primary underline max-md:inline-flex max-md:min-h-11 max-md:items-center">Find my booking</Link>
         </div>
       </header>
       {children}

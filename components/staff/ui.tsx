@@ -136,11 +136,11 @@ export function StatTile({ label, value, note }: { label: string; value: string;
 }
 
 export const buttonPrimary =
-  "rounded bg-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-primary-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50";
+  "rounded bg-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-primary-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50 max-md:inline-flex max-md:min-h-11 max-md:items-center max-md:justify-center";
 export const buttonQuiet =
-  "rounded border border-line bg-white px-3 py-1.5 text-sm font-medium text-ink hover:bg-paper focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50";
+  "rounded border border-line bg-white px-3 py-1.5 text-sm font-medium text-ink hover:bg-paper focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50 max-md:inline-flex max-md:min-h-11 max-md:items-center max-md:justify-center";
 export const buttonDanger =
-  "rounded border border-critical/40 bg-white px-3 py-1.5 text-sm font-medium text-critical hover:bg-critical/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-critical";
+  "rounded border border-critical/40 bg-white px-3 py-1.5 text-sm font-medium text-critical hover:bg-critical/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-critical max-md:inline-flex max-md:min-h-11 max-md:items-center max-md:justify-center";
 export const inputClass =
   "w-full rounded border border-line bg-white px-2.5 py-1.5 text-sm focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary";
 

@@ -100,6 +100,30 @@ const viewports = [
   { name: "phone", width: 390, height: 844, isMobile: true },
 ];
 
+// Controls on a phone that are shorter than a finger-sized 44px (the WCAG 2.5.5 target; 2.5.8 asks for 24px at least).
+// Links inside a sentence are exempt from the guideline, so they are marked and counted apart. This only reports.
+const tapTargets = [];
+const smallTargets = (page) => page.evaluate(() => [...document.querySelectorAll("a[href], button, input:not([type=hidden]), select, textarea, summary")]
+  .filter((el) => {
+    const r = el.getBoundingClientRect(), cs = getComputedStyle(el);
+    return r.width > 0 && r.height > 0 && cs.visibility !== "hidden" && !el.classList.contains("sr-only") && r.height < 44;
+  })
+  .map((el) => {
+    const r = el.getBoundingClientRect();
+    return { tag: el.tagName.toLowerCase() + (el.type && el.tagName !== "BUTTON" ? `[${el.type}]` : ""), text: (el.innerText || el.value || el.getAttribute("aria-label") || "").trim().replace(/\s+/g, " ").slice(0, 28), h: Math.round(r.height), w: Math.round(r.width), inline: el.tagName === "A" && !!el.closest("p, li, dd, td, th, label") };
+  }));
+function reportTargets() {
+  const groups = new Map();
+  for (const t of tapTargets) {
+    const key = `${t.inline ? "in a sentence" : "stand-alone "} ${t.tag} "${t.text}" ${t.h}px`;
+    const g = groups.get(key) ?? { n: 0, pages: new Set() };
+    g.n++; g.pages.add(t.page); groups.set(key, g);
+  }
+  const rows = [...groups].sort((a, b) => b[1].n - a[1].n);
+  console.log(`tap targets under 44px on a phone: ${tapTargets.length} (${tapTargets.filter((t) => !t.inline).length} stand-alone)`);
+  for (const [key, g] of rows.slice(0, 45)) console.log(`  ${String(g.n).padStart(3)}x on ${String(g.pages.size).padStart(2)} page(s)  ${key}`);
+}
+
 const browser = await puppeteer.launch({
   executablePath: process.env.CHROME_BIN,
   headless: "shell",
@@ -151,6 +175,8 @@ async function visit(path, { guest, viewport }) {
     errorPage: /Application error|This page couldn.t load|Internal Server Error/i.test(document.body?.innerText ?? ""),
   }), viewport.width).catch(() => ({ h1: 0, over: 0, wide: [], errorPage: true }));
   const landed = new URL(page.url()).pathname;
+  const small = viewport.isMobile ? await smallTargets(page) : [];
+  tapTargets.push(...small.map((t) => ({ ...t, page: path.replace(/\?.*$/, "") })));
 
   // The page's name without its query, record ids or the guest's private token: for the label and the file name.
   const shortPath = path.replace(/\?.*$/, "").replace(/[0-9a-f]{8}-[0-9a-f-]{27}/g, ":id").replace(/\/booking\/[\w-]+\.[\w-]+/, "/booking/:token");
@@ -161,6 +187,11 @@ async function visit(path, { guest, viewport }) {
   const label = `${guest ? "guest" : "staff"} ${shortPath} (${viewport.name})`;
   check(`${label} loads cleanly`, status === 200 && problems.length === 0 && !facts.errorPage, `status ${status} ${problems.slice(0, 3).join(" | ")}`);
   check(`${label} stays on the page asked for`, landed === new URL(path, SITE).pathname, `landed on ${landed}`);
+  if (viewport.isMobile) {
+    // A link in a sentence is exempt from the 44px guideline, and a checkbox is 24px with its label as the rest of the target.
+    const tooSmall = small.filter((t) => !t.inline && /^(button|select|input|summary)/.test(t.tag) && !/^input\[(checkbox|radio)\]/.test(t.tag));
+    check(`${label} buttons, fields and toggles are finger-sized`, tooSmall.length === 0, tooSmall.slice(0, 3).map((t) => `${t.tag} "${t.text}" ${t.h}px`).join(", "));
+  }
   check(`${label} has a heading`, facts.h1 >= 1, `h1 count ${facts.h1}`);
   check(`${label} does not scroll sideways`, facts.over <= 1, `${facts.over}px too wide, e.g. ${facts.wide.join(", ")}`);
 }
@@ -187,6 +218,7 @@ async function menuChecks(viewport) {
     await page.click(BUTTON);
     check(`${name}: the button opens it`, (await shown(LINK)) && (await expanded()) === "true");
     await page.screenshot({ path: `${SHOTS}/staff-menu-open-${viewport.name}.png` }).catch(() => {});
+    tapTargets.push(...(await smallTargets(page)).map((t) => ({ ...t, page: "(menu open)" })));
     await Promise.all([page.waitForFunction(() => location.pathname === "/app/reservations", { timeout: 20000 }).catch(() => {}), page.click(LINK)]);
     check(`${name}: a link goes to its page`, new URL(page.url()).pathname === "/app/reservations", `landed on ${new URL(page.url()).pathname}`);
     check(`${name}: and the menu is closed again on the new page`, (await expanded()) === "false" && !(await shown(LINK)), `expanded ${await expanded()}`);
@@ -195,7 +227,21 @@ async function menuChecks(viewport) {
 }
 for (const viewport of viewports) await menuChecks(viewport);
 
+// The shared button styles are also put on links (New reservation is one), and a button rule cannot reach a link.
+async function linkButtonCheck(viewport) {
+  const context = await (browser.createBrowserContext ?? browser.createIncognitoBrowserContext).call(browser);
+  const page = await context.newPage();
+  await page.setViewport({ width: viewport.width, height: viewport.height, isMobile: viewport.isMobile, hasTouch: viewport.isMobile, deviceScaleFactor: 1 });
+  await page.setCookie(OWNER);
+  await page.goto(`${SITE}/app/reservations`, { waitUntil: "networkidle2", timeout: 45000 });
+  const h = await page.$eval('a[href="/app/reservations/new"]', (el) => Math.round(el.getBoundingClientRect().height)).catch(() => 0);
+  check(`button-styled link (${viewport.name}) is ${viewport.isMobile ? "finger-sized" : "compact, as before"}`, viewport.isMobile ? h >= 44 : h > 0 && h <= 36, `height ${h}px`);
+  await context.close();
+}
+for (const viewport of viewports) await linkButtonCheck(viewport);
+
 await browser.close();
+if (process.env.REPORT_TARGETS) reportTargets();
 console.log(`screenshots: ${SHOTS}`);
 if (failures) { console.log(`BROWSER FAILED: ${failures} check(s)`); process.exit(1); }
 console.log("BROWSER PASSED");
