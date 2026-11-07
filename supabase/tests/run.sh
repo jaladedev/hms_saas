@@ -160,6 +160,9 @@ if echo "$RF" | grep -qE 'FAIL|ERROR'; then echo "$RF"; echo "REPORT EXPORT FLAG
 OI="$(psql -f "$HERE/54_owner_invite.sql" 2>&1)" || { echo "$OI"; echo "OWNER INVITE TESTS FAILED"; exit 1; }
 echo "$OI" | grep -E 'PASS' || true
 if echo "$OI" | grep -qE 'FAIL|ERROR'; then echo "$OI"; echo "OWNER INVITE TESTS FAILED"; exit 1; fi
+PS="$(psql -f "$HERE/55_platform_sweep.sql" 2>&1)" || { echo "$PS"; echo "PLATFORM SWEEP TESTS FAILED"; exit 1; }
+echo "$PS" | grep -E 'PASS' || true
+if echo "$PS" | grep -qE 'FAIL|ERROR'; then echo "$PS"; echo "PLATFORM SWEEP TESTS FAILED"; exit 1; fi
 IP="$(psql -f "$HERE/43_idempotency_purge.sql" 2>&1)" || { echo "$IP"; echo "IDEMPOTENCY PURGE TESTS FAILED"; exit 1; }
 echo "$IP" | grep -E 'PASS' || true
 if echo "$IP" | grep -qE 'FAIL|ERROR'; then echo "$IP"; echo "IDEMPOTENCY PURGE TESTS FAILED"; exit 1; fi
