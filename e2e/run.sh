@@ -103,3 +103,7 @@ export CRON_SECRET="e2e-cron-secret-e2e-cron-secret-e2e-cron-secret"
 for i in $(seq 1 60); do curl -s -o /dev/null http://127.0.0.1:3100/login && break; sleep 1; done
 for i in $(seq 1 30); do curl -s -o /dev/null http://127.0.0.1:3001/ && break; sleep 1; done
 node "$ROOT/e2e/flow.mjs" || { echo "--- next log"; tail -30 /tmp/e2e-next.log; echo "--- postgrest log"; tail -15 /tmp/e2e-postgrest.log; exit 1; }
+# Optional: the same live app, in a real browser (see e2e/browser.mjs). Skipped unless CHROME_BIN points at a Chrome.
+if [ -n "${CHROME_BIN:-}" ]; then
+  node "$ROOT/e2e/browser.mjs" || { echo "--- next log"; tail -30 /tmp/e2e-next.log; exit 1; }
+fi

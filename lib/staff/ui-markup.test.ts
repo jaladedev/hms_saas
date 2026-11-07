@@ -63,3 +63,14 @@ describe("shared staff UI pieces keep the markup they replaced", () => {
     expect(totalRow).toBe("font-semibold tabular-nums");
   });
 });
+
+describe("NavMenu: the staff sidebar on a phone", () => {
+  it("is closed to begin with: the Menu button is for phones only and the links are hidden below the md breakpoint", async () => {
+    const { NavMenu } = await import("@/components/staff/nav-menu");
+    const out = html(createElement(NavMenu, { brand: createElement("b", null, "HMS"), children: createElement("nav", null, "links") }));
+    expect(out).toContain('<button type="button" aria-expanded="false" aria-controls="staff-menu"');
+    expect(out).toContain("md:hidden");
+    expect(out).toContain('<div id="staff-menu" class="hidden md:block"><nav>links</nav></div>');
+    expect(out.indexOf("<b>HMS</b>")).toBeLessThan(out.indexOf("<button"));
+  });
+});

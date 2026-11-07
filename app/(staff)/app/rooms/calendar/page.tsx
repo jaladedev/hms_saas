@@ -117,7 +117,7 @@ export default async function RoomCalendarPage({ searchParams }: { searchParams:
         ))}
       </p>
 
-      <div id="room-calendar" className="mt-4 overflow-x-auto">
+      <div id="room-calendar" className="relative mt-4 overflow-x-auto">
         <table className="w-full border-separate border-spacing-0 text-xs" style={{ minWidth: `${9 + w.days * 3}rem` }}>
           <caption className="sr-only">Rooms of {property.name} from {w.start} to {lastNight}</caption>
           <thead>

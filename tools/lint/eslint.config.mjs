@@ -44,6 +44,11 @@ export default tseslint.config(
     languageOptions: { globals: globals.node },
   },
   {
+    // The functions this file hands to the page (page.evaluate) run in the browser, so it uses both sets of globals.
+    files: ["e2e/browser.mjs"],
+    languageOptions: { globals: { ...globals.node, ...globals.browser } },
+  },
+  {
     rules: {
       "@typescript-eslint/no-unused-vars": [
         "error",
