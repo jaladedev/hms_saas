@@ -70,14 +70,15 @@ describe("validateNewHotel", () => {
 
 describe("classifyPlatformError", () => {
   const c = (message: string, code?: string) => classifyPlatformError({ message, ...(code ? { code } : {}) });
-  it("maps every refusal the functions in migration 050 raise", () => {
+  it("maps every refusal the functions in migrations 050 and 051 raise", () => {
     expect(c("NOT_FOUND")).toBe("not_found");
     expect(c("NOT_FOUND: owner")).toBe("owner_missing");
     expect(c("NOT_FOUND: property")).toBe("property");
     expect(c("CONFLICT: slug")).toBe("slug_taken");
     expect(c("CONFLICT: host")).toBe("host_taken");
     for (const [m, k] of [["name", "name"], ["slug", "slug"], ["code", "code"], ["currency", "currency"], ["host", "host"], ["timezone", "timezone"], ["reason", "reason"], ["status", "status"],
-                          ["secret reference", "secret_reference"], ["payment mode", "payment_mode"], ["verified", "bad_request"]] as const) {
+                          ["secret reference", "secret_reference"], ["payment mode", "payment_mode"], ["verified", "bad_request"],
+                          ["plan", "plan"], ["subscription status", "subscription_status"], ["feature key", "feature_key"], ["enabled", "bad_request"]] as const) {
       expect(c(`POLICY_VIOLATION: ${m}`)).toBe(k);
     }
   });
@@ -92,12 +93,11 @@ describe("classifyPlatformError", () => {
   });
 });
 
-describe("migration 050 and the wording agree", () => {
+describe("migrations 050 and 051 and the wording agree", () => {
   it("every refusal the migration raises is one the classifier understands", async () => {
     const { readFileSync, readdirSync } = await import("node:fs");
     const dir = "supabase/migrations";
-    const file = readdirSync(dir).find((f) => f.endsWith("_platform_admin.sql"))!;
-    const sql = readFileSync(`${dir}/${file}`, "utf8");
+    const sql = ["_platform_admin.sql", "_platform_plans.sql"].map((end) => readFileSync(`${dir}/${readdirSync(dir).find((f) => f.endsWith(end))!}`, "utf8")).join("\n");
     const raised = [...sql.matchAll(/raise exception '((?:POLICY_VIOLATION|NOT_FOUND|CONFLICT)[^']*)'/g)].map((m) => m[1]!);
     expect(raised.length).toBeGreaterThan(10);
     for (const msg of new Set(raised)) expect(classifyPlatformError({ message: msg }), msg).not.toBe("unavailable");

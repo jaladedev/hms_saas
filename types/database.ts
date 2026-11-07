@@ -2762,8 +2762,22 @@ export type Database = {
         Args: { p_domain: string; p_verified: boolean }
         Returns: Json
       }
+      platform_set_entitlement: {
+        Args: { p_enabled: boolean; p_feature_key: string; p_tenant: string }
+        Returns: Json
+      }
       platform_set_provider_status: {
         Args: { p_account: string; p_status: string }
+        Returns: Json
+      }
+      platform_set_subscription: {
+        Args: {
+          p_period_end: string
+          p_plan_code: string
+          p_status: string
+          p_tenant: string
+          p_trial_ends_at: string
+        }
         Returns: Json
       }
       platform_set_tenant_status: {

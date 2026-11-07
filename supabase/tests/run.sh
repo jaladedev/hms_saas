@@ -151,6 +151,9 @@ if echo "$CA" | grep -qE 'FAIL|ERROR'; then echo "$CA"; echo "CONFIG AUDIT TESTS
 PA="$(psql -f "$HERE/51_platform_admin.sql" 2>&1)" || { echo "$PA"; echo "PLATFORM ADMIN TESTS FAILED"; exit 1; }
 echo "$PA" | grep -E 'PASS' || true
 if echo "$PA" | grep -qE 'FAIL|ERROR'; then echo "$PA"; echo "PLATFORM ADMIN TESTS FAILED"; exit 1; fi
+PP="$(psql -f "$HERE/52_platform_plans.sql" 2>&1)" || { echo "$PP"; echo "PLATFORM PLAN TESTS FAILED"; exit 1; }
+echo "$PP" | grep -E 'PASS' || true
+if echo "$PP" | grep -qE 'FAIL|ERROR'; then echo "$PP"; echo "PLATFORM PLAN TESTS FAILED"; exit 1; fi
 IP="$(psql -f "$HERE/43_idempotency_purge.sql" 2>&1)" || { echo "$IP"; echo "IDEMPOTENCY PURGE TESTS FAILED"; exit 1; }
 echo "$IP" | grep -E 'PASS' || true
 if echo "$IP" | grep -qE 'FAIL|ERROR'; then echo "$IP"; echo "IDEMPOTENCY PURGE TESTS FAILED"; exit 1; fi

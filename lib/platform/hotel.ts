@@ -78,7 +78,7 @@ export const FIELD_MESSAGES: Record<NewHotelField, string> = {
 
 export type PlatformCode =
   | "forbidden" | "not_found" | "slug" | "code" | "name" | "host" | "timezone" | "currency" | "secret_reference" | "payment_mode"
-  | "owner_missing" | "slug_taken" | "host_taken" | "property" | "reason" | "status" | "invite_failed" | "bad_request" | "unavailable";
+  | "owner_missing" | "slug_taken" | "host_taken" | "property" | "reason" | "status" | "invite_failed" | "plan" | "subscription_status" | "feature_key" | "bad_request" | "unavailable";
 
 /** Which refusal a failed call means. The database's own words are never shown to the person. */
 export function classifyPlatformError(err: { code?: string; message?: string } | null | undefined): PlatformCode {
@@ -93,7 +93,10 @@ export function classifyPlatformError(err: { code?: string; message?: string } |
     case "slug": case "code": case "name": case "host": case "timezone": case "currency": case "reason": case "status": return v;
     case "secret reference": return "secret_reference";
     case "payment mode": return "payment_mode";
-    case "verified": return "bad_request";
+    case "plan": return "plan";
+    case "subscription status": return "subscription_status";
+    case "feature key": return "feature_key";
+    case "verified": case "enabled": return "bad_request";
     default: break;
   }
   if (err?.code === "42501") return "forbidden";
@@ -118,12 +121,15 @@ export const ERROR_MESSAGES: Record<PlatformCode, string> = {
   property: "That property does not belong to this hotel group.",
   reason: "Give a reason of at least 3 characters.",
   status: "That is not a valid status.",
+  plan: "The plan code must be 2 to 40 lowercase letters, digits, hyphens or underscores, such as starter.",
+  subscription_status: "Choose trial, active, past due or cancelled.",
+  feature_key: "The feature key must be 2 to 60 characters: lowercase letters, digits, dots or underscores, starting with a letter.",
   invite_failed: "The owner's invitation could not be sent. Nothing was set up. Try again in a moment.",
   bad_request: "That request was not valid. Check the form and try again.",
   unavailable: "That could not be done right now. Try again in a moment.",
 };
 
-export type PlatformOk = "created" | "status" | "domain_added" | "domain_verified" | "domain_unverified" | "provider" | "unchanged";
+export type PlatformOk = "created" | "status" | "domain_added" | "domain_verified" | "domain_unverified" | "provider" | "plan_set" | "feature_set" | "unchanged";
 export const OK_MESSAGES: Record<PlatformOk, string> = {
   created: "Hotel group created. Its domain is not verified yet, so guests cannot reach it until you verify the address.",
   status: "Status changed.",
@@ -131,6 +137,8 @@ export const OK_MESSAGES: Record<PlatformOk, string> = {
   domain_verified: "Web address verified. The guest site now answers on it.",
   domain_unverified: "Web address marked unverified. The guest site no longer answers on it.",
   provider: "Payment account status changed.",
+  plan_set: "Plan saved.",
+  feature_set: "Feature flag saved.",
   unchanged: "Nothing changed: it was already like that.",
 };
 

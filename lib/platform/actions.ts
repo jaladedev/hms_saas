@@ -123,3 +123,27 @@ export async function setProviderStatus(formData: FormData) {
   revalidatePath(page);
   return done(page, (data as { changed?: boolean } | null)?.changed === false ? "unchanged" : "provider");
 }
+
+export async function setSubscription(formData: FormData) {
+  const day = z.union([z.literal(""), z.iso.date()]);
+  const p = z.object({ tenantId: uuid, plan: z.string().max(60), status: z.enum(["trial", "active", "past_due", "cancelled"]), trialEnds: day, periodEnd: day }).safeParse(Object.fromEntries(formData));
+  if (!p.success) return fail(LIST, "bad_request");
+  const page = `/platform/${p.data.tenantId}`;
+  const supabase = await adminClient(page);
+  const at = (d: string) => (d ? `${d}T00:00:00Z` : null);
+  const { error } = await supabase.rpc("platform_set_subscription", { p_tenant: p.data.tenantId, p_plan_code: p.data.plan, p_status: p.data.status, p_trial_ends_at: at(p.data.trialEnds), p_period_end: at(p.data.periodEnd) });
+  if (error) return fail(page, classifyPlatformError(error));
+  revalidatePath(page);
+  return done(page, "plan_set");
+}
+
+export async function setEntitlement(formData: FormData) {
+  const p = z.object({ tenantId: uuid, key: z.string().max(80), enabled: z.enum(["true", "false"]) }).safeParse(Object.fromEntries(formData));
+  if (!p.success) return fail(LIST, "bad_request");
+  const page = `/platform/${p.data.tenantId}`;
+  const supabase = await adminClient(page);
+  const { data, error } = await supabase.rpc("platform_set_entitlement", { p_tenant: p.data.tenantId, p_feature_key: p.data.key, p_enabled: p.data.enabled === "true" });
+  if (error) return fail(page, classifyPlatformError(error));
+  revalidatePath(page);
+  return done(page, (data as { changed?: boolean } | null)?.changed === false ? "unchanged" : "feature_set");
+}

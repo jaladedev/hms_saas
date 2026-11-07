@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { z } from "zod";
 import { buttonPrimary, buttonQuiet, EmptyState, headRow, inputClass, linkClass, PageTitle, SectionTitle, thRowHead } from "@/components/staff/ui";
 import { PlatformNotice } from "@/components/platform-notice";
-import { addDomain, setDomainVerified, setProviderStatus, setTenantStatus } from "@/lib/platform/actions";
+import { addDomain, setDomainVerified, setEntitlement, setProviderStatus, setSubscription, setTenantStatus } from "@/lib/platform/actions";
 import { shortDate } from "@/lib/platform/hotel";
 import { createClient } from "@/lib/supabase/server";
 
@@ -16,6 +16,7 @@ type Detail = {
   payment_accounts: { id: string; provider: string; mode: string; label: string; secret_reference: string; status: string }[];
   owners: { user_id: string; email: string | null; status: string }[];
   subscription: { plan_code: string; status: string; trial_ends_at: string | null; current_period_end: string | null } | null;
+  entitlements: { feature_key: string; enabled: boolean }[];
 };
 
 export default async function HotelDetail({ params, searchParams }: { params: Promise<{ tenantId: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
@@ -103,8 +104,40 @@ export default async function HotelDetail({ params, searchParams }: { params: Pr
       </section>
 
       <section aria-labelledby="sub">
-        <SectionTitle id="sub">Plan</SectionTitle>
-        <p className="mt-3 text-sm">{d.subscription ? `${d.subscription.plan_code} (${d.subscription.status})${d.subscription.current_period_end ? `, current period ends ${shortDate(d.subscription.current_period_end)}` : ""}` : "No subscription yet."}</p>
+        <SectionTitle id="sub">Plan and features</SectionTitle>
+        <p className="mt-2 max-w-prose text-sm text-muted">These record what the hotel is meant to have. Nothing in the app reads them yet, so changing them does not switch anything on or off.</p>
+        <p className="mt-3 text-sm">{d.subscription ? `${d.subscription.plan_code} (${d.subscription.status})${d.subscription.trial_ends_at ? `, trial ends ${shortDate(d.subscription.trial_ends_at)}` : ""}${d.subscription.current_period_end ? `, period ends ${shortDate(d.subscription.current_period_end)}` : ""}` : "No plan set."}</p>
+        {admin && (
+          <form action={setSubscription} className="mt-3 flex flex-wrap items-end gap-3">
+            <input type="hidden" name="tenantId" value={t.id} />
+            <div><label htmlFor="plan" className="block text-sm">Plan code</label><input id="plan" name="plan" required maxLength={40} defaultValue={d.subscription?.plan_code ?? ""} className={inputClass} /></div>
+            <div><label htmlFor="sstatus" className="block text-sm">Status</label>
+              <select id="sstatus" name="status" defaultValue={d.subscription?.status ?? "trial"} className={inputClass}><option value="trial">Trial</option><option value="active">Active</option><option value="past_due">Past due</option><option value="cancelled">Cancelled</option></select></div>
+            <div><label htmlFor="trialEnds" className="block text-sm">Trial ends</label><input id="trialEnds" name="trialEnds" type="date" defaultValue={d.subscription?.trial_ends_at?.slice(0, 10) ?? ""} className={inputClass} /></div>
+            <div><label htmlFor="periodEnd" className="block text-sm">Period ends</label><input id="periodEnd" name="periodEnd" type="date" defaultValue={d.subscription?.current_period_end?.slice(0, 10) ?? ""} className={inputClass} /></div>
+            <button type="submit" className={buttonQuiet}>Save plan</button>
+          </form>
+        )}
+        {d.entitlements.length > 0 && (
+          <ul className="mt-4 border-t border-line">{d.entitlements.map((f) => (
+            <li key={f.feature_key} className="flex items-center gap-3 border-b border-line py-2 text-sm">
+              <span className="font-medium">{f.feature_key}</span><span className="text-muted">{f.enabled ? "on" : "off"}</span>
+              {admin && (
+                <form action={setEntitlement} className="ml-auto">
+                  <input type="hidden" name="tenantId" value={t.id} /><input type="hidden" name="key" value={f.feature_key} /><input type="hidden" name="enabled" value={f.enabled ? "false" : "true"} />
+                  <button type="submit" className={buttonQuiet}>{f.enabled ? "Turn off" : "Turn on"}</button>
+                </form>
+              )}
+            </li>
+          ))}</ul>
+        )}
+        {admin && (
+          <form action={setEntitlement} className="mt-3 flex flex-wrap items-end gap-3">
+            <input type="hidden" name="tenantId" value={t.id} /><input type="hidden" name="enabled" value="true" />
+            <div><label htmlFor="fkey" className="block text-sm">New feature key</label><input id="fkey" name="key" required maxLength={60} className={inputClass} /></div>
+            <button type="submit" className={buttonQuiet}>Add and turn on</button>
+          </form>
+        )}
       </section>
 
       {admin && (
