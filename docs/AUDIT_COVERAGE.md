@@ -14,7 +14,7 @@ Not reviewed: the application code's own logging, and whether a given screen sho
 | Nightly prices | statement triggers (024) | `rates.set / changed / cleared` |
 | Staff access | functions (016, 019) | `staff.role_added / role_removed / status_changed` |
 | Reservations | functions | created, `reservation.checked_in / checked_out / stay_changed / no_show / settled / hold_created / expired`, `room.transferred / blocked / block_released`, `hold.created` |
-| Money | functions | `invoice.issued / voided`, `payment.recorded / confirmed / reversed`, `payment_attempt.created`, `refund.requested / processing / paid_out / needs_attention / needs_bank_details / bank_details_*` |
+| Money | functions | `invoice.issued / voided`, `payment.recorded / confirmed / reversed / verified` (verified: 056), `payment_attempt.created`, `refund.requested / processing / paid_out / needs_attention / needs_bank_details / bank_details_*` |
 | Extras | functions (027) | `folio.charge_posted / charge_voided / payment_recorded / payment_reversed` |
 | Extras invoices | functions (048) | `folio_invoice.issued / voided / emailed` |
 | Housekeeping, maintenance | functions (018, 023, 026) | `housekeeping.task_*`, `room.housekeeping_set`, `maintenance.*` |

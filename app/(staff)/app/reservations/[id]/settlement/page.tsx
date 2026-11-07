@@ -19,7 +19,7 @@ type Reservation = {
 };
 type Payment = {
   id: string; payment_provider: string; payment_method: string; provider_reference: string | null; internal_reference: string;
-  amount_minor: number; payment_status: string; received_at: string;
+  amount_minor: number; payment_status: string; received_at: string; verification_status: string;
 };
 type Invoice = { id: string; invoice_number: string; invoice_status: string; total_minor: number };
 type Settlement = {
@@ -55,7 +55,7 @@ export default async function SettlementPage({
 
   const [settleQ, payQ, refundQ, invQ, propQ, guestQ, canRequestQ] = await Promise.all([
     supabase.rpc("reservation_settlement", { p_reservation_id: id }),
-    supabase.from("payments").select("id, payment_provider, payment_method, provider_reference, internal_reference, amount_minor, payment_status, received_at").eq("reservation_id", id).order("received_at"),
+    supabase.from("payments").select("id, payment_provider, payment_method, provider_reference, internal_reference, amount_minor, payment_status, received_at, verification_status").eq("reservation_id", id).order("received_at"),
     supabase.from("refunds").select("id, reservation_id, payment_id, internal_reference, amount_minor, currency, refund_status, reason, requested_by, decided_by, decided_at, decision_note, payout_reference, failure_reason, attention_note, provider_call_started_at, created_at, completed_at").eq("reservation_id", id).order("created_at"),
     supabase.from("invoices").select("id, invoice_number, invoice_status, total_minor").eq("reservation_id", id).order("created_at"),
     supabase.from("properties").select("name, timezone").eq("id", res.property_id).maybeSingle(),
@@ -169,6 +169,7 @@ export default async function SettlementPage({
                         <div>
                           <span className="font-medium">{via}</span>
                           {p.payment_status === "reversed" && <span className="ml-2 text-sm text-critical">reversed</span>}
+                          {p.payment_status === "succeeded" && p.verification_status === "unverified" && <span className="ml-2 text-sm text-pending">not yet verified</span>}
                           <p className="text-xs text-muted">
                             {formatDateTime(p.received_at, tz)}, {p.internal_reference}{p.provider_reference ? `, ref ${p.provider_reference}` : ""}
                           </p>

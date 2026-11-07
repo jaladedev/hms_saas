@@ -226,6 +226,14 @@ RM="$(psql -f "$HERE/48_report_money_rules.sql" 2>&1)" || { echo "$RM"; echo "RE
 echo "$RM" | grep -E 'PASS' || true
 if echo "$RM" | grep -qE 'FAIL|ERROR'; then echo "$RM"; echo "REPORT MONEY RULE TESTS FAILED"; exit 1; fi
 
+NT="$(psql -f "$HERE/56_notifications.sql" 2>&1)" || { echo "$NT"; echo "NOTIFICATION TESTS FAILED"; exit 1; }
+echo "$NT" | grep -E 'PASS' || true
+if echo "$NT" | grep -qE 'FAIL|ERROR'; then echo "$NT"; echo "NOTIFICATION TESTS FAILED"; exit 1; fi
+
+PV="$(psql -f "$HERE/57_payment_verification.sql" 2>&1)" || { echo "$PV"; echo "PAYMENT VERIFICATION TESTS FAILED"; exit 1; }
+echo "$PV" | grep -E 'PASS' || true
+if echo "$PV" | grep -qE 'FAIL|ERROR'; then echo "$PV"; echo "PAYMENT VERIFICATION TESTS FAILED"; exit 1; fi
+
 echo "--- concurrency: last room race (1 room, 50 clients)"
 cat > "$DATA/race_one.sql" <<'SQL'
 select test_try_claim('last_room', '00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', '2027-10-01', '2027-10-03');

@@ -197,6 +197,7 @@ export const OK_MESSAGES = {
   rejected: "Refund rejected.",
   paid_out: "Payout recorded. The reservation's balance has been updated.",
   requested: "Refund requested. A second person with approval rights must now approve it.",
+  verified: "Payment marked as verified.",
   resent: "Email put back in the queue and a send was started. Reload in a minute to see whether it went through.",
   cancelled: "Reservation cancelled. The rooms are free again and any money held has been settled below.",
   checked_in: "Room checked in.",

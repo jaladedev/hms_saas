@@ -5,6 +5,7 @@ import { signOut } from "@/lib/staff/auth-actions";
 import { PropertySwitcher } from "@/components/staff/property-switcher";
 import { rememberedProperty } from "@/lib/staff/active-property";
 import { pickProperty } from "@/lib/staff/property-choice";
+import { badgeText } from "@/lib/staff/notifications";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +13,7 @@ export const dynamic = "force-dynamic";
 // Items without an href are placeholders until their phase lands.
 const NAV: { label: string; href?: string }[] = [
   { label: "Overview", href: "/app" },
+  { label: "Notifications", href: "/app/notifications" },
   { label: "Front Desk", href: "/app/front-desk" },
   { label: "Reservations", href: "/app/reservations" },
   { label: "Room Management", href: "/app/rooms" },
@@ -19,6 +21,7 @@ const NAV: { label: string; href?: string }[] = [
   { label: "Housekeeping", href: "/app/housekeeping" },
   { label: "Maintenance", href: "/app/maintenance" },
   { label: "Payments & Billing" },
+  { label: "Payments to verify", href: "/app/payments" },
   { label: "Refunds", href: "/app/refunds" },
   { label: "Reconcile payments", href: "/app/reconciliation" },
   { label: "Guest emails", href: "/app/emails" },
@@ -43,6 +46,10 @@ export default async function StaffLayout({ children }: { children: React.ReactN
     .eq("assigned_to", data.user.id);
   const myRepairs = mineQ.error ? 0 : (mineQ.count ?? 0);
 
+  // Unread notices for this person. A failed read shows no badge rather than a wrong number.
+  const unreadQ = await supabase.rpc("notification_unread_count");
+  const unread = unreadQ.error || typeof unreadQ.data !== "number" ? 0 : unreadQ.data;
+
   // The header switcher appears only for people who can see more than one open property.
   const propsQ = await supabase.from("properties").select("id, name").eq("status", "active").order("name");
   const switchable = (propsQ.data ?? []) as { id: string; name: string }[];
@@ -57,6 +64,12 @@ export default async function StaffLayout({ children }: { children: React.ReactN
               item.href ? (
                 <Link key={item.label} href={item.href} className="block text-white focus-visible:outline-2 focus-visible:outline-white">
                   {item.label}
+                  {item.href === "/app/notifications" && unread > 0 && (
+                    <>
+                      <span aria-hidden="true" className="ml-2 rounded-full bg-white/20 px-2 py-0.5 text-xs tabular-nums">{badgeText(unread)}</span>
+                      <span className="sr-only">, {unread} unread</span>
+                    </>
+                  )}
                   {item.href === "/app/maintenance" && myRepairs > 0 && (
                     <>
                       <span aria-hidden="true" className="ml-2 rounded-full bg-white/20 px-2 py-0.5 text-xs tabular-nums">{myRepairs}</span>

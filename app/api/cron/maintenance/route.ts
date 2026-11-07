@@ -27,6 +27,11 @@ async function handle(request: Request) {
       if (error) throw new Error(error.message);
       return (data ?? []) as unknown[];
     },
+    async sweepNotifications() {
+      const { data, error } = await db.rpc("notifications_sweep");
+      if (error) throw new Error(error.message);
+      return data;
+    },
     log: (level, message, context) => console[level](`[maintenance] ${message}`, context ?? {}),
     async purgeOldData() {
       const { data, error } = await db.rpc("purge_old_operational_data");

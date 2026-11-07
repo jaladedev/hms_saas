@@ -806,6 +806,60 @@ check("a bad date and length fall back to today and 14 nights", calBad.status ==
 const calLater = await getPage(`/app/rooms/calendar?from=${dayAfter}&days=7`, OWNER_COOKIE);
 check("a window that starts after the stay has ended shows no in-house bar", calLater.status === 200 && sees(calLater.text, "Room calendar") && doesNotSee(calLater.text, "Ada Okafor", "E2E leak in the ceiling"));
 
+// 18. The notification inbox (migration 055), after section 14. An urgent repair is raised, and each role opens /app/notifications.
+const raised = await call("report_maintenance_request", { p_property_id: PROPERTY_A, p_room_id: null, p_location: "Lobby", p_title: "E2E lift stuck", p_description: null,
+  p_priority: "urgent", p_assigned_to: null, p_due_at: null, p_idempotency_key: "e2e-notif-repair" }, OWNER_JWT);
+check("the owner raises an urgent repair", raised.status === 200, JSON.stringify(raised));
+const notifOwner = await getPage("/app/notifications", OWNER_COOKIE);
+check("the owner's inbox lists it as urgent, in the Maintenance category, with an Open link and Mark read", notifOwner.status === 200 && sees(notifOwner.text, "Notifications", "E2E lift stuck", "Urgent", "Maintenance", "Open", "Mark read"), notifOwner.text.slice(0, 300));
+const notifHk = await getPage("/app/notifications", HK_COOKIE);
+check("housekeeping, who cannot manage repairs, does not see it", notifHk.status === 200 && doesNotSee(notifHk.text, "E2E lift stuck"), notifHk.text.slice(0, 200));
+const notifAcc = await getPage("/app/notifications", ACCOUNTANT_COOKIE);
+check("neither does the accountant", notifAcc.status === 200 && doesNotSee(notifAcc.text, "E2E lift stuck"));
+const notifB = await getPage("/app/notifications", OWNER_B_COOKIE);
+check("hotel B's owner sees nothing of hotel A", notifB.status === 200 && doesNotSee(notifB.text, "E2E lift stuck"));
+const inboxBefore = await call("notification_inbox", { p_limit: 50 }, OWNER_JWT);
+const liftNotice = (inboxBefore.body?.items ?? []).find((i) => i.title.includes("E2E lift stuck"));
+check("the inbox rpc returns the notice unread with an in-app link", Boolean(liftNotice) && liftNotice.read === false && /^\/app(\/|$)/.test(liftNotice.link ?? ""), JSON.stringify(liftNotice));
+const readOne = await call("mark_notification_read", { p_id: liftNotice?.id }, OWNER_JWT);
+const inboxAfter = await call("notification_inbox", { p_limit: 50, p_only_unread: true }, OWNER_JWT);
+check("marking it read hides it from the unread list", readOne.status < 300 && !(inboxAfter.body?.items ?? []).some((i) => i.id === liftNotice?.id), JSON.stringify(readOne));
+const notifUnread = await getPage("/app/notifications?unread=1&category=maintenance", OWNER_COOKIE);
+check("the unread-only page no longer shows it, and a bad category falls back to all", notifUnread.status === 200 && doesNotSee(notifUnread.text, "E2E lift stuck"));
+const notifBadCat = await getPage("/app/notifications?category=bogus", OWNER_COOKIE);
+check("a made-up category does not break the page", notifBadCat.status === 200 && sees(notifBadCat.text, "Notifications"));
+const sweepOut = await maint();
+check("the maintenance route runs the notification sweep without failing", sweepOut.notifications?.ok === true, JSON.stringify(sweepOut.notifications));
+const anonNotif = await staff("/app/notifications", "");
+check("signed out, the page redirects to sign in", anonNotif.status >= 300 && anonNotif.status < 400 && (anonNotif.headers.get("location") ?? "").includes("/login"), `status ${anonNotif.status}`);
+
+// 19. Payment verification (migration 056), after section 14: the owner records a bank transfer and a cash payment on the booking from section 14.
+const verifyRes = booked.body?.reservation_id ?? (await (await api(SERVICE_JWT, `/reservations?booking_reference=eq.${boardRef}&select=id`)).json())[0]?.id;
+const ACCOUNTANT_JWT_V = ACCOUNTANT_JWT;
+const bankPay = await call("record_manual_payment", { p_reservation_id: verifyRes, p_amount_minor: 123400, p_method: "bank_transfer", p_reference: "E2E-SLIP-77", p_note: null, p_idempotency_key: "e2e-verify-bank" }, OWNER_JWT);
+const cashPay = await call("record_manual_payment", { p_reservation_id: verifyRes, p_amount_minor: 5000, p_method: "cash", p_reference: "E2E-CASH-1", p_note: null, p_idempotency_key: "e2e-verify-cash" }, OWNER_JWT);
+check("the owner records a bank transfer and a cash payment", bankPay.status === 200 && cashPay.status === 200, JSON.stringify([bankPay, cashPay]));
+const vAcc = await getPage("/app/payments", ACCOUNTANT_COOKIE);
+check("the accountant's queue lists the bank transfer with its reference and booking, and not the cash payment", vAcc.status === 200 && sees(vAcc.text, "Payments to verify", "E2E-SLIP-77", boardRef, "Bank transfer", "Mark verified") && doesNotSee(vAcc.text, "E2E-CASH-1"), vAcc.text.slice(0, 300));
+const vHk = await getPage("/app/payments", HK_COOKIE);
+check("housekeeping sees no payments, and none of the reference", vHk.status === 200 && doesNotSee(vHk.text, "E2E-SLIP-77", "Mark verified"), vHk.text.slice(0, 200));
+const vB = await getPage("/app/payments", OWNER_B_COOKIE);
+check("hotel B's owner sees nothing of hotel A", vB.status === 200 && doesNotSee(vB.text, "E2E-SLIP-77"));
+const vNotice = await call("notification_inbox", { p_limit: 50 }, ACCOUNTANT_JWT_V);
+check("the accountant has a notice for it", (vNotice.body?.items ?? []).some((i) => i.kind === "payment_unverified"), JSON.stringify(vNotice.body?.items?.map((i) => i.kind)));
+const bankId = (await (await api(SERVICE_JWT, `/payments?provider_reference=eq.E2E-SLIP-77&select=id,verification_status`)).json())[0];
+check("the payment is stored unverified", bankId?.verification_status === "unverified", JSON.stringify(bankId));
+const vDenied = await call("verify_payment", { p_payment_id: bankId?.id }, HK_JWT);
+check("housekeeping cannot verify it", vDenied.status >= 400, JSON.stringify(vDenied));
+const vOk = await call("verify_payment", { p_payment_id: bankId?.id, p_note: "E2E statement line 9" }, ACCOUNTANT_JWT_V);
+check("the accountant verifies it", vOk.status === 200 && vOk.body?.verification_status === "verified", JSON.stringify(vOk));
+const vAfter = await getPage("/app/payments", ACCOUNTANT_COOKIE);
+check("it leaves the queue", vAfter.status === 200 && doesNotSee(vAfter.text, "E2E-SLIP-77"));
+const vDone = await getPage("/app/payments?view=verified", ACCOUNTANT_COOKIE);
+check("and appears under recently verified with the note", vDone.status === 200 && sees(vDone.text, "E2E-SLIP-77", "E2E statement line 9"), vDone.text.slice(0, 300));
+const vAnon = await staff("/app/payments", "");
+check("signed out, the page redirects to sign in", vAnon.status >= 300 && vAnon.status < 400 && (vAnon.headers.get("location") ?? "").includes("/login"), `status ${vAnon.status}`);
+
 // 14. A refund Paystack cannot finish without the customer's bank details: payout through the real route, the
 // needs-attention event, the bank list, the retry with the bank and account, and the event that completes it.
 // The fake Paystack behaves like the documented endpoints (cursor-paged /bank, a retry that answers 422 unless the refund

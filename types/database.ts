@@ -1175,6 +1175,10 @@ export type Database = {
           reservation_id: string
           tenant_id: string
           updated_at: string
+          verification_note: string | null
+          verification_status: string
+          verified_at: string | null
+          verified_by: string | null
         }
         ComputedFields: never
         Insert: {
@@ -1195,6 +1199,10 @@ export type Database = {
           reservation_id: string
           tenant_id: string
           updated_at?: string
+          verification_note?: string | null
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Update: {
           amount_minor?: number
@@ -1214,6 +1222,10 @@ export type Database = {
           reservation_id?: string
           tenant_id?: string
           updated_at?: string
+          verification_note?: string | null
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Relationships: [
           {
@@ -2682,6 +2694,8 @@ export type Database = {
         }
         Returns: Json
       }
+      mark_notification_read: { Args: { p_id: string }; Returns: undefined }
+      mark_notifications_read: { Args: { p_category?: string }; Returns: number }
       mark_refund_needs_details: {
         Args: {
           p_note: string
@@ -2712,6 +2726,12 @@ export type Database = {
         Args: { p_note: string; p_refund_id: string }
         Returns: undefined
       }
+      notification_inbox: {
+        Args: { p_before?: string; p_category?: string; p_limit?: number; p_only_unread?: boolean }
+        Returns: Json
+      }
+      notification_unread_count: { Args: never; Returns: number }
+      notifications_sweep: { Args: never; Returns: Json }
       occupancy_report: {
         Args: { p_from: string; p_property_id: string; p_to: string }
         Returns: Json
@@ -2729,6 +2749,7 @@ export type Database = {
         Args: { p_reservation_id: string }
         Returns: Json
       }
+      payments_to_verify: { Args: { p_limit?: number; p_status?: string }; Returns: Json }
       pending_required_minor: {
         Args: { p_reservation: string }
         Returns: number
@@ -3059,6 +3080,7 @@ export type Database = {
         }
         Returns: Json
       }
+      verify_payment: { Args: { p_note?: string; p_payment_id: string }; Returns: Json }
       void_folio_charge: {
         Args: { p_charge_id: string; p_reason: string }
         Returns: Json
