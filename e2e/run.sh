@@ -65,6 +65,9 @@ insert into user_profiles (id, full_name) values ('00000000-0000-0000-0000-00000
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-00000000aa0b', 'bola.owner@hotel-b.test');
 insert into tenant_memberships (id, tenant_id, user_id, status)
 values ('00000000-0000-0000-0000-0000000aaa0b', '00000000-0000-0000-0000-0000000000b1', '00000000-0000-0000-0000-00000000aa0b', 'active');
+-- Platform people (the /platform area): an admin, and support who can look but not change. Used by e2e/browser.mjs.
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-00000000f060', 'admin@platform.test'), ('00000000-0000-0000-0000-00000000f061', 'support@platform.test');
+insert into platform_admins (user_id, level) values ('00000000-0000-0000-0000-00000000f060', 'admin'), ('00000000-0000-0000-0000-00000000f061', 'support');
 -- A housekeeper at hotel A: holds room.view but not reservation.view, rate.view or guest.view (the room board cases).
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-00000000aa06', 'hk@hotel-a.test');
 insert into tenant_memberships (id, tenant_id, user_id, status)

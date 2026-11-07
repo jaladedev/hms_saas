@@ -47,6 +47,8 @@ function sessionCookie(sub, email) {
   return { name: "sb-127-auth-token", value: `base64-${Buffer.from(JSON.stringify(value)).toString("base64url")}`, url: SITE };
 }
 const OWNER = sessionCookie("00000000-0000-0000-0000-00000000aa01", "ada.owner@hotel-a.test");
+const PLATFORM_ADMIN = sessionCookie("00000000-0000-0000-0000-00000000f060", "admin@platform.test");
+const PLATFORM_SUPPORT = sessionCookie("00000000-0000-0000-0000-00000000f061", "support@platform.test");
 
 // Real records for the pages that have an id in the address. flow.mjs never creates a maintenance request or an invoice
 // for extras, so those are made here, as the owner and through the same database functions the screens call. Each has a
@@ -90,6 +92,11 @@ const staffPages = [
   ...(maintenanceId ? [`/app/maintenance/${maintenanceId}`] : []),
   ...(invoice ? [`/app/reservations/${invoice.reservation_id}/folio-invoice/${invoice.id}`] : []),
 ];
+// The platform area, as a platform admin (and the read-only list as support). It never shows a hotel's reservations or guests.
+const tenant = await firstRow("tenants", "order=id.asc");
+check("a hotel group exists for the platform pages", !!tenant);
+const platformPages = ["/platform", "/platform/new", ...(tenant ? [`/platform/${tenant.id}`] : [])];
+
 // The guest's own links, made by flow.mjs: the page that quotes a room, the booking page, and the cancel page.
 const shared = (() => { try { return JSON.parse(readFileSync(process.env.E2E_SHARE_FILE ?? "/tmp/e2e-share.json", "utf8")); } catch { return null; } })();
 check("flow.mjs shared the guest booking links", !!shared?.reservePath && !!shared?.bookingPath, "no share file (E2E_SHARE_FILE)");
@@ -130,13 +137,13 @@ const browser = await puppeteer.launch({
   args: ["--disable-gpu", "--disable-dev-shm-usage", ...(process.env.CHROME_ARGS ?? "").split(" ").filter(Boolean)],
 });
 
-async function visit(path, { guest, viewport }) {
+async function visit(path, { guest, viewport, as = OWNER, kind = guest ? "guest" : "staff" }) {
   // A fresh browser context for every page, so a login cookie set for a staff page is never sent on to a guest page.
   const context = await (browser.createBrowserContext ?? browser.createIncognitoBrowserContext).call(browser);
   const page = await context.newPage();
   await page.setViewport({ width: viewport.width, height: viewport.height, isMobile: viewport.isMobile, hasTouch: viewport.isMobile, deviceScaleFactor: 1 });
   if (guest) await page.setExtraHTTPHeaders({ "x-forwarded-host": HOST, "x-forwarded-proto": "http" });
-  else await page.setCookie(OWNER);
+  else await page.setCookie(as);
 
   const problems = [];
   page.on("pageerror", (e) => problems.push(`script error: ${String(e.message ?? e).slice(0, 160)}`));
@@ -180,11 +187,11 @@ async function visit(path, { guest, viewport }) {
 
   // The page's name without its query, record ids or the guest's private token: for the label and the file name.
   const shortPath = path.replace(/\?.*$/, "").replace(/[0-9a-f]{8}-[0-9a-f-]{27}/g, ":id").replace(/\/booking\/[\w-]+\.[\w-]+/, "/booking/:token");
-  const file = `${SHOTS}/${guest ? "guest" : "staff"}-${shortPath.replace(/[^a-z0-9]+/gi, "_").replace(/^_|_$/g, "") || "home"}-${viewport.name}.png`;
+  const file = `${SHOTS}/${kind}-${shortPath.replace(/[^a-z0-9]+/gi, "_").replace(/^_|_$/g, "") || "home"}-${viewport.name}.png`;
   await page.screenshot({ path: file, fullPage: true }).catch(() => {});
   await context.close();
 
-  const label = `${guest ? "guest" : "staff"} ${shortPath} (${viewport.name})`;
+  const label = `${kind} ${shortPath} (${viewport.name})`;
   check(`${label} loads cleanly`, status === 200 && problems.length === 0 && !facts.errorPage, `status ${status} ${problems.slice(0, 3).join(" | ")}`);
   check(`${label} stays on the page asked for`, landed === new URL(path, SITE).pathname, `landed on ${landed}`);
   if (viewport.isMobile) {
@@ -198,6 +205,8 @@ async function visit(path, { guest, viewport }) {
 
 for (const viewport of viewports) {
   for (const path of staffPages) await visit(path, { guest: false, viewport });
+  for (const path of platformPages) await visit(path, { guest: false, viewport, as: PLATFORM_ADMIN, kind: "platform" });
+  await visit("/platform", { guest: false, viewport, as: PLATFORM_SUPPORT, kind: "platform-support" });
   for (const path of guestPages) await visit(path, { guest: true, viewport });
 }
 // The staff menu: a sidebar on a laptop, a Menu button on a phone that opens and closes the same links.

@@ -27,25 +27,27 @@ export default async function Hotels({ searchParams }: { searchParams: Promise<R
       {rows.length === 0 ? (
         <EmptyState>{error ? "Nothing could be confirmed." : "No hotels yet."}</EmptyState>
       ) : (
-        <table className="w-full text-sm">
-          <thead><tr className={headRow}>
-            <th scope="col" className={thRowHead}>Hotel</th><th scope="col" className={thRowHead}>Status</th><th scope="col" className={thRowHead}>Properties</th>
-            <th scope="col" className={thRowHead}>Domains verified</th><th scope="col" className={thRowHead}>Owners</th><th scope="col" className={thRowHead}>Plan</th><th scope="col" className={thRowHead}>Created</th>
-          </tr></thead>
-          <tbody>
-            {rows.map((t) => (
-              <tr key={t.id} className="border-b border-line">
-                <th scope="row" className="py-2 pr-3 text-left font-normal"><Link href={`/platform/${t.id}`} className={linkClass}>{t.name}</Link><span className="block text-xs text-muted">{t.slug}</span></th>
-                <td className="py-2 pr-3">{t.status}</td>
-                <td className="py-2 pr-3 tabular-nums">{t.properties}</td>
-                <td className="py-2 pr-3 tabular-nums">{t.domains_verified} of {t.domains}</td>
-                <td className="py-2 pr-3 tabular-nums">{t.active_owners}</td>
-                <td className="py-2 pr-3">{t.plan_code ? `${t.plan_code}${t.subscription_status ? ` (${t.subscription_status})` : ""}` : "None"}</td>
-                <td className="py-2 pr-3">{shortDate(t.created_at)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead><tr className={headRow}>
+              <th scope="col" className={thRowHead}>Hotel</th><th scope="col" className={thRowHead}>Status</th><th scope="col" className={thRowHead}>Properties</th>
+              <th scope="col" className={thRowHead}>Domains verified</th><th scope="col" className={thRowHead}>Owners</th><th scope="col" className={thRowHead}>Plan</th><th scope="col" className={thRowHead}>Created</th>
+            </tr></thead>
+            <tbody>
+              {rows.map((t) => (
+                <tr key={t.id} className="border-b border-line">
+                  <th scope="row" className="py-2 pr-3 text-left font-normal"><Link href={`/platform/${t.id}`} className={linkClass}>{t.name}</Link><span className="block text-xs text-muted">{t.slug}</span></th>
+                  <td className="py-2 pr-3">{t.status}</td>
+                  <td className="py-2 pr-3 tabular-nums">{t.properties}</td>
+                  <td className="py-2 pr-3 tabular-nums">{t.domains_verified} of {t.domains}</td>
+                  <td className="py-2 pr-3 tabular-nums">{t.active_owners}</td>
+                  <td className="py-2 pr-3">{t.plan_code ? `${t.plan_code}${t.subscription_status ? ` (${t.subscription_status})` : ""}` : "None"}</td>
+                  <td className="py-2 pr-3">{shortDate(t.created_at)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </main>
   );
