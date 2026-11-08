@@ -136,6 +136,32 @@ export function cancelBooking(reservationId: string, expectedChargeMinor: number
   });
 }
 
+export type ChangeOptions = {
+  allowed: boolean; why_not: "disabled" | "status" | "started" | null; dates_open: boolean; window_hours: number; hours_before_arrival: number;
+  phone: string | null;
+  open_request: { id: string; kind: "dates" | "room" | "other"; arrival: string | null; departure: string | null; message: string | null; created_at: string } | null;
+  last_answer: { status: "done" | "declined"; note: string | null; resolved_at: string } | null;
+};
+
+export function changeOptions(reservationId: string) {
+  return call<ChangeOptions>("guest_change_options", { p_reservation_id: reservationId });
+}
+
+export function updateContact(reservationId: string, phone: string, idempotencyKey: string) {
+  return call<{ updated: boolean }>("guest_update_contact", { p_reservation_id: reservationId, p_phone: phone, p_idempotency_key: idempotencyKey });
+}
+
+export function requestChange(args: { reservationId: string; kind: "dates" | "room" | "other"; arrival: string | null; departure: string | null; message: string | null; idempotencyKey: string }) {
+  return call<{ request_id: string }>("guest_request_change", {
+    p_reservation_id: args.reservationId, p_kind: args.kind, p_arrival: args.arrival, p_departure: args.departure,
+    p_message: args.message, p_idempotency_key: args.idempotencyKey,
+  });
+}
+
+export function withdrawChange(reservationId: string) {
+  return call<{ withdrawn: boolean }>("guest_withdraw_change_request", { p_reservation_id: reservationId });
+}
+
 export function paymentStartContext(reservationId: string) {
   return call<{ account_id: string; secret_reference: string; guest_email: string; booking_reference: string }>(
     "payment_start_context", { p_reservation_id: reservationId });

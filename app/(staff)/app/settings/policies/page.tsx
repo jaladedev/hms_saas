@@ -139,6 +139,16 @@ export default async function PoliciesPage({ searchParams }: { searchParams: Pro
                       <p className="mt-1 text-xs text-muted">Front desk staff must give a reason. The earlier nights are added to the booking at that night&apos;s rate and tax, a discount is applied again to the larger price, and a live invoice is replaced. There is no way to waive them.</p>
                     </div>
                     <div className="sm:col-span-2">
+                      <label htmlFor={`gch-${p.id}`} className="block text-sm">Guests changing their booking online</label>
+                      <select id={`gch-${p.id}`} name="guestChanges" defaultValue={cfg.guest_changes} className={inputClass}>
+                        <option value="off">Off: guests contact the hotel</option>
+                        <option value="on">On: guests may correct their phone number and send a change request</option>
+                      </select>
+                      <label htmlFor={`gcw-${p.id}`} className="mt-2 block text-sm">Requests for new dates or another room close this many hours before arrival</label>
+                      <input id={`gcw-${p.id}`} name="guestChangeHours" inputMode="numeric" defaultValue={String(cfg.guest_change_hours)} className={`${inputClass} tabular-nums`} />
+                      <p className="mt-1 text-xs text-muted">A request changes nothing by itself: front desk staff see it under Guest requests, make the change on the booking if they agree, and answer it. Applies as soon as the version starts.</p>
+                    </div>
+                    <div className="sm:col-span-2">
                       <label htmlFor={`ec-${p.id}`} className="block text-sm">When a guest checks out early</label>
                       <select id={`ec-${p.id}`} name="earlyCheckout" defaultValue={cfg.early_checkout} className={inputClass}>
                         <option value="none">The hotel keeps the whole price</option>

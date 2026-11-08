@@ -6,7 +6,7 @@ import { formatDate, formatMoney, formatTime } from "@/lib/guest-site/format";
 import { messageForCode } from "@/lib/guest-site/errors";
 import { secondsRemaining } from "@/lib/guest-site/hold";
 import { notAllowedText } from "@/lib/guest-site/cancel";
-import { bookingStatus, cancelPreview, verifiedBookingId } from "@/lib/guest-site/server";
+import { bookingStatus, cancelPreview, changeOptions, verifiedBookingId } from "@/lib/guest-site/server";
 import { payAction } from "./actions";
 import { showsAmountDue } from "@/lib/guest-site/booking-summary";
 
@@ -34,6 +34,7 @@ export default async function BookingPage({ params, searchParams }: Props) {
   const awaitingConfirmation = justPaid && b.status === "pending";
   const notice = typeof raw.error === "string" ? messageForCode(raw.error) : null;
   const cancel = b.status === "confirmed" ? await cancelPreview(reservationId) : null;
+  const change = b.status === "confirmed" ? await changeOptions(reservationId) : null;
   const key = crypto.randomUUID();
 
   return (
@@ -99,6 +100,11 @@ export default async function BookingPage({ params, searchParams }: Props) {
             <button type="submit" className="w-full rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-strong">Pay now</button>
           </form>
         </section>
+      ) : null}
+      {change?.ok && change.data.allowed ? (
+        <p className="mt-6 text-sm"><a href={`/booking/${token}/change`} className="underline underline-offset-2">
+          {change.data.open_request ? "See your change request" : "Change your phone number or ask for a change"}
+        </a></p>
       ) : null}
       {cancel?.ok && cancel.data.allowed ? (
         <p className="mt-6 text-sm"><a href={`/booking/${token}/cancel`} className="underline underline-offset-2">Cancel this booking</a></p>

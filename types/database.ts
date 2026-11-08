@@ -542,6 +542,62 @@ export type Database = {
           },
         ]
       }
+      guest_change_requests: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          message: string | null
+          property_id: string
+          requested_arrival: string | null
+          requested_departure: string | null
+          reservation_id: string
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          message?: string | null
+          property_id: string
+          requested_arrival?: string | null
+          requested_departure?: string | null
+          reservation_id: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          message?: string | null
+          property_id?: string
+          requested_arrival?: string | null
+          requested_departure?: string | null
+          reservation_id?: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_change_requests_tenant_id_property_id_reservation_id_fkey"
+            columns: ["tenant_id", "property_id", "reservation_id"]
+            isOneToOne: false
+            referencedRelation: "reservations"
+            referencedColumns: ["tenant_id", "property_id", "id"]
+          },
+        ]
+      }
       guests: {
         Row: {
           address: string | null
@@ -2678,6 +2734,10 @@ export type Database = {
         Args: { p_reservation: string }
         Returns: Record<string, unknown>
       }
+      guest_change_options: {
+        Args: { p_reservation_id: string }
+        Returns: Json
+      }
       guest_link_ok: {
         Args: { p_issued_at: number; p_reservation_id: string }
         Returns: boolean
@@ -2702,6 +2762,25 @@ export type Database = {
       guest_policy: { Args: { p_host: string }; Returns: Json }
       guest_report: {
         Args: { p_from: string; p_property_id: string; p_to: string }
+        Returns: Json
+      }
+      guest_request_change: {
+        Args: {
+          p_arrival: string
+          p_departure: string
+          p_idempotency_key: string
+          p_kind: string
+          p_message: string
+          p_reservation_id: string
+        }
+        Returns: Json
+      }
+      guest_update_contact: {
+        Args: { p_idempotency_key: string; p_phone: string; p_reservation_id: string }
+        Returns: Json
+      }
+      guest_withdraw_change_request: {
+        Args: { p_reservation_id: string }
         Returns: Json
       }
       has_permission: {
@@ -3032,6 +3111,10 @@ export type Database = {
       }
       reservation_settlement: {
         Args: { p_reservation_id: string }
+        Returns: Json
+      }
+      resolve_change_request: {
+        Args: { p_note: string; p_outcome: string; p_request_id: string }
         Returns: Json
       }
       resolve_host: {

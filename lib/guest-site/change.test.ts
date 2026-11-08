@@ -1,0 +1,64 @@
+import { describe, expect, it } from "vitest";
+import { answerText, describeRequest, notAllowedChangeText, parseChangeRequest, parsePhone } from "./change";
+import { friendlyError } from "./errors";
+
+const fmt = (d: string) => `<${d}>`;
+
+describe("parseChangeRequest", () => {
+  it("reads a dates request and ignores the message being empty", () => {
+    expect(parseChangeRequest({ kind: "dates", arrival: "2026-12-01", departure: "2026-12-04", message: "  " }))
+      .toEqual({ kind: "dates", arrival: "2026-12-01", departure: "2026-12-04", message: null });
+  });
+  it("refuses dates that are missing, malformed, equal or backwards", () => {
+    for (const [a, d] of [["", ""], ["2026-12-01", "2026-12-01"], ["2026-12-05", "2026-12-01"], ["01/12/2026", "2026-12-03"], ["2026-13-45", "2026-12-03"]])
+      expect(parseChangeRequest({ kind: "dates", arrival: a, departure: d })).toBeNull();
+  });
+  it("needs a message for a room or other request and drops any dates", () => {
+    expect(parseChangeRequest({ kind: "room", arrival: "2026-12-01", departure: "2026-12-04", message: "quiet floor" }))
+      .toEqual({ kind: "room", arrival: null, departure: null, message: "quiet floor" });
+    expect(parseChangeRequest({ kind: "other", message: "   " })).toBeNull();
+    expect(parseChangeRequest({ kind: "other" })).toBeNull();
+  });
+  it("refuses unknown kinds and messages over 500 characters", () => {
+    expect(parseChangeRequest({ kind: "refund", message: "x" })).toBeNull();
+    expect(parseChangeRequest({ kind: "other", message: "x".repeat(501) })).toBeNull();
+    expect(parseChangeRequest({ kind: "other", message: "x".repeat(500) })).not.toBeNull();
+  });
+});
+
+describe("parsePhone", () => {
+  it("accepts the shapes the database accepts and nothing else", () => {
+    expect(parsePhone(" +234 801-234 5678 ")).toBe("+234 801-234 5678");
+    expect(parsePhone("(0801) 234.5678")).toBe("(0801) 234.5678");
+    for (const bad of ["", "12345", "call me", "+234 801 <b>", "1".repeat(31), 42, null, undefined]) expect(parsePhone(bad), String(bad)).toBeNull();
+  });
+});
+
+describe("wording", () => {
+  it("says why a booking cannot be changed", () => {
+    expect(notAllowedChangeText("disabled")).toMatch(/does not take booking changes online/);
+    expect(notAllowedChangeText("started")).toMatch(/stay has started/);
+    expect(notAllowedChangeText("status", "cancelled")).toMatch(/was cancelled/);
+    expect(notAllowedChangeText("status", "pending")).toMatch(/Only a confirmed booking/);
+    expect(notAllowedChangeText(null)).toBe("");
+  });
+  it("describes an open request and the last answer", () => {
+    const base = { id: "1", created_at: "", message: null };
+    expect(describeRequest({ ...base, kind: "dates", arrival: "2026-12-01", departure: "2026-12-03" }, fmt)).toBe("New dates: <2026-12-01> to <2026-12-03>.");
+    expect(describeRequest({ ...base, kind: "room", arrival: null, departure: null }, fmt)).toBe("A different room.");
+    expect(describeRequest({ ...base, kind: "other", arrival: null, departure: null }, fmt)).toBe("A message to the hotel.");
+    expect(answerText({ status: "declined", note: "Full that night.", resolved_at: "" })).toBe("The hotel could not do your last request. They said: Full that night.");
+    expect(answerText({ status: "done", note: null, resolved_at: "" })).toMatch(/dealt with your last request/);
+  });
+  it("maps the database refusals to guest messages that do not mention cancelling", () => {
+    expect(friendlyError("INVALID_STATE: change disabled").code).toBe("change_disabled");
+    expect(friendlyError("INVALID_STATE: change status").code).toBe("change_not_allowed");
+    expect(friendlyError("INVALID_STATE: change started").code).toBe("change_not_allowed");
+    expect(friendlyError("INVALID_STATE: change window").code).toBe("change_window");
+    expect(friendlyError("INVALID_STATE: change open request").code).toBe("change_open");
+    expect(friendlyError("POLICY_VIOLATION: phone").code).toBe("change_phone");
+    expect(friendlyError("POLICY_VIOLATION: dates").code).toBe("change_dates");
+    expect(friendlyError("POLICY_VIOLATION: request").code).toBe("change_request");
+    for (const c of ["change_disabled", "change_window", "change_open"]) expect(friendlyError(`INVALID_STATE: ${c.replace("change_", "change ").replace("open", "open request")}`).message).not.toMatch(/cancel/i);
+  });
+});

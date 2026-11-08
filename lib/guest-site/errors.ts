@@ -14,6 +14,13 @@ const RULES: Array<[RegExp, GuestError]> = [
   [/INVALID_STATE: (cancelled|checked_in|checked_out|no_show)/, { code: "cancel_not_allowed", message: "This booking can no longer be cancelled online. Please contact the hotel." }],
   [/INVALID_STATE: nothing due/, { code: "nothing_due", message: "Nothing is left to pay on this booking." }],
   [/INVALID_STATE: online booking off/, { code: "booking_off", message: "This hotel is not taking online bookings right now. Please contact the hotel." }],
+  [/INVALID_STATE: change disabled/, { code: "change_disabled", message: "This hotel does not take booking changes online. Please contact the hotel." }],
+  [/INVALID_STATE: change (status|started)/, { code: "change_not_allowed", message: "This booking can no longer be changed online. Please contact the hotel." }],
+  [/INVALID_STATE: change window/, { code: "change_window", message: "It is too close to your arrival to ask for this online. Please contact the hotel." }],
+  [/INVALID_STATE: change open request/, { code: "change_open", message: "You already have a request waiting for the hotel. Withdraw it first if you want to send a different one." }],
+  [/POLICY_VIOLATION: phone/, { code: "change_phone", message: "Please enter a phone number with digits only, and an optional + at the start." }],
+  [/POLICY_VIOLATION: dates/, { code: "change_dates", message: "Please check the new dates: they must be in the future, at most 30 nights, and different from your booking." }],
+  [/POLICY_VIOLATION: request/, { code: "change_request", message: "Please add a short message so the hotel knows what you need." }],
   [/NOT_FOUND: (host|property)/, { code: "not_configured", message: "Online booking is not available on this site yet." }],
   [/NOT_FOUND: room type/, { code: "not_bookable", message: "That room type is not available to book online." }],
 ];
