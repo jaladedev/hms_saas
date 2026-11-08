@@ -284,6 +284,9 @@ export default async function ReservationPage({
                           <p className="text-xs text-muted">{earlyCheckinNote(eq, money)}</p>
                           <label htmlFor={`eci-${rr.id}`} className="block text-sm">Reason for checking in early</label>
                           <input id={`eci-${rr.id}`} name="reason" required maxLength={200} className={inputClass} />
+                          {cDiscount?.data === true && res.discount_minor === 0 && (
+                            <label className="flex items-start gap-2 text-sm"><input type="checkbox" name="waive" className="mt-1" /> Waive the charge for the earlier nights (a discount, within your limit)</label>
+                          )}
                           <button type="submit" className={buttonPrimary}>Check in early</button>
                         </form>
                       );

@@ -147,6 +147,9 @@ describe("how the database's refusals are worded", () => {
     expect(classifyRpcError("POLICY_VIOLATION: PAYMENT_REQUIRED").code).toBe("payment_required");
     expect(classifyRpcError("POLICY_VIOLATION: EARLY_CHECKIN_NOT_SUPPORTED").code).toBe("early_checkin");
     expect(classifyRpcError("POLICY_VIOLATION: EARLY_CHECKIN_TOO_EARLY").code).toBe("early_checkin_too_early");
+    expect(classifyRpcError("POLICY_VIOLATION: waiver").code).toBe("waiver_forbidden");
+    expect(classifyRpcError("POLICY_VIOLATION: discount").code).toBe("waiver_discount");
+    expect(classifyRpcError("POLICY_VIOLATION: discount limit 10").code).toBe("dc_limit");
     expect(classifyRpcError("INVALID_STATE: stay already ended").code).toBe("stay_ended");
     expect(classifyRpcError("INVALID_STATE: no stay claim for today").code).toBe("no_stay_claim");
     expect(classifyRpcError("POLICY_VIOLATION: payment method").code).toBe("method_invalid");

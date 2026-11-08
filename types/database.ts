@@ -2698,7 +2698,7 @@ export type Database = {
           rooms_sold: number
         }[]
       }
-      early_check_in: { Args: { p_reason: string; p_reservation_room_id: string }; Returns: Json }
+      early_check_in: { Args: { p_reason: string; p_reservation_room_id: string; p_waive?: boolean }; Returns: Json }
       early_checkin_quote: { Args: { p_reservation_room_id: string }; Returns: Json }
       early_checkout_quote: { Args: { p_reservation_room_id: string }; Returns: Json }
       email_folio_invoice: {

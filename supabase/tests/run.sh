@@ -708,4 +708,8 @@ GC="$(psql -f "$HERE/68_guest_cancel_flag.sql" 2>&1)" || { echo "$GC"; echo "GUE
 echo "$GC" | grep -E 'PASS' || true
 if echo "$GC" | grep -qE 'FAIL|ERROR'; then echo "$GC"; echo "GUEST CANCEL FLAG TESTS FAILED"; exit 1; fi
 
+EW="$(psql -f "$HERE/73_early_checkin_waiver.sql" 2>&1)" || { echo "$EW"; echo "EARLY CHECK-IN WAIVER TESTS FAILED"; exit 1; }
+echo "$EW" | grep -E 'PASS' || true
+if echo "$EW" | grep -qE 'FAIL|ERROR'; then echo "$EW"; echo "EARLY CHECK-IN WAIVER TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"
