@@ -80,6 +80,19 @@ export async function checkInRoom(formData: FormData) {
   return ok(page, "checked_in");
 }
 
+/** Checks a guest in before their booked arrival date (migration 061). A written reason is required and is audited. */
+export async function earlyCheckInRoom(formData: FormData) {
+  const parsed = z.object({ reservationId: uuid, reservationRoomId: uuid, reason: z.string().trim().min(1).max(200) }).safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return back(LIST, { err: parsed.error.issues.some((i) => i.path[0] === "reason") ? "reason_required" : "bad_request" });
+  const page = pageFor(parsed.data.reservationId);
+
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("early_check_in", { p_reservation_room_id: parsed.data.reservationRoomId, p_reason: parsed.data.reason });
+  if (error) return fail(page, error.message);
+  refresh(parsed.data.reservationId);
+  return ok(page, "checked_in_early");
+}
+
 export async function checkOutRoom(formData: FormData) {
   const parsed = z.object({ reservationId: uuid, reservationRoomId: uuid }).safeParse(Object.fromEntries(formData));
   if (!parsed.success) return back(LIST, { err: "bad_request" });

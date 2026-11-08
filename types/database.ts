@@ -2627,6 +2627,8 @@ export type Database = {
           rooms_sold: number
         }[]
       }
+      early_check_in: { Args: { p_reason: string; p_reservation_room_id: string }; Returns: Json }
+      early_checkin_quote: { Args: { p_reservation_room_id: string }; Returns: Json }
       early_checkout_quote: { Args: { p_reservation_room_id: string }; Returns: Json }
       email_folio_invoice: {
         Args: { p_idempotency_key: string; p_invoice_id: string }

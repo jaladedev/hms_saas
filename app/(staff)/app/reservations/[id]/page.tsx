@@ -7,6 +7,7 @@ import { Discount } from "@/components/staff/discount";
 import { discountView } from "@/lib/staff/discount";
 import { buttonDanger, buttonPrimary, buttonQuiet, inputClass, Notice, PaymentChip, ReservationChip, linkClass, PageTitle, SectionTitle } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
+import { earlyCheckinNote, earlyCheckinWhyNot, parseEarlyCheckinQuote, type EarlyCheckinQuote } from "@/lib/staff/early-checkin";
 import { earlyCheckoutNote, parseEarlyQuote, type EarlyQuote } from "@/lib/staff/early-checkout";
 import { checkoutNote, CHARGE_COLUMNS, folioIsOpen, isFolioResult, owingMinor, PAYMENT_COLUMNS, type ChargeRow, type FolioBalance, type PaymentRow } from "@/lib/staff/folio";
 import { FOLIO_INVOICE_COLUMNS, type FolioInvoiceRow } from "@/lib/staff/folio-invoice";
@@ -14,7 +15,7 @@ import { formatDateTime } from "@/lib/staff/format";
 import { holdView } from "@/lib/staff/hold";
 import { canMarkNoShow, NOTE_MAX } from "@/lib/staff/no-show";
 import { stayEditView } from "@/lib/staff/stay-edit";
-import { cancelReservation, checkInRoom, checkOutRoom, issueInvoice, markNoShow, recordPayment, transferRoom, voidInvoice } from "@/lib/staff/reservation-actions";
+import { cancelReservation, checkInRoom, earlyCheckInRoom, checkOutRoom, issueInvoice, markNoShow, recordPayment, transferRoom, voidInvoice } from "@/lib/staff/reservation-actions";
 import {
   attentionText, detailActions, invoiceActions, type InvoiceRow, nightsBetween, PAYMENT_METHODS, SOURCE_LABEL, todayIn,
 } from "@/lib/staff/reservations";
@@ -122,6 +123,13 @@ export default async function ReservationPage({
   const inv = invoiceActions(res.reservation_status, invoices, { issue: cIssue.data === true, void: cVoid.data === true });
   const money = (m: number) => formatMoney(m, res.currency);
   // What check-out would do for each guest in the house who is leaving early, under the hotel's policy (migration 060).
+  // And, for a booking whose guest turns up before the arrival date, what an early check-in would do (migration 061).
+  const earlyInQuotes = new Map<string, EarlyCheckinQuote>();
+  if (cIn.data === true && res.reservation_status === "confirmed" && today < res.arrival_date) {
+    const waiting = resRooms.filter((x) => x.room_status === "booked");
+    const answers = await Promise.all(waiting.map((x) => supabase.rpc("early_checkin_quote", { p_reservation_room_id: x.id })));
+    answers.forEach((a, i) => { const q = parseEarlyCheckinQuote(a.data); if (q) earlyInQuotes.set(waiting[i]!.id, q); });
+  }
   const earlyQuotes = new Map<string, EarlyQuote>();
   if (cOut.data === true && today < res.departure_date) {
     const inHouse = resRooms.filter((x) => x.room_status === "checked_in");
@@ -263,6 +271,24 @@ export default async function ReservationPage({
                         </details>
                       </form>
                     )}
+                    {(() => {
+                      const eq = earlyInQuotes.get(rr.id);
+                      if (!eq) return null;
+                      if (!eq.allowed) {
+                        const why = earlyCheckinWhyNot(eq);
+                        return why ? <p className="max-w-xs text-xs text-muted">{why}</p> : null;
+                      }
+                      return (
+                        <form action={earlyCheckInRoom} className="max-w-xs space-y-2">
+                          <input type="hidden" name="reservationId" value={res.id} />
+                          <input type="hidden" name="reservationRoomId" value={rr.id} />
+                          <p className="text-xs text-muted">{earlyCheckinNote(eq, money)}</p>
+                          <label htmlFor={`eci-${rr.id}`} className="block text-sm">Reason for checking in early</label>
+                          <input id={`eci-${rr.id}`} name="reason" required maxLength={200} className={inputClass} />
+                          <button type="submit" className={buttonPrimary}>Check in early</button>
+                        </form>
+                      );
+                    })()}
                     {(() => {
                       const win = canTransfer(rr.room_status, res.reservation_status, cAssign.data === true) ? transferWindow(res.arrival_date, res.departure_date, today) : null;
                       if (!win) return null;

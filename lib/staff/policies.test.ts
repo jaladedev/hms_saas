@@ -18,7 +18,7 @@ describe("readConfig", () => {
     expect(cfg.checkin_payment).toBe("full");
   });
   it("falls back to what the database falls back to: full payment, no check-in requirement, no rules", () => {
-    expect(readConfig({})).toEqual({ cancellation_rules: [], online_payment: { mode: "full" }, checkin_payment: "none", guest_cancellation: "on", early_checkout: "none" });
+    expect(readConfig({})).toEqual({ cancellation_rules: [], online_payment: { mode: "full" }, checkin_payment: "none", guest_cancellation: "on", early_checkout: "none", early_checkin_days: 0 });
     expect(readConfig(null).online_payment).toEqual({ mode: "full" });
     expect(readConfig({ online_payment: { mode: "deposit_percent", value: 0 } }).online_payment).toEqual({ mode: "full" });
   });
@@ -40,6 +40,11 @@ describe("guest cancellation setting", () => {
     expect(validatePolicy({ ...form, guestCancellation: "on" })).toMatchObject({ ok: true, value: { config: { guest_cancellation: "on" } } });
     expect(validatePolicy(form)).toMatchObject({ ok: true, value: { config: { guest_cancellation: "on" } } });
     expect(validatePolicy({ ...form, guestCancellation: "maybe" })).toEqual({ ok: false, code: "policy_invalid", field: "rules" });
+    // early check-out and early check-in (migrations 060 and 061): an older form without the field means "off"
+    expect(validatePolicy(form)).toMatchObject({ ok: true, value: { config: { early_checkout: "none", early_checkin_days: 0 } } });
+    expect(validatePolicy({ ...form, earlyCheckout: "credit", earlyCheckinDays: "3" })).toMatchObject({ ok: true, value: { config: { early_checkout: "credit", early_checkin_days: 3 } } });
+    for (const bad of ["8", "-1", "2.5", "abc", "10"]) expect(validatePolicy({ ...form, earlyCheckinDays: bad }), bad).toEqual({ ok: false, code: "policy_invalid", field: "rules" });
+    expect(validatePolicy({ ...form, earlyCheckout: "all" })).toEqual({ ok: false, code: "policy_invalid", field: "rules" });
   });
   it("replaces the old value when a new version is saved, and tells guests to contact the hotel when it is off", () => {
     expect(mergeConfig({ guest_cancellation: "off", check_in_time: "14:00" }, readConfig({}))).toMatchObject({ guest_cancellation: "on", check_in_time: "14:00" });
@@ -112,6 +117,12 @@ describe("mergeConfig", () => {
     for (const v of ["CREDIT", "all", false, 0, null]) expect(readConfig({ early_checkout: v }).early_checkout, String(v)).toBe("none");
     expect(mergeConfig(null, readConfig({ early_checkout: "credit" })).early_checkout).toBe("credit");
     expect(mergeConfig({ early_checkout: "credit" }, readConfig({})).early_checkout).toBeUndefined();
+  });
+  it("reads and stores the early check-in days, only when 1 to 7", () => {
+    expect(readConfig({ early_checkin_days: 3 }).early_checkin_days).toBe(3);
+    for (const v of [0, 8, -1, 2.5, "3", null, true]) expect(readConfig({ early_checkin_days: v }).early_checkin_days, String(v)).toBe(0);
+    expect(mergeConfig(null, readConfig({ early_checkin_days: 2 })).early_checkin_days).toBe(2);
+    expect(mergeConfig({ early_checkin_days: 2 }, readConfig({})).early_checkin_days).toBeUndefined();
   });
   it("copes with no previous version", () => {
     expect(mergeConfig(null, readConfig({}))).toEqual({ cancellation_rules: [], online_payment: { mode: "full" }, guest_cancellation: "on" });

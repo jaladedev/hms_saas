@@ -645,6 +645,8 @@ check("the version is stored: its date, the deposit, three rules, the check-in r
   && polV1.config.checkin_payment === "full" && polV1.created_by === OWNER_ID, JSON.stringify(polV1));
 
 check("a version saved without choosing an early check-out rule stores no key (the hotel keeps the whole price)", polV1.config.early_checkout === undefined, JSON.stringify(polV1.config));
+check("a version saved without choosing an early check-in rule stores no key (early check-in stays off)", polV1.config.early_checkin_days === undefined, JSON.stringify(polV1.config));
+check("the policies page offers the early check-in rule", sees(pageText(polHtml), "Early check-in: days before arrival a guest may be checked in", "Not allowed", "Up to 3 days before"), pageText(polHtml).slice(0, 200));
 check("the policies page offers the early check-out rule", sees(pageText(polHtml), "When a guest checks out early", "The hotel keeps the whole price", "Nights not stayed come off the booking"), pageText(polHtml).slice(0, 200));
 
 const polRefused = [

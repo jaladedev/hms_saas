@@ -110,7 +110,7 @@ export function refundableMinor(paymentAmountMinor: number, refunds: Pick<Refund
 export type ErrorCode =
   | "self_approval" | "exceeds" | "invalid_state" | "not_found" | "reason_required" | "note_required"
   | "amount_invalid" | "provider_payment" | "hold_inactive" | "bad_request" | "unknown"
-  | "room_not_ready" | "room_not_active" | "payment_required" | "early_checkin" | "stay_ended" | "no_stay_claim"
+  | "room_not_ready" | "room_not_active" | "payment_required" | "early_checkin" | "early_checkin_too_early" | "stay_ended" | "no_stay_claim"
   | "overpayment" | "method_invalid" | "not_cancellable"
   | "room_unavailable" | "room_choice" | "capacity" | "rate_missing" | "forbidden" | "arrival_past" | "dates_invalid"
   | "guest_name_required" | "too_long_stay" | "room_type_missing" | "guest_failed"
@@ -151,6 +151,7 @@ export function classifyRpcError(message: string): { code: ErrorCode; refundable
   if (/ROOM_NOT_READY/.test(message)) return { code: "room_not_ready" };
   if (/ROOM_NOT_ACTIVE/.test(message)) return { code: "room_not_active" };
   if (/PAYMENT_REQUIRED/.test(message)) return { code: "payment_required" };
+  if (/EARLY_CHECKIN_TOO_EARLY/.test(message)) return { code: "early_checkin_too_early" };
   if (/EARLY_CHECKIN_NOT_SUPPORTED/.test(message)) return { code: "early_checkin" };
   if (/stay already ended/.test(message)) return { code: "stay_ended" };
   if (/no stay claim for today/.test(message)) return { code: "no_stay_claim" };
@@ -201,6 +202,7 @@ export const OK_MESSAGES = {
   resent: "Email put back in the queue and a send was started. Reload in a minute to see whether it went through.",
   cancelled: "Reservation cancelled. The rooms are free again and any money held has been settled below.",
   checked_in: "Room checked in.",
+  checked_in_early: "Guest checked in early. The booking now starts today, with the earlier nights added.",
   checked_out: "Room checked out. It is now marked dirty for housekeeping.",
   payment_recorded: "Payment recorded.",
   created: "Reservation created and confirmed. The room is held for the guest.",
@@ -283,7 +285,8 @@ export function errorMessage(code: string, refundable: number | null, formatMino
     case "room_not_ready": return "The room is not clean yet. Check the guest in anyway only with an override reason.";
     case "room_not_active": return "That room is out of service. Move the guest to another room first.";
     case "payment_required": return "This booking must be paid in full before check-in. A person with payment approval rights can override it with a reason.";
-    case "early_checkin": return "The guest cannot be checked in before the arrival date yet.";
+    case "early_checkin": return "The guest cannot be checked in before the arrival date: this hotel has not switched early check-in on.";
+    case "early_checkin_too_early": return "That is further ahead of the arrival date than this hotel allows for early check-in.";
     case "stay_ended": return "The departure date has passed, so this room cannot be checked in.";
     case "no_stay_claim": return "No room is assigned for tonight. Check the room assignment first.";
     case "overpayment": return refundable !== null ? `That is more than is owed. At most ${formatMinor(refundable)} is outstanding.` : "That is more than is owed on this reservation.";

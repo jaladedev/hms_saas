@@ -146,6 +146,7 @@ describe("how the database's refusals are worded", () => {
     expect(classifyRpcError("INVALID_STATE: ROOM_NOT_ACTIVE").code).toBe("room_not_active");
     expect(classifyRpcError("POLICY_VIOLATION: PAYMENT_REQUIRED").code).toBe("payment_required");
     expect(classifyRpcError("POLICY_VIOLATION: EARLY_CHECKIN_NOT_SUPPORTED").code).toBe("early_checkin");
+    expect(classifyRpcError("POLICY_VIOLATION: EARLY_CHECKIN_TOO_EARLY").code).toBe("early_checkin_too_early");
     expect(classifyRpcError("INVALID_STATE: stay already ended").code).toBe("stay_ended");
     expect(classifyRpcError("INVALID_STATE: no stay claim for today").code).toBe("no_stay_claim");
     expect(classifyRpcError("POLICY_VIOLATION: payment method").code).toBe("method_invalid");
@@ -157,7 +158,7 @@ describe("how the database's refusals are worded", () => {
     expect(errorMessage("overpayment", null, fmt)).toMatch(/more than is owed/);
   });
   it("has a sentence for every new code and never echoes database text", () => {
-    for (const c of ["room_not_ready", "room_not_active", "payment_required", "early_checkin", "stay_ended", "no_stay_claim", "method_invalid", "not_cancellable"]) {
+    for (const c of ["room_not_ready", "room_not_active", "payment_required", "early_checkin", "early_checkin_too_early", "stay_ended", "no_stay_claim", "method_invalid", "not_cancellable"]) {
       const m = errorMessage(c, null, fmt);
       expect(m, c).not.toMatch(/Nothing was changed/);
       expect(m, c).not.toMatch(/INVALID_STATE|POLICY_VIOLATION/);

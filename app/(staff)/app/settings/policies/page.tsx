@@ -131,6 +131,14 @@ export default async function PoliciesPage({ searchParams }: { searchParams: Pro
                       <p className="mt-1 text-xs text-muted">This applies as soon as the version starts, to bookings already made too. Staff can always cancel. The charge a guest would pay still follows the rules they booked under.</p>
                     </div>
                     <div className="sm:col-span-2">
+                      <label htmlFor={`eci-${p.id}`} className="block text-sm">Early check-in: days before arrival a guest may be checked in</label>
+                      <select id={`eci-${p.id}`} name="earlyCheckinDays" defaultValue={String(cfg.early_checkin_days)} className={inputClass}>
+                        <option value="0">Not allowed</option>
+                        {[1, 2, 3, 4, 5, 6, 7].map((d) => <option key={d} value={d}>{d === 1 ? "Up to 1 day before" : `Up to ${d} days before`}</option>)}
+                      </select>
+                      <p className="mt-1 text-xs text-muted">Front desk staff must give a reason. The earlier nights are added to the booking at that night&apos;s rate and tax, a discount is applied again to the larger price, and a live invoice is replaced. There is no way to waive them.</p>
+                    </div>
+                    <div className="sm:col-span-2">
                       <label htmlFor={`ec-${p.id}`} className="block text-sm">When a guest checks out early</label>
                       <select id={`ec-${p.id}`} name="earlyCheckout" defaultValue={cfg.early_checkout} className={inputClass}>
                         <option value="none">The hotel keeps the whole price</option>

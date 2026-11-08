@@ -26,6 +26,8 @@ export type PolicyConfig = {
   checkin_payment: CheckinPayment;
   guest_cancellation: GuestCancellation;
   early_checkout: EarlyCheckout;
+  /** How many days before arrival a guest may be checked in (migration 061): 0 is off, 1 to 7 is on. */
+  early_checkin_days: number;
 };
 
 export type PolicyRow = { id: string; property_id: string; version: number; effective_from: string; config: Record<string, unknown> };
@@ -59,7 +61,7 @@ export function readConfig(config: unknown): PolicyConfig {
   const pct = Number(op.value);
   const online: OnlinePayment = op.mode === "deposit_percent" && Number.isFinite(pct) && pct > 0 && pct <= 100
     ? { mode: "deposit_percent", value: pct } : { mode: "full" };
-  return { cancellation_rules: sortRules(rules), online_payment: online, checkin_payment: c.checkin_payment === "full" ? "full" : "none", guest_cancellation: c.guest_cancellation === "off" ? "off" : "on", early_checkout: c.early_checkout === "credit" || c.early_checkout === "one_night" ? c.early_checkout : "none" };
+  return { cancellation_rules: sortRules(rules), online_payment: online, checkin_payment: c.checkin_payment === "full" ? "full" : "none", guest_cancellation: c.guest_cancellation === "off" ? "off" : "on", early_checkout: c.early_checkout === "credit" || c.early_checkout === "one_night" ? c.early_checkout : "none", early_checkin_days: Number.isInteger(c.early_checkin_days) && (c.early_checkin_days as number) >= 1 && (c.early_checkin_days as number) <= 7 ? (c.early_checkin_days as number) : 0 };
 }
 
 /** Widest window first, the order a person reads them in. The database picks the smallest window that still covers the time left. */
@@ -175,7 +177,12 @@ export function validatePolicy(input: PolicyInput):
   const early = input.earlyCheckout === undefined ? "none" : clean(input.earlyCheckout, 10);
   if (early !== "none" && early !== "credit" && early !== "one_night") return bad("rules");
 
-  return { ok: true, value: { propertyId: propertyId.data, effectiveFrom, config: { cancellation_rules: sortRules(rules), online_payment: online, checkin_payment: checkin, guest_cancellation: guestCancel, early_checkout: early } } };
+  // And a form from before early check-in existed means "not allowed". The field is whole days, 0 to 7.
+  const eciRaw = input.earlyCheckinDays === undefined ? "0" : clean(input.earlyCheckinDays, 3);
+  if (!/^[0-7]$/.test(eciRaw)) return bad("rules");
+  const earlyCheckinDays = Number(eciRaw);
+
+  return { ok: true, value: { propertyId: propertyId.data, effectiveFrom, config: { cancellation_rules: sortRules(rules), online_payment: online, checkin_payment: checkin, guest_cancellation: guestCancel, early_checkout: early, early_checkin_days: earlyCheckinDays } } };
 }
 
 /**
@@ -187,10 +194,10 @@ export function validatePolicy(input: PolicyInput):
  */
 export function mergeConfig(previous: unknown, next: PolicyConfig): Record<string, unknown> {
   const base = isObject(previous) ? { ...previous } : {};
-  delete base.cancellation_rules; delete base.online_payment; delete base.checkin_payment; delete base.guest_cancellation; delete base.early_checkout;
-  const { checkin_payment, early_checkout, ...rest } = next;
+  delete base.cancellation_rules; delete base.online_payment; delete base.checkin_payment; delete base.guest_cancellation; delete base.early_checkout; delete base.early_checkin_days;
+  const { checkin_payment, early_checkout, early_checkin_days, ...rest } = next;
   // Both are stored only when they say something: an absent key is "no payment needed" and "keep the whole price".
-  return { ...base, ...rest, ...(checkin_payment === "full" ? { checkin_payment } : {}), ...(early_checkout !== "none" ? { early_checkout } : {}) };
+  return { ...base, ...rest, ...(checkin_payment === "full" ? { checkin_payment } : {}), ...(early_checkout !== "none" ? { early_checkout } : {}), ...(early_checkin_days > 0 ? { early_checkin_days } : {}) };
 }
 
 /**
