@@ -3,7 +3,7 @@ import { buttonPrimary, buttonQuiet, EmptyState, ErrorBanner, inputClass, linkCl
 import { formatDate } from "@/lib/guest-site/format";
 import { formatDateTime } from "@/lib/staff/format";
 import { resolveChangeRequest } from "@/lib/staff/change-request-actions";
-import { askText, CHANGE_REQUEST_COLUMNS, parseRequests, parseRequestView, statusLabel } from "@/lib/staff/change-requests";
+import { askText, CHANGE_REQUEST_COLUMNS, parseRequests, parseRequestView, statusLabel, withBookings } from "@/lib/staff/change-requests";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +18,11 @@ export default async function GuestRequestsPage({ searchParams }: { searchParams
                     : base.neq("status", "open").order("created_at", { ascending: false }).limit(50),
     supabase.from("properties").select("id, timezone"),
   ]);
-  const rows = parseRequests(listQ.data);
+  const found = parseRequests(listQ.data);
+  const bookingsQ = found.length
+    ? await supabase.from("reservations").select("id, booking_reference, arrival_date, departure_date").in("id", [...new Set(found.map((r) => r.reservation_id))])
+    : { data: [] };
+  const rows = withBookings(found, (bookingsQ.data ?? []) as { id: string; booking_reference: string; arrival_date: string; departure_date: string }[]);
   const zones = new Map(((propQ.data ?? []) as { id: string; timezone: string }[]).map((p) => [p.id, p.timezone]));
   const tab = (active: boolean) =>
     `rounded px-3 py-1.5 text-sm ${active ? "bg-navy-900 text-white" : "bg-ink/5 text-ink hover:bg-ink/10"} focus-visible:outline-2 focus-visible:outline-primary`;

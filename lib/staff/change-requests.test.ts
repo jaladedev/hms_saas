@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { askText, kindLabel, parseRequests, parseRequestView, statusLabel, type ChangeRequestRow } from "./change-requests";
+import { askText, kindLabel, parseRequests, parseRequestView, statusLabel, withBookings, type ChangeRequestRow } from "./change-requests";
 import { errorMessage, OK_MESSAGES, classifyRpcError } from "./refunds";
 
 const row = (o: Partial<ChangeRequestRow>): ChangeRequestRow => ({
@@ -22,6 +22,12 @@ describe("change request queue", () => {
     expect(parseRequestView("anything")).toBe("open");
     expect(parseRequests(null)).toEqual([]);
     expect(parseRequests([row({}), null, { nope: 1 }])).toHaveLength(1);
+  });
+  it("puts each booking on its request, and leaves null when the booking is not visible", () => {
+    const { reservations: _drop, ...bare } = row({});
+    const out = withBookings([bare, { ...bare, id: "2", reservation_id: "other" }], [{ id: "r", booking_reference: "ABC", arrival_date: "2026-11-30", departure_date: "2026-12-02" }]);
+    expect(out[0]?.reservations).toEqual({ booking_reference: "ABC", arrival_date: "2026-11-30", departure_date: "2026-12-02" });
+    expect(out[1]?.reservations).toBeNull();
   });
   it("words the staff outcomes", () => {
     expect(classifyRpcError("POLICY_VIOLATION: outcome").code).toBe("request_note");

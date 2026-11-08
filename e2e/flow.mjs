@@ -618,6 +618,18 @@ const patch = await api(OWNER_JWT, `/audit_logs?id=eq.${target.id}`, { method: "
 const [auditAfter] = await (await api(SERVICE_JWT, `/audit_logs?id=eq.${target.id}&select=id,action,metadata`)).json();
 check("the owner cannot delete or rewrite an audit row over the API", !del.ok && !patch.ok && auditAfter?.action === "tax_rule.created" && JSON.stringify(auditAfter.metadata) === JSON.stringify(target.metadata) && (await taxAuditIds()).length === countBefore, `${del.status} ${patch.status} ${JSON.stringify(auditAfter)}`);
 
+// 12b. The hotel turns on guest changes (migrations 069 and 070): a version in force today, published on the real policies screen. It goes here,
+// before section 13 publishes a version dated 2090, because a new version must be dated after the newest one. The key is the only setting in it.
+const gcRes = await staff("/app/settings/policies", OWNER_COOKIE);
+const gcHtml = await gcRes.text();
+check("the policies page offers the guest changes switch and the notice window", gcRes.status === 200 && sees(pageText(gcHtml), "Guests changing their booking online", "Requests for new dates or another room close this many hours before arrival"), pageText(gcHtml).slice(0, 300));
+const gcBlock = formWith(gcHtml, 'name="effectiveFrom"');
+const gcToday = new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Lagos" });
+const gcPub = await staff("/app/settings/policies", OWNER_COOKIE, { method: "POST", body: formData(gcBlock, { propertyId: PROPERTY_A, effectiveFrom: gcToday, onlineMode: "full", depositPercent: "", checkinPayment: "none", guestChanges: "on", guestChangeHours: "48" }) });
+check("the owner publishes a version in force today with guest changes on", gcPub.status === 303 && outcome(gcPub).get("ok") === "policy_published", `${gcPub.status} ${gcPub.headers.get("location")}`);
+const gcRow = (await (await fetch(`${REST}/property_policies?property_id=eq.${PROPERTY_A}&effective_from=eq.${gcToday}&select=config`, { headers: { authorization: `Bearer ${jwt("service_role")}` } })).json())[0];
+check("it stores guest_changes on and no window key (48 is the default)", gcRow?.config?.guest_changes === "on" && gcRow?.config?.guest_change_hours === undefined, JSON.stringify(gcRow));
+
 // 13. Cancellation and payment policies: the staff screen, the audit rows, and the text on the reserve page.
 // Versions start in 2090, so no booking made in this run is affected. Policies are never edited, so each save is a new version.
 res = await staff("/app/settings/policies", null);
@@ -872,6 +884,88 @@ const quoteOff = await call("early_checkout_quote", { p_reservation_room_id: boa
 check("the quote agrees: early, mode none, nothing credited", quoteOff.status === 200 && quoteOff.body?.early === true && quoteOff.body?.mode === "none" && quoteOff.body?.credit_minor === 0, JSON.stringify(quoteOff));
 const quoteHk = await call("early_checkout_quote", { p_reservation_room_id: boardRr }, HK_JWT);
 check("housekeeping cannot ask for it", quoteHk.status >= 400, JSON.stringify(quoteHk));
+
+// 21. Blocking a room that has a booking (migration 068), and a guest changing their own booking (069, 070). Needs sections 11 and 14.
+const TYPE_STD = "00000000-0000-0000-0000-0000000000a3";
+const stdRooms = await (await api(SERVICE_JWT, `/rooms?property_id=eq.${PROPERTY_A}&room_type_id=eq.${TYPE_STD}&select=id,room_number&order=room_number`)).json();
+const blockRoom = stdRooms.find((r) => r.id !== standard101)?.id ?? stdRooms[0]?.id;
+const bookStd = (from, to, key, room) => call("create_reservation", { p_property_id: PROPERTY_A, p_primary_guest_id: GUEST_A, p_source: "staff_entry", p_arrival: day(from), p_departure: day(to),
+  p_rooms: [{ room_type_id: TYPE_STD, requested_room_id: room ?? null, adults: 1 }], p_idempotency_key: key }, OWNER_JWT);
+const blkBooking = await bookStd(60, 62, "e2e-blk-booking", blockRoom);
+check("the owner books a Standard room for two nights, to be blocked later", blkBooking.status === 200 && Boolean(blkBooking.body?.reservation_id), JSON.stringify(blkBooking));
+const blkId = blkBooking.body?.reservation_id;
+const blkFail = await call("create_room_block", { p_room_id: blockRoom, p_start: day(60), p_end: day(61), p_reason: "E2E pipe burst", p_resolution: "fail", p_idempotency_key: "e2e-blk-fail" }, OWNER_JWT);
+check("blocking over the booking with 'fail' only reports it", blkFail.status === 200 && blkFail.body?.created === false && blkFail.body?.conflicts?.length === 1, JSON.stringify(blkFail));
+const blkDenied = await call("create_room_block", { p_room_id: blockRoom, p_start: day(60), p_end: day(61), p_reason: "x", p_resolution: "cancel", p_idempotency_key: "e2e-blk-denied" }, ACCOUNTANT_JWT);
+check("the accountant cannot block a room, whatever the resolution", blkDenied.status >= 400, JSON.stringify(blkDenied));
+const roomsOwner = await getPage("/app/rooms", OWNER_COOKIE);
+check("the room board offers 'If bookings are in the way' with move and cancel to the owner", roomsOwner.status === 200 && sees(roomsOwner.text, "If bookings are in the way", "Move them to other rooms", "Cancel them (no charge"), roomsOwner.text.slice(0, 300));
+const blkCancel = await call("create_room_block", { p_room_id: blockRoom, p_start: day(60), p_end: day(61), p_reason: "E2E pipe burst", p_resolution: "cancel", p_idempotency_key: "e2e-blk-cancel" }, OWNER_JWT);
+check("with 'cancel' the block is made and the booking is cancelled", blkCancel.status === 200 && blkCancel.body?.created === true && blkCancel.body?.cancelled?.length === 1, JSON.stringify(blkCancel));
+const blkRow = (await (await api(SERVICE_JWT, `/reservations?id=eq.${blkId}&select=reservation_status,cancellation_charge_minor`)).json())[0];
+check("the booking is cancelled with no charge", blkRow?.reservation_status === "cancelled" && Number(blkRow?.cancellation_charge_minor) === 0, JSON.stringify(blkRow));
+
+const chg = await bookStd(70, 72, "e2e-chg-booking");
+const chgId = chg.body?.reservation_id;
+check("the owner books a Standard room for the guest to change", chg.status === 200 && Boolean(chgId), JSON.stringify(chg));
+const tokenFor = (rid) => {
+  const now = Math.floor(Date.now() / 1000);
+  const payload = Buffer.from(JSON.stringify({ r: rid, e: now + 3600, i: now })).toString("base64url");
+  return `${payload}.${createHmac("sha256", process.env.BOOKING_TOKEN_SECRET ?? "e2e-booking-token-secret-at-least-32-chars").update("hms.booking.v1:" + payload).digest("base64url")}`;
+};
+const chgToken = tokenFor(chgId);
+const guestGet = async (path) => { const r = await site(path); const h = await r.text(); return { status: r.status, html: h, text: pageText(h), loc: r.headers.get("location") }; };
+const guestPost = async (path, block, fields) => site(path, { method: "POST", body: formData(block, fields) });
+let gp = await guestGet(`/booking/${chgToken}/change`);
+check("the guest's change page offers phone, dates and a request", gp.status === 200 && sees(gp.text, "Your phone number", "Change your dates", "Ask the hotel for a change"), gp.text.slice(0, 300));
+const bookingPage = await guestGet(`/booking/${chgToken}`);
+check("the booking page links to it", bookingPage.status === 200 && bookingPage.html.includes(`/booking/${chgToken}/change`), bookingPage.text.slice(0, 200));
+
+let r1 = await guestPost(`/booking/${chgToken}/change`, formWith(gp.html, 'name="phone"'), { phone: "call me" });
+check("a bad phone number is refused", outcome(r1).get("error") === "change_phone", r1.headers.get("location"));
+r1 = await guestPost(`/booking/${chgToken}/change`, formWith(gp.html, 'name="phone"'), { phone: "+234 802 000 1111" });
+check("a good phone number is saved", outcome(r1).get("done") === "contact", r1.headers.get("location"));
+const guestRow = (await (await api(SERVICE_JWT, `/guests?id=eq.${GUEST_A}&select=phone`)).json())[0];
+check("and is on the guest record", guestRow?.phone === "+234 802 000 1111", JSON.stringify(guestRow));
+
+gp = await guestGet(`/booking/${chgToken}/change`);
+r1 = await guestPost(`/booking/${chgToken}/change`, formWith(gp.html, 'name="kind"'), { kind: "other", message: "E2E we land at midnight" });
+check("the guest sends a message to the hotel", outcome(r1).get("done") === "request", r1.headers.get("location"));
+const reqOwner = await getPage("/app/requests", OWNER_COOKIE);
+check("the owner sees it in Guest requests", reqOwner.status === 200 && sees(reqOwner.text, "Guest requests", "E2E we land at midnight", "Mark dealt with"), reqOwner.text.slice(0, 300));
+const reqHk = await getPage("/app/requests", HK_COOKIE);
+check("housekeeping sees none of it", reqHk.status === 200 && doesNotSee(reqHk.text, "E2E we land at midnight"), reqHk.text.slice(0, 200));
+const reqBlock = formWith(reqOwner.html, 'name="requestId"');
+let r2 = await staff("/app/requests", OWNER_COOKIE, { method: "POST", headers: { origin: SITE }, body: (() => { const f = formData(reqBlock, { note: "", outcome: "declined" }); return f; })() });
+check("declining without a note is refused", outcome(r2).get("err") === "request_note", r2.headers.get("location"));
+r2 = await staff("/app/requests", OWNER_COOKIE, { method: "POST", headers: { origin: SITE }, body: formData(reqBlock, { note: "E2E please ask at the desk", outcome: "declined" }) });
+check("declining with a note works", outcome(r2).get("ok") === "request_declined", r2.headers.get("location"));
+gp = await guestGet(`/booking/${chgToken}/change`);
+check("the guest reads the hotel's note", sees(gp.text, "could not do your last request", "E2E please ask at the desk"), gp.text.slice(0, 300));
+
+// 70: change the dates alone (the booking is unpaid and the new price is the same, so it is allowed)
+const checkBlock = formWith(gp.html, "Check these dates");
+const newArr = day(71), newDep = day(73);
+let r3 = await guestPost(`/booking/${chgToken}/change`, checkBlock, { arrival: newArr, departure: newDep });
+check("checking dates sends the guest back with them in the address", r3.status >= 300 && (r3.headers.get("location") ?? "").includes(`arrival=${newArr}`), r3.headers.get("location"));
+gp = await guestGet(`/booking/${chgToken}/change?arrival=${newArr}&departure=${newDep}`);
+check("the page says the dates are free and shows the price effect", sees(gp.text, "These dates are free", "The price stays", "Change my dates"), gp.text.slice(0, 400));
+const dearer = await guestGet(`/booking/${chgToken}/change?arrival=${day(70)}&departure=${day(75)}`);
+check("a longer stay is not offered online and points to a request", sees(dearer.text, "needs the hotel to confirm the price") && doesNotSee(dearer.text, "Change my dates"), dearer.text.slice(0, 400));
+r3 = await guestPost(`/booking/${chgToken}/change`, formWith(gp.html, 'name="expectedTotal"'), {});
+check("confirming changes the dates and returns to the booking", (r3.headers.get("location") ?? "").includes(`/booking/${chgToken}`) && outcome(r3).get("done") === "dates_changed", r3.headers.get("location"));
+const chgRow = (await (await api(SERVICE_JWT, `/reservations?id=eq.${chgId}&select=arrival_date,departure_date,total_minor`)).json())[0];
+check("the booking has the new dates", chgRow?.arrival_date === newArr && chgRow?.departure_date === newDep, JSON.stringify(chgRow));
+const afterPage = await guestGet(`/booking/${chgToken}?done=dates_changed`);
+check("the booking page confirms it", afterPage.status === 200 && sees(afterPage.text, "Your dates are changed"), afterPage.text.slice(0, 300));
+const gNotice = await call("notification_inbox", { p_limit: 50 }, OWNER_JWT);
+check("the owner has a notice that the guest changed their dates", (gNotice.body?.items ?? []).some((i) => i.kind === "guest_stay_changed"), JSON.stringify(gNotice.body?.items?.map((i) => i.kind)));
+const stale = await guestPost(`/booking/${chgToken}/change`, formWith(gp.html, 'name="expectedTotal"'), { expectedTotal: "1", arrival: day(72), departure: day(74), key: "e2e-stale-total-key" });
+check("a confirm with a price that is not the current one is refused", outcome(stale).get("error") === "dates_total_changed", stale.headers.get("location"));
+const same = await guestPost(`/booking/${chgToken}/change`, formWith(gp.html, 'name="expectedTotal"'), { arrival: newArr, departure: newDep, key: "e2e-same-dates-key" });
+check("confirming the dates the booking already has is refused", outcome(same).get("error") === "dates_not_self_serve", same.headers.get("location"));
+const hkDirect = await call("guest_change_dates", { p_reservation_id: chgId, p_arrival: day(72), p_departure: day(74), p_expected_total_minor: 1, p_idempotency_key: "e2e-hk-direct" }, OWNER_JWT);
+check("a signed-in owner cannot call the guest functions", hkDirect.status >= 400, JSON.stringify(hkDirect));
 
 // 14. A refund Paystack cannot finish without the customer's bank details: payout through the real route, the
 // needs-attention event, the bank list, the retry with the bank and account, and the event that completes it.

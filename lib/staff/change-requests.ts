@@ -7,7 +7,15 @@ export type ChangeRequestRow = {
 };
 
 export const CHANGE_REQUEST_COLUMNS =
-  "id, property_id, reservation_id, kind, requested_arrival, requested_departure, message, status, resolution_note, created_at, resolved_at, reservations(booking_reference, arrival_date, departure_date)";
+  "id, property_id, reservation_id, kind, requested_arrival, requested_departure, message, status, resolution_note, created_at, resolved_at";
+
+type Booking = NonNullable<ChangeRequestRow["reservations"]>;
+
+/** Puts each booking's reference and dates on its request. A request whose booking is not in `bookings` keeps null. */
+export function withBookings(rows: Omit<ChangeRequestRow, "reservations">[], bookings: ({ id: string } & Booking)[]): ChangeRequestRow[] {
+  const byId = new Map(bookings.map((b) => [b.id, { booking_reference: b.booking_reference, arrival_date: b.arrival_date, departure_date: b.departure_date }]));
+  return rows.map((r) => ({ ...r, reservations: byId.get(r.reservation_id) ?? null }));
+}
 
 export type RequestView = "open" | "answered";
 export const parseRequestView = (v: unknown): RequestView => (v === "answered" ? "answered" : "open");
@@ -29,6 +37,6 @@ export function statusLabel(s: ChangeRequestRow["status"]): string {
   return s === "open" ? "Waiting" : s === "done" ? "Dealt with" : s === "declined" ? "Declined" : "Withdrawn by the guest";
 }
 
-export function parseRequests(data: unknown): ChangeRequestRow[] {
-  return Array.isArray(data) ? (data as ChangeRequestRow[]).filter((r) => r && typeof r.id === "string") : [];
+export function parseRequests(data: unknown): Omit<ChangeRequestRow, "reservations">[] {
+  return Array.isArray(data) ? (data as Omit<ChangeRequestRow, "reservations">[]).filter((r) => r && typeof r.id === "string") : [];
 }
