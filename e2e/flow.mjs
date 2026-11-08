@@ -618,7 +618,7 @@ const patch = await api(OWNER_JWT, `/audit_logs?id=eq.${target.id}`, { method: "
 const [auditAfter] = await (await api(SERVICE_JWT, `/audit_logs?id=eq.${target.id}&select=id,action,metadata`)).json();
 check("the owner cannot delete or rewrite an audit row over the API", !del.ok && !patch.ok && auditAfter?.action === "tax_rule.created" && JSON.stringify(auditAfter.metadata) === JSON.stringify(target.metadata) && (await taxAuditIds()).length === countBefore, `${del.status} ${patch.status} ${JSON.stringify(auditAfter)}`);
 
-// 12b. The hotel turns on guest changes (migrations 069 and 070): a version in force today, published on the real policies screen. It goes here,
+// 12b. The hotel turns on guest changes (migrations 069 and 071): a version in force today, published on the real policies screen. It goes here,
 // before section 13 publishes a version dated 2090, because a new version must be dated after the newest one. The key is the only setting in it.
 const gcRes = await staff("/app/settings/policies", OWNER_COOKIE);
 const gcHtml = await gcRes.text();
@@ -885,7 +885,7 @@ check("the quote agrees: early, mode none, nothing credited", quoteOff.status ==
 const quoteHk = await call("early_checkout_quote", { p_reservation_room_id: boardRr }, HK_JWT);
 check("housekeeping cannot ask for it", quoteHk.status >= 400, JSON.stringify(quoteHk));
 
-// 21. Blocking a room that has a booking (migration 068), and a guest changing their own booking (069, 070). Needs sections 11 and 14.
+// 21. Blocking a room that has a booking (migration 068), and a guest changing their own booking (069, 071). Needs sections 11 and 14.
 const TYPE_STD = "00000000-0000-0000-0000-0000000000a3";
 const stdRooms = await (await api(SERVICE_JWT, `/rooms?property_id=eq.${PROPERTY_A}&room_type_id=eq.${TYPE_STD}&select=id,room_number&order=room_number`)).json();
 const blockRoom = stdRooms.find((r) => r.id !== standard101)?.id ?? stdRooms[0]?.id;

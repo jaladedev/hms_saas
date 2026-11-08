@@ -250,9 +250,13 @@ GC="$(psql -f "$HERE/70_guest_change_requests.sql" 2>&1)" || { echo "$GC"; echo 
 echo "$GC" | grep -E 'PASS' || true
 if echo "$GC" | grep -qE 'FAIL|ERROR'; then echo "$GC"; echo "GUEST CHANGE TESTS FAILED"; exit 1; fi
 
-GD="$(psql -f "$HERE/71_guest_date_change.sql" 2>&1)" || { echo "$GD"; echo "GUEST DATE CHANGE TESTS FAILED"; exit 1; }
+GD="$(psql -f "$HERE/72_guest_date_change.sql" 2>&1)" || { echo "$GD"; echo "GUEST DATE CHANGE TESTS FAILED"; exit 1; }
 echo "$GD" | grep -E 'PASS' || true
 if echo "$GD" | grep -qE 'FAIL|ERROR'; then echo "$GD"; echo "GUEST DATE CHANGE TESTS FAILED"; exit 1; fi
+
+SCM="$(psql -f "$HERE/71_stay_change_money.sql" 2>&1)" || { echo "$SCM"; echo "STAY CHANGE MONEY TESTS FAILED"; exit 1; }
+echo "$SCM" | grep -E 'PASS' || true
+if echo "$SCM" | grep -qE 'FAIL|ERROR'; then echo "$SCM"; echo "STAY CHANGE MONEY TESTS FAILED"; exit 1; fi
 
 echo "--- concurrency: last room race (1 room, 50 clients)"
 cat > "$DATA/race_one.sql" <<'SQL'

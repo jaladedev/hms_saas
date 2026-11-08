@@ -1,4 +1,4 @@
--- 070 Guest self-service, part 2: the guest changes the dates of a confirmed booking from their booking link.
+-- 071 Guest self-service, part 2: the guest changes the dates of a confirmed booking from their booking link.
 --
 -- Allowed only when ALL of this holds (anything else stays a change request, 069):
 --   * the hotel has guest changes on and the booking is outside the notice window (guest_change_options.dates_open);
