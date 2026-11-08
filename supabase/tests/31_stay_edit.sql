@@ -240,7 +240,7 @@ begin
   raise notice 'PASS all or nothing: with no free room for the new dates the booking, its room, its nights and its guests are exactly as before';
 end $$;
 
--- 8. Money and state: nothing may move under a paid, invoiced or in-flight booking
+-- 8. Money and state: nothing may move under an in-flight, cancelled or pending booking (070: a payment or invoice is allowed)
 do $$ declare
   t date := property_today('00000000-0000-0000-0000-0000000000a2'); b jsonb; inv uuid; res uuid; fp text; v_att uuid := gen_random_uuid();
   p jsonb; w jsonb;
@@ -249,23 +249,26 @@ begin
   perform t_as('00000000-0000-0000-0000-00000000aa01');
   b := t_book('00000000-0000-0000-0000-0000000000a3', t + 760, t + 762, 'se-inv-b'); res := (b ->> 'reservation_id')::uuid;
   perform issue_invoice(res, 'se-inv-i');
-  perform t_sys(); fp := t31_fp(res); insert into t31_ctx values ('inv', res::text);
+  perform t_sys(); insert into t31_ctx values ('inv', res::text);
+  -- 070: an issued invoice no longer stops the edit: it is replaced by one for the new nights (the money rules are
+  -- tested in full in 71_stay_change_money.sql)
   perform t_as('00000000-0000-0000-0000-00000000aa04');
-  perform t_expect(format('select t31_upd(%L,%L,%L,null,%L,%L)', res, t + 760, t + 763, 'x', 'se-inv-u'), 'INVALID_STATE: invoice');
-  perform t_sys(); if t31_fp(res) <> fp then raise exception 'FAIL an invoiced booking changed'; end if;
-  -- once the invoice is void the edit goes through
-  perform t_as('00000000-0000-0000-0000-00000000aa01');
-  perform void_invoice((select id from invoices where reservation_id = res and invoice_status <> 'void'), 'to change the dates', 'se-inv-v');
-  perform t_as('00000000-0000-0000-0000-00000000aa04');
-  perform t31_upd(res, t + 760, t + 763, null, 'x', 'se-inv-u2');
+  perform t31_upd(res, t + 760, t + 763, null, 'x', 'se-inv-u');
+  perform t_sys();
+  if (select count(*) from invoices where reservation_id = res and invoice_status <> 'void') <> 1
+     or (select total_minor from invoices where reservation_id = res and invoice_status <> 'void') <> (select total_minor from reservations where id = res) then
+    raise exception 'FAIL an invoiced booking has no single live invoice for the new total after the edit';
+  end if;
 
-  -- a payment recorded at the desk
+  -- a payment recorded at the desk no longer stops it either (070)
+  perform t_as('00000000-0000-0000-0000-00000000aa04');
   b := t_book('00000000-0000-0000-0000-0000000000a3', t + 770, t + 772, 'se-pay-b'); res := (b ->> 'reservation_id')::uuid;
   perform record_manual_payment(res, 100000, 'cash', null, null, 'se-pay-p');
-  perform t_sys(); fp := t31_fp(res);
-  perform t_as('00000000-0000-0000-0000-00000000aa04');
-  perform t_expect(format('select t31_upd(%L,%L,%L,null,%L,%L)', res, t + 770, t + 773, 'x', 'se-pay-u'), 'INVALID_STATE: money held');
-  perform t_sys(); if t31_fp(res) <> fp then raise exception 'FAIL a paid booking changed'; end if;
+  perform t31_upd(res, t + 770, t + 773, null, 'x', 'se-pay-u');
+  perform t_sys();
+  if (select arrival_date from reservations where id = res) <> t + 770 or (select departure_date from reservations where id = res) <> t + 773 then
+    raise exception 'FAIL a paid booking was not changed';
+  end if;
 
   -- a provider payment started and not finished
   perform t_as('00000000-0000-0000-0000-00000000aa04');
@@ -292,7 +295,7 @@ begin
          jsonb_build_array(jsonb_build_object('room_type_id', '00000000-0000-0000-0000-0000000000a3', 'adults', 1)), 'se-web-b');
   perform t_as('00000000-0000-0000-0000-00000000aa04');
   perform t_expect(format('select t31_upd(%L,%L,%L,null,%L,%L)', (w ->> 'reservation_id')::uuid, t + 800, t + 803, 'x', 'se-web-u'), 'INVALID_STATE: pending');
-  raise notice 'PASS money and state: an invoice, a payment, a payment in flight, a cancelled booking and a pending online booking all refuse the edit and change nothing; a void invoice or abandoned attempt no longer block it';
+  raise notice 'PASS money and state: a payment in flight, a cancelled booking and a pending online booking refuse the edit and change nothing; an abandoned attempt no longer blocks it; an invoice and a payment no longer block it (070)';
 end $$;
 
 -- 9. Guests only: numbers change, dates, price and room do not

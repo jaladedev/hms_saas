@@ -162,6 +162,29 @@ export function withdrawChange(reservationId: string) {
   return call<{ withdrawn: boolean }>("guest_withdraw_change_request", { p_reservation_id: reservationId });
 }
 
+export type DatesQuote = {
+  allowed: boolean;
+  why_not: string | null;
+  currency: string;
+  old_total_minor: number;
+  new_total_minor: number | null;
+  difference_minor: number | null;
+  paid_minor: number;
+  nights_added: number | null;
+  nights_dropped: number | null;
+};
+
+export function datesQuote(reservationId: string, arrival: string, departure: string) {
+  return call<DatesQuote>("guest_change_dates_quote", { p_reservation_id: reservationId, p_arrival: arrival, p_departure: departure });
+}
+
+export function changeDates(args: { reservationId: string; arrival: string; departure: string; expectedTotalMinor: number; idempotencyKey: string }) {
+  return call<{ arrival_date: string; departure_date: string; total_minor: number }>("guest_change_dates", {
+    p_reservation_id: args.reservationId, p_arrival: args.arrival, p_departure: args.departure,
+    p_expected_total_minor: args.expectedTotalMinor, p_idempotency_key: args.idempotencyKey,
+  });
+}
+
 export function paymentStartContext(reservationId: string) {
   return call<{ account_id: string; secret_reference: string; guest_email: string; booking_reference: string }>(
     "payment_start_context", { p_reservation_id: reservationId });

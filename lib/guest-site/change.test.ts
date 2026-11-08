@@ -62,3 +62,26 @@ describe("wording", () => {
     for (const c of ["change_disabled", "change_window", "change_open"]) expect(friendlyError(`INVALID_STATE: ${c.replace("change_", "change ").replace("open", "open request")}`).message).not.toMatch(/cancel/i);
   });
 });
+
+import { datesRefusalText, datesSummary } from "./change";
+
+describe("changing dates alone", () => {
+  const money = (m: number) => `N${m / 100}`;
+  it("says the price effect before the guest confirms", () => {
+    expect(datesSummary({ old_total_minor: 30000, new_total_minor: 30000, difference_minor: 0 }, money)).toBe("The price stays N300.");
+    expect(datesSummary({ old_total_minor: 30000, new_total_minor: 20000, difference_minor: -10000 }, money)).toBe("The price goes from N300 down to N200, N100 less.");
+    expect(datesSummary({ old_total_minor: 30000, new_total_minor: null, difference_minor: null }, money)).toBe("");
+  });
+  it("explains every refusal and points to a request where the hotel can help", () => {
+    for (const why of ["window", "dates", "same", "dearer", "overpaid", "discount", "extras", "busy", "no_rate", "disabled", "status", "started", null, "anything"])
+      expect(datesRefusalText(why as string | null).length, String(why)).toBeGreaterThan(10);
+    expect(datesRefusalText("dearer")).toMatch(/request/);
+    expect(datesRefusalText("overpaid")).toMatch(/request/);
+  });
+  it("words the database refusals for the guest", () => {
+    expect(friendlyError("INVALID_STATE: dates dearer").code).toBe("dates_not_self_serve");
+    expect(friendlyError("POLICY_VIOLATION: total changed").code).toBe("dates_total_changed");
+    expect(friendlyError("ROOM_UNAVAILABLE").code).toBe("unavailable");
+    expect(friendlyError("RATE_MISSING").code).toBe("dates_no_rate");
+  });
+});

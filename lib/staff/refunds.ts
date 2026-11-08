@@ -273,7 +273,8 @@ export const OK_MESSAGES = {
   fo_invoiced: "Invoice issued for the extras. It is numbered and cannot be edited; to correct it, void it and issue it again.",
   fo_invoice_voided: "Invoice voided. Its extras can be invoiced again. No money has moved: payments for extras stay on the folio.",
   fo_reversed: "Payment reversed. The amount is owed again. No money has been paid back to the guest.",
-  se_changed: "Booking updated. The nights already booked keep their price; any new nights are priced at today\u2019s rates.",
+  se_changed: "Booking updated. The nights already booked keep their price; any new nights are priced at today\u2019s rates. If an invoice was issued it was replaced by a new one, and any balance is shown in the Money section.",
+  se_changed_refund: "Booking updated. The guest has paid more than the new total, so a refund of the difference is due: request it from the booking\u2019s payments in the Money section. If an invoice was issued it was replaced by a new one for the new dates.",
   se_changed_moved: "Booking updated, and a guest had to be given a different room because the old one is not free for the new dates. Check the room number below and tell the guest.",
   se_nochange: "Nothing was different, so nothing was changed.",
 } as const;
@@ -401,11 +402,11 @@ export function errorMessage(code: string, refundable: number | null, formatMino
     case "se_arrival_past": return "The arrival date cannot be moved to a day that has already passed.";
     case "se_unavailable": return "No room could be held for all of the new dates, so nothing was changed and the booking keeps its dates and room. Try other dates.";
     case "se_rate": return "There is no price set for one of the new nights, so the change was not made. Set the rates first.";
-    case "se_paid": return "A payment has been recorded on this booking, so its dates and guests cannot be changed. Cancel it and book it again.";
-    case "se_invoiced": return "An invoice has been issued for this booking. Void the invoice first, then change the dates and guests.";
     case "se_payment_started": return "An online payment for this booking has been started and not finished. Wait for it to finish or lapse, then try again.";
     case "se_split": return "This booking has a planned change of room partway through, so its dates cannot be edited. Guest numbers can still be changed. To change the dates, cancel it and book it again.";
     case "se_not_editable": return "This booking can no longer be changed. Only a confirmed booking whose guests have not arrived can be edited.";
+    case "se_paid": return "A payment has been recorded on this booking, so its dates and guests cannot be changed. Cancel it and book it again.";
+    case "se_invoiced": return "An invoice has been issued for this booking. Void the invoice first, then change the dates and guests.";
     case "se_discount": return "This booking has a discount, so its dates cannot be edited. Remove the discount (Money section), change the dates, then apply it again.";
     case "dc_cap_percent": return "Enter a percentage from 0 to 100 with at most two decimals, such as 10 or 7.5. Use 0 so the role cannot give discounts.";
     case "dc_cap_role": return "That role cannot give discounts, so it has no limit to set.";

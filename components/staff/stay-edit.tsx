@@ -1,21 +1,19 @@
 import { buttonPrimary, inputClass } from "@/components/staff/ui";
 import { editStay } from "@/lib/staff/stay-actions";
-import { blockedText, STAY_REASON_MAX, type StayEditView } from "@/lib/staff/stay-edit";
+import { STAY_REASON_MAX } from "@/lib/staff/stay-edit";
 
 export type StayEditRoom = { id: string; label: string; adults: number; children: number; maxAdults: number; maxChildren: number };
 
 /**
- * "Change dates or guests" under the Stay details of a confirmed booking (migration 033). Offered only while nothing is
- * paid and no invoice is live; otherwise it says why it is not. The database decides again on every save, and the whole
- * change is all or nothing.
+ * "Change dates or guests" under the Stay details of a confirmed booking (migration 033). With money on the booking
+ * the invoice is replaced and any surplus is flagged for refund (migration 070). The database decides again on every save,
+ * and the whole change is all or nothing.
  */
 export function StayEdit({
-  reservationId, arrival, departure, today, rooms, view,
+  reservationId, arrival, departure, today, rooms,
 }: {
-  reservationId: string; arrival: string; departure: string; today: string; rooms: StayEditRoom[]; view: Exclude<StayEditView, { kind: "hidden" }>;
+  reservationId: string; arrival: string; departure: string; today: string; rooms: StayEditRoom[];
 }) {
-  if (view.kind === "blocked") return <p className="mt-4 max-w-xl text-sm text-muted">{blockedText(view.why)}</p>;
-
   return (
     <details className="mt-4">
       <summary className="cursor-pointer text-sm font-medium text-primary-strong">Change dates or guests</summary>

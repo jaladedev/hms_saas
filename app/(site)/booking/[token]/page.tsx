@@ -42,6 +42,7 @@ export default async function BookingPage({ params, searchParams }: Props) {
       {awaitingConfirmation ? <meta httpEquiv="refresh" content="6" /> : null}
       <p className="text-sm text-muted">Booking reference</p>
       <h1 className="font-display text-3xl">{b.booking_reference}</h1>
+      {raw.done === "dates_changed" ? <p role="status" className="mt-4 rounded border border-primary/40 bg-white p-3 text-primary-strong">Your dates are changed. The details below are your new booking.</p> : null}
       {notice ? <p role="alert" className="mt-4 rounded border border-critical/40 bg-white p-3 text-critical">{notice}</p> : null}
 
       {b.status === "confirmed" || b.status === "checked_in" ? (

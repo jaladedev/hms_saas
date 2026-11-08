@@ -250,6 +250,10 @@ GC="$(psql -f "$HERE/70_guest_change_requests.sql" 2>&1)" || { echo "$GC"; echo 
 echo "$GC" | grep -E 'PASS' || true
 if echo "$GC" | grep -qE 'FAIL|ERROR'; then echo "$GC"; echo "GUEST CHANGE TESTS FAILED"; exit 1; fi
 
+GD="$(psql -f "$HERE/71_guest_date_change.sql" 2>&1)" || { echo "$GD"; echo "GUEST DATE CHANGE TESTS FAILED"; exit 1; }
+echo "$GD" | grep -E 'PASS' || true
+if echo "$GD" | grep -qE 'FAIL|ERROR'; then echo "$GD"; echo "GUEST DATE CHANGE TESTS FAILED"; exit 1; fi
+
 echo "--- concurrency: last room race (1 room, 50 clients)"
 cat > "$DATA/race_one.sql" <<'SQL'
 select test_try_claim('last_room', '00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', '2027-10-01', '2027-10-03');

@@ -2734,6 +2734,20 @@ export type Database = {
         Args: { p_reservation: string }
         Returns: Record<string, unknown>
       }
+      guest_change_dates: {
+        Args: {
+          p_arrival: string
+          p_departure: string
+          p_expected_total_minor: number
+          p_idempotency_key: string
+          p_reservation_id: string
+        }
+        Returns: Json
+      }
+      guest_change_dates_quote: {
+        Args: { p_arrival: string; p_departure: string; p_reservation_id: string }
+        Returns: Json
+      }
       guest_change_options: {
         Args: { p_reservation_id: string }
         Returns: Json

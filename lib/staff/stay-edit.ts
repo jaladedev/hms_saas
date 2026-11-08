@@ -17,29 +17,20 @@ const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export type StayRoom = { room_status: string };
 export type StayEditView =
   | { kind: "hidden" }
-  | { kind: "blocked"; why: "paid" | "invoiced" }
   | { kind: "editable" };
 
 /**
  * Whether to offer the form. "hidden" for people who may not edit and for bookings that cannot be edited at all (not
- * confirmed, or a guest already in the house), so those screens stay quiet; "blocked" says why money stops the edit.
- * A provider payment in flight cannot be seen from here, so the database may still refuse an editable booking.
+ * confirmed, or a guest already in the house), so those screens stay quiet. Money no longer stops the edit (migration 070: the
+ * invoice is replaced and a surplus is flagged for refund). A provider payment in flight or a discount cannot be seen from
+ * here, so the database may still refuse an editable booking.
  */
 export function stayEditView(args: {
-  reservationStatus: string; rooms: StayRoom[]; canModify: boolean; paymentCount: number; liveInvoiceCount: number;
+  reservationStatus: string; rooms: StayRoom[]; canModify: boolean;
 }): StayEditView {
   if (!args.canModify || args.reservationStatus !== "confirmed") return { kind: "hidden" };
   if (args.rooms.length === 0 || args.rooms.some((r) => r.room_status !== "booked")) return { kind: "hidden" };
-  if (args.paymentCount > 0) return { kind: "blocked", why: "paid" };
-  if (args.liveInvoiceCount > 0) return { kind: "blocked", why: "invoiced" };
   return { kind: "editable" };
-}
-
-/** What to tell the person when money stops the edit. */
-export function blockedText(why: "paid" | "invoiced"): string {
-  return why === "paid"
-    ? "Dates and guests cannot be changed because a payment has been recorded on this booking. To change them, cancel the booking and book it again."
-    : "Dates and guests cannot be changed while an invoice is issued. Void the invoice below (an invoice with payments cannot be voided) and then change them.";
 }
 
 export type StayGuests = { reservationRoomId: string; adults: number; children: number };
@@ -84,12 +75,13 @@ export function parseStayForm(raw: Raw): Parsed<StayEdit> {
 export const guestsPayload = (g: StayGuests[]) => g.map((x) => ({ reservation_room_id: x.reservationRoomId, adults: x.adults, children: x.children }));
 
 /** What the database answers: the new dates and total, and how many rooms had to move. */
-export type StayResult = { changed: boolean; rooms_moved?: number };
+export type StayResult = { changed: boolean; rooms_moved?: number; surplus_minor?: number; invoice_replaced?: boolean };
 
 /** Where to go after a successful edit: moved rooms need saying, because the guest may have been told a room number. */
-export function resultCode(result: unknown): "se_changed" | "se_changed_moved" | "se_nochange" {
+export function resultCode(result: unknown): "se_changed" | "se_changed_moved" | "se_changed_refund" | "se_nochange" {
   const r = (result ?? {}) as StayResult;
   if (r.changed === false) return "se_nochange";
+  if (typeof r.surplus_minor === "number" && r.surplus_minor > 0) return "se_changed_refund";
   return typeof r.rooms_moved === "number" && r.rooms_moved > 0 ? "se_changed_moved" : "se_changed";
 }
 
@@ -99,8 +91,6 @@ export function resultCode(result: unknown): "se_changed" | "se_changed_moved" |
  */
 export function classifyStayError(message: string): ErrorCode {
   if (/IDEMPOTENCY_MISMATCH/.test(message)) return "se_duplicate";
-  if (/INVALID_STATE: money held/.test(message)) return "se_paid";
-  if (/INVALID_STATE: invoice/.test(message)) return "se_invoiced";
   if (/INVALID_STATE: payment started/.test(message)) return "se_payment_started";
   if (/INVALID_STATE: split stay/.test(message)) return "se_split";
   if (/INVALID_STATE/.test(message)) return "se_not_editable";
@@ -119,4 +109,4 @@ export function classifyStayError(message: string): ErrorCode {
 }
 
 /** Success codes the edit sends back (worded in `OK_MESSAGES`). */
-export const STAY_OK_CODES = ["se_changed", "se_changed_moved", "se_nochange"] as const;
+export const STAY_OK_CODES = ["se_changed", "se_changed_moved", "se_changed_refund", "se_nochange"] as const;

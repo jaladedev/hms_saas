@@ -63,7 +63,7 @@ export default async function ReservationPage({
   // A guest who has not arrived has no folio, so nothing is read for one. A person who may not see it gets an error from
   // folio_balance (the database answers "not found"), and then the whole section is left out.
   const showFolio = folioIsOpen(res.reservation_status);
-  const [roomsQ, guestQ, propQ, settleQ, cCancel, cIn, cOut, cPay, invQ, cIssue, cVoid, cAssign, folioBalQ, folioChargesQ, folioPaymentsQ, cFolio, cReverse, folioInvQ, cModify, payCountQ, cDiscount] = await Promise.all([
+  const [roomsQ, guestQ, propQ, settleQ, cCancel, cIn, cOut, cPay, invQ, cIssue, cVoid, cAssign, folioBalQ, folioChargesQ, folioPaymentsQ, cFolio, cReverse, folioInvQ, cModify, cDiscount] = await Promise.all([
     supabase.from("reservation_rooms").select("id, room_type_id, room_status, adults, children, checked_in_at, checked_out_at").eq("reservation_id", id).order("created_at"),
     supabase.from("guests").select("full_name, email, phone").eq("id", res.primary_guest_id).maybeSingle(),
     supabase.from("properties").select("name, timezone").eq("id", res.property_id).maybeSingle(),
@@ -78,7 +78,6 @@ export default async function ReservationPage({
     showFolio ? supabase.from("folio_invoices").select(FOLIO_INVOICE_COLUMNS).eq("reservation_id", id) : null,
     // Editing dates and guests: only a confirmed booking can be edited, so nothing is read for any other.
     res.reservation_status === "confirmed" ? can("reservation.modify") : null,
-    res.reservation_status === "confirmed" ? supabase.from("payments").select("id", { count: "exact", head: true }).eq("reservation_id", id) : null,
     res.reservation_status === "confirmed" ? can("discount.apply") : null,
   ]);
 
@@ -160,10 +159,9 @@ export default async function ReservationPage({
       })
     : [];
 
-  // Edit dates and guests (migration 033): offered only while nothing is paid and no live invoice exists.
+  // Edit dates and guests (migration 033; with money on the booking since 070).
   const stayView = stayEditView({
     reservationStatus: res.reservation_status, rooms: resRooms, canModify: cModify?.data === true,
-    paymentCount: payCountQ?.count ?? 0, liveInvoiceCount: invoices.filter((i) => i.invoice_status !== "void").length,
   });
   const liveInvoices = invoices.filter((i) => i.invoice_status !== "void").length;
   const discountState = discountView({
@@ -218,7 +216,7 @@ export default async function ReservationPage({
           )}
         </dl>
         {stayView.kind !== "hidden" && (
-          <StayEdit reservationId={res.id} arrival={res.arrival_date} departure={res.departure_date} today={today} rooms={stayRooms} view={stayView} />
+          <StayEdit reservationId={res.id} arrival={res.arrival_date} departure={res.departure_date} today={today} rooms={stayRooms} />
         )}
       </section>
 
