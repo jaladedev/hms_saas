@@ -32,6 +32,7 @@ const METHOD: Record<string, string> = { cash: "Cash", bank_transfer: "Bank tran
 const ATTENTION: Record<string, string> = {
   cancellation_charge_unpaid: "The cancellation charge has not been fully collected yet. Record a payment for the difference, or decide how to handle it.",
   early_checkout_refund_due: "The guest left early and has paid more than the reduced total. Request a refund for the difference from the payment below.",
+  discount_refund_due: "A discount took the price below what the guest has paid. Request a refund for the difference from the payment below.",
   paid_after_cancel: "The guest paid after this reservation was cancelled. That money should go back to them: request a refund below.",
   paid_inventory_lost: "The guest paid, but the rooms were no longer available. The money needs refunding or the booking re-made by hand.",
 };

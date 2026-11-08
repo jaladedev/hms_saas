@@ -110,12 +110,15 @@ begin
   perform t_as('00000000-0000-0000-0000-00000000aa04');
   b := t_book('00000000-0000-0000-0000-0000000000a3', t + 1220, t + 1222, 'da-pay'); res := (b ->> 'reservation_id')::uuid;
   perform record_manual_payment(res, (select total_minor from reservations where id = res), 'cash', null, null, 'da-pay-p');
-  perform t_expect(format('select t63_amt(%L, 1000, %L, %L)', res, 'x', 'da-pay-d'), 'POLICY_VIOLATION: below paid');
+  perform t63_amt(res, 1000, 'x', 'da-pay-d');  -- paid in full: allowed (072), the surplus is flagged
+  perform t_sys();
+  if (select attention_reason from reservations where id = res) is distinct from 'discount_refund_due' then raise exception 'FAIL no refund-due flag after an amount discount on a fully paid booking'; end if;
+  perform t_as('00000000-0000-0000-0000-00000000aa04');
   b := t_book('00000000-0000-0000-0000-0000000000a3', t + 1230, t + 1232, 'da-edit'); res := (b ->> 'reservation_id')::uuid;
   perform t63_amt(res, 1000, 'x', 'da-edit-d');
   perform t_expect(format('select update_reservation_stay(%L, %L, %L, null, %L, %L)', res, t + 1230, t + 1233, 'x', 'da-edit-u'), 'POLICY_VIOLATION: discount');
   perform t_sys();
-  raise notice 'PASS a discount below what is paid is refused; dates cannot be edited under one';
+  raise notice 'PASS an amount discount on a fully paid booking flags a refund; dates cannot be edited under one';
 end $$;
 
 -- 6. Early check-out and early check-in (060, 061) keep a fixed amount: it stays, capped at the new price

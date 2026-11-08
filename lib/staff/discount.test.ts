@@ -43,7 +43,7 @@ describe("parseDiscountForm", () => {
 describe("classifyDiscountError", () => {
   it("maps every refusal the function raises", () => {
     const cases: [string, string][] = [
-      ["POLICY_VIOLATION: percent", "dc_percent"], ["POLICY_VIOLATION: amount", "dc_amount"], ["POLICY_VIOLATION: below paid", "dc_below_paid"], ["POLICY_VIOLATION: reason", "dc_reason"], ["POLICY_VIOLATION: discount limit 10", "dc_limit"],
+      ["POLICY_VIOLATION: percent", "dc_percent"], ["POLICY_VIOLATION: amount", "dc_amount"], ["POLICY_VIOLATION: reason", "dc_reason"], ["POLICY_VIOLATION: discount limit 10", "dc_limit"],
       ["INVALID_STATE: money held", "se_paid"], ["INVALID_STATE: invoice", "se_invoiced"], ["INVALID_STATE: payment in progress", "se_payment_started"],
       ["INVALID_STATE: cancelled", "dc_status"], ["NOT_FOUND", "not_found"], ["IDEMPOTENCY_MISMATCH", "se_duplicate"], ["boom", "unknown"],
     ];
@@ -56,6 +56,8 @@ describe("resultCode", () => {
     expect(resultCode({ changed: true, discount_minor: 12000 })).toBe("discount_set");
     expect(resultCode({ changed: true, discount_minor: 0 })).toBe("discount_removed");
     expect(resultCode({ changed: false, discount_minor: 12000 })).toBe("discount_unchanged");
+    expect(resultCode({ changed: true, discount_minor: 12000, refund_due_minor: 500 })).toBe("discount_set_refund_due");
+    expect(resultCode({ changed: true, discount_minor: 12000, refund_due_minor: 0 })).toBe("discount_set");
   });
 });
 

@@ -67,7 +67,6 @@ export function classifyDiscountError(message: string): ErrorCode {
   if (/POLICY_VIOLATION: amount/.test(message)) return "dc_amount";
   if (/POLICY_VIOLATION: reason/.test(message)) return "dc_reason";
   if (/POLICY_VIOLATION: discount limit/.test(message)) return "dc_limit";
-  if (/POLICY_VIOLATION: below paid/.test(message)) return "dc_below_paid";
   if (/INVALID_STATE: money held/.test(message)) return "se_paid";
   if (/INVALID_STATE: invoice/.test(message)) return "se_invoiced";
   if (/INVALID_STATE: payment in progress/.test(message)) return "se_payment_started";
@@ -76,8 +75,9 @@ export function classifyDiscountError(message: string): ErrorCode {
   return "unknown";
 }
 
-export function resultCode(data: unknown): "discount_set" | "discount_removed" | "discount_unchanged" {
-  const d = data as { changed?: boolean; discount_minor?: number | string } | null;
+export function resultCode(data: unknown): "discount_set" | "discount_set_refund_due" | "discount_removed" | "discount_unchanged" {
+  const d = data as { changed?: boolean; discount_minor?: number | string; refund_due_minor?: number | string } | null;
   if (d && d.changed === false) return "discount_unchanged";
+  if (Number(d?.refund_due_minor ?? 0) > 0) return "discount_set_refund_due";
   return Number(d?.discount_minor ?? 0) === 0 ? "discount_removed" : "discount_set";
 }

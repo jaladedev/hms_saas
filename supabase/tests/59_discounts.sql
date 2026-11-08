@@ -109,7 +109,10 @@ begin
   perform t_as('00000000-0000-0000-0000-00000000aa04');
   b := t_book('00000000-0000-0000-0000-0000000000a3', t + 1020, t + 1022, 'dc-pay'); res := (b ->> 'reservation_id')::uuid;
   perform record_manual_payment(res, (select total_minor from reservations where id = res), 'cash', null, null, 'dc-pay-p');
-  perform t_expect(format('select t59_disc(%L, 5, %L, %L)', res, 'x', 'dc-pay-d'), 'POLICY_VIOLATION: below paid');
+  perform t59_disc(res, 5, 'x', 'dc-pay-d');  -- paid in full: allowed (072), and the surplus is flagged
+  perform t_sys();
+  if (select attention_reason from reservations where id = res) is distinct from 'discount_refund_due' then raise exception 'FAIL no refund-due flag after a discount on a fully paid booking'; end if;
+  perform t_as('00000000-0000-0000-0000-00000000aa04');
   b := t_book('00000000-0000-0000-0000-0000000000a3', t + 1030, t + 1032, 'dc-can'); res := (b ->> 'reservation_id')::uuid;
   perform t_as('00000000-0000-0000-0000-00000000aa01');
   perform cancel_reservation(res, 'testing', 'dc-can-c');
@@ -119,7 +122,7 @@ begin
   perform t59_disc(res, 5, 'x', 'dc-edit-d');
   perform t_expect(format('select update_reservation_stay(%L, %L, %L, null, %L, %L)', res, t + 1040, t + 1043, 'x', 'dc-edit-u'), 'POLICY_VIOLATION: discount');
   perform t_sys();
-  raise notice 'PASS a discount below what is paid, a cancelled booking and a discounted booking (for date edits) are all refused';
+  raise notice 'PASS a discount on a fully paid booking flags a refund, a cancelled booking and a discounted booking (for date edits) are refused';
 end $$;
 
 -- 6. The caps table is readable but not writable by logins; a role with the permission and no cap can discount nothing
