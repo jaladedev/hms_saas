@@ -133,7 +133,7 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [x] First enforced flag: `reports.export` (migration 052): off removes `report.export` for that group inside `has_permission`; no row means on
 - [x] Second enforced flag: `online_payments` (migration 053): off makes `payment_start_context` refuse, so a guest cannot start a card payment; webhooks, refunds and staff payments are not gated
 - [x] Resend an owner's invitation (migration 054): the hotel page shows which owners have not accepted and an admin can send the invitation again; audited. The email call (`inviteUserByEmail` on an already-invited login) is not confirmed against real Supabase
-- [ ] Enforce more flags (done: reports.export, online_payments, discounts, online_booking, guest_cancel); plans and prices; billing and invoicing the hotels; platform support actions (impersonation is deliberately not built)
+- [ ] Enforce more flags (done: reports.export, online_payments, discounts, online_booking, guest_cancel, guest_changes); plans and prices; billing and invoicing the hotels; platform support actions (impersonation is deliberately not built)
 
 ## Decisions still open
 - [ ] Hold duration (start 15 to 30 minutes, watch `inventory_lost` count)

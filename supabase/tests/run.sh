@@ -716,4 +716,8 @@ EE="$(psql -f "$HERE/74_early_checkout_email.sql" 2>&1)" || { echo "$EE"; echo "
 echo "$EE" | grep -E 'PASS' || true
 if echo "$EE" | grep -qE 'FAIL|ERROR'; then echo "$EE"; echo "EARLY CHECK-OUT EMAIL TESTS FAILED"; exit 1; fi
 
+GG="$(psql -f "$HERE/75_guest_changes_flag.sql" 2>&1)" || { echo "$GG"; echo "GUEST CHANGES FLAG TESTS FAILED"; exit 1; }
+echo "$GG" | grep -E 'PASS' || true
+if echo "$GG" | grep -qE 'FAIL|ERROR'; then echo "$GG"; echo "GUEST CHANGES FLAG TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"
