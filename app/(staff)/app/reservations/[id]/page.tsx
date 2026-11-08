@@ -167,7 +167,7 @@ export default async function ReservationPage({
   const liveInvoices = invoices.filter((i) => i.invoice_status !== "void").length;
   const discountState = discountView({
     canApply: cDiscount?.data === true, reservationStatus: res.reservation_status,
-    paymentCount: payCountQ?.count ?? 0, liveInvoiceCount: liveInvoices, current: res.discount_amount_minor !== null ? { kind: "amount", amountMinor: res.discount_amount_minor } : res.discount_percent !== null ? { kind: "percent", percent: Number(res.discount_percent) } : { kind: "none" },
+    liveInvoiceCount: liveInvoices, current: res.discount_amount_minor !== null ? { kind: "amount", amountMinor: res.discount_amount_minor } : res.discount_percent !== null ? { kind: "percent", percent: Number(res.discount_percent) } : { kind: "none" },
   });
   const stayRooms = resRooms.map((rr, i) => {
     const t = typeRows.find((x) => x.id === rr.room_type_id);

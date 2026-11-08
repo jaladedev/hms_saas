@@ -128,7 +128,7 @@ export type ErrorCode =
   | "fo_category" | "fo_description" | "fo_quantity" | "fo_amount" | "fo_date" | "fo_room" | "fo_reason" | "fo_method" | "fo_too_long"
   | "fo_overpay" | "fo_not_open" | "fo_paid" | "fo_not_found" | "fo_duplicate" | "fo_unknown" | "fo_on_invoice" | "fo_nothing" | "fo_no_email" | "fo_invoice_void"
   | "se_dates" | "se_too_long" | "se_reason" | "se_room" | "se_capacity" | "se_arrival_past" | "se_unavailable" | "se_rate" | "se_paid" | "se_invoiced"
-  | "dc_percent" | "dc_amount" | "dc_reason" | "dc_limit" | "dc_status" | "dc_cap_percent" | "dc_cap_role" | "se_payment_started" | "se_split" | "se_not_editable" | "se_discount" | "se_not_found" | "se_duplicate" | "se_unknown"
+  | "dc_percent" | "dc_amount" | "dc_below_paid" | "dc_reason" | "dc_limit" | "dc_status" | "dc_cap_percent" | "dc_cap_role" | "se_payment_started" | "se_split" | "se_not_editable" | "se_discount" | "se_not_found" | "se_duplicate" | "se_unknown"
   | "hold_lapsed" | "hold_source" | "ns_early" | "ns_note";
 
 /**
@@ -402,6 +402,7 @@ export function errorMessage(code: string, refundable: number | null, formatMino
     case "dc_cap_role": return "That role cannot give discounts, so it has no limit to set.";
     case "dc_percent": return "Enter a percentage from 0 to 100 with at most two decimals, such as 10 or 7.5. Use 0 to remove the discount.";
     case "dc_amount": return "Enter an amount in naira, such as 5,000 or 2500.50, no more than the booking's price. Use 0 to remove the discount.";
+    case "dc_below_paid": return "That discount would take the price below what the guest has already paid. Give a smaller discount, or refund part of the payment first.";
     case "dc_reason": return "Give a reason for the discount (up to 200 characters).";
     case "dc_limit": return "That is more than your role may give. Ask the owner or the general manager.";
     case "dc_status": return "A discount can only be set on a confirmed booking.";

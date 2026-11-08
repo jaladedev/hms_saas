@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { classifyDiscountError, discountView, parseAmount, parseDiscountForm, parsePercent, resultCode } from "./discount";
 
 describe("discountView", () => {
-  const base = { canApply: true, reservationStatus: "confirmed", paymentCount: 0, liveInvoiceCount: 0, current: { kind: "none" } as const };
+  const base = { canApply: true, reservationStatus: "confirmed", liveInvoiceCount: 0, current: { kind: "none" } as const };
   it("is editable on an unpaid, uninvoiced, confirmed booking for someone who may discount", () => {
     expect(discountView(base)).toEqual({ kind: "editable", current: { kind: "none" } });
     expect(discountView({ ...base, current: { kind: "percent", percent: 10 } })).toEqual({ kind: "editable", current: { kind: "percent", percent: 10 } });
@@ -12,8 +12,8 @@ describe("discountView", () => {
     expect(discountView({ ...base, canApply: false })).toEqual({ kind: "hidden" });
     for (const s of ["pending", "cancelled", "checked_in", "checked_out", "no_show", "expired"]) expect(discountView({ ...base, reservationStatus: s })).toEqual({ kind: "hidden" });
   });
-  it("says why when money stops it", () => {
-    expect(discountView({ ...base, paymentCount: 1 })).toEqual({ kind: "blocked", why: "paid" });
+  it("is still offered when money has been paid, and blocked by a live invoice", () => {
+    expect(discountView({ ...base }).kind).toBe("editable");
     expect(discountView({ ...base, liveInvoiceCount: 1 })).toEqual({ kind: "blocked", why: "invoiced" });
   });
 });
@@ -43,7 +43,7 @@ describe("parseDiscountForm", () => {
 describe("classifyDiscountError", () => {
   it("maps every refusal the function raises", () => {
     const cases: [string, string][] = [
-      ["POLICY_VIOLATION: percent", "dc_percent"], ["POLICY_VIOLATION: amount", "dc_amount"], ["POLICY_VIOLATION: reason", "dc_reason"], ["POLICY_VIOLATION: discount limit 10", "dc_limit"],
+      ["POLICY_VIOLATION: percent", "dc_percent"], ["POLICY_VIOLATION: amount", "dc_amount"], ["POLICY_VIOLATION: below paid", "dc_below_paid"], ["POLICY_VIOLATION: reason", "dc_reason"], ["POLICY_VIOLATION: discount limit 10", "dc_limit"],
       ["INVALID_STATE: money held", "se_paid"], ["INVALID_STATE: invoice", "se_invoiced"], ["INVALID_STATE: payment in progress", "se_payment_started"],
       ["INVALID_STATE: cancelled", "dc_status"], ["NOT_FOUND", "not_found"], ["IDEMPOTENCY_MISMATCH", "se_duplicate"], ["boom", "unknown"],
     ];

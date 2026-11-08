@@ -62,7 +62,7 @@ auth schema, and `01_seed.sql` is test data.
 
 ## 4. Check the security setup
 
-Run these five in the SQL editor. The expected results were produced by applying all 64 migrations to a scratch
+Run these five in the SQL editor. The expected results were produced by applying all 65 migrations to a scratch
 PostgreSQL with the same default privileges Supabase uses.
 
 ```sql

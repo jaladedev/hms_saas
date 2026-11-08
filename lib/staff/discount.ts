@@ -3,8 +3,8 @@
  * The database decides who may discount, how far (a cap per role), and whether the booking can still change; these
  * helpers decide whether the form is worth showing, check its shape, and word the refusals.
  *
- * The rule the screen explains: a discount can be set or changed only while the booking is confirmed and NOTHING is paid
- * and no live invoice exists, the same guard as editing dates, so a changed total never breaks money already taken.
+ * The rule the screen explains: a discount can be set or changed only while the booking is confirmed and no live invoice
+ * exists. Money already paid is fine (migration 065) as long as the new price still covers it; the database enforces that.
  * A discount is a percentage or a fixed naira amount (migration 062), never both. Setting one replaces the one before,
  * of either kind; 0 removes it.
  */
@@ -15,25 +15,22 @@ export const DISCOUNT_REASON_MAX = 200;
 
 export type DiscountView =
   | { kind: "hidden" }
-  | { kind: "blocked"; why: "paid" | "invoiced" }
+  | { kind: "blocked"; why: "invoiced" }
   | { kind: "editable"; current: CurrentDiscount };
 
 /** What the booking has now: nothing, a percentage, or an amount in kobo. */
 export type CurrentDiscount = { kind: "none" } | { kind: "percent"; percent: number } | { kind: "amount"; amountMinor: number };
 
 export function discountView(args: {
-  canApply: boolean; reservationStatus: string; paymentCount: number; liveInvoiceCount: number; current: CurrentDiscount;
+  canApply: boolean; reservationStatus: string; liveInvoiceCount: number; current: CurrentDiscount;
 }): DiscountView {
   if (!args.canApply || args.reservationStatus !== "confirmed") return { kind: "hidden" };
-  if (args.paymentCount > 0) return { kind: "blocked", why: "paid" };
   if (args.liveInvoiceCount > 0) return { kind: "blocked", why: "invoiced" };
   return { kind: "editable", current: args.current };
 }
 
-export function blockedText(why: "paid" | "invoiced"): string {
-  return why === "paid"
-    ? "A discount cannot be set or changed because a payment has been recorded on this booking."
-    : "A discount cannot be set or changed while an invoice is issued. Void the invoice (an invoice with payments cannot be voided) and then change it.";
+export function blockedText(_why: "invoiced"): string {
+  return "A discount cannot be set or changed while an invoice is issued. Void the invoice (an invoice with payments cannot be voided) and then change it.";
 }
 
 export type DiscountInput = { kind: "percent"; percent: number; reason: string } | { kind: "amount"; amountMinor: number; reason: string };
@@ -70,6 +67,7 @@ export function classifyDiscountError(message: string): ErrorCode {
   if (/POLICY_VIOLATION: amount/.test(message)) return "dc_amount";
   if (/POLICY_VIOLATION: reason/.test(message)) return "dc_reason";
   if (/POLICY_VIOLATION: discount limit/.test(message)) return "dc_limit";
+  if (/POLICY_VIOLATION: below paid/.test(message)) return "dc_below_paid";
   if (/INVALID_STATE: money held/.test(message)) return "se_paid";
   if (/INVALID_STATE: invoice/.test(message)) return "se_invoiced";
   if (/INVALID_STATE: payment in progress/.test(message)) return "se_payment_started";

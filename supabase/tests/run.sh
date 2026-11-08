@@ -680,4 +680,8 @@ OB="$(psql -f "$HERE/65_online_booking_flag.sql" 2>&1)" || { echo "$OB"; echo "O
 echo "$OB" | grep -E 'PASS' || true
 if echo "$OB" | grep -qE 'FAIL|ERROR'; then echo "$OB"; echo "ONLINE BOOKING FLAG TESTS FAILED"; exit 1; fi
 
+DP="$(psql -f "$HERE/66_discount_with_payments.sql" 2>&1)" || { echo "$DP"; echo "DISCOUNT WITH PAYMENTS TESTS FAILED"; exit 1; }
+echo "$DP" | grep -E 'PASS' || true
+if echo "$DP" | grep -qE 'FAIL|ERROR'; then echo "$DP"; echo "DISCOUNT WITH PAYMENTS TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"
