@@ -684,4 +684,8 @@ DP="$(psql -f "$HERE/66_discount_with_payments.sql" 2>&1)" || { echo "$DP"; echo
 echo "$DP" | grep -E 'PASS' || true
 if echo "$DP" | grep -qE 'FAIL|ERROR'; then echo "$DP"; echo "DISCOUNT WITH PAYMENTS TESTS FAILED"; exit 1; fi
 
+GL="$(psql -f "$HERE/67_guest_link_reset.sql" 2>&1)" || { echo "$GL"; echo "GUEST LINK RESET TESTS FAILED"; exit 1; }
+echo "$GL" | grep -E 'PASS' || true
+if echo "$GL" | grep -qE 'FAIL|ERROR'; then echo "$GL"; echo "GUEST LINK RESET TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

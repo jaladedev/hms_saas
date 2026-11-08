@@ -2,11 +2,9 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { verifyBookingToken } from "@/lib/booking-token";
-import { serverEnv } from "@/lib/env";
 import { parseExpectedCharge } from "@/lib/guest-site/cancel";
 import { checkGuestLimits } from "@/lib/guest-site/limits";
-import { cancelBooking } from "@/lib/guest-site/server";
+import { cancelBooking, verifiedBookingId } from "@/lib/guest-site/server";
 
 const inputSchema = z.object({ token: z.string().min(10).max(512), key: z.string().min(8).max(100), charge: z.string().max(20) });
 
@@ -18,7 +16,7 @@ export async function cancelAction(formData: FormData): Promise<void> {
   const input = inputSchema.safeParse(Object.fromEntries(formData.entries()));
   if (!input.success) redirect("/?error=bad_request");
   const { token, key } = input.data;
-  const reservationId = verifyBookingToken(token, serverEnv().BOOKING_TOKEN_SECRET);
+  const reservationId = await verifiedBookingId(token);
   if (!reservationId) redirect("/?error=bad_request");
   const here = `/booking/${token}/cancel`;
   const charge = parseExpectedCharge(input.data.charge);

@@ -1,6 +1,8 @@
 import "server-only";
 import { cache } from "react";
 import { headers } from "next/headers";
+import { readBookingToken } from "@/lib/booking-token";
+import { serverEnv } from "@/lib/env";
 import { createServiceClient } from "@/lib/supabase/service";
 import { friendlyError, type GuestError } from "@/lib/guest-site/errors";
 import type { StayParams } from "@/lib/guest-site/params";
@@ -105,6 +107,14 @@ export function createHold(args: {
     p_host: args.host, p_arrival: args.stay.arrival, p_departure: args.stay.departure,
     p_rooms: rooms, p_guest: args.guest, p_idempotency_key: args.idempotencyKey,
   });
+}
+
+/** The reservation a guest link opens: the token must be genuine, unexpired and issued after any reset by staff (migration 066). */
+export async function verifiedBookingId(token: string): Promise<string | null> {
+  const t = readBookingToken(token, serverEnv().BOOKING_TOKEN_SECRET);
+  if (!t) return null;
+  const { data, error } = await createServiceClient().rpc("guest_link_ok", { p_reservation_id: t.reservationId, p_issued_at: t.issuedAt });
+  return !error && data === true ? t.reservationId : null;
 }
 
 export function bookingStatus(reservationId: string) {

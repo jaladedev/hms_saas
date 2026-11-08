@@ -2,13 +2,11 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { HoldCountdown } from "@/components/site/hold-countdown";
-import { verifyBookingToken } from "@/lib/booking-token";
-import { serverEnv } from "@/lib/env";
 import { formatDate, formatMoney, formatTime } from "@/lib/guest-site/format";
 import { messageForCode } from "@/lib/guest-site/errors";
 import { secondsRemaining } from "@/lib/guest-site/hold";
 import { notAllowedText } from "@/lib/guest-site/cancel";
-import { bookingStatus, cancelPreview } from "@/lib/guest-site/server";
+import { bookingStatus, cancelPreview, verifiedBookingId } from "@/lib/guest-site/server";
 import { payAction } from "./actions";
 import { showsAmountDue } from "@/lib/guest-site/booking-summary";
 
@@ -24,7 +22,7 @@ type Props = {
 export default async function BookingPage({ params, searchParams }: Props) {
   const { token } = await params;
   const raw = await searchParams;
-  const reservationId = verifyBookingToken(token, serverEnv().BOOKING_TOKEN_SECRET);
+  const reservationId = await verifiedBookingId(token);
   if (!reservationId) notFound();
 
   const result = await bookingStatus(reservationId);

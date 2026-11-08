@@ -4,6 +4,7 @@ import { z } from "zod";
 import { FolioSection } from "@/components/staff/folio";
 import { StayEdit } from "@/components/staff/stay-edit";
 import { Discount } from "@/components/staff/discount";
+import { GuestLinkReset } from "@/components/staff/guest-link";
 import { discountView } from "@/lib/staff/discount";
 import { buttonDanger, buttonPrimary, buttonQuiet, inputClass, Notice, PaymentChip, ReservationChip, linkClass, PageTitle, SectionTitle } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
@@ -381,6 +382,7 @@ export default async function ReservationPage({
         </dl>
         {res.discount_reason && res.discount_minor > 0 && <p className="mt-1 max-w-md text-sm text-muted">Discount reason: {res.discount_reason}</p>}
         {discountState.kind !== "hidden" && <Discount reservationId={res.id} view={discountState} />}
+        {cModify?.data === true && <GuestLinkReset reservationId={res.id} />}
         {held === null && <p className="mt-2 text-sm text-muted">You do not have access to this reservation's payments.</p>}
         {held !== null && (
           <p className="mt-3 text-sm">

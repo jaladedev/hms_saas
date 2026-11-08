@@ -1,10 +1,22 @@
 import { describe, expect, it } from "vitest";
 import { createHmac } from "node:crypto";
-import { createBookingToken, verifyBookingToken } from "@/lib/booking-token";
+import { createBookingToken, readBookingToken, verifyBookingToken } from "@/lib/booking-token";
 
 const SECRET = "s".repeat(40);
 const RES = "11111111-2222-3333-4444-555555555555";
 const NOW = 1_800_000_000_000;
+
+describe("booking token issue time", () => {
+  it("carries the second it was issued", () => {
+    const t = createBookingToken(RES, SECRET, 3600, NOW);
+    expect(readBookingToken(t, SECRET, NOW + 1000)).toEqual({ reservationId: RES, issuedAt: NOW / 1000 });
+  });
+  it("reads a token from before resets existed (no issue time) as issued at 0", () => {
+    const payload = Buffer.from(JSON.stringify({ r: RES, e: NOW / 1000 + 3600 })).toString("base64url");
+    const sig = createHmac("sha256", SECRET).update("hms.booking.v1:" + payload).digest("base64url");
+    expect(readBookingToken(`${payload}.${sig}`, SECRET, NOW)).toEqual({ reservationId: RES, issuedAt: 0 });
+  });
+});
 
 describe("booking token", () => {
   it("round-trips a reservation id", () => {

@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { verifyBookingToken } from "@/lib/booking-token";
-import { serverEnv } from "@/lib/env";
 import { cancelSummary, notAllowedText } from "@/lib/guest-site/cancel";
 import { messageForCode } from "@/lib/guest-site/errors";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
-import { bookingStatus, cancelPreview } from "@/lib/guest-site/server";
+import { bookingStatus, cancelPreview, verifiedBookingId } from "@/lib/guest-site/server";
 import { cancelAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +17,7 @@ type Props = {
 export default async function CancelPage({ params, searchParams }: Props) {
   const { token } = await params;
   const raw = await searchParams;
-  const reservationId = verifyBookingToken(token, serverEnv().BOOKING_TOKEN_SECRET);
+  const reservationId = await verifiedBookingId(token);
   if (!reservationId) notFound();
   const [status, preview] = await Promise.all([bookingStatus(reservationId), cancelPreview(reservationId)]);
   if (!status.ok || !preview.ok) notFound();

@@ -1754,6 +1754,7 @@ export type Database = {
           discount_minor: number
           discount_percent: number | null
           discount_reason: string | null
+          guest_links_valid_from: string | null
           early_checkout_credit_minor: number
           id: string
           no_show_at: string | null
@@ -1785,6 +1786,7 @@ export type Database = {
           discount_minor?: number
           discount_percent?: number | null
           discount_reason?: string | null
+          guest_links_valid_from?: string | null
           early_checkout_credit_minor?: number
           id?: string
           no_show_at?: string | null
@@ -1815,6 +1817,7 @@ export type Database = {
           discount_minor?: number
           discount_percent?: number | null
           discount_reason?: string | null
+          guest_links_valid_from?: string | null
           early_checkout_credit_minor?: number
           id?: string
           no_show_at?: string | null
@@ -2675,6 +2678,10 @@ export type Database = {
         Args: { p_reservation: string }
         Returns: Record<string, unknown>
       }
+      guest_link_ok: {
+        Args: { p_issued_at: number; p_reservation_id: string }
+        Returns: boolean
+      }
       guest_booking_status: {
         Args: { p_reservation_id: string }
         Returns: Json
@@ -2995,6 +3002,10 @@ export type Database = {
           p_room_id: string
           p_title: string
         }
+        Returns: Json
+      }
+      reset_guest_links: {
+        Args: { p_idempotency_key: string; p_reason: string; p_reservation_id: string }
         Returns: Json
       }
       request_booking_link: {

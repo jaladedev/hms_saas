@@ -2,10 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { verifyBookingToken } from "@/lib/booking-token";
-import { serverEnv } from "@/lib/env";
 import { checkGuestLimits } from "@/lib/guest-site/limits";
-import { createPaymentAttempt, paymentStartContext, requestOrigin } from "@/lib/guest-site/server";
+import { createPaymentAttempt, paymentStartContext, requestOrigin, verifiedBookingId } from "@/lib/guest-site/server";
 import { initializeTransaction } from "@/lib/paystack";
 import { resolveProviderSecret } from "@/lib/provider-secret";
 
@@ -20,7 +18,7 @@ export async function payAction(formData: FormData): Promise<void> {
   const input = inputSchema.safeParse(Object.fromEntries(formData.entries()));
   if (!input.success) redirect("/?error=bad_request");
   const { token, key } = input.data;
-  const reservationId = verifyBookingToken(token, serverEnv().BOOKING_TOKEN_SECRET);
+  const reservationId = await verifiedBookingId(token);
   if (!reservationId) redirect("/?error=bad_request");
   const back = `/booking/${token}`;
 
