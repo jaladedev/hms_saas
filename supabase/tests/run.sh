@@ -720,4 +720,8 @@ GG="$(psql -f "$HERE/75_guest_changes_flag.sql" 2>&1)" || { echo "$GG"; echo "GU
 echo "$GG" | grep -E 'PASS' || true
 if echo "$GG" | grep -qE 'FAIL|ERROR'; then echo "$GG"; echo "GUEST CHANGES FLAG TESTS FAILED"; exit 1; fi
 
+EF="$(psql -f "$HERE/76_early_checkin_flag.sql" 2>&1)" || { echo "$EF"; echo "EARLY CHECK-IN FLAG TESTS FAILED"; exit 1; }
+echo "$EF" | grep -E 'PASS' || true
+if echo "$EF" | grep -qE 'FAIL|ERROR'; then echo "$EF"; echo "EARLY CHECK-IN FLAG TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"
