@@ -364,7 +364,7 @@ export function errorMessage(code: string, refundable: number | null, formatMino
     case "staff_property": return "That property does not belong to this hotel group.";
     case "invite_failed": return "The invitation could not be sent, so nobody was added. Check the address and try again in a few minutes.";
     case "email_invalid": return "Enter a valid email address.";
-    case "block_conflict": return refundable !== null ? `${refundable} ${refundable === 1 ? "booking is" : "bookings are"} already on that room for those dates, so it was not blocked. Choose \"move\" or \"cancel\" under \"If bookings are in the way\", or move ${refundable === 1 ? "it" : "them"} on the booking first.` : "Bookings are already on that room for those dates, so it was not blocked.";
+    case "block_conflict": return refundable !== null ? `${refundable} ${refundable === 1 ? "booking is" : "bookings are"} already on that room for those dates, so it was not blocked. Choose "move" or "cancel" under "If bookings are in the way", or move ${refundable === 1 ? "it" : "them"} on the booking first.` : "Bookings are already on that room for those dates, so it was not blocked.";
     case "block_in_house": return "A guest is staying in that room for those dates, so nothing was changed. A guest who has arrived cannot be cancelled: move them on their booking, or choose later dates.";
     case "request_note": return "To decline a request, write a short note for the guest.";
     case "block_past": return "A block cannot start in the past. Choose today or a later date.";
