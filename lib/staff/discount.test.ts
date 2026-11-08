@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { classifyDiscountError, discountView, parseDiscountForm, parsePercent, resultCode } from "./discount";
+import { classifyDiscountError, discountView, parseAmount, parseDiscountForm, parsePercent, resultCode } from "./discount";
 
 describe("discountView", () => {
-  const base = { canApply: true, reservationStatus: "confirmed", paymentCount: 0, liveInvoiceCount: 0, currentPercent: null };
+  const base = { canApply: true, reservationStatus: "confirmed", paymentCount: 0, liveInvoiceCount: 0, current: { kind: "none" } as const };
   it("is editable on an unpaid, uninvoiced, confirmed booking for someone who may discount", () => {
-    expect(discountView(base)).toEqual({ kind: "editable", currentPercent: null });
-    expect(discountView({ ...base, currentPercent: 10 })).toEqual({ kind: "editable", currentPercent: 10 });
+    expect(discountView(base)).toEqual({ kind: "editable", current: { kind: "none" } });
+    expect(discountView({ ...base, current: { kind: "percent", percent: 10 } })).toEqual({ kind: "editable", current: { kind: "percent", percent: 10 } });
+    expect(discountView({ ...base, current: { kind: "amount", amountMinor: 500000 } })).toEqual({ kind: "editable", current: { kind: "amount", amountMinor: 500000 } });
   });
   it("stays quiet for people who may not, and for bookings that are not confirmed", () => {
     expect(discountView({ ...base, canApply: false })).toEqual({ kind: "hidden" });
@@ -32,7 +33,7 @@ describe("parsePercent", () => {
 
 describe("parseDiscountForm", () => {
   it("needs a percent and a reason", () => {
-    expect(parseDiscountForm({ percent: "10", reason: " loyal guest " })).toEqual({ ok: true, value: { percent: 10, reason: "loyal guest" } });
+    expect(parseDiscountForm({ percent: "10", reason: " loyal guest " })).toEqual({ ok: true, value: { kind: "percent", percent: 10, reason: "loyal guest" } });
     expect(parseDiscountForm({ percent: "x", reason: "r" })).toEqual({ ok: false, code: "dc_percent" });
     expect(parseDiscountForm({ percent: "10", reason: "  " })).toEqual({ ok: false, code: "dc_reason" });
     expect(parseDiscountForm({ percent: "10", reason: "x".repeat(201) })).toEqual({ ok: false, code: "dc_reason" });
@@ -42,7 +43,7 @@ describe("parseDiscountForm", () => {
 describe("classifyDiscountError", () => {
   it("maps every refusal the function raises", () => {
     const cases: [string, string][] = [
-      ["POLICY_VIOLATION: percent", "dc_percent"], ["POLICY_VIOLATION: reason", "dc_reason"], ["POLICY_VIOLATION: discount limit 10", "dc_limit"],
+      ["POLICY_VIOLATION: percent", "dc_percent"], ["POLICY_VIOLATION: amount", "dc_amount"], ["POLICY_VIOLATION: reason", "dc_reason"], ["POLICY_VIOLATION: discount limit 10", "dc_limit"],
       ["INVALID_STATE: money held", "se_paid"], ["INVALID_STATE: invoice", "se_invoiced"], ["INVALID_STATE: payment in progress", "se_payment_started"],
       ["INVALID_STATE: cancelled", "dc_status"], ["NOT_FOUND", "not_found"], ["IDEMPOTENCY_MISMATCH", "se_duplicate"], ["boom", "unknown"],
     ];
@@ -52,8 +53,24 @@ describe("classifyDiscountError", () => {
 
 describe("resultCode", () => {
   it("tells set, removed and unchanged apart", () => {
-    expect(resultCode({ changed: true, discount_percent: 10 })).toBe("discount_set");
-    expect(resultCode({ changed: true, discount_percent: 0 })).toBe("discount_removed");
-    expect(resultCode({ changed: false, discount_percent: 10 })).toBe("discount_unchanged");
+    expect(resultCode({ changed: true, discount_minor: 12000 })).toBe("discount_set");
+    expect(resultCode({ changed: true, discount_minor: 0 })).toBe("discount_removed");
+    expect(resultCode({ changed: false, discount_minor: 12000 })).toBe("discount_unchanged");
+  });
+});
+
+describe("amount discounts", () => {
+  it("reads naira into kobo, with 0 meaning remove", () => {
+    expect(parseAmount("5,000")).toBe(500000);
+    expect(parseAmount("₦2500.50")).toBe(250050);
+    expect(parseAmount("0")).toBe(0);
+    expect(parseAmount("0.00")).toBe(0);
+    for (const bad of ["", "abc", "-5", "10.999", "1e3", undefined, null]) expect(parseAmount(bad), String(bad)).toBeNull();
+  });
+  it("is chosen by the kind field and checked on its own value", () => {
+    expect(parseDiscountForm({ kind: "amount", amount: "5,000", percent: "x", reason: " promo " })).toEqual({ ok: true, value: { kind: "amount", amountMinor: 500000, reason: "promo" } });
+    expect(parseDiscountForm({ kind: "amount", amount: "", percent: "10", reason: "r" })).toEqual({ ok: false, code: "dc_amount" });
+    expect(parseDiscountForm({ kind: "percent", amount: "x", percent: "10", reason: "r" }).ok).toBe(true);
+    expect(parseDiscountForm({ amount: "x", percent: "10", reason: "r" }).ok).toBe(true);
   });
 });

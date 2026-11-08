@@ -27,7 +27,7 @@ export const dynamic = "force-dynamic";
 type Reservation = {
   id: string; property_id: string; booking_reference: string; primary_guest_id: string; source: string;
   reservation_status: string; payment_status: string; arrival_date: string; departure_date: string; currency: string;
-  subtotal_minor: number; tax_minor: number; discount_minor: number; discount_percent: number | string | null; discount_reason: string | null; total_minor: number;
+  subtotal_minor: number; tax_minor: number; discount_minor: number; discount_percent: number | string | null; discount_amount_minor: number | null; discount_reason: string | null; total_minor: number;
   cancellation_charge_minor: number; cancel_reason: string | null; cancelled_at: string | null; no_show_at: string | null;
   attention_reason: string | null; created_at: string;
 };
@@ -53,7 +53,7 @@ export default async function ReservationPage({
 
   const { data: resRow } = await supabase
     .from("reservations")
-    .select("id, property_id, booking_reference, primary_guest_id, source, reservation_status, payment_status, arrival_date, departure_date, currency, subtotal_minor, tax_minor, discount_minor, discount_percent, discount_reason, total_minor, cancellation_charge_minor, cancel_reason, cancelled_at, no_show_at, attention_reason, created_at, policy_snapshot")
+    .select("id, property_id, booking_reference, primary_guest_id, source, reservation_status, payment_status, arrival_date, departure_date, currency, subtotal_minor, tax_minor, discount_minor, discount_percent, discount_amount_minor, discount_reason, total_minor, cancellation_charge_minor, cancel_reason, cancelled_at, no_show_at, attention_reason, created_at, policy_snapshot")
     .eq("id", id).maybeSingle();
   if (!resRow) notFound();
   const res = resRow as Reservation;
@@ -167,7 +167,7 @@ export default async function ReservationPage({
   const liveInvoices = invoices.filter((i) => i.invoice_status !== "void").length;
   const discountState = discountView({
     canApply: cDiscount?.data === true, reservationStatus: res.reservation_status,
-    paymentCount: payCountQ?.count ?? 0, liveInvoiceCount: liveInvoices, currentPercent: res.discount_percent === null ? null : Number(res.discount_percent),
+    paymentCount: payCountQ?.count ?? 0, liveInvoiceCount: liveInvoices, current: res.discount_amount_minor !== null ? { kind: "amount", amountMinor: res.discount_amount_minor } : res.discount_percent !== null ? { kind: "percent", percent: Number(res.discount_percent) } : { kind: "none" },
   });
   const stayRooms = resRooms.map((rr, i) => {
     const t = typeRows.find((x) => x.id === rr.room_type_id);

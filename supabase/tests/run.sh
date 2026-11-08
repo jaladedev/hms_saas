@@ -668,4 +668,8 @@ DK="$(psql -f "$HERE/60_discount_caps.sql" 2>&1)" || { echo "$DK"; echo "DISCOUN
 echo "$DK" | grep -E 'PASS' || true
 if echo "$DK" | grep -qE 'FAIL|ERROR'; then echo "$DK"; echo "DISCOUNT CAP TESTS FAILED"; exit 1; fi
 
+DA="$(psql -f "$HERE/63_discount_amount.sql" 2>&1)" || { echo "$DA"; echo "DISCOUNT AMOUNT TESTS FAILED"; exit 1; }
+echo "$DA" | grep -E 'PASS' || true
+if echo "$DA" | grep -qE 'FAIL|ERROR'; then echo "$DA"; echo "DISCOUNT AMOUNT TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

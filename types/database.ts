@@ -1750,6 +1750,7 @@ export type Database = {
           created_by: string | null
           currency: string
           departure_date: string
+          discount_amount_minor: number | null
           discount_minor: number
           discount_percent: number | null
           discount_reason: string | null
@@ -1780,6 +1781,7 @@ export type Database = {
           created_by?: string | null
           currency?: string
           departure_date: string
+          discount_amount_minor?: number | null
           discount_minor?: number
           discount_percent?: number | null
           discount_reason?: string | null
@@ -1809,6 +1811,7 @@ export type Database = {
           created_by?: string | null
           currency?: string
           departure_date?: string
+          discount_amount_minor?: number | null
           discount_minor?: number
           discount_percent?: number | null
           discount_reason?: string | null
@@ -2412,6 +2415,15 @@ export type Database = {
           p_role_key: string
           p_tenant: string
           p_user: string
+        }
+        Returns: Json
+      }
+      apply_discount_amount: {
+        Args: {
+          p_amount_minor: number
+          p_idempotency_key: string
+          p_reason: string
+          p_reservation_id: string
         }
         Returns: Json
       }
