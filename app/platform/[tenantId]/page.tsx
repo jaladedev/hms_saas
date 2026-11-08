@@ -113,7 +113,7 @@ export default async function HotelDetail({ params, searchParams }: { params: Pr
 
       <section aria-labelledby="sub">
         <SectionTitle id="sub">Plan and features</SectionTitle>
-        <p className="mt-2 max-w-prose text-sm text-muted">Two flags are enforced. reports.export: turned off, the hotel's CSV downloads stop. online_payments: turned off, guests cannot start a card payment (payments already made, refunds and staff-recorded payments are unaffected). With no row, or on, both work. Any other key is only recorded and switches nothing.</p>
+        <p className="mt-2 max-w-prose text-sm text-muted">Three flags are enforced. reports.export: turned off, the hotel's CSV downloads stop. online_payments: turned off, guests cannot start a card payment (payments already made, refunds and staff-recorded payments are unaffected). discounts: turned off, nobody at the hotel can give or change a discount (discounts already on bookings stay). With no row, or on, all three work. Any other key is only recorded and switches nothing.</p>
         <p className="mt-3 text-sm">{d.subscription ? `${d.subscription.plan_code} (${d.subscription.status})${d.subscription.trial_ends_at ? `, trial ends ${shortDate(d.subscription.trial_ends_at)}` : ""}${d.subscription.current_period_end ? `, period ends ${shortDate(d.subscription.current_period_end)}` : ""}` : "No plan set."}</p>
         {admin && (
           <form action={setSubscription} className="mt-3 flex flex-wrap items-end gap-3">

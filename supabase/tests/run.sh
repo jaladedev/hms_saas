@@ -672,4 +672,8 @@ DA="$(psql -f "$HERE/63_discount_amount.sql" 2>&1)" || { echo "$DA"; echo "DISCO
 echo "$DA" | grep -E 'PASS' || true
 if echo "$DA" | grep -qE 'FAIL|ERROR'; then echo "$DA"; echo "DISCOUNT AMOUNT TESTS FAILED"; exit 1; fi
 
+DF="$(psql -f "$HERE/64_discounts_flag.sql" 2>&1)" || { echo "$DF"; echo "DISCOUNTS FLAG TESTS FAILED"; exit 1; }
+echo "$DF" | grep -E 'PASS' || true
+if echo "$DF" | grep -qE 'FAIL|ERROR'; then echo "$DF"; echo "DISCOUNTS FLAG TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"
