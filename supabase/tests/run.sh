@@ -688,4 +688,8 @@ GL="$(psql -f "$HERE/67_guest_link_reset.sql" 2>&1)" || { echo "$GL"; echo "GUES
 echo "$GL" | grep -E 'PASS' || true
 if echo "$GL" | grep -qE 'FAIL|ERROR'; then echo "$GL"; echo "GUEST LINK RESET TESTS FAILED"; exit 1; fi
 
+GC="$(psql -f "$HERE/68_guest_cancel_flag.sql" 2>&1)" || { echo "$GC"; echo "GUEST CANCEL FLAG TESTS FAILED"; exit 1; }
+echo "$GC" | grep -E 'PASS' || true
+if echo "$GC" | grep -qE 'FAIL|ERROR'; then echo "$GC"; echo "GUEST CANCEL FLAG TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"
