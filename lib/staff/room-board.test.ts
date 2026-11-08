@@ -80,12 +80,16 @@ describe("countStates and compareRoomNumbers", () => {
 
 describe("block conflicts and housekeeping wording", () => {
   it("words the new refusals and carries the clash count", async () => {
-    const { classifyRpcError, errorMessage } = await import("./refunds");
+    const { classifyRpcError, errorMessage, OK_MESSAGES } = await import("./refunds");
     expect(classifyRpcError("POLICY_VIOLATION: block cannot start in the past").code).toBe("block_past");
     expect(classifyRpcError("POLICY_VIOLATION: invalid block request").code).toBe("block_invalid");
     expect(classifyRpcError("INVALID_STATE: room retired").code).toBe("room_retired");
     expect(errorMessage("block_conflict", 1, String)).toMatch(/1 booking is already/);
     expect(errorMessage("block_conflict", 3, String)).toMatch(/3 bookings are already/);
     expect(errorMessage("block_conflict", null, String)).toMatch(/Bookings are already/);
+    expect(errorMessage("block_conflict", 2, String)).toMatch(/If bookings are in the way/);
+    expect(errorMessage("block_in_house", null, String)).toMatch(/cannot be cancelled/);
+    expect(OK_MESSAGES.blocked_cancelled).toMatch(/no charge/);
+    expect(OK_MESSAGES.blocked_moved).toMatch(/moved to other rooms/);
   });
 });

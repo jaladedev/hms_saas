@@ -242,6 +242,10 @@ EI="$(psql -f "$HERE/62_early_checkin.sql" 2>&1)" || { echo "$EI"; echo "EARLY C
 echo "$EI" | grep -E 'PASS' || true
 if echo "$EI" | grep -qE 'FAIL|ERROR'; then echo "$EI"; echo "EARLY CHECKIN TESTS FAILED"; exit 1; fi
 
+BC="$(psql -f "$HERE/69_block_cancel.sql" 2>&1)" || { echo "$BC"; echo "BLOCK CANCEL TESTS FAILED"; exit 1; }
+echo "$BC" | grep -E 'PASS' || true
+if echo "$BC" | grep -qE 'FAIL|ERROR'; then echo "$BC"; echo "BLOCK CANCEL TESTS FAILED"; exit 1; fi
+
 echo "--- concurrency: last room race (1 room, 50 clients)"
 cat > "$DATA/race_one.sql" <<'SQL'
 select test_try_claim('last_room', '00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', '2027-10-01', '2027-10-03');

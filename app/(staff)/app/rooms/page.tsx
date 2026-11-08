@@ -83,15 +83,16 @@ export default async function RoomBoardPage({ searchParams }: { searchParams: Pr
   const repairHistory = repairsByRoom(repairs);
 
   // What the viewer may do at each property; the database checks again on every action.
-  const can = new Map<string, { housekeeping: boolean; block: boolean; report: boolean }>();
+  const can = new Map<string, { housekeeping: boolean; block: boolean; cancel: boolean; report: boolean }>();
   await Promise.all(properties.map(async (p) => {
-    const [h, b, mv, mm] = await Promise.all([
+    const [h, b, c, mv, mm] = await Promise.all([
       supabase.rpc("has_permission", { p_property: p.id, p_permission: "housekeeping.update" }),
       supabase.rpc("has_permission", { p_property: p.id, p_permission: "room.block" }),
+      supabase.rpc("has_permission", { p_property: p.id, p_permission: "reservation.cancel" }),
       supabase.rpc("has_permission", { p_property: p.id, p_permission: "maintenance.view" }),
       supabase.rpc("has_permission", { p_property: p.id, p_permission: "maintenance.manage" }),
     ]);
-    can.set(p.id, { housekeeping: h.data === true, block: b.data === true, report: mv.data === true || mm.data === true });
+    can.set(p.id, { housekeeping: h.data === true, block: b.data === true, cancel: c.data === true, report: mv.data === true || mm.data === true });
   }));
 
   const views = roomViews(rooms, claims, new Set(), today)
@@ -250,6 +251,12 @@ export default async function RoomBoardPage({ searchParams }: { searchParams: Pr
                           </div>
                           <label htmlFor={`br-${v.room.id}`} className="block text-xs text-muted">Reason</label>
                           <input id={`br-${v.room.id}`} name="reason" required maxLength={500} className={inputClass} />
+                          <label htmlFor={`bx-${v.room.id}`} className="block text-xs text-muted">If bookings are in the way</label>
+                          <select id={`bx-${v.room.id}`} name="resolution" defaultValue="fail" className={inputClass}>
+                            <option value="fail">Do nothing and tell me</option>
+                            <option value="move">Move them to other rooms of the same type</option>
+                            {can.get(v.room.property_id)?.cancel && <option value="cancel">Cancel them (no charge; money paid goes to refunds)</option>}
+                          </select>
                           <div><button type="submit" className={buttonPrimary}>Block room</button></div>
                         </form>
                       )}

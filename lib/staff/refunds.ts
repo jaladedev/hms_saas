@@ -114,7 +114,7 @@ export type ErrorCode =
   | "overpayment" | "method_invalid" | "not_cancellable"
   | "room_unavailable" | "room_choice" | "capacity" | "rate_missing" | "forbidden" | "arrival_past" | "dates_invalid"
   | "guest_name_required" | "too_long_stay" | "room_type_missing" | "guest_failed"
-  | "block_conflict" | "block_past" | "block_invalid" | "room_retired"
+  | "block_conflict" | "block_in_house" | "block_past" | "block_invalid" | "room_retired"
   | "invoice_exists" | "invoice_has_payments" | "invoice_void"
   | "transfer_unavailable" | "transfer_past" | "transfer_outside" | "transfer_bad_room"
   | "guest_name" | "guest_email" | "guest_country" | "guest_field"
@@ -211,6 +211,8 @@ export const OK_MESSAGES = {
   payment_confirmed: "Payment recorded. The booking is now confirmed and the room is the guest's.",
   housekeeping_set: "Room status updated.",
   blocked: "Room blocked for those dates.",
+  blocked_moved: "Room blocked. The bookings that were on it have moved to other rooms of the same type.",
+  blocked_cancelled: "Room blocked. The bookings that were on it are cancelled with no charge, and the guests are emailed. Anything they had paid is now a refund request, waiting for approval.",
   block_released: "Block removed. The room can be booked again.",
   invoice_issued: "Invoice issued.",
   discount_set: "Discount saved.",
@@ -351,7 +353,8 @@ export function errorMessage(code: string, refundable: number | null, formatMino
     case "staff_property": return "That property does not belong to this hotel group.";
     case "invite_failed": return "The invitation could not be sent, so nobody was added. Check the address and try again in a few minutes.";
     case "email_invalid": return "Enter a valid email address.";
-    case "block_conflict": return refundable !== null ? `${refundable} ${refundable === 1 ? "booking is" : "bookings are"} already on that room for those dates, so it was not blocked. Move ${refundable === 1 ? "it" : "them"} first.` : "Bookings are already on that room for those dates, so it was not blocked.";
+    case "block_conflict": return refundable !== null ? `${refundable} ${refundable === 1 ? "booking is" : "bookings are"} already on that room for those dates, so it was not blocked. Choose \"move\" or \"cancel\" under \"If bookings are in the way\", or move ${refundable === 1 ? "it" : "them"} on the booking first.` : "Bookings are already on that room for those dates, so it was not blocked.";
+    case "block_in_house": return "A guest is staying in that room for those dates, so nothing was changed. A guest who has arrived cannot be cancelled: move them on their booking, or choose later dates.";
     case "block_past": return "A block cannot start in the past. Choose today or a later date.";
     case "block_invalid": return "Enter a reason and an end date after the start date.";
     case "room_retired": return "That room is retired, so it cannot be changed.";
