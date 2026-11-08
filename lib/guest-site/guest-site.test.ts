@@ -47,6 +47,7 @@ describe("friendly errors", () => {
     expect(friendlyError("INVALID_STATE: hold lapsed").code).toBe("hold_lapsed");
     expect(friendlyError("NOT_FOUND: host").code).toBe("not_configured");
     expect(friendlyError("CAPACITY_EXCEEDED").code).toBe("capacity");
+    expect(friendlyError("INVALID_STATE: online booking off").code).toBe("booking_off");
   });
   it("never leaks unknown messages", () => {
     const e = friendlyError("duplicate key value violates unique constraint payments_pkey");

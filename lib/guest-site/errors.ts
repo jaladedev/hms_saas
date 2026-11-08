@@ -13,6 +13,7 @@ const RULES: Array<[RegExp, GuestError]> = [
   [/INVALID_STATE: too late/, { code: "cancel_too_late", message: "It is too late to cancel online. Please contact the hotel." }],
   [/INVALID_STATE: (cancelled|checked_in|checked_out|no_show)/, { code: "cancel_not_allowed", message: "This booking can no longer be cancelled online. Please contact the hotel." }],
   [/INVALID_STATE: nothing due/, { code: "nothing_due", message: "Nothing is left to pay on this booking." }],
+  [/INVALID_STATE: online booking off/, { code: "booking_off", message: "This hotel is not taking online bookings right now. Please contact the hotel." }],
   [/NOT_FOUND: (host|property)/, { code: "not_configured", message: "Online booking is not available on this site yet." }],
   [/NOT_FOUND: room type/, { code: "not_bookable", message: "That room type is not available to book online." }],
 ];

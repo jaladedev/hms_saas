@@ -676,4 +676,8 @@ DF="$(psql -f "$HERE/64_discounts_flag.sql" 2>&1)" || { echo "$DF"; echo "DISCOU
 echo "$DF" | grep -E 'PASS' || true
 if echo "$DF" | grep -qE 'FAIL|ERROR'; then echo "$DF"; echo "DISCOUNTS FLAG TESTS FAILED"; exit 1; fi
 
+OB="$(psql -f "$HERE/65_online_booking_flag.sql" 2>&1)" || { echo "$OB"; echo "ONLINE BOOKING FLAG TESTS FAILED"; exit 1; }
+echo "$OB" | grep -E 'PASS' || true
+if echo "$OB" | grep -qE 'FAIL|ERROR'; then echo "$OB"; echo "ONLINE BOOKING FLAG TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"
