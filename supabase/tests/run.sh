@@ -712,4 +712,8 @@ EW="$(psql -f "$HERE/73_early_checkin_waiver.sql" 2>&1)" || { echo "$EW"; echo "
 echo "$EW" | grep -E 'PASS' || true
 if echo "$EW" | grep -qE 'FAIL|ERROR'; then echo "$EW"; echo "EARLY CHECK-IN WAIVER TESTS FAILED"; exit 1; fi
 
+EE="$(psql -f "$HERE/74_early_checkout_email.sql" 2>&1)" || { echo "$EE"; echo "EARLY CHECK-OUT EMAIL TESTS FAILED"; exit 1; }
+echo "$EE" | grep -E 'PASS' || true
+if echo "$EE" | grep -qE 'FAIL|ERROR'; then echo "$EE"; echo "EARLY CHECK-OUT EMAIL TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

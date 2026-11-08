@@ -49,6 +49,20 @@ describe("email templates", () => {
     expect(renderEmail({ kind: "booking_cancelled", booking, link: LINK, payload: { charge_minor: 0, refund_due_minor: 0 } }).text).toContain("No charge applies");
     expect(renderEmail({ kind: "booking_cancelled", booking, link: LINK }).text).toContain("No charge applies");
   });
+  it("early_checkout_credit: nights, credit, new total, and the refund to come when money is owed back", () => {
+    const e = renderEmail({ kind: "early_checkout_credit", booking, link: LINK, payload: { credit_minor: 2500000, nights_credited: 2, new_total_minor: 1000000, refund_due_minor: 1500000, currency: "NGN" } });
+    expect(e.subject).toContain(booking.booking_reference);
+    expect(e.text).toContain("2 nights you did not stay have been credited");
+    expect(e.text).toContain("25,000.00");
+    expect(e.text).toContain("10,000.00");
+    expect(e.text).toContain("will refund");
+    expect(e.text).toContain("15,000.00");
+    expect(e.text).toContain("separate email");
+    const none = renderEmail({ kind: "early_checkout_credit", booking, link: LINK, payload: { credit_minor: 500000, nights_credited: 1, new_total_minor: 1000000, refund_due_minor: 0 } });
+    expect(none.text).toContain("1 night you did not stay has been credited");
+    expect(none.text).not.toContain("will refund");
+    expect(renderEmail({ kind: "early_checkout_credit", booking, link: LINK }).text).toContain("Credit:");
+  });
   it("folio_invoice: number, each line, tax, total, and the note that payments are not on it", () => {
     const payload = {
       invoice_number: "INV-HTL-2026-000012", currency: "NGN", total_minor: 1322500, tax_minor: 22500,

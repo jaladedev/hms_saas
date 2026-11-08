@@ -1,7 +1,7 @@
 import { formatDate, formatMoney, formatTime } from "@/lib/guest-site/format";
 import type { BookingStatus } from "@/lib/guest-site/server";
 
-export type EmailKind = "booking_held" | "booking_confirmed" | "booking_link" | "refund_processed" | "booking_cancelled" | "payment_no_room" | "folio_invoice";
+export type EmailKind = "booking_held" | "booking_confirmed" | "booking_link" | "refund_processed" | "booking_cancelled" | "payment_no_room" | "folio_invoice" | "early_checkout_credit";
 export type RenderedEmail = { subject: string; text: string; html: string };
 
 export function escapeHtml(value: string): string {
@@ -105,6 +105,18 @@ export function renderEmail(input: {
         ? `We received your payment of ${formatMoney(paid, currency)} for booking ${b.booking_reference} at ${b.property_name} (${stay}). Unfortunately the room had been taken by the time it reached us.`
         : `We received your payment for booking ${b.booking_reference} at ${b.property_name} (${stay}). Unfortunately the room had been taken by the time it reached us.`);
       lines.push("You do not need to pay again. The hotel will contact you to arrange either another room for your dates or a full refund of what you paid.");
+      break;
+    }
+    case "early_checkout_credit": {
+      const num = (k: string) => (typeof input.payload?.[k] === "number" ? (input.payload[k] as number) : 0);
+      const credit = num("credit_minor"), nights = num("nights_credited"), newTotal = typeof input.payload?.new_total_minor === "number" ? input.payload.new_total_minor : b.total_minor, refundDue = num("refund_due_minor");
+      const currency = typeof input.payload?.currency === "string" ? input.payload.currency : b.currency;
+      subject = `Your early check-out: booking ${b.booking_reference}`;
+      heading = "Your stay has been adjusted";
+      button = "View your booking";
+      lines.push(`Thank you for staying at ${b.property_name}. Because you left before your booked departure, ${nights === 1 ? "1 night" : `${nights} nights`} you did not stay ${nights === 1 ? "has" : "have"} been credited under the hotel's policy.`);
+      lines.push(`Credit: ${formatMoney(credit, currency)}. Your booking total is now ${formatMoney(newTotal, currency)}.`);
+      if (refundDue > 0) lines.push(`You have paid more than that, so the hotel will refund ${formatMoney(refundDue, currency)}. They will arrange it, and you will get a separate email when it is paid out.`);
       break;
     }
     case "folio_invoice": {
