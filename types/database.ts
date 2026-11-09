@@ -2919,6 +2919,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      move_room_type_photo: { Args: { p_direction: string; p_photo: string }; Returns: number }
       lock_room_types: {
         Args: { p_property: string; p_types: string[] }
         Returns: undefined

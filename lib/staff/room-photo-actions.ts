@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { back, ok, staffClient } from "./action-helpers";
-import { classifyPhotoError, PHOTO_BUCKET, photoPath, validatePhoto } from "./room-photos";
+import { classifyPhotoError, MAX_CAPTION, PHOTO_BUCKET, photoPath, validatePhoto } from "./room-photos";
 import { createServiceClient } from "@/lib/supabase/service";
 
 /**
@@ -57,4 +57,29 @@ export async function removeRoomPhoto(formData: FormData) {
   await createServiceClient().storage.from(PHOTO_BUCKET).remove(data.map((r) => r.storage_path));
   refresh();
   return ok(PAGE, "photo_removed");
+}
+
+export async function moveRoomPhoto(formData: FormData) {
+  const id = uuid.safeParse(formData.get("photoId"));
+  const dir = formData.get("direction");
+  if (!id.success || (dir !== "up" && dir !== "down")) return back(PAGE, { err: "setup_invalid" });
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("move_room_type_photo", { p_photo: id.data, p_direction: dir });
+  if (error) return back(PAGE, { err: /NOT_FOUND/.test(error.message) ? "setup_forbidden" : classifyPhotoError(error) });
+  refresh();
+  return ok(PAGE, "photo_moved");
+}
+
+export async function setRoomPhotoCaption(formData: FormData) {
+  const id = uuid.safeParse(formData.get("photoId"));
+  if (!id.success) return back(PAGE, { err: "setup_invalid" });
+  const raw = formData.get("caption");
+  const caption = typeof raw === "string" ? raw.trim() : "";
+  if (caption.length > MAX_CAPTION) return back(PAGE, { err: "setup_invalid" });
+  const supabase = await staffClient();
+  const { data, error } = await supabase.from("room_type_photos").update({ caption: caption === "" ? null : caption }).eq("id", id.data).select("id");
+  if (error) return back(PAGE, { err: classifyPhotoError(error) });
+  if (!data || data.length === 0) return back(PAGE, { err: "setup_forbidden" });
+  refresh();
+  return ok(PAGE, "photo_caption_saved");
 }

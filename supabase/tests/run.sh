@@ -739,4 +739,8 @@ RP="$(psql -f "$HERE/80_room_type_photos.sql" 2>&1)" || { echo "$RP"; echo "ROOM
 echo "$RP" | grep -E 'PASS' || true
 if echo "$RP" | grep -qE 'FAIL|ERROR'; then echo "$RP"; echo "ROOM PHOTO TESTS FAILED"; exit 1; fi
 
+RO="$(psql -f "$HERE/81_room_type_photo_order.sql" 2>&1)" || { echo "$RO"; echo "ROOM PHOTO ORDER TESTS FAILED"; exit 1; }
+echo "$RO" | grep -E 'PASS' || true
+if echo "$RO" | grep -qE 'FAIL|ERROR'; then echo "$RO"; echo "ROOM PHOTO ORDER TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

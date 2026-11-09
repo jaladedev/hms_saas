@@ -2,7 +2,7 @@ import { buttonPrimary, buttonQuiet, inputClass, Notice, ErrorBanner, PageIntro,
 import { formatMoney } from "@/lib/guest-site/format";
 import { ROOM_STATUSES } from "@/lib/staff/room-setup";
 import { compareRoomNumbers } from "@/lib/staff/room-board";
-import { addRoomPhoto, removeRoomPhoto } from "@/lib/staff/room-photo-actions";
+import { addRoomPhoto, moveRoomPhoto, removeRoomPhoto, setRoomPhotoCaption } from "@/lib/staff/room-photo-actions";
 import { photoUrl } from "@/lib/staff/room-photos";
 import { addRoom, addRoomType, setRoomStatus, setRoomTypeStatus, updateRoomType } from "@/lib/staff/setup-actions";
 import { createClient } from "@/lib/supabase/server";
@@ -80,17 +80,37 @@ export default async function RoomSetupPage({ searchParams }: { searchParams: Pr
                       <div className="mt-3">
                         {mineP.length > 0 && (
                           <ul className="flex flex-wrap gap-3">
-                            {mineP.map((x) => (
-                              <li key={x.id} className="w-32">
+                            {mineP.map((x, idx) => (
+                              <li key={x.id} className="w-40">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={photoUrl(supabaseUrl, x.storage_path)} alt={x.caption ?? `${t.name} photo`} className="h-24 w-32 rounded border border-line object-cover" />
-                                {x.caption && <p className="mt-1 truncate text-xs text-muted">{x.caption}</p>}
-                                {canEdit && (
-                                  <form action={removeRoomPhoto}>
-                                    <input type="hidden" name="photoId" value={x.id} />
-                                    <button type="submit" className={buttonQuiet}>Remove</button>
-                                  </form>
-                                )}
+                                <img src={photoUrl(supabaseUrl, x.storage_path)} alt={x.caption ?? `${t.name} photo`} className="h-24 w-40 rounded border border-line object-cover" />
+                                {canEdit ? (
+                                  <>
+                                    <form action={setRoomPhotoCaption} className="mt-1 flex gap-1">
+                                      <input type="hidden" name="photoId" value={x.id} />
+                                      <input name="caption" aria-label="Caption" maxLength={100} defaultValue={x.caption ?? ""} placeholder="Caption" className={inputClass} />
+                                      <button type="submit" className={buttonQuiet}>Save</button>
+                                    </form>
+                                    <div className="flex flex-wrap gap-x-2">
+                                      {idx > 0 && (
+                                        <form action={moveRoomPhoto}>
+                                          <input type="hidden" name="photoId" value={x.id} /><input type="hidden" name="direction" value="up" />
+                                          <button type="submit" className={buttonQuiet}>Move earlier</button>
+                                        </form>
+                                      )}
+                                      {idx < mineP.length - 1 && (
+                                        <form action={moveRoomPhoto}>
+                                          <input type="hidden" name="photoId" value={x.id} /><input type="hidden" name="direction" value="down" />
+                                          <button type="submit" className={buttonQuiet}>Move later</button>
+                                        </form>
+                                      )}
+                                      <form action={removeRoomPhoto}>
+                                        <input type="hidden" name="photoId" value={x.id} />
+                                        <button type="submit" className={buttonQuiet}>Remove</button>
+                                      </form>
+                                    </div>
+                                  </>
+                                ) : x.caption ? <p className="mt-1 truncate text-xs text-muted">{x.caption}</p> : null}
                               </li>
                             ))}
                           </ul>

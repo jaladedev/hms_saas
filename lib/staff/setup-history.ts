@@ -38,7 +38,7 @@ export type HistoryFilter = (typeof HISTORY_FILTERS)[number]["value"];
 
 /** Explicit action names, not prefixes: `room.blocked` and `room.transferred` also start with "room." and are not setup. */
 export const FILTER_ACTIONS: Record<Exclude<HistoryFilter, "all">, string[]> = {
-  rooms: ["room_type.created", "room_type.updated", "room_type.deleted", "room.created", "room.updated", "room.deleted", "room_type_photo.created", "room_type_photo.deleted"],
+  rooms: ["room_type.created", "room_type.updated", "room_type.deleted", "room.created", "room.updated", "room.deleted", "room_type_photo.created", "room_type_photo.updated", "room_type_photo.deleted"],
   rates: ["rate_plan.created", "rate_plan.updated", "rate_plan.deleted", "rates.set", "rates.changed", "rates.cleared"],
   tax: ["tax_rule.created", "tax_rule.updated", "tax_rule.deleted"],
   policies: ["property_policy.created"],
@@ -273,6 +273,14 @@ export function describeEvent(row: AuditRow, lookup: Lookup, fmt: Format): { sum
 
   // A picture on a room type (migration 080): say which type, and the caption if there is one.
   if (row.entity_type === "room_type_photo") {
+    if (verb === "updated") {
+      const changed = asRecord(m.changed);
+      const details: string[] = [];
+      const cap = asRecord(changed.caption);
+      if ("caption" in changed) details.push(`Caption: ${asString(cap.from) ?? "none"} \u2192 ${asString(cap.to) ?? "none"}`);
+      if ("sort_order" in changed && !("caption" in changed)) details.push("Moved in the order guests see");
+      return { summary: "Changed a room photo", details };
+    }
     const values = asRecord(m.values);
     const typeId = asString(values.room_type_id);
     const type = nameWithNoun("room_type", (typeId && lookup.roomTypes.get(typeId)) || asString(values.name) || "a room type");
