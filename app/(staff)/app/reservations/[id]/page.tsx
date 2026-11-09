@@ -11,6 +11,7 @@ import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { earlyCheckinNote, earlyCheckinWhyNot, parseEarlyCheckinQuote, type EarlyCheckinQuote } from "@/lib/staff/early-checkin";
 import { earlyCheckoutNote, parseEarlyQuote, type EarlyQuote } from "@/lib/staff/early-checkout";
 import { checkoutNote, CHARGE_COLUMNS, folioIsOpen, isFolioResult, owingMinor, PAYMENT_COLUMNS, type ChargeRow, type FolioBalance, type PaymentRow } from "@/lib/staff/folio";
+import { availableDocs, documentsPath } from "@/lib/staff/documents";
 import { FOLIO_INVOICE_COLUMNS, type FolioInvoiceRow } from "@/lib/staff/folio-invoice";
 import { formatDateTime } from "@/lib/staff/format";
 import { holdView } from "@/lib/staff/hold";
@@ -178,7 +179,12 @@ export default async function ReservationPage({
 
   return (
     <main className="max-w-4xl">
-      <p className="text-sm"><Link href="/app/reservations" className={linkClass}>Reservations</Link></p>
+      <p className="flex flex-wrap gap-x-4 text-sm">
+        <Link href="/app/reservations" className={linkClass}>Reservations</Link>
+        {availableDocs({ status: res.reservation_status, invoices: invoices.length, succeededPayments: Math.min(held ?? 0, 1) }).length > 0 && (
+          <Link href={documentsPath(res.id)} className={linkClass}>Documents</Link>
+        )}
+      </p>
       <PageTitle className="mt-2">{res.booking_reference}</PageTitle>
       <p className="mt-1 text-muted">
         {guest ? <Link href={`/app/guests/${res.primary_guest_id}`} className="underline underline-offset-2">{guest.full_name}</Link> : "Guest not visible to you"}{propertyName ? `, ${propertyName}` : ""}
