@@ -68,6 +68,11 @@ export default async function GuestHome({ searchParams }: Props) {
                     <div>
                       <h3 className="font-display text-xl">{t.name}</h3>
                       {t.description ? <p className="mt-1 text-sm text-muted">{t.description}</p> : null}
+                      {t.amenities && t.amenities.length > 0 ? (
+                        <ul aria-label="Amenities" className="mt-2 flex flex-wrap gap-1.5">
+                          {t.amenities.map((a) => <li key={a} className="rounded-full border border-line px-2.5 py-0.5 text-xs text-muted">{a}</li>)}
+                        </ul>
+                      ) : null}
                       <p className="mt-2 text-sm text-muted">Up to {t.max_occupancy} guests{t.rooms_available <= 3 ? ` · only ${t.rooms_available} left` : ""}</p>
                     </div>
                     <div className="text-right">

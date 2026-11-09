@@ -89,6 +89,10 @@ describe("formatValue and labels", () => {
     expect(formatValue("base_rate_minor", 4500000, L, fmt)).toBe("₦45000.00");
     expect(formatValue("base_rate_minor", "4500000", L, fmt)).toBe("₦45000.00");
     expect(formatValue("is_public", true, L, fmt)).toBe("Yes");
+    expect(formatValue("amenities", ["Wi-Fi", "Safe"], L, fmt)).toBe("Wi-Fi, Safe");
+    expect(formatValue("amenities", [], L, fmt)).toBe("none");
+    expect(formatValue("bed_config", [{ type: "queen" }], L, fmt)).toBe("changed");
+    expect(fieldLabel("amenities")).toBe("Amenities");
     expect(formatValue("compounds", false, L, fmt)).toBe("No");
     expect(formatValue("effective_from", "2026-11-01", L, fmt)).toBe("d:2026-11-01");
     expect(formatValue("effective_to", null, L, fmt)).toBe("none");
@@ -124,6 +128,15 @@ describe("describeEvent", () => {
     const e = describeEvent(row({ metadata: { changed: { base_rate_minor: { from: 4000000, to: 4500000 }, is_public: { from: false, to: true } } } }), lookup(), fmt);
     expect(e.summary).toBe("Changed the room type \u201cDeluxe\u201d");
     expect(e.details).toEqual(["Standard price a night: ₦40000.00 \u2192 ₦45000.00", "Bookable online: No \u2192 Yes"]);
+  });
+  it("shows an amenities change as the old and new list, and any other structure only as changed", () => {
+    const e = describeEvent(row({ metadata: { changed: {
+      amenities: { from: [], to: ["Air conditioning", "Wi-Fi"] },
+      bed_config: { from: [], to: [{ type: "queen" }] },
+    } } }), lookup(), fmt);
+    expect(e.details).toEqual(["Amenities: none \u2192 Air conditioning, Wi-Fi", "Beds changed"]);
+    const back = describeEvent(row({ metadata: { changed: { amenities: { from: ["Safe"], to: [] } } } }), lookup(), fmt);
+    expect(back.details).toEqual(["Amenities: Safe \u2192 none"]);
   });
   it("shows a new tax rule with its rate in the right unit and leaves out empty values", () => {
     const e = describeEvent(row({

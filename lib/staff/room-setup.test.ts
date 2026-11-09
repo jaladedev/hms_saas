@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classifySetupError, isRoomStatus, isRoomTypeStatus, nameClashes, slugify, validateRoom, validateRoomType, validateRoomTypeEdit } from "./room-setup";
+import { classifySetupError, isRoomStatus, isRoomTypeStatus, nameClashes, parseAmenities, slugify, validateRoom, validateRoomType, validateRoomTypeEdit } from "./room-setup";
 import { errorMessage, OK_MESSAGES } from "./refunds";
 
 const P = "11111111-1111-4111-8111-111111111111";
@@ -20,7 +20,7 @@ describe("slugify", () => {
 describe("validateRoomType", () => {
   it("accepts a good form, cleans it and prices in kobo", () => {
     expect(validateRoomType(type)).toEqual({ ok: true, value: {
-      propertyId: P, name: "Deluxe Double", code: "DLX", slug: "deluxe-double", description: null,
+      propertyId: P, name: "Deluxe Double", code: "DLX", slug: "deluxe-double", description: null, amenities: [],
       maxAdults: 2, maxChildren: 1, maxOccupancy: 3, baseRateMinor: 4500000, isPublic: true,
     } });
   });
@@ -88,7 +88,7 @@ describe("validateRoomTypeEdit", () => {
   it("accepts a good form, cleans it and prices in kobo", () => {
     expect(validateRoomTypeEdit(edit)).toEqual({
       ok: true,
-      value: { roomTypeId: T, name: "Deluxe Double", description: "Garden view", maxAdults: 2, maxChildren: 1, maxOccupancy: 3, baseRateMinor: 4500000, isPublic: true },
+      value: { roomTypeId: T, name: "Deluxe Double", description: "Garden view", amenities: [], maxAdults: 2, maxChildren: 1, maxOccupancy: 3, baseRateMinor: 4500000, isPublic: true },
     });
   });
   it("cannot change the code or the web address, even if they are sent", () => {
@@ -118,6 +118,45 @@ describe("validateRoomTypeEdit", () => {
     expect(badEdit({ baseRate: "abc" })).toBe("amount_invalid");
     expect(badEdit({ baseRate: "0.00" })).toBe("amount_invalid"); // a standard price of zero is never allowed, as when adding
     expect(badEdit({ description: "x".repeat(501) })).toBe("setup_invalid");
+  });
+});
+
+describe("parseAmenities", () => {
+  it("splits on commas, semicolons and lines, tidies spaces and drops blanks", () => {
+    expect(parseAmenities("  Air   conditioning, Wi-Fi ;\n\nBreakfast included\r\n, ,")).toEqual(["Air conditioning", "Wi-Fi", "Breakfast included"]);
+  });
+  it("collapses repeats ignoring case to the first spelling, keeping order", () => {
+    expect(parseAmenities("Wi-Fi, TV, wi-fi, tv, Safe")).toEqual(["Wi-Fi", "TV", "Safe"]);
+  });
+  it("treats nothing, blanks and non-text as an empty list", () => {
+    expect(parseAmenities("")).toEqual([]);
+    expect(parseAmenities(" , ;\n ")).toEqual([]);
+    expect(parseAmenities(undefined)).toEqual([]);
+    expect(parseAmenities(42)).toEqual([]);
+  });
+  it("keeps 20 items and 40 characters, refuses one more of either rather than cutting", () => {
+    const twenty = Array.from({ length: 20 }, (_, i) => `Item ${i}`).join(", ");
+    expect(parseAmenities(twenty)).toHaveLength(20);
+    expect(parseAmenities(`${twenty}, Item 20`)).toBeNull();
+    expect(parseAmenities("x".repeat(40))).toEqual(["x".repeat(40)]);
+    expect(parseAmenities("x".repeat(41))).toBeNull();
+    expect(parseAmenities("a, ".repeat(1000))).toBeNull();
+  });
+  it("counts items after repeats are collapsed", () => {
+    const dupes = Array.from({ length: 30 }, () => "Wi-Fi").join(", ");
+    expect(parseAmenities(dupes)).toEqual(["Wi-Fi"]);
+  });
+});
+
+describe("amenities on the room type forms", () => {
+  it("are read on add and on edit, and a bad list refuses the whole form", () => {
+    const add = validateRoomType({ ...type, amenities: "Wi-Fi, Air conditioning" });
+    expect(add.ok && add.value.amenities).toEqual(["Wi-Fi", "Air conditioning"]);
+    const edit = validateRoomTypeEdit({ roomTypeId: T, name: "Deluxe", maxAdults: "2", baseRate: "10,000", amenities: " Safe ,safe, Balcony " });
+    expect(edit.ok && edit.value.amenities).toEqual(["Safe", "Balcony"]);
+    expect(badType({ amenities: "x".repeat(41) })).toBe("setup_invalid");
+    const bad = validateRoomTypeEdit({ roomTypeId: T, name: "Deluxe", maxAdults: "2", baseRate: "10,000", amenities: "x".repeat(41) });
+    expect(bad.ok ? "ok" : bad.code).toBe("setup_invalid");
   });
 });
 

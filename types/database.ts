@@ -2028,6 +2028,7 @@ export type Database = {
       }
       room_types: {
         Row: {
+          amenities: string[]
           base_rate_minor: number
           bed_config: NonNullable<Json>
           code: string
@@ -2048,6 +2049,7 @@ export type Database = {
         }
         ComputedFields: never
         Insert: {
+          amenities?: string[]
           base_rate_minor: number
           bed_config?: NonNullable<Json>
           code: string
@@ -2067,6 +2069,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          amenities?: string[]
           base_rate_minor?: number
           bed_config?: NonNullable<Json>
           code?: string
@@ -2477,6 +2480,7 @@ export type Database = {
         }
         Returns: Json
       }
+      amenities_valid: { Args: { a: string[] }; Returns: boolean }
       apply_discount_amount: {
         Args: {
           p_amount_minor: number

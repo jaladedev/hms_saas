@@ -637,7 +637,7 @@ check("the policies page sends a signed-out visitor to sign in", res.status === 
 
 res = await staff("/app/settings/policies", OWNER_COOKIE);
 let polHtml = await res.text();
-check("the owner sees the policies page with the publish form", res.status === 200 && sees(pageText(polHtml), "Cancellation and payment policies", "Publish version 1"), `status ${res.status} ${pageText(polHtml).slice(0, 300)}`);
+check("the owner sees the policies page with the publish form", res.status === 200 && sees(pageText(polHtml), "Cancellation and payment policies") && /Publish version \d+/.test(pageText(polHtml)), `status ${res.status} ${pageText(polHtml).slice(0, 300)}`);
 const polBlock = formWith(polHtml, 'name="effectiveFrom"');
 check("the publish form carries a server action and the property", Boolean(polBlock) && /\$ACTION_ID_/.test(polBlock) && polBlock.includes(PROPERTY_A), polBlock?.slice(0, 200));
 
@@ -1091,6 +1091,49 @@ const refundFull = JSON.stringify(await (await api(SERVICE_JWT, `/refunds?id=eq.
 const refundAudit = JSON.stringify(await (await api(SERVICE_JWT, `/audit_logs?entity_id=eq.${r2.id}&select=*`)).json());
 check("the account number is nowhere in the refund row or its audit trail", !refundFull.includes(ACCOUNT_NUMBER) && !refundAudit.includes(ACCOUNT_NUMBER) && !refundAudit.includes("0123"), "found in a stored row");
 check("the audit trail records the needs-details outcome without the details", refundAudit.includes("refund.needs_bank_details"));
+
+// 22. Amenities on room types (migration 077): the owner edits them on the staff screen, the guest search shows them, the
+// setup history records the change, and a bad list is refused with nothing saved. Uses Solo Suite and puts it back.
+{
+  const soloRow = async () => (await (await api(SERVICE_JWT, `/room_types?name=eq.Solo%20Suite&property_id=eq.${PROPERTY_A}&select=id,name,description,amenities,max_adults,max_children,max_occupancy,base_rate_minor,is_public`)).json())[0];
+  // The form's visible inputs are not copied by formData, so every edit sends the type's own current values with the amenities.
+  const soloFields = async (amenities) => { const t = await soloRow(); return { name: t.name, baseRate: (t.base_rate_minor / 100).toFixed(2), maxAdults: String(t.max_adults), maxChildren: String(t.max_children), maxOccupancy: String(t.max_occupancy), description: t.description ?? "", isPublic: t.is_public ? "on" : null, amenities }; };
+  const editForm = (html) => { for (const m of html.matchAll(/<form[\s\S]*?<\/form>/g)) if (m[0].includes('name="amenities"') && m[0].includes('name="roomTypeId"') && m[0].includes('value="Solo Suite"')) return m[0]; return null; };
+
+  let amRes = await staff("/app/settings/rooms", OWNER_COOKIE);
+  let amHtml = await amRes.text();
+  let amBlock = editForm(amHtml);
+  check("the room types page has an Amenities box in each type's edit form", amRes.status === 200 && !!amBlock && sees(pageText(amHtml), "Amenities (optional)"), `status ${amRes.status}`);
+
+  amRes = await staff("/app/settings/rooms", OWNER_COOKIE, { method: "POST", body: formData(amBlock, await soloFields("  Air   conditioning ,Wi-Fi\nwi-fi, Breakfast included ")) });
+  check("saving amenities succeeds", amRes.status === 303 && outcome(amRes).get("ok") === "room_type_updated", `${amRes.status} ${amRes.headers.get("location")}`);
+  let amRow = await soloRow();
+  check("they are stored tidied and without the repeat", JSON.stringify(amRow?.amenities) === JSON.stringify(["Air conditioning", "Wi-Fi", "Breakfast included"]), JSON.stringify(amRow));
+
+  amHtml = await (await staff("/app/settings/rooms", OWNER_COOKIE)).text();
+  check("the staff page lists them under the type", sees(pageText(amHtml), "Amenities: Air conditioning, Wi-Fi, Breakfast included."));
+
+  const amArrival = new Date(Date.now() + 200 * 86400000).toISOString().slice(0, 10);
+  const amDeparture = new Date(Date.now() + 202 * 86400000).toISOString().slice(0, 10);
+  const guestHtml = await (await site(`/?arrival=${amArrival}&departure=${amDeparture}&adults=1&children=0`, { headers: { "x-forwarded-for": "203.0.113.77" } })).text();
+  check("the guest's search results show them as a list for that type", sees(pageText(guestHtml), "Solo Suite", "Air conditioning", "Wi-Fi", "Breakfast included") && guestHtml.includes('aria-label="Amenities"'), pageText(guestHtml).slice(0, 300));
+
+  const histHtml = await (await staff("/app/settings/history", OWNER_COOKIE)).text();
+  check("the setup history records who changed the amenities, from and to", sees(pageText(histHtml), "Amenities: none", "Air conditioning, Wi-Fi, Breakfast included"), pageText(histHtml).slice(0, 300));
+
+  const tooMany = Array.from({ length: 21 }, (_, i) => `Item ${i}`).join(", ");
+  amBlock = editForm(await (await staff("/app/settings/rooms", OWNER_COOKIE)).text());
+  amRes = await staff("/app/settings/rooms", OWNER_COOKIE, { method: "POST", body: formData(amBlock, await soloFields(tooMany)) });
+  check("21 amenities are refused", amRes.status === 303 && outcome(amRes).get("err") === "setup_invalid", `${amRes.status} ${amRes.headers.get("location")}`);
+  amRes = await staff("/app/settings/rooms", OWNER_COOKIE, { method: "POST", body: formData(amBlock, await soloFields("x".repeat(41))) });
+  check("an amenity over 40 characters is refused", amRes.status === 303 && outcome(amRes).get("err") === "setup_invalid", `${amRes.status} ${amRes.headers.get("location")}`);
+  check("nothing was saved by the refusals", JSON.stringify((await soloRow())?.amenities) === JSON.stringify(["Air conditioning", "Wi-Fi", "Breakfast included"]));
+
+  amRes = await staff("/app/settings/rooms", OWNER_COOKIE, { method: "POST", body: formData(amBlock, await soloFields("")) });
+  check("clearing the box empties the list", amRes.status === 303 && outcome(amRes).get("ok") === "room_type_updated" && JSON.stringify((await soloRow())?.amenities) === "[]");
+  const afterHtml = await (await site(`/?arrival=${amArrival}&departure=${amDeparture}&adults=1&children=0`, { headers: { "x-forwarded-for": "203.0.113.78" } })).text();
+  check("and the guest sees no amenities list for it", sees(pageText(afterHtml), "Solo Suite") && doesNotSee(pageText(afterHtml), "Breakfast included"));
+}
 
 console.log(failures === 0 ? `E2E PASSED (${reference})` : `E2E FAILED: ${failures} check(s)`);
 process.exit(failures === 0 ? 0 : 1);

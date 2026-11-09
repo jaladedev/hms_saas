@@ -29,7 +29,7 @@ export async function addRoomType(formData: FormData) {
 
   const { error } = await supabase.from("room_types").insert({
     tenant_id: prop.tenant_id, property_id: value.propertyId, name: value.name, code: value.code, slug: value.slug,
-    description: value.description, max_adults: value.maxAdults, max_children: value.maxChildren, max_occupancy: value.maxOccupancy,
+    description: value.description, amenities: value.amenities, max_adults: value.maxAdults, max_children: value.maxChildren, max_occupancy: value.maxOccupancy,
     base_rate_minor: value.baseRateMinor, is_public: value.isPublic,
   });
   if (error) return failWith(error);
@@ -56,7 +56,7 @@ export async function updateRoomType(formData: FormData) {
   if (nameClashes(value.name, others ?? [])) return back(PAGE, { err: "setup_duplicate_name" });
 
   const { data: changed, error } = await supabase.from("room_types").update({
-    name: value.name, description: value.description, max_adults: value.maxAdults, max_children: value.maxChildren,
+    name: value.name, description: value.description, amenities: value.amenities, max_adults: value.maxAdults, max_children: value.maxChildren,
     max_occupancy: value.maxOccupancy, base_rate_minor: value.baseRateMinor, is_public: value.isPublic,
   }).eq("id", type.id).select("id");
   if (error) return failWith(error);

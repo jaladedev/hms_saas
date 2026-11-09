@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 type RoomType = {
-  id: string; property_id: string; name: string; code: string; description: string | null; max_adults: number; max_children: number;
+  id: string; property_id: string; name: string; code: string; description: string | null; amenities: string[]; max_adults: number; max_children: number;
   max_occupancy: number; base_rate_minor: number; currency: string; is_public: boolean; status: string;
 };
 type Room = { id: string; property_id: string; room_type_id: string; room_number: string; floor: number | null; operational_status: string };
@@ -18,7 +18,7 @@ export default async function RoomSetupPage({ searchParams }: { searchParams: Pr
   const supabase = await createClient();
   const [propQ, typeQ, roomQ] = await Promise.all([
     supabase.from("properties").select("id, name").order("name"),
-    supabase.from("room_types").select("id, property_id, name, code, description, max_adults, max_children, max_occupancy, base_rate_minor, currency, is_public, status").order("name"),
+    supabase.from("room_types").select("id, property_id, name, code, description, amenities, max_adults, max_children, max_occupancy, base_rate_minor, currency, is_public, status").order("name"),
     supabase.from("rooms").select("id, property_id, room_type_id, room_number, floor, operational_status").limit(2000),
   ]);
   const properties = (propQ.data ?? []) as { id: string; name: string }[];
@@ -67,6 +67,7 @@ export default async function RoomSetupPage({ searchParams }: { searchParams: Pr
                     {" "}{t.is_public ? "Bookable online." : "Staff only."}{t.status !== "active" ? " Inactive." : ""}
                   </p>
                   {t.description && <p className="mt-1 max-w-prose text-sm">{t.description}</p>}
+                  {t.amenities.length > 0 && <p className="mt-1 max-w-prose text-sm text-muted">Amenities: {t.amenities.join(", ")}.</p>}
 
                   {canEdit && (
                     <div className="mt-3 flex flex-wrap items-start gap-x-6 gap-y-2">
@@ -98,6 +99,11 @@ export default async function RoomSetupPage({ searchParams }: { searchParams: Pr
                           <div className="sm:col-span-2">
                             <label htmlFor={`ed-${t.id}`} className="block text-sm">Description (optional)</label>
                             <textarea id={`ed-${t.id}`} name="description" maxLength={500} rows={2} defaultValue={t.description ?? ""} className={inputClass} />
+                          </div>
+                          <div className="sm:col-span-2">
+                            <label htmlFor={`ea2-${t.id}`} className="block text-sm">Amenities (optional)</label>
+                            <textarea id={`ea2-${t.id}`} name="amenities" maxLength={800} rows={2} defaultValue={t.amenities.join(", ")} className={inputClass} />
+                            <p className="mt-1 text-xs text-muted">Separate with commas, for example: Air conditioning, Wi-Fi, Breakfast included. Up to 20, each up to 40 characters. Guests see these when they search.</p>
                           </div>
                           <div className="flex items-center gap-2 sm:col-span-2">
                             <input id={`ep-${t.id}`} name="isPublic" type="checkbox" defaultChecked={t.is_public} className="h-4 w-4" />
@@ -187,6 +193,11 @@ export default async function RoomSetupPage({ searchParams }: { searchParams: Pr
                   <div className="sm:col-span-2">
                     <label htmlFor={`d-${p.id}`} className="block text-sm">Description (optional)</label>
                     <textarea id={`d-${p.id}`} name="description" maxLength={500} rows={2} className={inputClass} />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label htmlFor={`am-${p.id}`} className="block text-sm">Amenities (optional)</label>
+                    <textarea id={`am-${p.id}`} name="amenities" maxLength={800} rows={2} placeholder="Air conditioning, Wi-Fi, Breakfast included" className={inputClass} />
+                    <p className="mt-1 text-xs text-muted">Separate with commas. Up to 20, each up to 40 characters. Guests see these when they search.</p>
                   </div>
                   <div className="flex items-center gap-2 sm:col-span-2">
                     <input id={`p-${p.id}`} name="isPublic" type="checkbox" defaultChecked className="h-4 w-4" />

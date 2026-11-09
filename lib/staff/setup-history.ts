@@ -122,7 +122,7 @@ export function actorName(row: Pick<AuditRow, "actor_user_id">, people: Map<stri
 const LABELS: Record<string, string> = {
   name: "Name", code: "Code", slug: "Web address", description: "Description", bed_config: "Beds",
   max_adults: "Most adults", max_children: "Most children", max_occupancy: "Most people in all",
-  base_rate_minor: "Standard price a night", currency: "Currency", is_public: "Bookable online", status: "Status",
+  base_rate_minor: "Standard price a night", amenities: "Amenities", currency: "Currency", is_public: "Bookable online", status: "Status",
   room_number: "Room number", floor: "Floor", room_type_id: "Room type", operational_status: "Service status",
   is_default: "Standard plan", cancellation_policy: "Cancellation policy", payment_policy: "Payment policy",
   basis: "Kind of tax", rate_value: "Rate", sequence: "Order", compounds: "Applied on top of earlier rules",
@@ -140,6 +140,7 @@ const WORDS: Record<string, Record<string, string>> = {
 export function formatValue(key: string, value: unknown, lookup: Lookup, fmt: Format, basis?: string | null): string {
   if (value === null || value === undefined || value === "") return "none";
   if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (Array.isArray(value) && value.every((v) => typeof v === "string")) return value.length === 0 ? "none" : value.join(", ");
   if (typeof value === "object") return "changed";
   if (key.endsWith("_minor")) {
     const n = asNumber(value);
@@ -285,7 +286,9 @@ export function describeEvent(row: AuditRow, lookup: Lookup, fmt: Format): { sum
     const details = Object.entries(changed).map(([k, change]) => {
       const c = asRecord(change);
       const label = fieldLabel(k);
-      if (typeof c.from === "object" && c.from !== null || typeof c.to === "object" && c.to !== null) return `${label} changed`;
+      // A list of words (amenities) reads as itself; any other structure (beds, say) is only reported as changed.
+      const opaque = (v: unknown) => typeof v === "object" && v !== null && !(Array.isArray(v) && v.every((x) => typeof x === "string"));
+      if (opaque(c.from) || opaque(c.to)) return `${label} changed`;
       return `${label}: ${formatValue(k, c.from, lookup, fmt, basis)} \u2192 ${formatValue(k, c.to, lookup, fmt, basis)}`;
     });
     return { summary: `Changed ${nameWithNoun(row.entity_type, name)}`, details };

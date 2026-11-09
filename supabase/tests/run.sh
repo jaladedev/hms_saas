@@ -724,4 +724,8 @@ EF="$(psql -f "$HERE/76_early_checkin_flag.sql" 2>&1)" || { echo "$EF"; echo "EA
 echo "$EF" | grep -E 'PASS' || true
 if echo "$EF" | grep -qE 'FAIL|ERROR'; then echo "$EF"; echo "EARLY CHECK-IN FLAG TESTS FAILED"; exit 1; fi
 
+AM="$(psql -f "$HERE/77_room_type_amenities.sql" 2>&1)" || { echo "$AM"; echo "ROOM TYPE AMENITIES TESTS FAILED"; exit 1; }
+echo "$AM" | grep -E 'PASS' || true
+if echo "$AM" | grep -qE 'FAIL|ERROR'; then echo "$AM"; echo "ROOM TYPE AMENITIES TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

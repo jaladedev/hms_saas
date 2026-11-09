@@ -17,11 +17,36 @@ export function slugify(name: string): string {
 }
 
 export type RoomTypeInput = {
-  propertyId: string; name: string; code: string; slug: string; description: string | null;
+  propertyId: string; name: string; code: string; slug: string; description: string | null; amenities: string[];
   maxAdults: number; maxChildren: number; maxOccupancy: number; baseRateMinor: number; isPublic: boolean;
 };
 
-type TypeFields = { name: string; slug: string; description: string | null; maxAdults: number; maxChildren: number; maxOccupancy: number; baseRateMinor: number; isPublic: boolean };
+type TypeFields = { name: string; slug: string; description: string | null; amenities: string[]; maxAdults: number; maxChildren: number; maxOccupancy: number; baseRateMinor: number; isPublic: boolean };
+
+export const MAX_AMENITIES = 20;
+export const MAX_AMENITY_LENGTH = 40;
+
+/**
+ * "Air conditioning, Wi-Fi" (commas or one per line) becomes a list. Spaces are tidied, blanks dropped and repeats ignoring
+ * case collapsed to the first spelling. Too many items, or one that is too long, is refused, never cut short; the database
+ * checks the same limits (amenities_valid, migration 077). Null means refused.
+ */
+export function parseAmenities(raw: unknown): string[] | null {
+  const text = typeof raw === "string" ? raw : "";
+  if (text.length > 2000) return null;
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const part of text.split(/[,\n\r;]+/)) {
+    const item = part.trim().replace(/\s+/g, " ");
+    if (!item) continue;
+    if (item.length > MAX_AMENITY_LENGTH) return null;
+    const key = item.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(item);
+  }
+  return out.length > MAX_AMENITIES ? null : out;
+}
 
 /** The fields a room type has whether it is being added or edited. Over-long input is refused, never silently cut short. */
 function parseTypeFields(raw: Record<string, unknown>): { ok: true; value: TypeFields } | { ok: false; code: ErrorCode } {
@@ -42,7 +67,9 @@ function parseTypeFields(raw: Record<string, unknown>): { ok: true; value: TypeF
 
   const description = clean(raw.description, 2000);
   if (description.length > 500) return { ok: false, code: "setup_invalid" };
-  return { ok: true, value: { name, slug, description: description || null, maxAdults, maxChildren, maxOccupancy, baseRateMinor, isPublic: raw.isPublic === "on" } };
+  const amenities = parseAmenities(raw.amenities);
+  if (amenities === null) return { ok: false, code: "setup_invalid" };
+  return { ok: true, value: { name, slug, description: description || null, amenities, maxAdults, maxChildren, maxOccupancy, baseRateMinor, isPublic: raw.isPublic === "on" } };
 }
 
 export function validateRoomType(raw: Record<string, unknown>): { ok: true; value: RoomTypeInput } | { ok: false; code: ErrorCode } {
