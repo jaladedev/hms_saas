@@ -4,6 +4,7 @@ import { messageForCode } from "@/lib/guest-site/errors";
 import { parseStayParams, stayQuery, uuidSchema } from "@/lib/guest-site/params";
 import { guestPolicy, requestHost, searchAvailability } from "@/lib/guest-site/server";
 import { guestSummary, readConfig } from "@/lib/staff/policies";
+import { photoUrl } from "@/lib/staff/room-photos";
 import { reserveAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -35,6 +36,22 @@ export default async function Reserve({ searchParams }: Props) {
       <section className="mt-6 rounded border border-line bg-white p-4">
         <h2 className="font-display text-xl">{quote.name}</h2>
         <p className="mt-1 text-sm text-muted">{result.data.property_name}</p>
+        {quote.photos && quote.photos.length > 0 ? (
+          <ul aria-label="Photos" className="mt-3 flex gap-2 overflow-x-auto">
+            {quote.photos.map((ph) => (
+              <li key={ph.path} className="shrink-0">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={photoUrl(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "", ph.path)} alt={ph.caption ?? `${quote.name} photo`} loading="lazy" className="h-28 w-40 rounded border border-line object-cover" />
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        {quote.description ? <p className="mt-3 text-sm">{quote.description}</p> : null}
+        {quote.amenities && quote.amenities.length > 0 ? (
+          <ul aria-label="Amenities" className="mt-2 flex flex-wrap gap-1.5">
+            {quote.amenities.map((x) => <li key={x} className="rounded-full border border-line px-2.5 py-0.5 text-xs text-muted">{x}</li>)}
+          </ul>
+        ) : null}
         <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
           <dt className="text-muted">Check in</dt><dd>{formatDate(stay.arrival)}, from {formatTime(result.data.check_in_time)}</dd>
           <dt className="text-muted">Check out</dt><dd>{formatDate(stay.departure)}, by {formatTime(result.data.check_out_time)}</dd>
