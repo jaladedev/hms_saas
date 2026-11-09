@@ -2,6 +2,8 @@ import { buttonPrimary, buttonQuiet, inputClass, Notice, ErrorBanner, PageIntro,
 import { formatMoney } from "@/lib/guest-site/format";
 import { ROOM_STATUSES } from "@/lib/staff/room-setup";
 import { compareRoomNumbers } from "@/lib/staff/room-board";
+import { addRoomPhoto, removeRoomPhoto } from "@/lib/staff/room-photo-actions";
+import { photoUrl } from "@/lib/staff/room-photos";
 import { addRoom, addRoomType, setRoomStatus, setRoomTypeStatus, updateRoomType } from "@/lib/staff/setup-actions";
 import { createClient } from "@/lib/supabase/server";
 
@@ -16,15 +18,18 @@ type Room = { id: string; property_id: string; room_type_id: string; room_number
 export default async function RoomSetupPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const search = await searchParams;
   const supabase = await createClient();
-  const [propQ, typeQ, roomQ] = await Promise.all([
+  const [propQ, typeQ, roomQ, photoQ] = await Promise.all([
     supabase.from("properties").select("id, name").order("name"),
     supabase.from("room_types").select("id, property_id, name, code, description, amenities, max_adults, max_children, max_occupancy, base_rate_minor, currency, is_public, status").order("name"),
     supabase.from("rooms").select("id, property_id, room_type_id, room_number, floor, operational_status").limit(2000),
+    supabase.from("room_type_photos").select("id, room_type_id, storage_path, caption").order("sort_order").order("created_at").limit(500),
   ]);
+  const photos = (photoQ.data ?? []) as { id: string; room_type_id: string; storage_path: string; caption: string | null }[];
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
   const properties = (propQ.data ?? []) as { id: string; name: string }[];
   const types = (typeQ.data ?? []) as RoomType[];
   const rooms = (roomQ.data ?? []) as Room[];
-  const loadError = Boolean(propQ.error || typeQ.error || roomQ.error);
+  const loadError = Boolean(propQ.error || typeQ.error || roomQ.error || photoQ.error);
 
   // Only properties where the viewer may change the setup; the tables enforce the same rule on every write.
   const editable = (await Promise.all(properties.map(async (p) => {
@@ -68,6 +73,49 @@ export default async function RoomSetupPage({ searchParams }: { searchParams: Pr
                   </p>
                   {t.description && <p className="mt-1 max-w-prose text-sm">{t.description}</p>}
                   {t.amenities.length > 0 && <p className="mt-1 max-w-prose text-sm text-muted">Amenities: {t.amenities.join(", ")}.</p>}
+
+                  {(() => {
+                    const mineP = photos.filter((x) => x.room_type_id === t.id);
+                    return (
+                      <div className="mt-3">
+                        {mineP.length > 0 && (
+                          <ul className="flex flex-wrap gap-3">
+                            {mineP.map((x) => (
+                              <li key={x.id} className="w-32">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={photoUrl(supabaseUrl, x.storage_path)} alt={x.caption ?? `${t.name} photo`} className="h-24 w-32 rounded border border-line object-cover" />
+                                {x.caption && <p className="mt-1 truncate text-xs text-muted">{x.caption}</p>}
+                                {canEdit && (
+                                  <form action={removeRoomPhoto}>
+                                    <input type="hidden" name="photoId" value={x.id} />
+                                    <button type="submit" className={buttonQuiet}>Remove</button>
+                                  </form>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        {canEdit && mineP.length < 5 && (
+                          <details className="mt-2">
+                            <summary className="cursor-pointer text-sm font-medium text-primary-strong">Add a photo ({mineP.length} of 5)</summary>
+                            <form action={addRoomPhoto} className="mt-2 grid gap-3 sm:grid-cols-2">
+                              <input type="hidden" name="roomTypeId" value={t.id} />
+                              <div>
+                                <label htmlFor={`ph-${t.id}`} className="block text-sm">Picture</label>
+                                <input id={`ph-${t.id}`} name="photo" type="file" accept="image/jpeg,image/png,image/webp" required className={inputClass} />
+                                <p className="mt-1 text-xs text-muted">JPEG, PNG or WebP, up to 2 MB.</p>
+                              </div>
+                              <div>
+                                <label htmlFor={`pc-${t.id}`} className="block text-sm">Caption (optional)</label>
+                                <input id={`pc-${t.id}`} name="caption" maxLength={100} className={inputClass} />
+                              </div>
+                              <div className="sm:col-span-2"><button type="submit" className={buttonPrimary}>Upload photo</button></div>
+                            </form>
+                          </details>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                   {canEdit && (
                     <div className="mt-3 flex flex-wrap items-start gap-x-6 gap-y-2">

@@ -30,6 +30,7 @@ export type RoomTypeQuote = {
   name: string;
   description: string | null;
   amenities?: string[];   // absent from answers given before migration 077
+  photos?: { path: string; caption: string | null }[];   // absent from answers given before migration 080
   max_adults: number;
   max_children: number;
   max_occupancy: number;

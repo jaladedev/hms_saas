@@ -1,4 +1,5 @@
 import { formatMoney } from "@/lib/guest-site/format";
+import { photoUrl } from "@/lib/staff/room-photos";
 import { messageForCode } from "@/lib/guest-site/errors";
 import { parseStayParams, stayQuery } from "@/lib/guest-site/params";
 import { checkGuestLimits } from "@/lib/guest-site/limits";
@@ -68,6 +69,16 @@ export default async function GuestHome({ searchParams }: Props) {
                     <div>
                       <h3 className="font-display text-xl">{t.name}</h3>
                       {t.description ? <p className="mt-1 text-sm text-muted">{t.description}</p> : null}
+                      {t.photos && t.photos.length > 0 ? (
+                        <ul aria-label="Photos" className="mt-2 flex gap-2 overflow-x-auto">
+                          {t.photos.map((ph) => (
+                            <li key={ph.path} className="shrink-0">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={photoUrl(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "", ph.path)} alt={ph.caption ?? `${t.name} photo`} loading="lazy" className="h-28 w-40 rounded border border-line object-cover" />
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
                       {t.amenities && t.amenities.length > 0 ? (
                         <ul aria-label="Amenities" className="mt-2 flex flex-wrap gap-1.5">
                           {t.amenities.map((a) => <li key={a} className="rounded-full border border-line px-2.5 py-0.5 text-xs text-muted">{a}</li>)}

@@ -158,6 +158,14 @@ describe("describeEvent", () => {
     expect(e.summary).toBe("Removed room 205");
     expect(e.details).toEqual(["Room number: 205", "Floor: 2"]);
   });
+  it("words a photo added to or removed from a room type, with its caption", () => {
+    const add = describeEvent(row({ action: "room_type_photo.created", entity_type: "room_type_photo", entity_id: "p1", metadata: { values: { room_type_id: RT, caption: "Sea view" } } }), lookup(), fmt);
+    expect(add.summary).toBe("Added a photo to the room type \u201cDeluxe\u201d");
+    expect(add.details).toEqual(["Caption: Sea view"]);
+    const del = describeEvent(row({ action: "room_type_photo.deleted", entity_type: "room_type_photo", entity_id: "p1", metadata: { values: { room_type_id: RT } } }), lookup(), fmt);
+    expect(del.summary).toBe("Removed a photo from the room type \u201cDeluxe\u201d");
+    expect(del.details).toEqual([]);
+  });
   it("summarises nightly price changes", () => {
     const base = { rate_plan_id: RP, nights: 9, from: "2026-12-20", to: "2026-12-28" };
     const set = describeEvent(row({ action: "rates.set", metadata: { ...base, amount_minor_min: 5000000, amount_minor_max: 6000000 } }), lookup(), fmt);

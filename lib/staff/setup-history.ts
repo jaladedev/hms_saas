@@ -38,7 +38,7 @@ export type HistoryFilter = (typeof HISTORY_FILTERS)[number]["value"];
 
 /** Explicit action names, not prefixes: `room.blocked` and `room.transferred` also start with "room." and are not setup. */
 export const FILTER_ACTIONS: Record<Exclude<HistoryFilter, "all">, string[]> = {
-  rooms: ["room_type.created", "room_type.updated", "room_type.deleted", "room.created", "room.updated", "room.deleted"],
+  rooms: ["room_type.created", "room_type.updated", "room_type.deleted", "room.created", "room.updated", "room.deleted", "room_type_photo.created", "room_type_photo.deleted"],
   rates: ["rate_plan.created", "rate_plan.updated", "rate_plan.deleted", "rates.set", "rates.changed", "rates.cleared"],
   tax: ["tax_rule.created", "tax_rule.updated", "tax_rule.deleted"],
   policies: ["property_policy.created"],
@@ -269,6 +269,15 @@ export function describeEvent(row: AuditRow, lookup: Lookup, fmt: Format): { sum
         : `Set the ${role} discount limit to ${pct(to)}`,
       details: from === null ? [] : [`Was: ${pct(from)}`],
     };
+  }
+
+  // A picture on a room type (migration 080): say which type, and the caption if there is one.
+  if (row.entity_type === "room_type_photo") {
+    const values = asRecord(m.values);
+    const typeId = asString(values.room_type_id);
+    const type = nameWithNoun("room_type", (typeId && lookup.roomTypes.get(typeId)) || asString(values.name) || "a room type");
+    const caption = asString(values.caption);
+    return { summary: `${verb === "created" ? "Added a photo to" : "Removed a photo from"} ${type}`, details: caption ? [`Caption: ${caption}`] : [] };
   }
 
   if (verb === "created" || verb === "deleted") {

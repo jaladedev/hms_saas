@@ -2026,6 +2026,54 @@ export type Database = {
           },
         ]
       }
+      room_type_photos: {
+        Row: {
+          caption: string | null
+          content_type: string
+          created_at: string
+          id: string
+          property_id: string
+          room_type_id: string
+          size_bytes: number
+          sort_order: number
+          storage_path: string
+          tenant_id: string
+        }
+        ComputedFields: never
+        Insert: {
+          caption?: string | null
+          content_type: string
+          created_at?: string
+          id?: string
+          property_id: string
+          room_type_id: string
+          size_bytes: number
+          sort_order?: number
+          storage_path: string
+          tenant_id: string
+        }
+        Update: {
+          caption?: string | null
+          content_type?: string
+          created_at?: string
+          id?: string
+          property_id?: string
+          room_type_id?: string
+          size_bytes?: number
+          sort_order?: number
+          storage_path?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_type_photos_room_type_fkey"
+            columns: ["tenant_id", "property_id", "room_type_id"]
+            isOneToOne: false
+            referencedRelation: "room_types"
+            referencedColumns: ["tenant_id", "property_id", "id"]
+          },
+        ]
+      }
       room_types: {
         Row: {
           amenities: string[]

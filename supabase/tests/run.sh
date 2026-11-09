@@ -735,4 +735,8 @@ TS="$(psql -f "$HERE/78_transfer_same_type.sql" 2>&1)" || { echo "$TS"; echo "TR
 echo "$TS" | grep -E 'PASS' || true
 if echo "$TS" | grep -qE 'FAIL|ERROR'; then echo "$TS"; echo "TRANSFER SAME TYPE TESTS FAILED"; exit 1; fi
 
+RP="$(psql -f "$HERE/80_room_type_photos.sql" 2>&1)" || { echo "$RP"; echo "ROOM PHOTO TESTS FAILED"; exit 1; }
+echo "$RP" | grep -E 'PASS' || true
+if echo "$RP" | grep -qE 'FAIL|ERROR'; then echo "$RP"; echo "ROOM PHOTO TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

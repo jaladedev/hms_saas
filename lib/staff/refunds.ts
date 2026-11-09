@@ -122,7 +122,7 @@ export type ErrorCode =
   | "rate_range_invalid" | "rate_range_long" | "rate_forbidden" | "rate_no_plan"
   | "tax_forbidden" | "tax_not_percent" | "tax_not_found" | "tax_invalid" | "tax_duplicate"
   | "policy_forbidden" | "policy_conflict" | "policy_invalid" | "policy_rules" | "policy_deposit" | "policy_date" | "policy_past" | "policy_order"
-  | "setup_invalid" | "setup_duplicate_code" | "setup_duplicate_name" | "setup_duplicate_room" | "setup_forbidden" | "room_has_bookings"
+  | "setup_invalid" | "setup_duplicate_code" | "setup_duplicate_name" | "setup_duplicate_room" | "setup_forbidden" | "room_has_bookings" | "photo_file" | "photo_limit" | "photo_upload"
   | "task_taken" | "task_forbidden" | "task_assignee" | "task_reason" | "task_invalid"
   | "mt_taken" | "mt_forbidden" | "mt_assignee" | "mt_reason" | "mt_place" | "mt_block" | "mt_invalid" | "mt_duplicate"
   | "fo_category" | "fo_description" | "fo_quantity" | "fo_amount" | "fo_date" | "fo_room" | "fo_reason" | "fo_method" | "fo_too_long"
@@ -243,6 +243,8 @@ export const OK_MESSAGES = {
   room_type_updated: "Room type saved. New bookings use these details; bookings already made keep the price they were made at.",
   room_type_deactivated: "Room type switched off. It can no longer be booked, by staff or online. Existing bookings are not affected.",
   room_type_activated: "Room type switched on. It can be booked again.",
+  photo_added: "Photo added. Guests see it on the hotel's website.",
+  photo_removed: "Photo removed.",
   room_added: "Room added.",
   room_status_changed: "Room status updated.",
   guest_updated: "Guest details saved.",
@@ -340,6 +342,9 @@ export function errorMessage(code: string, refundable: number | null, formatMino
     case "setup_duplicate_name": return "Another room type at this property has a name that is too similar. Choose a different name.";
     case "setup_duplicate_room": return "That room number already exists at this property.";
     case "setup_forbidden": return "You do not have permission to change the hotel setup.";
+    case "photo_file": return "Choose a JPEG, PNG or WebP picture up to 2 MB.";
+    case "photo_limit": return "A room type can have up to 5 photos. Remove one first.";
+    case "photo_upload": return "The picture could not be saved. Try again.";
     case "room_has_bookings": return "That room has current or future bookings or blocks. Move the guests and release the blocks first.";
     case "invoice_exists": return "This reservation already has an invoice. Void it first if it needs to be reissued.";
     case "invoice_has_payments": return "This invoice has payments recorded against it, so it cannot be voided. Refund the guest first; once no money is held it can be voided.";
