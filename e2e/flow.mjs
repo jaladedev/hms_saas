@@ -1135,5 +1135,90 @@ check("the audit trail records the needs-details outcome without the details", r
   check("and the guest sees no amenities list for it", sees(pageText(afterHtml), "Solo Suite") && doesNotSee(pageText(afterHtml), "Breakfast included"));
 }
 
+// 23. Calendars over HTTP, after sections 14 and 17: click-to-book, drag handles and the move action, and the arrivals and
+// departures calendar. The owner books a Standard room 120 days out; the move is the real server action, posted the way a
+// browser form posts it (its id comes from the build's own manifest), because the drag dialog's form exists only in the browser.
+{
+  const TYPE_STANDARD = "00000000-0000-0000-0000-0000000000a3";
+  const plusDays = (iso, n) => new Date(Date.parse(`${iso}T00:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
+  const d0 = plusDays(tonight, 120), d1 = plusDays(tonight, 121), d2 = plusDays(tonight, 122);
+  const stdRooms = await (await api(SERVICE_JWT, `/rooms?property_id=eq.${PROPERTY_A}&room_type_id=eq.${TYPE_STANDARD}&select=id,room_number&order=room_number`)).json();
+  const [roomA, roomB] = stdRooms;
+  const soloRoom = (await (await api(SERVICE_JWT, `/rooms?property_id=eq.${PROPERTY_A}&room_number=eq.201&select=id`)).json())[0]?.id;
+  const bookedMove = await call("create_reservation", { p_property_id: PROPERTY_A, p_primary_guest_id: GUEST_A, p_source: "staff_entry", p_arrival: d0, p_departure: d2,
+    p_rooms: [{ room_type_id: TYPE_STANDARD, requested_room_id: roomA?.id ?? null, adults: 1 }], p_idempotency_key: "e2e-calendar-booking" }, OWNER_JWT);
+  const moveRr = bookedMove.body?.rooms?.[0]?.reservation_room_id, moveRef = bookedMove.body?.booking_reference;
+  check("the owner books Standard room " + roomA?.room_number + " for two nights, 120 days out", bookedMove.status === 200 && Boolean(moveRr) && !!roomB && !!soloRoom, JSON.stringify(bookedMove).slice(0, 300));
+  const claimRoom = async () => (await (await api(SERVICE_JWT, `/room_inventory_claims?reservation_room_id=eq.${moveRr}&status=eq.active&select=room_id`)).json()).map((c) => c.room_id);
+
+  // click-to-book
+  const mvPath = `/app/rooms/calendar?from=${d0}&days=7`;
+  const mvOwner = await getPage(mvPath, OWNER_COOKIE);
+  const bookHref = (room, date, next) => `/app/reservations/new?room=${room}&amp;arrival=${date}&amp;departure=${next}`;
+  check("the owner's calendar links an empty night to a pre-filled new booking", mvOwner.status === 200 && mvOwner.html.includes(bookHref(roomB.id, d0, d1)), mvOwner.text.slice(0, 200));
+  check("the booked nights of room A have no link, and the night after the stay does", !mvOwner.html.includes(`room=${roomA.id}&amp;arrival=${d0}&amp;`) && !mvOwner.html.includes(`room=${roomA.id}&amp;arrival=${d1}&amp;`) && mvOwner.html.includes(bookHref(roomA.id, d2, plusDays(d2, 1))));
+  const prefilled = await getPage(bookHref(roomB.id, d0, d1).replace(/&amp;/g, "&"), OWNER_COOKIE);
+  check("the link opens the new booking form with the nights and the room already chosen", prefilled.status === 200 && prefilled.html.includes(`value="${d0}"`) && prefilled.html.includes(`value="${d1}"`)
+    && new RegExp(`<option[^>]*value="${roomB.id}"[^>]*selected|<option[^>]*selected[^>]*value="${roomB.id}"`).test(prefilled.html), prefilled.text.slice(0, 200));
+  const mvHk = await getPage(mvPath, HK_COOKIE);
+  check("housekeeping's calendar has no booking links and no drag handles", mvHk.status === 200 && !mvHk.html.includes("/app/reservations/new") && !mvHk.html.includes("data-move-rr") && !mvHk.html.includes("draggable"));
+  const mvAcc = await getPage(mvPath, ACCOUNTANT_COOKIE);
+  check("an accountant's calendar has none either", mvAcc.status === 200 && !mvAcc.html.includes("/app/reservations/new") && !mvAcc.html.includes("data-move-rr"));
+
+  // drag handles
+  check("the owner's bar for the stay is draggable and carries its booking, and every room row is a drop target", mvOwner.html.includes(`data-move-rr="${moveRr}"`) && mvOwner.html.includes('draggable="true"')
+    && mvOwner.html.includes(`data-room-id="${roomB.id}"`) && mvOwner.html.includes(`data-room-type="${TYPE_STANDARD}"`));
+
+  // the move action, posted as a browser form would post it
+  const manifest = JSON.parse((await import("node:fs")).readFileSync(new URL("../.next-e2e/server/server-reference-manifest.json", import.meta.url), "utf8"));
+  const moveId = Object.entries(manifest.node).find(([, v]) => v.exportedName === "moveStayFromCalendar")?.[0];
+  check("the build's manifest knows the move action", Boolean(moveId));
+  const moveForm = (over = {}) => {
+    const fd = new FormData();
+    fd.append(`$ACTION_ID_${moveId}`, "");
+    const base = { reservationRoomId: moveRr, newRoomId: roomB.id, effective: d0, idempotencyKey: "e2e-calendar-move-1", reason: "Guest asked for a quieter room", property: PROPERTY_A, from: d0, days: "7" };
+    for (const [k, v] of Object.entries({ ...base, ...over })) fd.append(k, v);
+    return fd;
+  };
+  const postMove = (cookie, over) => staff("/app/rooms/calendar", cookie, { method: "POST", body: moveForm(over) });
+
+  let mv = await postMove(OWNER_COOKIE, { reason: "   " });
+  check("a move with no reason is refused", mv.status === 303 && outcome(mv).get("err") === "reason_required" && !outcome(mv).get("ok"), `${mv.status} ${mv.headers.get("location")}`);
+  mv = await postMove(OWNER_COOKIE, { reservationRoomId: "not-an-id" });
+  check("a malformed request is refused", mv.status === 303 && outcome(mv).get("err") === "bad_request", `${mv.status} ${mv.headers.get("location")}`);
+  mv = await postMove(OWNER_COOKIE, { newRoomId: soloRoom, idempotencyKey: "e2e-calendar-move-solo" });
+  check("a room of another type is refused", mv.status === 303 && Boolean(outcome(mv).get("err")) && !outcome(mv).get("ok"), `${mv.status} ${mv.headers.get("location")}`);
+  mv = await postMove(HK_COOKIE, { idempotencyKey: "e2e-calendar-move-hk" });
+  check("housekeeping cannot move a guest, even by posting the action itself", mv.status === 303 && Boolean(outcome(mv).get("err")) && !outcome(mv).get("ok"), `${mv.status} ${mv.headers.get("location")}`);
+  mv = await postMove(OWNER_B_COOKIE, { idempotencyKey: "e2e-calendar-move-b" });
+  check("hotel B's owner cannot move hotel A's guest", mv.status === 303 && Boolean(outcome(mv).get("err")) && !outcome(mv).get("ok"), `${mv.status} ${mv.headers.get("location")}`);
+  check("none of the refusals moved the guest", JSON.stringify(await claimRoom()) === JSON.stringify([roomA.id]), JSON.stringify(await claimRoom()));
+
+  mv = await postMove(OWNER_COOKIE);
+  check("the owner moves the guest to the other Standard room and comes back to the same window", mv.status === 303 && outcome(mv).get("ok") === "calendar_moved"
+    && (mv.headers.get("location") ?? "").includes("/app/rooms/calendar") && outcome(mv).get("from") === d0 && outcome(mv).get("days") === "7", `${mv.status} ${mv.headers.get("location")}`);
+  check("the stay now holds room B and no longer room A", JSON.stringify(await claimRoom()) === JSON.stringify([roomB.id]), JSON.stringify(await claimRoom()));
+  const mvAfter = await getPage(mvPath, OWNER_COOKIE);
+  check("room A's nights are free again to book from the calendar, and room B's are not", mvAfter.html.includes(bookHref(roomA.id, d0, d1)) && !mvAfter.html.includes(`room=${roomB.id}&amp;arrival=${d0}&amp;`));
+  mv = await postMove(OWNER_COOKIE);
+  check("sending the same move again changes nothing more", mv.status === 303 && outcome(mv).get("ok") === "calendar_moved" && JSON.stringify(await claimRoom()) === JSON.stringify([roomB.id]), `${mv.status} ${mv.headers.get("location")}`);
+  const moveAudit = JSON.stringify(await (await api(SERVICE_JWT, `/audit_logs?select=action,metadata&metadata=cs.${encodeURIComponent(JSON.stringify({ reason: "Guest asked for a quieter room" }))}`)).json());
+  check("the move is on the audit trail with its reason", moveAudit.includes("Guest asked for a quieter room"), moveAudit.slice(0, 200));
+
+  // arrivals and departures
+  const fdPath = `/app/front-desk/calendar?from=${d0}&days=7`;
+  const fdOwner = await getPage(fdPath, OWNER_COOKIE);
+  check("the arrivals calendar lists the booking under its arrival day, with the guest", fdOwner.status === 200 && sees(fdOwner.text, "Arrivals and departures", "Arriving", "Departing", "Staying", moveRef ?? "BK-", "Ada Okafor"), fdOwner.text.slice(0, 300));
+  check("it has window links and a print button", sees(fdOwner.text, "Previous 7 days", "Next 7 days", "Today", "Print"));
+  const fdHk = await getPage(fdPath, HK_COOKIE);
+  check("housekeeping, who may see no bookings, sees no booking or guest there", fdHk.status === 200 && doesNotSee(fdHk.text, moveRef ?? "BK-", "Ada Okafor"), fdHk.text.slice(0, 200));
+  const fdB = await getPage(fdPath, OWNER_B_COOKIE);
+  check("hotel B's owner sees none of hotel A's bookings", fdB.status === 200 && doesNotSee(fdB.text, moveRef ?? "BK-", "Ada Okafor"));
+  const fdEmpty = await getPage(`/app/front-desk/calendar?from=${plusDays(tonight, 300)}&days=7`, OWNER_COOKIE);
+  check("a week with nobody due says so", fdEmpty.status === 200 && sees(fdEmpty.text, "Nobody is due to arrive or leave in these 7 days."), fdEmpty.text.slice(0, 200));
+  const fdBad = await getPage("/app/front-desk/calendar?from=2026-13-45&days=999", OWNER_COOKIE);
+  check("a bad date and length fall back to today and 14 days", fdBad.status === 200 && sees(fdBad.text, "Previous 14 days") && fdBad.html.includes(`value="${tonight}"`), fdBad.text.slice(0, 160));
+}
+
 console.log(failures === 0 ? `E2E PASSED (${reference})` : `E2E FAILED: ${failures} check(s)`);
 process.exit(failures === 0 ? 0 : 1);

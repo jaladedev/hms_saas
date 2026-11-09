@@ -728,4 +728,8 @@ AM="$(psql -f "$HERE/77_room_type_amenities.sql" 2>&1)" || { echo "$AM"; echo "R
 echo "$AM" | grep -E 'PASS' || true
 if echo "$AM" | grep -qE 'FAIL|ERROR'; then echo "$AM"; echo "ROOM TYPE AMENITIES TESTS FAILED"; exit 1; fi
 
+TS="$(psql -f "$HERE/78_transfer_same_type.sql" 2>&1)" || { echo "$TS"; echo "TRANSFER SAME TYPE TESTS FAILED"; exit 1; }
+echo "$TS" | grep -E 'PASS' || true
+if echo "$TS" | grep -qE 'FAIL|ERROR'; then echo "$TS"; echo "TRANSFER SAME TYPE TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"
