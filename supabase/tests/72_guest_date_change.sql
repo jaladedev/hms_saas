@@ -20,7 +20,7 @@ exception when insufficient_privilege then null; end $$;
 do $$ declare
   prop uuid := '00000000-0000-0000-0000-0000000000a2'; t date; ty uuid := '00000000-0000-0000-0000-0000000000a3';
   owner text := '00000000-0000-0000-0000-00000000aa01';
-  rooms_ uuid[]; r jsonb; q jsonb; res uuid; rr uuid; old_total bigint; n integer; inv_old uuid; inv_new uuid; rm_before uuid; req uuid;
+  rooms_ uuid[]; r jsonb; q jsonb; res uuid; rr uuid; old_total bigint; n integer; inv_old uuid; inv_new uuid; rm_before uuid; req uuid; g0 integer;
 begin
   perform t_sys();
   t := property_today(prop);
@@ -110,17 +110,19 @@ begin
   if guest_change_dates_quote(res, t + 2, t + 4) ->> 'why_not' <> 'window' then raise exception 'FAIL window'; end if;
 
   -- G. an open dates request is closed as done by the change; a booking cancelled or not confirmed cannot change
+  -- The shifted nights must cost the same, so the window must not straddle 2027-01-01, where test 04's Test VAT rule starts.
+  g0 := case when t + 50 <= date '2027-01-01' and t + 54 > date '2027-01-01' then 56 else 50 end;
   perform t_as(owner);
-  r := t_book(ty, t + 50, t + 52, 't72-g', rooms_[1]); res := (r ->> 'reservation_id')::uuid;
+  r := t_book(ty, t + g0, t + g0 + 2, 't72-g', rooms_[1]); res := (r ->> 'reservation_id')::uuid;
   perform t_sys();
-  req := (guest_request_change(res, 'dates', t + 51, t + 53, null, 't72-g1') ->> 'request_id')::uuid;
-  q := guest_change_dates_quote(res, t + 51, t + 53);
-  perform guest_change_dates(res, t + 51, t + 53, (q ->> 'new_total_minor')::bigint, 't72-g2');
+  req := (guest_request_change(res, 'dates', t + g0 + 1, t + g0 + 3, null, 't72-g1') ->> 'request_id')::uuid;
+  q := guest_change_dates_quote(res, t + g0 + 1, t + g0 + 3);
+  perform guest_change_dates(res, t + g0 + 1, t + g0 + 3, (q ->> 'new_total_minor')::bigint, 't72-g2');
   if (select status from guest_change_requests where id = req) <> 'done' then raise exception 'FAIL request not closed'; end if;
   perform t_as(owner);
   perform cancel_reservation(res, 'test', 't72-g3');
   perform t_sys();
-  if guest_change_dates_quote(res, t + 52, t + 54) ->> 'why_not' <> 'status' then raise exception 'FAIL cancelled'; end if;
+  if guest_change_dates_quote(res, t + g0 + 2, t + g0 + 4) ->> 'why_not' <> 'status' then raise exception 'FAIL cancelled'; end if;
 
   -- H. the room is taken on the new dates: another room of the type is used, and with none free the change fails whole
   perform t_as(owner);
