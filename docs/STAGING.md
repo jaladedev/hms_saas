@@ -3,7 +3,7 @@
 Goal: run the real app against a real Supabase project and Paystack TEST mode, and settle the things the local tests
 cannot prove. Work top to bottom and write the result next to each step. Stop at the first failure.
 
-**What the local tests already prove** (30 migrations, `npm run db:test`, `npm run e2e`): the rules, row-level
+**What the local tests already prove** (every migration in `supabase/migrations`, `npm run db:test`, `npm run e2e`): the rules, row-level
 security, the concurrency guarantees, the guest flow, and two staff screens over HTTP with a faked sign-in.
 
 **What only this checklist can prove:**
@@ -54,7 +54,7 @@ With the Supabase CLI (installed and logged in):
 ```bash
 supabase link --project-ref <ref>
 supabase db push
-supabase migration list     # expect 30 rows, each present locally and remotely
+supabase migration list     # expect one row per file in supabase/migrations, each present locally and remotely
 ```
 
 Do not apply anything from `supabase/tests/` to a real project: `00_stub_auth.sql` is a local stand-in for Supabase's
@@ -62,8 +62,9 @@ auth schema, and `01_seed.sql` is test data.
 
 ## 4. Check the security setup
 
-Run these five in the SQL editor. The expected results were produced by applying all 76 migrations to a scratch
-PostgreSQL with the same default privileges Supabase uses.
+Run these five in the SQL editor. The expected results come from applying every migration to a scratch
+PostgreSQL with the same default privileges Supabase uses; `supabase/tests/79_public_api_surface.sql` runs these same five
+checks on every `npm run db:test`, so they are known to hold for the migrations in the repository.
 
 ```sql
 -- 4a. Tables in public without row-level security. Expect: no rows.
@@ -95,7 +96,6 @@ select p.proname
  where n.nspname = 'public'
    and p.proname in ('claim_room', 'create_hold', 'confirm_payment', 'search_availability', 'expire_lapsed_holds', 'is_system_caller')
    and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'));
-```
 
 -- 4e. Views anon can read. Expect: no rows. (Views are not covered by 4a; the two room board views are for
 -- authenticated only.)

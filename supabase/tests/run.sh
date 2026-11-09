@@ -30,6 +30,9 @@ bench() {
 
 psql -f "$HERE/00_stub_auth.sql"
 for f in "$ROOT"/supabase/migrations/*.sql; do echo "migrate $(basename "$f")"; psql -f "$f"; done
+PS="$(psql -f "$HERE/79_public_api_surface.sql" 2>&1)" || { echo "$PS"; echo "PUBLIC API SURFACE TESTS FAILED"; exit 1; }   # before the seed and before tests create helpers in public
+echo "$PS" | grep -E 'PASS' || true
+if echo "$PS" | grep -qE 'FAIL|ERROR'; then echo "$PS"; echo "PUBLIC API SURFACE TESTS FAILED"; exit 1; fi
 psql -f "$HERE/01_seed.sql"
 OUT="$(psql -f "$HERE/02_claims.sql" 2>&1)" || { echo "$OUT"; echo "CLAIM TESTS FAILED"; exit 1; }
 echo "$OUT" | grep -E 'PASS' || true
