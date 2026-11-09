@@ -129,7 +129,8 @@ export type ErrorCode =
   | "fo_overpay" | "fo_not_open" | "fo_paid" | "fo_not_found" | "fo_duplicate" | "fo_unknown" | "fo_on_invoice" | "fo_nothing" | "fo_no_email" | "fo_invoice_void"
   | "se_dates" | "se_too_long" | "se_reason" | "se_room" | "se_capacity" | "se_arrival_past" | "se_unavailable" | "se_rate" | "se_paid" | "se_invoiced"
   | "dc_percent" | "dc_amount" | "dc_reason" | "gl_reason" | "dc_limit" | "dc_status" | "dc_cap_percent" | "dc_cap_role" | "se_payment_started" | "se_split" | "se_not_editable" | "se_discount" | "se_not_found" | "se_duplicate" | "se_unknown"
-  | "hold_lapsed" | "hold_source" | "ns_early" | "ns_note";
+  | "hold_lapsed" | "hold_source" | "ns_early" | "ns_note"
+  | "rt_discount" | "rt_busy" | "rt_same" | "rt_effective";
 
 /**
  * Maps a database error message to a code, and an amount when the database reports one. The amount
@@ -274,6 +275,8 @@ export const OK_MESSAGES = {
   mt_block_linked: "Room block linked to this request.",
   mt_block_unlinked: "Room block link removed. The block itself is unchanged.",
   calendar_moved: "Guest moved. The bar now sits on the new room. If the guest was in the old room, it is now marked dirty.",
+  type_changed: "Room type changed. The nights from that date are priced at the new type's rate and the booking shows the new room below. If an invoice was issued it was replaced by a new one, and any balance is shown in the Money section.",
+  type_changed_refund: "Room type changed to a cheaper one. The guest has paid more than the new total, so a refund of the difference is due: request it from the booking's payments in the Money section.",
   transferred: "Room changed. The booking shows the new room below. If the guest was in the old room, it is now marked dirty.",
   fo_posted: "Charge added to the folio.",
   fo_voided: "Charge voided. It no longer counts toward what the guest owes.",
@@ -421,6 +424,10 @@ export function errorMessage(code: string, refundable: number | null, formatMino
     case "se_not_editable": return "This booking can no longer be changed. Only a confirmed booking whose guests have not arrived can be edited.";
     case "se_paid": return "A payment has been recorded on this booking, so its dates and guests cannot be changed. Cancel it and book it again.";
     case "se_invoiced": return "An invoice has been issued for this booking. Void the invoice first, then change the dates and guests.";
+    case "rt_discount": return "This booking has a discount, so its room type cannot be changed. Remove the discount (Money section), change the room type, then apply it again.";
+    case "rt_busy": return "A card payment for this booking has been started and not finished. Wait for it to finish, then change the room type.";
+    case "rt_same": return "Choose a different room type from the one the guest already has.";
+    case "rt_effective": return "Choose a date inside the stay, from today or the arrival to the last night.";
     case "se_discount": return "This booking has a discount, so its dates cannot be edited. Remove the discount (Money section), change the dates, then apply it again.";
     case "dc_cap_percent": return "Enter a percentage from 0 to 100 with at most two decimals, such as 10 or 7.5. Use 0 so the role cannot give discounts.";
     case "dc_cap_role": return "That role cannot give discounts, so it has no limit to set.";

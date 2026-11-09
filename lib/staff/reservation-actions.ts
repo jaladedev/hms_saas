@@ -8,6 +8,7 @@ import { classifyRpcError } from "./refunds";
 import { parseNoShowForm } from "./no-show";
 import { roomsPayload, validateNewReservation } from "./new-reservation";
 import { isPaymentMethod, parseIsoDate } from "./reservations";
+import { typeChangeError } from "./room-type-change";
 
 /**
  * Staff reservation actions. Like the refund actions, each runs as the signed-in person (never the
@@ -222,4 +223,35 @@ export async function transferRoom(formData: FormData) {
   revalidatePath("/app/rooms");
   revalidatePath("/app/front-desk");
   return ok(page, "transferred");
+}
+
+/**
+ * Moves a guest to a different room type from a date (migration 083): the nights from then on take the new type's price, a
+ * live invoice is replaced, and a surplus is flagged for refund. All or nothing: if no room of that type is free, nothing changes.
+ */
+export async function changeRoomType(formData: FormData) {
+  const parsed = z.object({
+    reservationId: uuid, reservationRoomId: uuid, idempotencyKey: key, newTypeId: uuid, effective: z.string().max(10), reason: z.string().max(200),
+  }).safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return back(LIST, { err: "bad_request" });
+  const page = pageFor(parsed.data.reservationId);
+  const effective = parseIsoDate(parsed.data.effective);
+  if (!effective) return back(page, { err: "bad_request" });
+  if (!parsed.data.reason.trim()) return back(page, { err: "reason_required" });
+
+  const supabase = await staffClient();
+  const { data, error } = await supabase.rpc("change_room_type", {
+    p_reservation_room_id: parsed.data.reservationRoomId, p_new_room_type: parsed.data.newTypeId,
+    p_effective: effective, p_reason: parsed.data.reason.trim(), p_idempotency_key: parsed.data.idempotencyKey,
+  });
+  if (error) {
+    const known = typeChangeError(error.message);
+    if (known) return back(page, { err: known });
+    return fail(page, error.message);
+  }
+  refresh(parsed.data.reservationId);
+  revalidatePath("/app/rooms");
+  revalidatePath("/app/front-desk");
+  const surplus = (data as { surplus_minor?: number } | null)?.surplus_minor ?? 0;
+  return ok(page, surplus > 0 ? "type_changed_refund" : "type_changed");
 }

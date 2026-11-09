@@ -17,10 +17,11 @@ import { formatDateTime } from "@/lib/staff/format";
 import { holdView } from "@/lib/staff/hold";
 import { canMarkNoShow, NOTE_MAX } from "@/lib/staff/no-show";
 import { stayEditView } from "@/lib/staff/stay-edit";
-import { cancelReservation, checkInRoom, earlyCheckInRoom, checkOutRoom, issueInvoice, markNoShow, recordPayment, transferRoom, voidInvoice } from "@/lib/staff/reservation-actions";
+import { cancelReservation, checkInRoom, earlyCheckInRoom, checkOutRoom, issueInvoice, markNoShow, recordPayment, transferRoom, voidInvoice, changeRoomType } from "@/lib/staff/reservation-actions";
 import {
   attentionText, detailActions, invoiceActions, type InvoiceRow, nightsBetween, PAYMENT_METHODS, SOURCE_LABEL, todayIn,
 } from "@/lib/staff/reservations";
+import { canChangeType, otherTypes, typeChangeWindow, type TypeOption } from "@/lib/staff/room-type-change";
 import { candidateRooms, canTransfer, transferWindow, type CandidateRoom, type ClaimSpan } from "@/lib/staff/transfer";
 import { createClient } from "@/lib/supabase/server";
 
@@ -102,6 +103,10 @@ export default async function ReservationPage({
     ? await supabase.from("rooms").select("id, room_number, room_type_id, operational_status").eq("property_id", res.property_id).in("room_type_id", moveTypes).eq("operational_status", "active")
     : { data: [] };
   const sameTypeRooms = (sameTypeQ.data ?? []) as CandidateRoom[];
+  // Room types a guest could be moved to (migration 083). Only read when the change can be offered.
+  const mayChangeType = resRooms.some((r) => canChangeType(r.room_status, res.reservation_status, cAssign.data === true, res.discount_minor > 0));
+  const typeOptionsQ = mayChangeType ? await supabase.from("room_types").select("id, name, status").eq("property_id", res.property_id) : { data: [] };
+  const allTypes = (typeOptionsQ.data ?? []) as TypeOption[];
   const claimSpansQ = sameTypeRooms.length
     ? await supabase.from("room_inventory_claims").select("room_id, start_date, end_date").in("room_id", sameTypeRooms.map((r) => r.id)).eq("status", "active").gt("end_date", res.arrival_date).lt("start_date", res.departure_date)
     : { data: [] };
@@ -327,6 +332,40 @@ export default async function ReservationPage({
                             <button type="submit" className={buttonQuiet}>Move guest</button>
                             <p className="max-w-xs text-xs text-muted">
                               Same room type only, so the price stays the same. The stay from that date to {formatDate(res.departure_date)} moves; earlier nights stay in the current room. If the new room is taken, nothing changes.
+                            </p>
+                          </form>
+                        </details>
+                      );
+                    })()}
+                    {(() => {
+                      const win = canChangeType(rr.room_status, res.reservation_status, cAssign.data === true, res.discount_minor > 0) ? typeChangeWindow(res.arrival_date, res.departure_date, today) : null;
+                      const types = otherTypes(allTypes, rr.room_type_id);
+                      if (!win || types.length === 0) return null;
+                      return (
+                        <details>
+                          <summary className="cursor-pointer text-sm font-medium text-primary-strong">Change room type</summary>
+                          <form action={changeRoomType} className="mt-3 space-y-3">
+                            <input type="hidden" name="reservationId" value={res.id} />
+                            <input type="hidden" name="reservationRoomId" value={rr.id} />
+                            <input type="hidden" name="idempotencyKey" value={crypto.randomUUID()} />
+                            <div>
+                              <label htmlFor={`ty-${rr.id}`} className="block text-sm">New room type</label>
+                              <select id={`ty-${rr.id}`} name="newTypeId" required defaultValue="" className={inputClass}>
+                                <option value="" disabled>Choose a type</option>
+                                {types.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                              </select>
+                            </div>
+                            <div>
+                              <label htmlFor={`tyon-${rr.id}`} className="block text-sm">First night in the new type</label>
+                              <input id={`tyon-${rr.id}`} name="effective" type="date" required min={win.min} max={win.max} defaultValue={win.initial} className={inputClass} />
+                            </div>
+                            <div>
+                              <label htmlFor={`tywhy-${rr.id}`} className="block text-sm">Reason</label>
+                              <textarea id={`tywhy-${rr.id}`} name="reason" required maxLength={200} rows={2} className={inputClass} />
+                            </div>
+                            <button type="submit" className={buttonQuiet}>Change room type</button>
+                            <p className="max-w-xs text-xs text-muted">
+                              The nights from that date to {formatDate(res.departure_date)} are priced at the new type&rsquo;s rate; earlier nights keep their price. A free room of the new type is chosen for you. An invoice already issued is replaced. If the new type costs less than the guest has paid, a refund is flagged for you to request. If no room is free, nothing changes.
                             </p>
                           </form>
                         </details>

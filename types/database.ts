@@ -2615,6 +2615,16 @@ export type Database = {
         Returns: Json
       }
       cancellation_quote: { Args: { p_reservation: string }; Returns: Json }
+      change_room_type: {
+        Args: {
+          p_effective: string
+          p_idempotency_key: string
+          p_new_room_type: string
+          p_reason: string
+          p_reservation_room_id: string
+        }
+        Returns: Json
+      }
       channel_report: {
         Args: { p_from: string; p_property_id: string; p_to: string }
         Returns: Json
