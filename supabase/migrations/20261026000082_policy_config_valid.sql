@@ -1,4 +1,4 @@
--- 035 Policy JSON validity: a malformed policy is refused however it is written.
+-- 082 (first written as 035, renumbered because 035_guest_cancel shared that version) Policy JSON validity: a malformed policy is refused however it is written.
 --
 -- property_policies (005) holds a hotel's booking policy as JSON, and cancel_reservation, the hold, payment and
 -- check-in functions read it straight from that JSON. Nothing checked it, so one malformed cancellation rule saved by

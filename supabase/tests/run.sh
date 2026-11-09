@@ -134,7 +134,7 @@ PA="$(psql -f "$HERE/29_policy_audit.sql" 2>&1)" || { echo "$PA"; echo "POLICY A
 echo "$PA" | grep -E 'PASS' || true
 if echo "$PA" | grep -qE 'FAIL|ERROR'; then echo "$PA"; echo "POLICY AUDIT TESTS FAILED"; exit 1; fi
 
-PV="$(psql -f "$HERE/34_policy_config_valid.sql" 2>&1)" || { echo "$PV"; echo "POLICY VALIDITY TESTS FAILED"; exit 1; }
+PV="$(psql -f "$HERE/82_policy_config_valid.sql" 2>&1)" || { echo "$PV"; echo "POLICY VALIDITY TESTS FAILED"; exit 1; }
 echo "$PV" | grep -E 'PASS' || true
 if echo "$PV" | grep -qE 'FAIL|ERROR'; then echo "$PV"; echo "POLICY VALIDITY TESTS FAILED"; exit 1; fi
 
@@ -170,7 +170,7 @@ IP="$(psql -f "$HERE/43_idempotency_purge.sql" 2>&1)" || { echo "$IP"; echo "IDE
 echo "$IP" | grep -E 'PASS' || true
 if echo "$IP" | grep -qE 'FAIL|ERROR'; then echo "$IP"; echo "IDEMPOTENCY PURGE TESTS FAILED"; exit 1; fi
 
-DR="$(psql -f "$HERE/36_daily_report.sql" 2>&1)" || { echo "$DR"; echo "DAILY REPORT TESTS FAILED"; exit 1; }
+DR="$(psql -f "$HERE/83_daily_report.sql" 2>&1)" || { echo "$DR"; echo "DAILY REPORT TESTS FAILED"; exit 1; }
 echo "$DR" | grep -E 'PASS' || true
 if echo "$DR" | grep -qE 'FAIL|ERROR'; then echo "$DR"; echo "DAILY REPORT TESTS FAILED"; exit 1; fi
 
@@ -200,8 +200,8 @@ echo "$SH" | grep -E 'PASS' || true
 if echo "$SH" | grep -qE 'FAIL|ERROR'; then echo "$SH"; echo "STAFF HOLD TESTS FAILED"; exit 1; fi
 
 # Wired in again: commit 1a9f9bb dropped these from this file by accident, so they had stopped running.
-# 35_daily_report.sql (tested an older daily_report that returned jsonb) was deleted; what it covered that 36_daily_report.sql
-# did not (reversed payments, refunds paid, pending holds, cancelled bookings) is now blocks 4 and 5 of 36_daily_report.sql.
+# 35_daily_report.sql (tested an older daily_report that returned jsonb) was deleted; what it covered that 83_daily_report.sql
+# did not (reversed payments, refunds paid, pending holds, cancelled bookings) is now blocks 4 and 5 of 83_daily_report.sql.
 GC="$(psql -f "$HERE/34_guest_cancel.sql" 2>&1)" || { echo "$GC"; echo "GUEST CANCEL TESTS FAILED"; exit 1; }
 echo "$GC" | grep -E 'PASS' || true
 if echo "$GC" | grep -qE 'FAIL|ERROR'; then echo "$GC"; echo "GUEST CANCEL TESTS FAILED"; exit 1; fi
@@ -500,7 +500,7 @@ SQL
   psql -q -c "select t45_check('bm_book$ROUND', $WB)"
 done
 echo "--- concurrency: a block, website holds and staff bookings fight over the one room of the solo type (rounds 1-6: all three; rounds 7-10: only blocks and website holds, the blocks arriving late in 9 and 10; who wins varies, exactly one must)"
-psql -f "$HERE/27_block_race_fixtures.sql"
+psql -f "$HERE/84_block_race_fixtures.sql"
 PREV=200
 for i in 1 2 3 4 5 6 7 8 9 10; do
   KINDS=3; [ "$i" -le 6 ] || KINDS=2
