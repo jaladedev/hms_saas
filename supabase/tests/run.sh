@@ -751,4 +751,8 @@ CR="$(psql -f "$HERE/85_change_room_type.sql" 2>&1)" || { echo "$CR"; echo "CHAN
 echo "$CR" | grep -E 'PASS' || true
 if echo "$CR" | grep -qE 'FAIL|ERROR'; then echo "$CR"; echo "CHANGE ROOM TYPE TESTS FAILED"; exit 1; fi
 
+GE="$(psql -f "$HERE/87_guest_change_emails.sql" 2>&1)" || { echo "$GE"; echo "GUEST CHANGE EMAIL TESTS FAILED"; exit 1; }
+echo "$GE" | grep -E 'PASS' || true
+if echo "$GE" | grep -qE 'FAIL|ERROR'; then echo "$GE"; echo "GUEST CHANGE EMAIL TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

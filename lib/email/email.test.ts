@@ -63,6 +63,36 @@ describe("email templates", () => {
     expect(none.text).not.toContain("will refund");
     expect(renderEmail({ kind: "early_checkout_credit", booking, link: LINK }).text).toContain("Credit:");
   });
+  it("stay_changed (dates): new and old dates, new and old total, and the refund to come", () => {
+    const e = renderEmail({ kind: "stay_changed", booking, link: LINK, payload: { change: "dates", from_arrival: "2026-12-05", from_departure: "2026-12-07", to_arrival: "2026-12-07", to_departure: "2026-12-09", from_total_minor: 6000000, to_total_minor: 5000000, refund_due_minor: 1000000, currency: "NGN" } });
+    expect(e.subject).toBe("Your booking BK-ABC123 has changed");
+    expect(e.text).toContain("are now");
+    expect(e.text).toContain("(they were");
+    expect(e.text).toContain("50,000.00");
+    expect(e.text).toContain("60,000.00");
+    expect(e.text).toContain("will refund");
+    expect(e.text).toContain("10,000.00");
+    expect(e.text).toContain("separate email");
+    expect(e.text).not.toContain("reason");
+  });
+  it("stay_changed: an unchanged total is stated once, no refund line, and a room type change names the type and day", () => {
+    const e = renderEmail({ kind: "stay_changed", booking, link: LINK, payload: { change: "room_type", room_type: "Deluxe", effective: "2026-12-08", from_total_minor: 5000000, to_total_minor: 5000000, refund_due_minor: 0 } });
+    expect(e.text).toContain("changed to Deluxe");
+    expect(e.text).toContain("Your booking total is ₦50,000.00.");
+    expect(e.text).not.toContain("will refund");
+    expect(renderEmail({ kind: "stay_changed", booking, link: LINK }).text).toContain("Your booking total is");
+  });
+  it("change_request_answered: done says the booking is now as shown, declined keeps it and carries the hotel's note, HTML escaped", () => {
+    const done = renderEmail({ kind: "change_request_answered", booking, link: LINK, payload: { outcome: "done" } });
+    expect(done.subject).toContain("is dealt with");
+    expect(done.text).toContain("Your booking is now");
+    expect(done.text).not.toContain("Message from the hotel");
+    const no = renderEmail({ kind: "change_request_answered", booking, link: LINK, payload: { outcome: "declined", note: "Fully booked <that week>" } });
+    expect(no.subject).toContain("About your request");
+    expect(no.text).toContain("stays as it was");
+    expect(no.text).toContain("Message from the hotel: Fully booked <that week>");
+    expect(no.html).not.toContain("<that week>");
+  });
   it("folio_invoice: number, each line, tax, total, and the note that payments are not on it", () => {
     const payload = {
       invoice_number: "INV-HTL-2026-000012", currency: "NGN", total_minor: 1322500, tax_minor: 22500,

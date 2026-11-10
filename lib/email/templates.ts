@@ -1,7 +1,7 @@
 import { formatDate, formatMoney, formatTime } from "@/lib/guest-site/format";
 import type { BookingStatus } from "@/lib/guest-site/server";
 
-export type EmailKind = "booking_held" | "booking_confirmed" | "booking_link" | "refund_processed" | "booking_cancelled" | "payment_no_room" | "folio_invoice" | "early_checkout_credit";
+export type EmailKind = "booking_held" | "booking_confirmed" | "booking_link" | "refund_processed" | "booking_cancelled" | "payment_no_room" | "folio_invoice" | "early_checkout_credit" | "stay_changed" | "change_request_answered";
 export type RenderedEmail = { subject: string; text: string; html: string };
 
 export function escapeHtml(value: string): string {
@@ -117,6 +117,40 @@ export function renderEmail(input: {
       lines.push(`Thank you for staying at ${b.property_name}. Because you left before your booked departure, ${nights === 1 ? "1 night" : `${nights} nights`} you did not stay ${nights === 1 ? "has" : "have"} been credited under the hotel's policy.`);
       lines.push(`Credit: ${formatMoney(credit, currency)}. Your booking total is now ${formatMoney(newTotal, currency)}.`);
       if (refundDue > 0) lines.push(`You have paid more than that, so the hotel will refund ${formatMoney(refundDue, currency)}. They will arrange it, and you will get a separate email when it is paid out.`);
+      break;
+    }
+    case "stay_changed": {
+      const p = input.payload ?? {};
+      const str = (k: string) => (typeof p[k] === "string" ? (p[k] as string) : null);
+      const num = (k: string) => (typeof p[k] === "number" ? (p[k] as number) : null);
+      const currency = str("currency") ?? b.currency;
+      const from = num("from_total_minor"), to = num("to_total_minor") ?? b.total_minor, refundDue = num("refund_due_minor") ?? 0;
+      subject = `Your booking ${b.booking_reference} has changed`;
+      heading = "Your booking has changed";
+      button = "View your booking";
+      if (p.change === "room_type") {
+        lines.push(`Your room at ${b.property_name} has been changed to ${str("room_type") ?? "another room type"}${str("effective") ? `, from ${formatDate(str("effective") as string)}` : ""}.`);
+      } else {
+        const fa = str("from_arrival"), fd = str("from_departure"), ta = str("to_arrival") ?? b.arrival_date, td = str("to_departure") ?? b.departure_date;
+        lines.push(`The dates of your stay at ${b.property_name} are now ${formatDate(ta)} to ${formatDate(td)}${fa && fd ? ` (they were ${formatDate(fa)} to ${formatDate(fd)})` : ""}.`);
+      }
+      lines.push(from !== null && from !== to
+        ? `Your booking total is now ${formatMoney(to, currency)} (it was ${formatMoney(from, currency)}).`
+        : `Your booking total is ${formatMoney(to, currency)}.`);
+      if (refundDue > 0) lines.push(`You have paid more than that, so the hotel will refund ${formatMoney(refundDue, currency)}. They will arrange it, and you will get a separate email when it is paid out.`);
+      break;
+    }
+    case "change_request_answered": {
+      const p = input.payload ?? {};
+      const declined = p.outcome === "declined";
+      const note = typeof p.note === "string" && p.note.trim() ? p.note.trim() : null;
+      subject = declined ? `About your request for booking ${b.booking_reference}` : `Your request for booking ${b.booking_reference} is dealt with`;
+      heading = declined ? "We could not make that change" : "Your request has been dealt with";
+      button = "View your booking";
+      lines.push(declined
+        ? `${b.property_name} was not able to make the change you asked for on booking ${b.booking_reference}. Your booking stays as it was (${stay}).`
+        : `${b.property_name} has dealt with the change you asked for on booking ${b.booking_reference}. Your booking is now ${stay}.`);
+      if (note) lines.push(`Message from the hotel: ${note}`);
       break;
     }
     case "folio_invoice": {
