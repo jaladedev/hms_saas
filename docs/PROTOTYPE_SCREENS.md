@@ -15,7 +15,7 @@ Status: **built**, **partial** (part of the job is done, or only another role ca
 | Sign-in | built | `/login` |
 | Forgot Password | built | `/forgot-password` |
 | Reset Password | built | `/reset-password` |
-| Hotel Setup Wizard | partial | `/platform/new`, platform admins only; no owner-facing wizard |
+| Hotel Setup Wizard | built | `/app/setup` (owner guide over the five setup steps); `/platform/new` for a platform admin to onboard a hotel |
 | Staff Invitation | built | `/app/staff` (Invite) |
 
 ## Overview

@@ -108,3 +108,25 @@ export function countsFor(
     policyVersions: mine(data.policies).length,
   };
 }
+
+export type WizardView = {
+  steps: SetupStep[];
+  current: SetupStep;
+  index: number;
+  prev: SetupStep | null;
+  next: SetupStep | null;
+  progress: Progress;
+};
+
+/**
+ * The guided setup: which step is on screen and where Back and Next go. A step named in the address is used when it exists;
+ * otherwise the first step still to do (required ones first), or the first step when everything is done.
+ */
+export function wizardView(steps: SetupStep[], requested?: unknown): WizardView {
+  const progress = progressOf(steps);
+  const asked = typeof requested === "string" ? steps.findIndex((s) => s.key === requested) : -1;
+  const index = asked >= 0 ? asked : Math.max(0, progress.next ? steps.findIndex((s) => s.key === progress.next!.key) : 0);
+  return { steps, current: steps[index] as SetupStep, index, prev: steps[index - 1] ?? null, next: steps[index + 1] ?? null, progress };
+}
+
+export const wizardHref = (propertyId: string, stepKey: string) => `/app/setup?property=${encodeURIComponent(propertyId)}&step=${stepKey}`;

@@ -1549,6 +1549,45 @@ check(
   res.headers.get("location") ?? "",
 );
 
+// 12d. The guided setup (/app/setup): reads what is saved, opens on a step, links to the existing settings screens.
+const suSignedOut = await staff("/app/setup", null);
+check(
+  "the setup guide sends a signed-out visitor to sign in",
+  suSignedOut.status === 307 && (suSignedOut.headers.get("location") ?? "").includes("/login"),
+  `status ${suSignedOut.status}`,
+);
+const suOwner = await getPage("/app/setup", OWNER_COOKIE);
+check(
+  "the owner sees the guide with its five steps and a step panel",
+  suOwner.status === 200 &&
+    sees(
+      suOwner.text,
+      "Set up your hotel",
+      "Add a room type",
+      "Add your rooms",
+      "Create the standard rate plan",
+      "Set up tax rules",
+      "Choose payment and cancellation policies",
+      "Step 1 of 5",
+    ),
+  suOwner.text.slice(0, 300),
+);
+check("the step panel links to the existing settings screen", suOwner.html.includes('href="/app/settings/rooms"'), "");
+const suTax = await getPage("/app/setup?step=tax", OWNER_COOKIE);
+check(
+  "a named step opens with Back and Next beside it",
+  suTax.status === 200 &&
+    sees(suTax.text, "Step 4 of 5", "Back: Create the standard rate plan", "Choose payment and cancellation policies") &&
+    suTax.html.includes('href="/app/settings/tax"'),
+  suTax.text.slice(0, 300),
+);
+const suOdd = await getPage("/app/setup?step=nope&property=nope", OWNER_COOKIE);
+check(
+  "an unknown step or hotel falls back to a real one",
+  suOdd.status === 200 && sees(suOdd.text, "Step 1 of 5"),
+  suOdd.text.slice(0, 200),
+);
+
 // 13. Cancellation and payment policies: the staff screen, the audit rows, and the text on the reserve page.
 // Versions start in 2090, so no booking made in this run is affected. Policies are never edited, so each save is a new version.
 res = await staff("/app/settings/policies", null);

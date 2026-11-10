@@ -84,7 +84,10 @@ export default async function SettingsPage() {
           <SectionTitle>{properties.length > 1 ? `Set up ${property.name}` : "Set up your hotel"}</SectionTitle>
           <p className="mt-1 text-sm text-muted">
             {progress.done} of {progress.total} steps done.{" "}
-            {progress.ready ? "Guests can book now; the steps left are recommended." : "Finish the first three before guests can book."}
+            {progress.ready ? "Guests can book now; the steps left are recommended." : "Finish the first three before guests can book."}{" "}
+            <Link href={`/app/setup?property=${property.id}`} className="font-medium text-primary-strong">
+              Open the step-by-step guide
+            </Link>
           </p>
           <ol className="mt-3 space-y-2 text-sm">
             {steps.map((st) => (

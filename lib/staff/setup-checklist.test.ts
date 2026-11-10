@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildChecklist, countsFor, progressOf, type SetupCounts } from "./setup-checklist";
+import { buildChecklist, countsFor, progressOf, wizardHref, wizardView, type SetupCounts } from "./setup-checklist";
 
 const empty: SetupCounts = { roomTypes: 0, rooms: 0, hasDefaultRatePlan: false, taxRules: 0, policyVersions: 0 };
 
@@ -58,5 +58,34 @@ describe("countsFor", () => {
       policies: [{ property_id: B }],
     });
     expect(c).toEqual({ roomTypes: 1, rooms: 2, hasDefaultRatePlan: false, taxRules: 1, policyVersions: 0 });
+  });
+});
+
+describe("wizardView", () => {
+  const none = { roomTypes: 0, rooms: 0, hasDefaultRatePlan: false, taxRules: 0, policyVersions: 0 };
+  it("opens on the first step still to do, required ones first", () => {
+    expect(wizardView(buildChecklist(none)).current.key).toBe("room_types");
+    expect(wizardView(buildChecklist({ ...none, roomTypes: 1 })).current.key).toBe("rooms");
+    expect(wizardView(buildChecklist({ ...none, roomTypes: 1, rooms: 2, hasDefaultRatePlan: true })).current.key).toBe("tax");
+  });
+  it("opens on the first step when everything is done", () => {
+    const v = wizardView(buildChecklist({ roomTypes: 1, rooms: 1, hasDefaultRatePlan: true, taxRules: 1, policyVersions: 1 }));
+    expect(v.current.key).toBe("room_types");
+    expect(v.progress.complete).toBe(true);
+  });
+  it("uses the step named in the address, and ignores one that does not exist", () => {
+    const steps = buildChecklist(none);
+    const v = wizardView(steps, "tax");
+    expect([v.current.key, v.index, v.prev?.key, v.next?.key]).toEqual(["tax", 3, "rates", "policies"]);
+    expect(wizardView(steps, "nope").current.key).toBe("room_types");
+    expect(wizardView(steps, ["tax"]).current.key).toBe("room_types");
+  });
+  it("has no Back on the first step and no Next on the last", () => {
+    const steps = buildChecklist(none);
+    expect(wizardView(steps, "room_types").prev).toBeNull();
+    expect(wizardView(steps, "policies").next).toBeNull();
+  });
+  it("links to a step of a property", () => {
+    expect(wizardHref("p 1", "tax")).toBe("/app/setup?property=p%201&step=tax");
   });
 });
