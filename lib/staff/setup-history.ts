@@ -39,7 +39,17 @@ export type HistoryFilter = (typeof HISTORY_FILTERS)[number]["value"];
 
 /** Explicit action names, not prefixes: `room.blocked` and `room.transferred` also start with "room." and are not setup. */
 export const FILTER_ACTIONS: Record<Exclude<HistoryFilter, "all">, string[]> = {
-  rooms: ["room_type.created", "room_type.updated", "room_type.deleted", "room.created", "room.updated", "room.deleted", "room_type_photo.created", "room_type_photo.updated", "room_type_photo.deleted"],
+  rooms: [
+    "room_type.created",
+    "room_type.updated",
+    "room_type.deleted",
+    "room.created",
+    "room.updated",
+    "room.deleted",
+    "room_type_photo.created",
+    "room_type_photo.updated",
+    "room_type_photo.deleted",
+  ],
   rates: ["rate_plan.created", "rate_plan.updated", "rate_plan.deleted", "rates.set", "rates.changed", "rates.cleared"],
   tax: ["tax_rule.created", "tax_rule.updated", "tax_rule.deleted"],
   policies: ["property_policy.created"],
@@ -48,8 +58,7 @@ export const FILTER_ACTIONS: Record<Exclude<HistoryFilter, "all">, string[]> = {
   // Written by the config audit trigger (migration 047, columns widened in 087); a hotel is only edited, never created or deleted from the app.
   hotel: ["property.updated"],
 };
-export const actionsFor = (what: HistoryFilter): string[] =>
-  what === "all" ? Object.values(FILTER_ACTIONS).flat() : FILTER_ACTIONS[what];
+export const actionsFor = (what: HistoryFilter): string[] => (what === "all" ? Object.values(FILTER_ACTIONS).flat() : FILTER_ACTIONS[what]);
 
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -68,7 +77,10 @@ export function parseHistoryFilters(search: Search): { property: string | null; 
 }
 
 /** The query string for a link, leaving out what is already the default. */
-export function historyQuery(f: { property: string | null; what: HistoryFilter; page: number }, over: Partial<{ page: number }> = {}): string {
+export function historyQuery(
+  f: { property: string | null; what: HistoryFilter; page: number },
+  over: Partial<{ page: number }> = {},
+): string {
   const page = over.page ?? f.page;
   const p = new URLSearchParams();
   if (f.property) p.set("property", f.property);
@@ -91,14 +103,34 @@ export type Lookup = {
 };
 export type Format = { money: (minor: number) => string; date: (isoDate: string) => string };
 
-const asRecord = (v: unknown): Record<string, unknown> => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
+const asRecord = (v: unknown): Record<string, unknown> =>
+  v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
 const asString = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v.trim() : null);
-const asNumber = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : typeof v === "string" && v.trim() !== "" && Number.isFinite(Number(v)) ? Number(v) : null);
+const asNumber = (v: unknown): number | null =>
+  typeof v === "number" && Number.isFinite(v)
+    ? v
+    : typeof v === "string" && v.trim() !== "" && Number.isFinite(Number(v))
+      ? Number(v)
+      : null;
 
 /** The ids on a page of history that need a name, by kind. Includes ids inside the metadata. */
-export function collectIds(rows: AuditRow[]): { roomTypes: string[]; rooms: string[]; ratePlans: string[]; taxRules: string[]; users: string[] } {
-  const sets = { roomTypes: new Set<string>(), rooms: new Set<string>(), ratePlans: new Set<string>(), taxRules: new Set<string>(), users: new Set<string>() };
-  const add = (set: Set<string>, v: unknown) => { if (typeof v === "string" && GUID.test(v)) set.add(v); };
+export function collectIds(rows: AuditRow[]): {
+  roomTypes: string[];
+  rooms: string[];
+  ratePlans: string[];
+  taxRules: string[];
+  users: string[];
+} {
+  const sets = {
+    roomTypes: new Set<string>(),
+    rooms: new Set<string>(),
+    ratePlans: new Set<string>(),
+    taxRules: new Set<string>(),
+    users: new Set<string>(),
+  };
+  const add = (set: Set<string>, v: unknown) => {
+    if (typeof v === "string" && GUID.test(v)) set.add(v);
+  };
   for (const r of rows) {
     add(sets.users, r.actor_user_id);
     const m = asRecord(r.metadata);
@@ -123,22 +155,55 @@ export function actorName(row: Pick<AuditRow, "actor_user_id">, people: Map<stri
 }
 
 const LABELS: Record<string, string> = {
-  name: "Name", code: "Code", slug: "Web address", description: "Description", bed_config: "Beds",
-  max_adults: "Most adults", max_children: "Most children", max_occupancy: "Most people in all",
-  base_rate_minor: "Standard price a night", amenities: "Amenities", currency: "Currency", is_public: "Bookable online", status: "Status",
-  room_number: "Room number", floor: "Floor", room_type_id: "Room type", operational_status: "Service status",
-  is_default: "Standard plan", cancellation_policy: "Cancellation policy", payment_policy: "Payment policy",
-  basis: "Kind of tax", rate_value: "Rate", sequence: "Order", compounds: "Applied on top of earlier rules",
-  logo_path: "Logo", phone: "Phone", contact_email: "Email", intro: "Introduction", address: "Address", city: "Town", state: "State", timezone: "Time zone",
-  check_in_time: "Check-in time", check_out_time: "Check-out time", country_code: "Country",
-  effective_from: "First day", effective_to: "Last day", applies_to_charges: "Taxes extras",
+  name: "Name",
+  code: "Code",
+  slug: "Web address",
+  description: "Description",
+  bed_config: "Beds",
+  max_adults: "Most adults",
+  max_children: "Most children",
+  max_occupancy: "Most people in all",
+  base_rate_minor: "Standard price a night",
+  amenities: "Amenities",
+  currency: "Currency",
+  is_public: "Bookable online",
+  status: "Status",
+  room_number: "Room number",
+  floor: "Floor",
+  room_type_id: "Room type",
+  operational_status: "Service status",
+  is_default: "Standard plan",
+  cancellation_policy: "Cancellation policy",
+  payment_policy: "Payment policy",
+  basis: "Kind of tax",
+  rate_value: "Rate",
+  sequence: "Order",
+  compounds: "Applied on top of earlier rules",
+  logo_path: "Logo",
+  phone: "Phone",
+  contact_email: "Email",
+  intro: "Introduction",
+  address: "Address",
+  city: "Town",
+  state: "State",
+  timezone: "Time zone",
+  check_in_time: "Check-in time",
+  check_out_time: "Check-out time",
+  country_code: "Country",
+  effective_from: "First day",
+  effective_to: "Last day",
+  applies_to_charges: "Taxes extras",
 };
 export const fieldLabel = (key: string): string => LABELS[key] ?? key.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
 
 const WORDS: Record<string, Record<string, string>> = {
   status: { active: "Active", inactive: "Switched off" },
   operational_status: { active: "In service", out_of_service: "Out of service", retired: "Retired" },
-  basis: { percent: "A percentage of the night's price", fixed_per_night: "A fixed amount each night", fixed_per_stay: "A fixed amount once per stay, for each room" },
+  basis: {
+    percent: "A percentage of the night's price",
+    fixed_per_night: "A fixed amount each night",
+    fixed_per_stay: "A fixed amount once per stay, for each room",
+  },
 };
 
 /** One value as a person reads it. `basis` is the tax rule's kind, which decides what a rate means. */
@@ -159,7 +224,8 @@ export function formatValue(key: string, value: unknown, lookup: Lookup, fmt: Fo
     if (basis === "fixed_per_stay") return `${fmt.money(Math.round(n))} a stay, per room`;
     return String(n);
   }
-  if ((key === "effective_from" || key === "effective_to") && typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) return fmt.date(value);
+  if ((key === "effective_from" || key === "effective_to") && typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value))
+    return fmt.date(value);
   if (key === "room_type_id" && typeof value === "string") return lookup.roomTypes.get(value) ?? "another room type";
   const word = WORDS[key]?.[String(value)];
   return word ?? String(value);
@@ -170,14 +236,18 @@ export function entityName(row: AuditRow, lookup: Lookup): string {
   const values = asRecord(asRecord(row.metadata).values);
   const id = row.entity_id ?? "";
   switch (row.entity_type) {
-    case "room_type": return lookup.roomTypes.get(id) ?? asString(values.name) ?? "a room type";
+    case "room_type":
+      return lookup.roomTypes.get(id) ?? asString(values.name) ?? "a room type";
     case "room": {
       const number = lookup.rooms.get(id) ?? asString(values.room_number);
       return number ? `room ${number}` : "a room";
     }
-    case "rate_plan": return lookup.ratePlans.get(id) ?? asString(values.name) ?? "a rate plan";
-    case "tax_rule": return lookup.taxRules.get(id)?.name ?? asString(values.name) ?? "a tax rule";
-    default: return "something";
+    case "rate_plan":
+      return lookup.ratePlans.get(id) ?? asString(values.name) ?? "a rate plan";
+    case "tax_rule":
+      return lookup.taxRules.get(id)?.name ?? asString(values.name) ?? "a tax rule";
+    default:
+      return "something";
   }
 }
 
@@ -215,7 +285,7 @@ const roleName = (m: Record<string, unknown>, lookup: Lookup): string => {
 };
 const scopeOf = (m: Record<string, unknown>, lookup: Lookup): string => {
   const p = asString(m.property_id);
-  return p ? lookup.properties.get(p) ?? "one property" : "all properties";
+  return p ? (lookup.properties.get(p) ?? "one property") : "all properties";
 };
 
 /** A sentence for the row, and the lines of detail under it (what changed, from and to). */
@@ -230,26 +300,40 @@ export function describeEvent(row: AuditRow, lookup: Lookup, fmt: Format): { sum
     const nights = nightsLine(m, fmt);
     if (verb === "set") {
       const price = priceRange(m.amount_minor_min, m.amount_minor_max, fmt);
-      return { summary: `Set nightly prices for ${target}`, details: [nights, price ? `Price: ${price}` : null].filter((x): x is string => x !== null) };
+      return {
+        summary: `Set nightly prices for ${target}`,
+        details: [nights, price ? `Price: ${price}` : null].filter((x): x is string => x !== null),
+      };
     }
     if (verb === "changed") {
       const was = priceRange(m.old_amount_minor_min, m.old_amount_minor_max, fmt);
       const now = priceRange(m.new_amount_minor_min, m.new_amount_minor_max, fmt);
-      return { summary: `Changed nightly prices for ${target}`, details: [nights, was && now ? `Price: ${was} \u2192 ${now}` : null].filter((x): x is string => x !== null) };
+      return {
+        summary: `Changed nightly prices for ${target}`,
+        details: [nights, was && now ? `Price: ${was} \u2192 ${now}` : null].filter((x): x is string => x !== null),
+      };
     }
     if (verb === "cleared") {
       const was = priceRange(m.old_amount_minor_min, m.old_amount_minor_max, fmt);
-      return { summary: `Cleared nightly prices for ${target}, which go back to the standard price`, details: [nights, was ? `Was: ${was}` : null].filter((x): x is string => x !== null) };
+      return {
+        summary: `Cleared nightly prices for ${target}, which go back to the standard price`,
+        details: [nights, was ? `Was: ${was}` : null].filter((x): x is string => x !== null),
+      };
     }
   }
 
   if (row.entity_type === "membership") {
     const person = personName(m, lookup);
     if (row.action === "staff.role_added") {
-      return { summary: `${m.new_member === true ? "Added" : "Gave"} ${person} ${m.new_member === true ? "as" : "the role"} ${roleName(m, lookup)}`, details: [`Covers: ${scopeOf(m, lookup)}`] };
+      return {
+        summary: `${m.new_member === true ? "Added" : "Gave"} ${person} ${m.new_member === true ? "as" : "the role"} ${roleName(m, lookup)}`,
+        details: [`Covers: ${scopeOf(m, lookup)}`],
+      };
     }
-    if (row.action === "staff.role_removed") return { summary: `Removed the role ${roleName(m, lookup)} from ${person}`, details: [`Covered: ${scopeOf(m, lookup)}`] };
-    if (row.action === "staff.status_changed") return { summary: `Changed ${person}'s access from ${asString(m.from) ?? "unknown"} to ${asString(m.to) ?? "unknown"}`, details: [] };
+    if (row.action === "staff.role_removed")
+      return { summary: `Removed the role ${roleName(m, lookup)} from ${person}`, details: [`Covered: ${scopeOf(m, lookup)}`] };
+    if (row.action === "staff.status_changed")
+      return { summary: `Changed ${person}'s access from ${asString(m.from) ?? "unknown"} to ${asString(m.to) ?? "unknown"}`, details: [] };
   }
 
   // A published policy version (migration 031): the sentences guests would read, not the raw settings.
@@ -266,12 +350,14 @@ export function describeEvent(row: AuditRow, lookup: Lookup, fmt: Format): { sum
   // How far a role may discount at this hotel (migration 059): the role's key and the effective limit before and after.
   if (row.action === "discount_cap.set") {
     const role = (asString(m.role) ?? "a role").replace(/_/g, " ");
-    const to = asNumber(m.to_percent), from = asNumber(m.from_percent);
+    const to = asNumber(m.to_percent),
+      from = asNumber(m.from_percent);
     const pct = (n: number | null) => (n === null ? "unknown" : `${Number(n.toFixed(2))}%`);
     return {
-      summary: m.reset_to_default === true
-        ? `Put the ${role} discount limit back to the standard ${pct(to)}`
-        : `Set the ${role} discount limit to ${pct(to)}`,
+      summary:
+        m.reset_to_default === true
+          ? `Put the ${role} discount limit back to the standard ${pct(to)}`
+          : `Set the ${role} discount limit to ${pct(to)}`,
       details: from === null ? [] : [`Was: ${pct(from)}`],
     };
   }
@@ -280,7 +366,18 @@ export function describeEvent(row: AuditRow, lookup: Lookup, fmt: Format): { sum
   if (row.action === "property.updated") {
     const details = Object.entries(asRecord(m.changed)).map(([k, change]) => {
       const c = asRecord(change);
-      const show = (v: unknown) => (k === "logo_path" ? (typeof v === "string" && v !== "" ? "a logo" : "none") : typeof v === "string" && v.trim() !== "" ? (k === "intro" && v.length > 80 ? `${v.slice(0, 80)}\u2026` : /^\d\d:\d\d:\d\d$/.test(v) ? v.slice(0, 5) : v) : "none");
+      const show = (v: unknown) =>
+        k === "logo_path"
+          ? typeof v === "string" && v !== ""
+            ? "a logo"
+            : "none"
+          : typeof v === "string" && v.trim() !== ""
+            ? k === "intro" && v.length > 80
+              ? `${v.slice(0, 80)}\u2026`
+              : /^\d\d:\d\d:\d\d$/.test(v)
+                ? v.slice(0, 5)
+                : v
+            : "none";
       return `${fieldLabel(k)}: ${show(c.from)} \u2192 ${show(c.to)}`;
     });
     return { summary: "Changed the hotel details", details };
@@ -300,7 +397,10 @@ export function describeEvent(row: AuditRow, lookup: Lookup, fmt: Format): { sum
     const typeId = asString(values.room_type_id);
     const type = nameWithNoun("room_type", (typeId && lookup.roomTypes.get(typeId)) || asString(values.name) || "a room type");
     const caption = asString(values.caption);
-    return { summary: `${verb === "created" ? "Added a photo to" : "Removed a photo from"} ${type}`, details: caption ? [`Caption: ${caption}`] : [] };
+    return {
+      summary: `${verb === "created" ? "Added a photo to" : "Removed a photo from"} ${type}`,
+      details: caption ? [`Caption: ${caption}`] : [],
+    };
   }
 
   if (verb === "created" || verb === "deleted") {

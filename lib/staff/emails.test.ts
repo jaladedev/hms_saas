@@ -4,9 +4,20 @@ import { classifyRpcError, errorMessage } from "./refunds";
 
 function email(over: Partial<FailedEmail> = {}): FailedEmail {
   return {
-    id: "e1", kind: "booking_confirmed", to_email: "a@example.com", attempts: 5, last_error: "provider said no",
-    created_at: "2026-10-31T09:00:00Z", updated_at: "2026-10-31T10:00:00Z", next_attempt_at: "2026-10-31T10:00:00Z",
-    reservation_id: "r1", property_id: "p1", booking_reference: "BK-1", reservation_status: "confirmed", state: "failed", ...over,
+    id: "e1",
+    kind: "booking_confirmed",
+    to_email: "a@example.com",
+    attempts: 5,
+    last_error: "provider said no",
+    created_at: "2026-10-31T09:00:00Z",
+    updated_at: "2026-10-31T10:00:00Z",
+    next_attempt_at: "2026-10-31T10:00:00Z",
+    reservation_id: "r1",
+    property_id: "p1",
+    booking_reference: "BK-1",
+    reservation_status: "confirmed",
+    state: "failed",
+    ...over,
   };
 }
 

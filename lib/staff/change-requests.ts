@@ -1,8 +1,16 @@
 /** Reading the guest change-request queue (migration 069). Pure, so it can be tested. */
 export type ChangeRequestRow = {
-  id: string; property_id: string; reservation_id: string; kind: "dates" | "room" | "other";
-  requested_arrival: string | null; requested_departure: string | null; message: string | null;
-  status: "open" | "done" | "declined" | "withdrawn"; resolution_note: string | null; created_at: string; resolved_at: string | null;
+  id: string;
+  property_id: string;
+  reservation_id: string;
+  kind: "dates" | "room" | "other";
+  requested_arrival: string | null;
+  requested_departure: string | null;
+  message: string | null;
+  status: "open" | "done" | "declined" | "withdrawn";
+  resolution_note: string | null;
+  created_at: string;
+  resolved_at: string | null;
   reservations: { booking_reference: string; arrival_date: string; departure_date: string } | null;
 };
 
@@ -13,7 +21,9 @@ type Booking = NonNullable<ChangeRequestRow["reservations"]>;
 
 /** Puts each booking's reference and dates on its request. A request whose booking is not in `bookings` keeps null. */
 export function withBookings(rows: Omit<ChangeRequestRow, "reservations">[], bookings: ({ id: string } & Booking)[]): ChangeRequestRow[] {
-  const byId = new Map(bookings.map((b) => [b.id, { booking_reference: b.booking_reference, arrival_date: b.arrival_date, departure_date: b.departure_date }]));
+  const byId = new Map(
+    bookings.map((b) => [b.id, { booking_reference: b.booking_reference, arrival_date: b.arrival_date, departure_date: b.departure_date }]),
+  );
   return rows.map((r) => ({ ...r, reservations: byId.get(r.reservation_id) ?? null }));
 }
 

@@ -2,7 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 import { back, ok, staffClient } from "./action-helpers";
-import { checkEffectiveDate, classifyPolicyError, mergeConfig, POLICY_COLUMNS, validatePolicy, versionsOn, type PolicyRow } from "./policies";
+import {
+  checkEffectiveDate,
+  classifyPolicyError,
+  mergeConfig,
+  POLICY_COLUMNS,
+  validatePolicy,
+  versionsOn,
+  type PolicyRow,
+} from "./policies";
 import { todayIn } from "./reservations";
 import type { Json } from "@/types/database";
 
@@ -25,7 +33,11 @@ export async function publishPolicy(formData: FormData) {
   const { data: prop } = await supabase.from("properties").select("tenant_id, timezone").eq("id", propertyId).maybeSingle();
   if (!prop) return back(PAGE, { err: "policy_forbidden" });
 
-  const { data: rows, error: rowsError } = await supabase.from("property_policies").select(POLICY_COLUMNS).eq("property_id", propertyId).limit(500);
+  const { data: rows, error: rowsError } = await supabase
+    .from("property_policies")
+    .select(POLICY_COLUMNS)
+    .eq("property_id", propertyId)
+    .limit(500);
   if (rowsError) return back(PAGE, { err: classifyPolicyError(rowsError) });
   const existing = (rows ?? []) as PolicyRow[];
   const latest = [...existing].sort((a, b) => b.effective_from.localeCompare(a.effective_from))[0];
@@ -37,10 +49,17 @@ export async function publishPolicy(formData: FormData) {
 
   // The merged config is JSON by construction (a jsonb column plus fields this screen validated), so the cast below is safe.
   // Checked here, so two people saving at the same moment hit the unique (property, version) rule: the loser is told to reload.
-  const { data, error } = await supabase.from("property_policies").insert({
-    tenant_id: prop.tenant_id, property_id: propertyId, version: versionsOn(existing, today).nextVersion,
-    effective_from: effectiveFrom, config: mergeConfig(latest?.config, config) as NonNullable<Json>, created_by: auth.user?.id ?? null,
-  }).select("id");
+  const { data, error } = await supabase
+    .from("property_policies")
+    .insert({
+      tenant_id: prop.tenant_id,
+      property_id: propertyId,
+      version: versionsOn(existing, today).nextVersion,
+      effective_from: effectiveFrom,
+      config: mergeConfig(latest?.config, config) as NonNullable<Json>,
+      created_by: auth.user?.id ?? null,
+    })
+    .select("id");
   if (error) return back(PAGE, { err: classifyPolicyError(error) });
   if (!data || data.length === 0) return back(PAGE, { err: "policy_forbidden" });
   revalidatePath(PAGE);

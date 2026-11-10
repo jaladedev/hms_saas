@@ -18,7 +18,14 @@ export type HoldView =
   | { kind: "lapsed"; stillNeededMinor: number };
 
 /** The hold banner for a booking: only a pending booking has one. `holdUntil` is the earliest hold expiry among its active hold claims, or null when it has none. */
-export function holdView(status: string, holdUntil: string | null, now: Date, totalMinor: number, snapshot: Snapshot, heldMinor: number | null): HoldView {
+export function holdView(
+  status: string,
+  holdUntil: string | null,
+  now: Date,
+  totalMinor: number,
+  snapshot: Snapshot,
+  heldMinor: number | null,
+): HoldView {
   if (status !== "pending") return { kind: "none" };
   const need = Math.max(requiredToConfirm(totalMinor, snapshot) - (heldMinor ?? 0), 0);
   const until = holdUntil ? new Date(holdUntil) : null;

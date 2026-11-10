@@ -1,7 +1,18 @@
 import Link from "next/link";
 import { PayoutButton } from "@/components/staff/payout-button";
 import { RefundDetailsForm } from "@/components/staff/refund-details-form";
-import { buttonDanger, buttonPrimary, inputClass, Notice, StatusChip, ErrorBanner, EmptyState, PageIntro, PageTitle, SectionTitle } from "@/components/staff/ui";
+import {
+  buttonDanger,
+  buttonPrimary,
+  inputClass,
+  Notice,
+  StatusChip,
+  ErrorBanner,
+  EmptyState,
+  PageIntro,
+  PageTitle,
+  SectionTitle,
+} from "@/components/staff/ui";
 import { formatMoney } from "@/lib/guest-site/format";
 import { decideRefund, recordManualPayout } from "@/lib/staff/refund-actions";
 import { formatAge, formatDateTime } from "@/lib/staff/format";
@@ -17,7 +28,18 @@ type ResInfo = { id: string; property_id: string; booking_reference: string; pri
 type PayInfo = { id: string; payment_provider: string; payment_method: string };
 type PropInfo = { id: string; name: string; timezone: string };
 
-const METHOD: Record<string, string> = { cash: "Cash", bank_transfer: "Bank transfer", pos: "POS", other: "Other", card: "Card", bank: "Bank", ussd: "USSD", qr: "QR", mobile_money: "Mobile money", eft: "EFT" };
+const METHOD: Record<string, string> = {
+  cash: "Cash",
+  bank_transfer: "Bank transfer",
+  pos: "POS",
+  other: "Other",
+  card: "Card",
+  bank: "Bank",
+  ussd: "USSD",
+  qr: "QR",
+  mobile_money: "Mobile money",
+  eft: "EFT",
+};
 
 export default async function RefundsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const search = await searchParams;
@@ -27,7 +49,12 @@ export default async function RefundsPage({ searchParams }: { searchParams: Prom
 
   const [open, closed] = await Promise.all([
     supabase.from("refunds").select(COLUMNS).in("refund_status", ["requested", "approved", "processing"]).order("created_at").limit(200),
-    supabase.from("refunds").select(COLUMNS).in("refund_status", ["succeeded", "rejected", "failed"]).order("updated_at", { ascending: false }).limit(20),
+    supabase
+      .from("refunds")
+      .select(COLUMNS)
+      .in("refund_status", ["succeeded", "rejected", "failed"])
+      .order("updated_at", { ascending: false })
+      .limit(20),
   ]);
   const loadError = open.error ?? closed.error;
   const rows = [...(open.data ?? []), ...(closed.data ?? [])] as RefundRow[];
@@ -35,7 +62,9 @@ export default async function RefundsPage({ searchParams }: { searchParams: Prom
   const resIds = [...new Set(rows.map((r) => r.reservation_id))];
   const payIds = [...new Set(rows.map((r) => r.payment_id))];
   const [resQ, payQ] = await Promise.all([
-    resIds.length ? supabase.from("reservations").select("id, property_id, booking_reference, primary_guest_id").in("id", resIds) : { data: [] },
+    resIds.length
+      ? supabase.from("reservations").select("id, property_id, booking_reference, primary_guest_id").in("id", resIds)
+      : { data: [] },
     payIds.length ? supabase.from("payments").select("id, payment_provider, payment_method").in("id", payIds) : { data: [] },
   ]);
   const reservations = new Map(((resQ.data ?? []) as ResInfo[]).map((r) => [r.id, r]));
@@ -66,7 +95,11 @@ export default async function RefundsPage({ searchParams }: { searchParams: Prom
     const attention = groups.attention.includes(r);
     const money = formatMoney(r.amount_minor, r.currency);
     const guest = res ? guests.get(res.primary_guest_id) : undefined;
-    const via = pay ? (pay.payment_provider === "manual" ? METHOD[pay.payment_method] ?? pay.payment_method : `Paystack ${METHOD[pay.payment_method]?.toLowerCase() ?? ""}`.trim()) : "";
+    const via = pay
+      ? pay.payment_provider === "manual"
+        ? (METHOD[pay.payment_method] ?? pay.payment_method)
+        : `Paystack ${METHOD[pay.payment_method]?.toLowerCase() ?? ""}`.trim()
+      : "";
 
     return (
       <li className="grid gap-x-8 gap-y-3 border-b border-line py-5 md:grid-cols-[minmax(0,1fr)_9rem_minmax(0,18rem)]">
@@ -78,15 +111,23 @@ export default async function RefundsPage({ searchParams }: { searchParams: Prom
           <p className="mt-1 text-sm text-muted">
             {res ? (
               <>
-                <Link href={`/app/reservations/${res.id}/settlement`} className="font-medium text-primary-strong underline underline-offset-2">{res.booking_reference}</Link>
+                <Link
+                  href={`/app/reservations/${res.id}/settlement`}
+                  className="font-medium text-primary-strong underline underline-offset-2"
+                >
+                  {res.booking_reference}
+                </Link>
                 {guest ? `, ${guest}` : ""}
                 {showProperty && prop ? `, ${prop.name}` : ""}
               </>
-            ) : "Reservation not visible to you"}
+            ) : (
+              "Reservation not visible to you"
+            )}
           </p>
           <p className="mt-2 max-w-prose text-sm">{r.reason}</p>
           <p className="mt-1 text-xs text-muted">
-            Requested {formatDateTime(r.created_at, tz)}{via ? `, refunding a ${via.toLowerCase()} payment` : ""}
+            Requested {formatDateTime(r.created_at, tz)}
+            {via ? `, refunding a ${via.toLowerCase()} payment` : ""}
           </p>
           {r.decision_note && <p className="mt-1 text-xs text-muted">Decision note: {r.decision_note}</p>}
           {r.payout_reference && <p className="mt-1 text-xs text-muted">Payout reference: {r.payout_reference}</p>}
@@ -115,7 +156,9 @@ export default async function RefundsPage({ searchParams }: { searchParams: Prom
                 <input type="hidden" name="refundId" value={r.id} />
                 <input type="hidden" name="decision" value="approve" />
                 <input type="hidden" name="idempotencyKey" value={crypto.randomUUID()} />
-                <button type="submit" className={buttonPrimary}>Approve {money}</button>
+                <button type="submit" className={buttonPrimary}>
+                  Approve {money}
+                </button>
               </form>
               <details className="group">
                 <summary className={`${buttonDanger} inline-block cursor-pointer list-none`}>Reject</summary>
@@ -123,27 +166,39 @@ export default async function RefundsPage({ searchParams }: { searchParams: Prom
                   <input type="hidden" name="refundId" value={r.id} />
                   <input type="hidden" name="decision" value="reject" />
                   <input type="hidden" name="idempotencyKey" value={crypto.randomUUID()} />
-                  <label className="block text-sm" htmlFor={`note-${r.id}`}>Why is it being rejected?</label>
+                  <label className="block text-sm" htmlFor={`note-${r.id}`}>
+                    Why is it being rejected?
+                  </label>
                   <textarea id={`note-${r.id}`} name="note" required maxLength={500} rows={2} className={inputClass} />
-                  <button type="submit" className={buttonDanger}>Reject refund</button>
+                  <button type="submit" className={buttonDanger}>
+                    Reject refund
+                  </button>
                 </form>
               </details>
             </>
           )}
-          {action.kind === "own_request" && <p className="max-w-xs text-sm text-muted">You requested this, so a second person with approval rights has to decide it.</p>}
+          {action.kind === "own_request" && (
+            <p className="max-w-xs text-sm text-muted">You requested this, so a second person with approval rights has to decide it.</p>
+          )}
           {action.kind === "manual_payout" && (
             <form action={recordManualPayout} className="space-y-2">
               <input type="hidden" name="refundId" value={r.id} />
               <input type="hidden" name="idempotencyKey" value={crypto.randomUUID()} />
               <p className="text-sm text-muted">Pay the guest back by hand, then record it.</p>
-              <label className="block text-sm" htmlFor={`ref-${r.id}`}>Transfer or receipt number (optional)</label>
+              <label className="block text-sm" htmlFor={`ref-${r.id}`}>
+                Transfer or receipt number (optional)
+              </label>
               <input id={`ref-${r.id}`} name="payoutReference" maxLength={200} className={inputClass} />
-              <button type="submit" className={buttonPrimary}>I have paid out {money}</button>
+              <button type="submit" className={buttonPrimary}>
+                I have paid out {money}
+              </button>
             </form>
           )}
           {action.kind === "provider_payout" && <PayoutButton refundId={r.id} amountLabel={money} />}
           {action.kind === "bank_details" && <RefundDetailsForm refundId={r.id} />}
-          {action.kind === "wait" && !attention && <p className="max-w-xs text-sm text-muted">With Paystack. This page updates when Paystack confirms.</p>}
+          {action.kind === "wait" && !attention && (
+            <p className="max-w-xs text-sm text-muted">With Paystack. This page updates when Paystack confirms.</p>
+          )}
         </div>
       </li>
     );
@@ -153,9 +208,15 @@ export default async function RefundsPage({ searchParams }: { searchParams: Prom
     if (items.length === 0) return null;
     return (
       <section className="mt-10 first:mt-0">
-        <SectionTitle>{title} <span className="text-base text-muted">({items.length})</span></SectionTitle>
+        <SectionTitle>
+          {title} <span className="text-base text-muted">({items.length})</span>
+        </SectionTitle>
         {hint && <p className="mt-1 max-w-prose text-sm text-muted">{hint}</p>}
-        <ul className="mt-2 border-t border-line">{items.map((r) => <Row key={r.id} r={r} />)}</ul>
+        <ul className="mt-2 border-t border-line">
+          {items.map((r) => (
+            <Row key={r.id} r={r} />
+          ))}
+        </ul>
       </section>
     );
   }
@@ -164,7 +225,8 @@ export default async function RefundsPage({ searchParams }: { searchParams: Prom
     <main className="max-w-5xl">
       <PageTitle>Refunds</PageTitle>
       <PageIntro>
-        Money going back to guests takes two people: one asks, another approves. Card refunds are then paid out through Paystack; cash and transfers are paid by hand and recorded here.
+        Money going back to guests takes two people: one asks, another approves. Card refunds are then paid out through Paystack; cash and
+        transfers are paid by hand and recorded here.
       </PageIntro>
 
       <div className="mt-6">
@@ -174,7 +236,11 @@ export default async function RefundsPage({ searchParams }: { searchParams: Prom
 
       {!loadError && !anyOpen && <EmptyState>Nothing is waiting on anyone.</EmptyState>}
 
-      <Section title="Needs a person" hint="A payout was sent and its result is unknown or overdue. Check Paystack before doing anything else." items={groups.attention} />
+      <Section
+        title="Needs a person"
+        hint="A payout was sent and its result is unknown or overdue. Check Paystack before doing anything else."
+        items={groups.attention}
+      />
       <Section title="Awaiting approval" items={groups.awaitingApproval} />
       <Section title="Ready to pay out" items={groups.readyToPay} />
       <Section title="Paying out" items={groups.processing} />

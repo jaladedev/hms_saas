@@ -27,4 +27,10 @@ export function occupancyCsv(report: OccupancyReport): string {
 }
 
 export const occupancyFileName = (propertyName: string, from: string, to: string) =>
-  `occupancy-${(propertyName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "hotel")}-${from}-to-${to}.csv`;
+  `occupancy-${
+    propertyName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 40) || "hotel"
+  }-${from}-to-${to}.csv`;

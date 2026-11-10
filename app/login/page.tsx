@@ -21,26 +21,42 @@ export default async function Login({ searchParams }: { searchParams: Promise<Re
       <p className="mt-2 text-sm text-muted">Use the email and password your hotel gave you.</p>
 
       {notice && !error && (
-        <p role="status" className="mt-6 border-l-4 border-primary bg-primary/5 px-4 py-3 text-sm text-primary-strong">{notice}</p>
+        <p role="status" className="mt-6 border-l-4 border-primary bg-primary/5 px-4 py-3 text-sm text-primary-strong">
+          {notice}
+        </p>
       )}
       {error && (
-        <p role="alert" className="mt-6 border-l-4 border-critical bg-critical/5 px-4 py-3 text-sm text-critical">{error}</p>
+        <p role="alert" className="mt-6 border-l-4 border-critical bg-critical/5 px-4 py-3 text-sm text-critical">
+          {error}
+        </p>
       )}
 
       <form action={signIn} className="mt-6 space-y-4">
         {next !== "/app" && <input type="hidden" name="next" value={next} />}
         <div>
-          <label htmlFor="email" className="block text-sm font-medium">Email</label>
+          <label htmlFor="email" className="block text-sm font-medium">
+            Email
+          </label>
           <input
-            id="email" name="email" type="email" required maxLength={254} autoComplete="username" autoFocus
-            autoCapitalize="none" spellCheck={false} className={`${inputClass} mt-1`}
+            id="email"
+            name="email"
+            type="email"
+            required
+            maxLength={254}
+            autoComplete="username"
+            autoFocus
+            autoCapitalize="none"
+            spellCheck={false}
+            className={`${inputClass} mt-1`}
           />
         </div>
         <PasswordField />
         <SubmitButton>Sign in</SubmitButton>
       </form>
       <p className="mt-4 text-sm">
-        <Link href="/forgot-password" className="text-primary-strong underline underline-offset-2">Forgot your password?</Link>
+        <Link href="/forgot-password" className="text-primary-strong underline underline-offset-2">
+          Forgot your password?
+        </Link>
       </p>
     </main>
   );

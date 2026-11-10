@@ -1,0 +1,12 @@
+# Generated, vendored or kept exactly as received.
+node_modules
+.next
+.next-e2e
+supabase/.temp
+package-lock.json
+tools/lint/package-lock.json
+types/database.ts
+docs/specs
+# SQL and long-form notes are not formatted by Prettier here.
+*.sql
+*.md

@@ -4,11 +4,31 @@
  */
 
 export type NewHotelInput = {
-  name: string; slug: string; propertyName: string; propertyCode: string; city: string; state: string;
-  timezone: string; currency: string; host: string; ownerEmail: string; secretReference: string; paymentMode: "test" | "live";
+  name: string;
+  slug: string;
+  propertyName: string;
+  propertyCode: string;
+  city: string;
+  state: string;
+  timezone: string;
+  currency: string;
+  host: string;
+  ownerEmail: string;
+  secretReference: string;
+  paymentMode: "test" | "live";
 };
 
-export type NewHotelField = "name" | "slug" | "property_name" | "code" | "timezone" | "currency" | "host" | "owner_email" | "secret_reference" | "payment_mode";
+export type NewHotelField =
+  | "name"
+  | "slug"
+  | "property_name"
+  | "code"
+  | "timezone"
+  | "currency"
+  | "host"
+  | "owner_email"
+  | "secret_reference"
+  | "payment_mode";
 
 const SLUG = /^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/;
 const CODE = /^[A-Z0-9-]{2,12}$/;
@@ -20,14 +40,24 @@ const squash = (v: unknown) => (typeof v === "string" ? v.trim().replace(/\s+/g,
 
 /** "Hotel Ibadan & Suites" -> "hotel-ibadan-suites". Used when the slug box is left empty. */
 export function slugFromName(name: string): string {
-  return name.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 63).replace(/-+$/g, "");
+  return name
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 63)
+    .replace(/-+$/g, "");
 }
 
 /** What a person pastes ("https://Book.Hotel.com:443/path") reduced to the host the guest site is reached on. */
 export function normalizeHost(value: string): string {
   let v = value.trim().toLowerCase();
   v = v.replace(/^[a-z][a-z0-9+.-]*:\/\//, "");
-  v = v.replace(/[/?#].*$/, "").replace(/:\d+$/, "").replace(/\.$/, "");
+  v = v
+    .replace(/[/?#].*$/, "")
+    .replace(/:\d+$/, "")
+    .replace(/\.$/, "");
   return v;
 }
 
@@ -57,9 +87,30 @@ export function validateNewHotel(raw: Record<string, unknown>): { ok: true; valu
   if (ownerEmail.length > 254 || !EMAIL.test(ownerEmail)) return { ok: false, field: "owner_email" };
   const secretReference = normalizeSecretReference(typeof raw.secretReference === "string" ? raw.secretReference : "");
   if (secretReference !== "" && !SECRET_REF.test(secretReference)) return { ok: false, field: "secret_reference" };
-  const paymentMode = raw.paymentMode === "live" ? "live" : raw.paymentMode === "test" || raw.paymentMode === undefined || raw.paymentMode === "" ? "test" : null;
+  const paymentMode =
+    raw.paymentMode === "live"
+      ? "live"
+      : raw.paymentMode === "test" || raw.paymentMode === undefined || raw.paymentMode === ""
+        ? "test"
+        : null;
   if (paymentMode === null) return { ok: false, field: "payment_mode" };
-  return { ok: true, value: { name, slug, propertyName, propertyCode, city: squash(raw.city), state: squash(raw.state), timezone, currency, host, ownerEmail, secretReference, paymentMode } };
+  return {
+    ok: true,
+    value: {
+      name,
+      slug,
+      propertyName,
+      propertyCode,
+      city: squash(raw.city),
+      state: squash(raw.state),
+      timezone,
+      currency,
+      host,
+      ownerEmail,
+      secretReference,
+      paymentMode,
+    },
+  };
 }
 
 /** Wording for the field that failed validation. */
@@ -72,13 +123,35 @@ export const FIELD_MESSAGES: Record<NewHotelField, string> = {
   currency: "Enter a three-letter currency such as NGN.",
   host: "Enter the web address guests will use, such as book.example.com.",
   owner_email: "Enter the owner's email address.",
-  secret_reference: "The payment secret name must be capitals, digits and underscores, starting with a letter (for example PAYSTACK_SECRET_HOTEL).",
+  secret_reference:
+    "The payment secret name must be capitals, digits and underscores, starting with a letter (for example PAYSTACK_SECRET_HOTEL).",
   payment_mode: "Choose test or live.",
 };
 
 export type PlatformCode =
-  | "forbidden" | "not_found" | "slug" | "code" | "name" | "host" | "timezone" | "currency" | "secret_reference" | "payment_mode"
-  | "owner_missing" | "slug_taken" | "host_taken" | "property" | "reason" | "status" | "invite_failed" | "owner_active" | "plan" | "subscription_status" | "feature_key" | "bad_request" | "unavailable";
+  | "forbidden"
+  | "not_found"
+  | "slug"
+  | "code"
+  | "name"
+  | "host"
+  | "timezone"
+  | "currency"
+  | "secret_reference"
+  | "payment_mode"
+  | "owner_missing"
+  | "slug_taken"
+  | "host_taken"
+  | "property"
+  | "reason"
+  | "status"
+  | "invite_failed"
+  | "owner_active"
+  | "plan"
+  | "subscription_status"
+  | "feature_key"
+  | "bad_request"
+  | "unavailable";
 
 /** Which refusal a failed call means. The database's own words are never shown to the person. */
 export function classifyPlatformError(err: { code?: string; message?: string } | null | undefined): PlatformCode {
@@ -90,14 +163,30 @@ export function classifyPlatformError(err: { code?: string; message?: string } |
   if (/^CONFLICT: host/.test(m)) return "host_taken";
   const v = /^POLICY_VIOLATION: (.+)$/.exec(m)?.[1]?.trim();
   switch (v) {
-    case "slug": case "code": case "name": case "host": case "timezone": case "currency": case "reason": case "status": return v;
-    case "secret reference": return "secret_reference";
-    case "payment mode": return "payment_mode";
-    case "plan": return "plan";
-    case "subscription status": return "subscription_status";
-    case "feature key": return "feature_key";
-    case "verified": case "enabled": return "bad_request";
-    default: break;
+    case "slug":
+    case "code":
+    case "name":
+    case "host":
+    case "timezone":
+    case "currency":
+    case "reason":
+    case "status":
+      return v;
+    case "secret reference":
+      return "secret_reference";
+    case "payment mode":
+      return "payment_mode";
+    case "plan":
+      return "plan";
+    case "subscription status":
+      return "subscription_status";
+    case "feature key":
+      return "feature_key";
+    case "verified":
+    case "enabled":
+      return "bad_request";
+    default:
+      break;
   }
   if (err?.code === "42501") return "forbidden";
   if (/^FORBIDDEN/.test(m)) return "forbidden";
@@ -130,7 +219,17 @@ export const ERROR_MESSAGES: Record<PlatformCode, string> = {
   unavailable: "That could not be done right now. Try again in a moment.",
 };
 
-export type PlatformOk = "created" | "status" | "domain_added" | "domain_verified" | "domain_unverified" | "provider" | "invite_resent" | "plan_set" | "feature_set" | "unchanged";
+export type PlatformOk =
+  | "created"
+  | "status"
+  | "domain_added"
+  | "domain_verified"
+  | "domain_unverified"
+  | "provider"
+  | "invite_resent"
+  | "plan_set"
+  | "feature_set"
+  | "unchanged";
 export const OK_MESSAGES: Record<PlatformOk, string> = {
   created: "Hotel group created. Its domain is not verified yet, so guests cannot reach it until you verify the address.",
   status: "Status changed.",

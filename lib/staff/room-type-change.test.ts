@@ -17,15 +17,28 @@ describe("canChangeType", () => {
 
 describe("typeChangeWindow", () => {
   it("runs from the arrival (or today once the stay has begun) to the last night", () => {
-    expect(typeChangeWindow("2026-12-01", "2026-12-05", "2026-11-10")).toEqual({ min: "2026-12-01", max: "2026-12-04", initial: "2026-12-01" });
-    expect(typeChangeWindow("2026-11-08", "2026-11-12", "2026-11-10")).toEqual({ min: "2026-11-10", max: "2026-11-11", initial: "2026-11-10" });
+    expect(typeChangeWindow("2026-12-01", "2026-12-05", "2026-11-10")).toEqual({
+      min: "2026-12-01",
+      max: "2026-12-04",
+      initial: "2026-12-01",
+    });
+    expect(typeChangeWindow("2026-11-08", "2026-11-12", "2026-11-10")).toEqual({
+      min: "2026-11-10",
+      max: "2026-11-11",
+      initial: "2026-11-10",
+    });
     expect(typeChangeWindow("2026-11-08", "2026-11-10", "2026-11-10")).toBeNull();
   });
 });
 
 describe("otherTypes", () => {
   it("lists active types other than the current one, by name", () => {
-    const types = [{ id: "a", name: "Suite", status: "active" }, { id: "b", name: "Standard", status: "active" }, { id: "c", name: "Old", status: "inactive" }, { id: "d", name: "Deluxe", status: "active" }];
+    const types = [
+      { id: "a", name: "Suite", status: "active" },
+      { id: "b", name: "Standard", status: "active" },
+      { id: "c", name: "Old", status: "inactive" },
+      { id: "d", name: "Deluxe", status: "active" },
+    ];
     expect(otherTypes(types, "b").map((t) => t.id)).toEqual(["d", "a"]);
   });
 });

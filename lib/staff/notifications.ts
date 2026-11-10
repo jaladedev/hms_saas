@@ -19,9 +19,16 @@ export type Inbox = { items: NotificationItem[]; unread: NotificationUnread };
 
 export const CATEGORIES: NotificationCategory[] = ["money", "maintenance", "booking", "housekeeping"];
 export const CATEGORY_LABEL: Record<NotificationCategory, string> = {
-  money: "Money", maintenance: "Maintenance", booking: "Bookings", housekeeping: "Housekeeping",
+  money: "Money",
+  maintenance: "Maintenance",
+  booking: "Bookings",
+  housekeeping: "Housekeeping",
 };
-export const SEVERITY_LABEL: Record<NotificationSeverity, string> = { info: "For your information", attention: "Needs attention", urgent: "Urgent" };
+export const SEVERITY_LABEL: Record<NotificationSeverity, string> = {
+  info: "For your information",
+  attention: "Needs attention",
+  urgent: "Urgent",
+};
 
 export const EMPTY_UNREAD: NotificationUnread = { total: 0, money: 0, maintenance: 0, booking: 0, housekeeping: 0 };
 
@@ -34,11 +41,16 @@ export function parseCategory(v: string | string[] | undefined): NotificationCat
 export function parseInbox(data: unknown): Inbox {
   const d = (data ?? {}) as { items?: unknown; unread?: Partial<NotificationUnread> };
   const items = Array.isArray(d.items)
-    ? (d.items as NotificationItem[]).filter((i) => i && typeof i.id === "string" && CATEGORIES.includes(i.category) && typeof i.title === "string")
+    ? (d.items as NotificationItem[]).filter(
+        (i) => i && typeof i.id === "string" && CATEGORIES.includes(i.category) && typeof i.title === "string",
+      )
     : [];
   const u = d.unread ?? {};
   const n = (x: unknown) => (typeof x === "number" && x > 0 ? x : 0);
-  return { items, unread: { total: n(u.total), money: n(u.money), maintenance: n(u.maintenance), booking: n(u.booking), housekeeping: n(u.housekeeping) } };
+  return {
+    items,
+    unread: { total: n(u.total), money: n(u.money), maintenance: n(u.maintenance), booking: n(u.booking), housekeeping: n(u.housekeeping) },
+  };
 }
 
 /** A link is followed only when it is a path inside the staff app. */

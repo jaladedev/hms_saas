@@ -19,17 +19,24 @@ const key = z.string().min(8).max(100);
 const uuid = z.guid();
 
 export async function decideRefund(formData: FormData) {
-  const parsed = z.object({
-    refundId: uuid, idempotencyKey: key, decision: z.enum(["approve", "reject"]),
-    note: z.string().max(500).optional(),
-  }).safeParse(Object.fromEntries(formData));
+  const parsed = z
+    .object({
+      refundId: uuid,
+      idempotencyKey: key,
+      decision: z.enum(["approve", "reject"]),
+      note: z.string().max(500).optional(),
+    })
+    .safeParse(Object.fromEntries(formData));
   if (!parsed.success) return back(REFUNDS_PAGE, { err: "bad_request" });
   const { refundId, idempotencyKey, decision, note } = parsed.data;
   if (decision === "reject" && !note?.trim()) return back(REFUNDS_PAGE, { err: "note_required" });
 
   const supabase = await staffClient();
   const { error } = await supabase.rpc("approve_refund", {
-    p_refund_id: refundId, p_approve: decision === "approve", p_note: note?.trim() || null, p_idempotency_key: idempotencyKey,
+    p_refund_id: refundId,
+    p_approve: decision === "approve",
+    p_note: note?.trim() || null,
+    p_idempotency_key: idempotencyKey,
   });
   if (error) return fail(REFUNDS_PAGE, error.message);
   revalidatePath(REFUNDS_PAGE);
@@ -37,14 +44,19 @@ export async function decideRefund(formData: FormData) {
 }
 
 export async function recordManualPayout(formData: FormData) {
-  const parsed = z.object({
-    refundId: uuid, idempotencyKey: key, payoutReference: z.string().max(200).optional(),
-  }).safeParse(Object.fromEntries(formData));
+  const parsed = z
+    .object({
+      refundId: uuid,
+      idempotencyKey: key,
+      payoutReference: z.string().max(200).optional(),
+    })
+    .safeParse(Object.fromEntries(formData));
   if (!parsed.success) return back(REFUNDS_PAGE, { err: "bad_request" });
 
   const supabase = await staffClient();
   const { error } = await supabase.rpc("record_manual_refund", {
-    p_refund_id: parsed.data.refundId, p_payout_reference: parsed.data.payoutReference?.trim() || null,
+    p_refund_id: parsed.data.refundId,
+    p_payout_reference: parsed.data.payoutReference?.trim() || null,
     p_idempotency_key: parsed.data.idempotencyKey,
   });
   if (error) return fail(REFUNDS_PAGE, error.message);
@@ -53,10 +65,15 @@ export async function recordManualPayout(formData: FormData) {
 }
 
 export async function requestRefund(formData: FormData) {
-  const parsed = z.object({
-    reservationId: uuid, paymentId: uuid, idempotencyKey: key,
-    amount: z.string().max(40), reason: z.string().max(500),
-  }).safeParse(Object.fromEntries(formData));
+  const parsed = z
+    .object({
+      reservationId: uuid,
+      paymentId: uuid,
+      idempotencyKey: key,
+      amount: z.string().max(40),
+      reason: z.string().max(500),
+    })
+    .safeParse(Object.fromEntries(formData));
   if (!parsed.success) return back(REFUNDS_PAGE, { err: "bad_request" });
   const page = `/app/reservations/${parsed.data.reservationId}/settlement`;
 
@@ -66,7 +83,9 @@ export async function requestRefund(formData: FormData) {
 
   const supabase = await staffClient();
   const { error } = await supabase.rpc("request_refund", {
-    p_payment_id: parsed.data.paymentId, p_amount_minor: minor, p_reason: parsed.data.reason.trim(),
+    p_payment_id: parsed.data.paymentId,
+    p_amount_minor: minor,
+    p_reason: parsed.data.reason.trim(),
     p_idempotency_key: parsed.data.idempotencyKey,
   });
   if (error) return fail(page, error.message);

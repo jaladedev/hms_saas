@@ -9,10 +9,25 @@ const OTHER = "22222222-2222-2222-2222-222222222222";
 
 function refund(over: Partial<RefundRow> = {}): RefundRow {
   return {
-    id: "r1", reservation_id: "res1", payment_id: "p1", internal_reference: "RF-AAAAAAAAAA", amount_minor: 500000, currency: "NGN",
-    refund_status: "requested", reason: "test", requested_by: OTHER, decided_by: null, decided_at: null, decision_note: null,
-    payout_reference: null, failure_reason: null, attention_note: null, provider_call_started_at: null,
-    created_at: "2026-10-31T09:00:00Z", completed_at: null, ...over,
+    id: "r1",
+    reservation_id: "res1",
+    payment_id: "p1",
+    internal_reference: "RF-AAAAAAAAAA",
+    amount_minor: 500000,
+    currency: "NGN",
+    refund_status: "requested",
+    reason: "test",
+    requested_by: OTHER,
+    decided_by: null,
+    decided_at: null,
+    decision_note: null,
+    payout_reference: null,
+    failure_reason: null,
+    attention_note: null,
+    provider_call_started_at: null,
+    created_at: "2026-10-31T09:00:00Z",
+    completed_at: null,
+    ...over,
   };
 }
 
@@ -76,16 +91,20 @@ describe("availableAction", () => {
   });
   it("offers nothing once a refund is in flight or closed", () => {
     expect(availableAction(refund({ refund_status: "processing" }), "paystack", ME).kind).toBe("wait");
-    for (const s of ["succeeded", "rejected", "failed"] as const) expect(availableAction(refund({ refund_status: s }), "paystack", ME).kind).toBe("none");
+    for (const s of ["succeeded", "rejected", "failed"] as const)
+      expect(availableAction(refund({ refund_status: s }), "paystack", ME).kind).toBe("none");
   });
 });
 
 describe("refundableMinor", () => {
   it("subtracts requested, approved, processing and succeeded refunds but not rejected or failed", () => {
     const rs = [
-      { amount_minor: 100, refund_status: "requested" as const }, { amount_minor: 200, refund_status: "approved" as const },
-      { amount_minor: 300, refund_status: "processing" as const }, { amount_minor: 400, refund_status: "succeeded" as const },
-      { amount_minor: 500, refund_status: "rejected" as const }, { amount_minor: 600, refund_status: "failed" as const },
+      { amount_minor: 100, refund_status: "requested" as const },
+      { amount_minor: 200, refund_status: "approved" as const },
+      { amount_minor: 300, refund_status: "processing" as const },
+      { amount_minor: 400, refund_status: "succeeded" as const },
+      { amount_minor: 500, refund_status: "rejected" as const },
+      { amount_minor: 600, refund_status: "failed" as const },
     ];
     expect(refundableMinor(2000, rs)).toBe(1000);
     expect(refundableMinor(500, rs)).toBe(0);
@@ -95,7 +114,10 @@ describe("refundableMinor", () => {
 describe("classifyRpcError", () => {
   it("recognises the database's refusals", () => {
     expect(classifyRpcError("POLICY_VIOLATION: SELF_APPROVAL").code).toBe("self_approval");
-    expect(classifyRpcError("POLICY_VIOLATION: REFUND_EXCEEDS_PAYMENT refundable 150000")).toEqual({ code: "exceeds", refundableMinor: 150000 });
+    expect(classifyRpcError("POLICY_VIOLATION: REFUND_EXCEEDS_PAYMENT refundable 150000")).toEqual({
+      code: "exceeds",
+      refundableMinor: 150000,
+    });
     expect(classifyRpcError("POLICY_VIOLATION: note required to reject").code).toBe("note_required");
     expect(classifyRpcError("POLICY_VIOLATION: reason required").code).toBe("reason_required");
     expect(classifyRpcError("POLICY_VIOLATION: provider payments are refunded through the provider").code).toBe("provider_payment");

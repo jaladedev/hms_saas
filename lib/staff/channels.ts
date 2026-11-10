@@ -1,17 +1,39 @@
 /** Wording and shares for the channel and guest report page (migration 044). Pure, so it can be tested. */
-export type ChannelRow = { source: string; bookings: number; room_nights: number; room_revenue_minor: number; cancelled: number; no_shows: number };
+export type ChannelRow = {
+  source: string;
+  bookings: number;
+  room_nights: number;
+  room_revenue_minor: number;
+  cancelled: number;
+  no_shows: number;
+};
 export type ChannelReport = {
-  property_id: string; currency: string; from: string; to: string; rows: ChannelRow[]; totals: Omit<ChannelRow, "source">;
+  property_id: string;
+  currency: string;
+  from: string;
+  to: string;
+  rows: ChannelRow[];
+  totals: Omit<ChannelRow, "source">;
 };
 export type GuestReport = {
-  property_id: string; currency: string; from: string; to: string; guests_total: number; guests_new: number; guests_returning: number;
+  property_id: string;
+  currency: string;
+  from: string;
+  to: string;
+  guests_total: number;
+  guests_new: number;
+  guests_returning: number;
   countries: { country: string; guests: number; room_nights: number }[];
   top_guests: { guest_id: string; name: string; stays: number; room_nights: number; room_revenue_minor: number }[];
   names_hidden: boolean;
 };
 
 export const SOURCE_LABEL: Record<string, string> = {
-  website: "Website", walk_in: "Walk-in", phone: "Phone", staff_entry: "Staff entry", partner: "Partner",
+  website: "Website",
+  walk_in: "Walk-in",
+  phone: "Phone",
+  staff_entry: "Staff entry",
+  partner: "Partner",
 };
 export const sourceLabel = (s: string) => SOURCE_LABEL[s] ?? s;
 
@@ -31,7 +53,11 @@ const COUNTRY_NAMES = new Intl.DisplayNames("en", { type: "region" });
 export function countryLabel(code: string): string {
   if (code === "unknown") return "No country recorded";
   if (!/^[A-Za-z]{2}$/.test(code)) return code;
-  try { return COUNTRY_NAMES.of(code.toUpperCase()) ?? code; } catch { return code; }
+  try {
+    return COUNTRY_NAMES.of(code.toUpperCase()) ?? code;
+  } catch {
+    return code;
+  }
 }
 
 export const KINDS = ["channels", "guests", "noshows"] as const;

@@ -14,8 +14,12 @@ export function parseEarlyQuote(data: unknown): EarlyQuote | null {
   const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : 0);
   const mode = d.mode === "credit" || d.mode === "one_night" ? d.mode : "none";
   return {
-    early: d.early === true, mode, nights_credited: num(d.nights_credited), credit_minor: num(d.credit_minor),
-    new_total_minor: typeof d.new_total_minor === "number" ? d.new_total_minor : null, surplus_minor: num(d.surplus_minor),
+    early: d.early === true,
+    mode,
+    nights_credited: num(d.nights_credited),
+    credit_minor: num(d.credit_minor),
+    new_total_minor: typeof d.new_total_minor === "number" ? d.new_total_minor : null,
+    surplus_minor: num(d.surplus_minor),
   };
 }
 
@@ -30,6 +34,7 @@ export function earlyCheckoutNote(q: EarlyQuote, date: string, money: (minor: nu
   }
   const nights = q.nights_credited === 1 ? "1 night" : `${q.nights_credited} nights`;
   const total = q.new_total_minor === null ? "" : ` The booking total becomes ${money(q.new_total_minor)}.`;
-  const refund = q.surplus_minor > 0 ? ` The guest has paid ${money(q.surplus_minor)} more than that, which will be flagged for a refund.` : "";
+  const refund =
+    q.surplus_minor > 0 ? ` The guest has paid ${money(q.surplus_minor)} more than that, which will be flagged for a refund.` : "";
   return `Leaving before ${date}: ${nights} not stayed will be taken off, ${money(q.credit_minor)} in all.${total}${refund}`;
 }

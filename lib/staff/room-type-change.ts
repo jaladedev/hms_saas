@@ -9,13 +9,17 @@ export type TypeOption = { id: string; name: string; status: string };
  * A held, unpaid online booking is not offered: it has no price agreed yet.
  */
 export function canChangeType(roomStatus: string, reservationStatus: string, mayAssign: boolean, hasDiscount: boolean): boolean {
-  return mayAssign && !hasDiscount
-    && (roomStatus === "booked" || roomStatus === "checked_in")
-    && (reservationStatus === "confirmed" || reservationStatus === "checked_in");
+  return (
+    mayAssign &&
+    !hasDiscount &&
+    (roomStatus === "booked" || roomStatus === "checked_in") &&
+    (reservationStatus === "confirmed" || reservationStatus === "checked_in")
+  );
 }
 
 /** The first night in the new type can be today (or the arrival) up to the last night. Same window as a room move. */
-export const typeChangeWindow = (arrival: string, departure: string, today: string): TransferWindow | null => transferWindow(arrival, departure, today);
+export const typeChangeWindow = (arrival: string, departure: string, today: string): TransferWindow | null =>
+  transferWindow(arrival, departure, today);
 
 /** Other types in service, by name. */
 export function otherTypes(types: TypeOption[], currentId: string): TypeOption[] {

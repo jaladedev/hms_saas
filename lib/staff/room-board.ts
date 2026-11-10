@@ -1,14 +1,24 @@
 /** Works out what each room is doing today for the room board. Pure functions, so they can be tested. */
 
 export type BoardRoom = {
-  id: string; property_id: string; room_type_id: string; room_number: string; floor: number | null;
-  operational_status: string; housekeeping_status: string;
+  id: string;
+  property_id: string;
+  room_type_id: string;
+  room_number: string;
+  floor: number | null;
+  operational_status: string;
+  housekeeping_status: string;
   /** The room type's name, from room_board_view (034). Never a rate. Absent where a screen reads the rooms table directly. */
   room_type_name?: string | null;
 };
 export type BoardClaim = {
-  id: string; room_id: string; claim_type: string; start_date: string; end_date: string;
-  reservation_room_id: string | null; block_reason: string | null;
+  id: string;
+  room_id: string;
+  claim_type: string;
+  start_date: string;
+  end_date: string;
+  reservation_room_id: string | null;
+  block_reason: string | null;
   /** From room_board_claims_view (034): the guest of this stay is in the room. Lets people without reservation.view tell occupied from arriving. */
   checked_in?: boolean;
 };
@@ -27,8 +37,13 @@ export type RoomView = {
 };
 
 export const STATE_LABEL: Record<RoomState, string> = {
-  retired: "Retired", out_of_service: "Out of service", occupied: "Occupied", arriving: "Booked tonight",
-  held: "On hold", blocked: "Blocked", vacant: "Vacant",
+  retired: "Retired",
+  out_of_service: "Out of service",
+  occupied: "Occupied",
+  arriving: "Booked tonight",
+  held: "On hold",
+  blocked: "Blocked",
+  vacant: "Vacant",
 };
 
 /**

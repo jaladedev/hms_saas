@@ -8,7 +8,11 @@ import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-export default async function PaymentsToVerifyPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+export default async function PaymentsToVerifyPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const search = await searchParams;
   const view = parseVerificationView(search.view);
   const supabase = await createClient();
@@ -28,25 +32,37 @@ export default async function PaymentsToVerifyPage({ searchParams }: { searchPar
     <main className="max-w-4xl">
       <PageTitle>Payments to verify</PageTitle>
       <PageIntro>
-        Bank transfers and other payments the desk recorded by hand. They already count toward the guest&apos;s balance, but nobody has yet checked them
-        against the bank statement. Verify each one once you have seen the money, or reverse it from the booking if it never arrived. Cash and card-terminal
-        payments are counted as verified when they are recorded.
+        Bank transfers and other payments the desk recorded by hand. They already count toward the guest&apos;s balance, but nobody has yet
+        checked them against the bank statement. Verify each one once you have seen the money, or reverse it from the booking if it never
+        arrived. Cash and card-terminal payments are counted as verified when they are recorded.
       </PageIntro>
 
       <div className="mt-6">
         <Notice search={search} currency="NGN" />
-        {queueQ.error && <ErrorBanner className="mb-5">The payments could not be loaded. You may not have permission to verify payments. Reload the page to try again.</ErrorBanner>}
+        {queueQ.error && (
+          <ErrorBanner className="mb-5">
+            The payments could not be loaded. You may not have permission to verify payments. Reload the page to try again.
+          </ErrorBanner>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center gap-2" role="navigation" aria-label="Which payments">
         <Link href="/app/payments" className={tab(view === "unverified")} aria-current={view === "unverified" ? "page" : undefined}>
           To verify{queue.unverified > 0 && <span className="ml-1 tabular-nums">({queue.unverified})</span>}
         </Link>
-        <Link href="/app/payments?view=verified" className={tab(view === "verified")} aria-current={view === "verified" ? "page" : undefined}>Recently verified</Link>
+        <Link
+          href="/app/payments?view=verified"
+          className={tab(view === "verified")}
+          aria-current={view === "verified" ? "page" : undefined}
+        >
+          Recently verified
+        </Link>
       </div>
 
       {queue.items.length === 0 && !queueQ.error && (
-        <EmptyState className="mt-8">{view === "unverified" ? "Nothing waiting. Every manual payment has been checked." : "No payments have been verified yet."}</EmptyState>
+        <EmptyState className="mt-8">
+          {view === "unverified" ? "Nothing waiting. Every manual payment has been checked." : "No payments have been verified yet."}
+        </EmptyState>
       )}
 
       <ul className="mt-6 border-t border-line">
@@ -61,17 +77,22 @@ export default async function PaymentsToVerifyPage({ searchParams }: { searchPar
                   {view === "unverified" && <span className="text-sm text-muted">{waitingText(daysWaiting(p.received_at, now))}</span>}
                 </div>
                 <p className="mt-1 text-sm">
-                  <Link href={`/app/reservations/${p.reservation_id}/settlement`} className={linkClass}>{p.booking_reference}</Link>
-                  {p.guest_name ? `, ${p.guest_name}` : ""}{showProperty ? `, ${p.property_name}` : ""}
+                  <Link href={`/app/reservations/${p.reservation_id}/settlement`} className={linkClass}>
+                    {p.booking_reference}
+                  </Link>
+                  {p.guest_name ? `, ${p.guest_name}` : ""}
+                  {showProperty ? `, ${p.property_name}` : ""}
                 </p>
                 <p className="mt-1 text-xs text-muted">
-                  Recorded {formatDateTime(p.received_at, tz)}{p.recorded_by_name ? ` by ${p.recorded_by_name}` : ""}
+                  Recorded {formatDateTime(p.received_at, tz)}
+                  {p.recorded_by_name ? ` by ${p.recorded_by_name}` : ""}
                   {p.reference ? `, reference ${p.reference}` : ", no reference given"}
                 </p>
                 {p.note && <p className="mt-1 max-w-prose break-words text-sm">{p.note}</p>}
                 {view === "verified" && (
                   <p className="mt-1 text-xs text-muted">
-                    Verified {formatDateTime(p.verified_at, tz)}{p.verified_by_name ? ` by ${p.verified_by_name}` : ""}
+                    Verified {formatDateTime(p.verified_at, tz)}
+                    {p.verified_by_name ? ` by ${p.verified_by_name}` : ""}
                     {p.verification_note ? `: ${p.verification_note}` : ""}
                   </p>
                 )}
@@ -81,9 +102,16 @@ export default async function PaymentsToVerifyPage({ searchParams }: { searchPar
                   <input type="hidden" name="paymentId" value={p.id} />
                   <label className="block text-sm">
                     <span className="text-muted">Note (optional)</span>
-                    <input name="note" maxLength={500} placeholder="e.g. seen on the 14 Nov statement" className="mt-1 block w-full rounded border border-line px-2 py-1.5" />
+                    <input
+                      name="note"
+                      maxLength={500}
+                      placeholder="e.g. seen on the 14 Nov statement"
+                      className="mt-1 block w-full rounded border border-line px-2 py-1.5"
+                    />
                   </label>
-                  <button type="submit" className={buttonPrimary}>Mark verified</button>
+                  <button type="submit" className={buttonPrimary}>
+                    Mark verified
+                  </button>
                 </form>
               )}
             </li>

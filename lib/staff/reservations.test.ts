@@ -1,15 +1,32 @@
 import { describe, expect, it } from "vitest";
 import { classifyRpcError, errorMessage } from "./refunds";
 import {
-  attentionText, detailActions, listQuery, nightsBetween, parseFilters, parseIsoDate, sanitizeSearch, sortAscending, statusesFor, todayIn,
-  type ResState, type Viewer,
+  attentionText,
+  detailActions,
+  listQuery,
+  nightsBetween,
+  parseFilters,
+  parseIsoDate,
+  sanitizeSearch,
+  sortAscending,
+  statusesFor,
+  todayIn,
+  type ResState,
+  type Viewer,
 } from "./reservations";
 
 const ALL: Viewer = { cancel: true, checkin: true, checkout: true, payment: true };
 const NONE: Viewer = { cancel: false, checkin: false, checkout: false, payment: false };
 
 function res(over: Partial<ResState> = {}): ResState {
-  return { reservation_status: "confirmed", arrival_date: "2026-11-02", departure_date: "2026-11-05", total_minor: 9000000, cancellation_charge_minor: 0, ...over };
+  return {
+    reservation_status: "confirmed",
+    arrival_date: "2026-11-02",
+    departure_date: "2026-11-05",
+    total_minor: 9000000,
+    cancellation_charge_minor: 0,
+    ...over,
+  };
 }
 
 describe("sanitizeSearch", () => {
@@ -82,9 +99,9 @@ describe("dates", () => {
   it("finds today's date in the property's own timezone", () => {
     const t = new Date("2026-10-31T23:30:00Z");
     expect(todayIn("UTC", t)).toBe("2026-10-31");
-    expect(todayIn("Africa/Lagos", t)).toBe("2026-11-01");   // UTC+1
+    expect(todayIn("Africa/Lagos", t)).toBe("2026-11-01"); // UTC+1
     expect(todayIn("Pacific/Auckland", t)).toBe("2026-11-01");
-    expect(todayIn("Not/AZone", t)).toBe("2026-10-31");      // unknown zone falls back to UTC
+    expect(todayIn("Not/AZone", t)).toBe("2026-10-31"); // unknown zone falls back to UTC
   });
   it("counts nights, departure exclusive", () => {
     expect(nightsBetween("2026-11-02", "2026-11-05")).toBe(3);
@@ -108,13 +125,13 @@ describe("detailActions", () => {
 
   it("offers check-in only on a stay night, for a room that has not arrived", () => {
     const at = (today: string) => detailActions(res(), ALL, today, 0).checkIn(booked);
-    expect(at("2026-11-01")).toBe(false);   // before arrival: the database refuses early check-in
-    expect(at("2026-11-02")).toBe(true);    // arrival day
-    expect(at("2026-11-04")).toBe(true);    // last night
-    expect(at("2026-11-05")).toBe(false);   // departure day: the stay has ended
+    expect(at("2026-11-01")).toBe(false); // before arrival: the database refuses early check-in
+    expect(at("2026-11-02")).toBe(true); // arrival day
+    expect(at("2026-11-04")).toBe(true); // last night
+    expect(at("2026-11-05")).toBe(false); // departure day: the stay has ended
     expect(detailActions(res(), ALL, "2026-11-02", 0).checkIn(inHouse)).toBe(false);
     expect(detailActions(res({ reservation_status: "pending" }), ALL, "2026-11-02", 0).checkIn(booked)).toBe(false);
-    expect(detailActions(res({ reservation_status: "checked_in" }), ALL, "2026-11-03", 0).checkIn(booked)).toBe(true);   // second room of a multi-room stay
+    expect(detailActions(res({ reservation_status: "checked_in" }), ALL, "2026-11-03", 0).checkIn(booked)).toBe(true); // second room of a multi-room stay
     expect(detailActions(res(), NONE, "2026-11-02", 0).checkIn(booked)).toBe(false);
   });
 
@@ -126,13 +143,13 @@ describe("detailActions", () => {
 
   it("caps payments at the total, or at the unpaid cancellation charge", () => {
     expect(detailActions(res(), ALL, "2026-11-01", 0)).toMatchObject({ recordPayment: true, payableCeilingMinor: 9000000 });
-    expect(detailActions(res(), ALL, "2026-11-01", 9000000).recordPayment).toBe(false);          // fully paid
-    expect(detailActions(res(), ALL, "2026-11-01", null).recordPayment).toBe(true);              // money held unknown: let the database decide
+    expect(detailActions(res(), ALL, "2026-11-01", 9000000).recordPayment).toBe(false); // fully paid
+    expect(detailActions(res(), ALL, "2026-11-01", null).recordPayment).toBe(true); // money held unknown: let the database decide
     expect(detailActions(res(), NONE, "2026-11-01", 0).recordPayment).toBe(false);
     const cancelled = res({ reservation_status: "cancelled", cancellation_charge_minor: 2000000 });
     expect(detailActions(cancelled, ALL, "2026-11-01", 500000)).toMatchObject({ recordPayment: true, payableCeilingMinor: 2000000 });
-    expect(detailActions(cancelled, ALL, "2026-11-01", 2000000).recordPayment).toBe(false);      // charge covered
-    expect(detailActions(res({ reservation_status: "cancelled" }), ALL, "2026-11-01", 0).recordPayment).toBe(false);   // no charge at all
+    expect(detailActions(cancelled, ALL, "2026-11-01", 2000000).recordPayment).toBe(false); // charge covered
+    expect(detailActions(res({ reservation_status: "cancelled" }), ALL, "2026-11-01", 0).recordPayment).toBe(false); // no charge at all
     for (const s of ["expired", "no_show"]) {
       expect(detailActions(res({ reservation_status: s }), ALL, "2026-11-01", 0).recordPayment, s).toBe(false);
     }
@@ -161,7 +178,17 @@ describe("how the database's refusals are worded", () => {
     expect(errorMessage("overpayment", null, fmt)).toMatch(/more than is owed/);
   });
   it("has a sentence for every new code and never echoes database text", () => {
-    for (const c of ["room_not_ready", "room_not_active", "payment_required", "early_checkin", "early_checkin_too_early", "stay_ended", "no_stay_claim", "method_invalid", "not_cancellable"]) {
+    for (const c of [
+      "room_not_ready",
+      "room_not_active",
+      "payment_required",
+      "early_checkin",
+      "early_checkin_too_early",
+      "stay_ended",
+      "no_stay_claim",
+      "method_invalid",
+      "not_cancellable",
+    ]) {
       const m = errorMessage(c, null, fmt);
       expect(m, c).not.toMatch(/Nothing was changed/);
       expect(m, c).not.toMatch(/INVALID_STATE|POLICY_VIOLATION/);
@@ -184,7 +211,7 @@ describe("invoiceActions", () => {
   it("offers issue only when no live invoice exists and the booking is not closed", async () => {
     const { invoiceActions } = await import("./reservations");
     expect(invoiceActions("confirmed", [], ALLP).canIssue).toBe(true);
-    expect(invoiceActions("confirmed", [voided], ALLP).canIssue).toBe(true);     // reissue after a void
+    expect(invoiceActions("confirmed", [voided], ALLP).canIssue).toBe(true); // reissue after a void
     expect(invoiceActions("confirmed", [live], ALLP).canIssue).toBe(false);
     expect(invoiceActions("checked_in", [], { issue: false, void: true }).canIssue).toBe(false);
     for (const s of ["cancelled", "expired", "no_show"]) expect(invoiceActions(s, [], ALLP).canIssue, s).toBe(false);

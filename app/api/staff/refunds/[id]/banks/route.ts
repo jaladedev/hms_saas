@@ -27,7 +27,8 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   if (!refund) return Response.json({ error: "not found" }, { status: 404 });
   const { data: allowed } = await staff.rpc("has_permission", { p_property: refund.property_id, p_permission: "refund.approve" });
   if (allowed !== true) return Response.json({ error: "not found" }, { status: 404 });
-  if (refund.refund_status !== "processing" || !refund.needs_bank_details) return Response.json({ error: "INVALID_STATE" }, { status: 409 });
+  if (refund.refund_status !== "processing" || !refund.needs_bank_details)
+    return Response.json({ error: "INVALID_STATE" }, { status: 409 });
 
   try {
     const service = createServiceClient();

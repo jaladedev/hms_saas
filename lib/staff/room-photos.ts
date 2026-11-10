@@ -15,7 +15,10 @@ export type PhotoCheck =
   | { ok: false; code: "photo_file" };
 
 /** Checks the chosen file's type and size and tidies the caption (empty becomes none, too long is refused). */
-export function validatePhoto(file: { type: string; size: number } | null | undefined, rawCaption: unknown): PhotoCheck | { ok: false; code: "setup_invalid" } {
+export function validatePhoto(
+  file: { type: string; size: number } | null | undefined,
+  rawCaption: unknown,
+): PhotoCheck | { ok: false; code: "setup_invalid" } {
   if (!file || file.size <= 0 || file.size > MAX_PHOTO_BYTES) return { ok: false, code: "photo_file" };
   const ext = TYPES[file.type];
   if (!ext) return { ok: false, code: "photo_file" };
@@ -41,7 +44,10 @@ export function photoUrl(supabaseUrl: string, path: string): string {
 }
 
 /** Turns a database refusal on the photos table into one of our short codes. */
-export function classifyPhotoError(err: { code?: string; message?: string }): "photo_limit" | "setup_forbidden" | "setup_invalid" | "unknown" {
+export function classifyPhotoError(err: {
+  code?: string;
+  message?: string;
+}): "photo_limit" | "setup_forbidden" | "setup_invalid" | "unknown" {
   const msg = err.message ?? "";
   if (/photos limit/i.test(msg)) return "photo_limit";
   if (err.code === "42501" || /row-level security/i.test(msg)) return "setup_forbidden";

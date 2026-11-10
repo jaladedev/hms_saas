@@ -37,7 +37,12 @@ export type RequestRow = {
 export const REQUEST_COLUMNS =
   "id, property_id, room_id, location, title, description, priority, status, assigned_to, due_at, room_block_id, reported_by, created_at, started_at, resolved_at, resolution_note, cancelled_at, cancel_reason";
 
-export const STATUS_LABEL: Record<string, string> = { open: "Waiting", in_progress: "In progress", resolved: "Resolved", cancelled: "Cancelled" };
+export const STATUS_LABEL: Record<string, string> = {
+  open: "Waiting",
+  in_progress: "In progress",
+  resolved: "Resolved",
+  cancelled: "Cancelled",
+};
 const PRIORITY_RANK: Record<string, number> = { urgent: 0, high: 1, normal: 2, low: 3 };
 
 export const isLive = (r: Pick<RequestRow, "status">) => r.status === "open" || r.status === "in_progress";
@@ -64,12 +69,14 @@ export function isOverdue(r: Pick<RequestRow, "status" | "due_at">, now: Date): 
  */
 export function sortRequests(requests: RequestRow[], rooms: Map<string, { room_number: string }>): RequestRow[] {
   const due = (r: RequestRow) => (r.due_at ? Date.parse(r.due_at) : Number.POSITIVE_INFINITY);
-  const number = (r: RequestRow) => (r.room_id ? rooms.get(r.room_id)?.room_number ?? "" : "\uffff");
-  return [...requests].sort((a, b) =>
-    (PRIORITY_RANK[a.priority] ?? 9) - (PRIORITY_RANK[b.priority] ?? 9) ||
-    (due(a) === due(b) ? 0 : due(a) < due(b) ? -1 : 1) ||
-    a.created_at.localeCompare(b.created_at) ||
-    compareRoomNumbers(number(a), number(b)));
+  const number = (r: RequestRow) => (r.room_id ? (rooms.get(r.room_id)?.room_number ?? "") : "\uffff");
+  return [...requests].sort(
+    (a, b) =>
+      (PRIORITY_RANK[a.priority] ?? 9) - (PRIORITY_RANK[b.priority] ?? 9) ||
+      (due(a) === due(b) ? 0 : due(a) < due(b) ? -1 : 1) ||
+      a.created_at.localeCompare(b.created_at) ||
+      compareRoomNumbers(number(a), number(b)),
+  );
 }
 
 export type RequestGroups = { mine: RequestRow[]; unassigned: RequestRow[]; others: RequestRow[] };
@@ -110,7 +117,15 @@ export function filterByPerson(requests: RequestRow[], who: string, userId: stri
   return requests;
 }
 
-export type RequestActions = { claim: boolean; start: boolean; resolve: boolean; assign: boolean; cancel: boolean; priority: boolean; linkBlock: boolean };
+export type RequestActions = {
+  claim: boolean;
+  start: boolean;
+  resolve: boolean;
+  assign: boolean;
+  cancel: boolean;
+  priority: boolean;
+  linkBlock: boolean;
+};
 
 /**
  * Which buttons to offer for a request. This mirrors the database rules in 026 so people are not shown buttons that
@@ -119,7 +134,15 @@ export type RequestActions = { claim: boolean; start: boolean; resolve: boolean;
  * taking one for yourself is limited to a request nobody has.
  */
 export function actionsFor(r: Pick<RequestRow, "status" | "assigned_to" | "room_id">, canManage: boolean): RequestActions {
-  const none: RequestActions = { claim: false, start: false, resolve: false, assign: false, cancel: false, priority: false, linkBlock: false };
+  const none: RequestActions = {
+    claim: false,
+    start: false,
+    resolve: false,
+    assign: false,
+    cancel: false,
+    priority: false,
+    linkBlock: false,
+  };
   if (!isLive(r) || !canManage) return none;
   return {
     claim: r.assigned_to === null,
@@ -149,7 +172,11 @@ export function faultsByRoom(requests: RequestRow[]): Map<string, RoomFault> {
     if (!isLive(r) || !r.room_id) continue;
     const cur = out.get(r.room_id);
     if (!cur) out.set(r.room_id, { count: 1, top: r.priority });
-    else out.set(r.room_id, { count: cur.count + 1, top: (PRIORITY_RANK[r.priority] ?? 9) < (PRIORITY_RANK[cur.top] ?? 9) ? r.priority : cur.top });
+    else
+      out.set(r.room_id, {
+        count: cur.count + 1,
+        top: (PRIORITY_RANK[r.priority] ?? 9) < (PRIORITY_RANK[cur.top] ?? 9) ? r.priority : cur.top,
+      });
   }
   return out;
 }
@@ -175,10 +202,14 @@ export function historyByRoom(requests: RequestRow[], perRoom = 5): Map<string, 
 export function historyLine(r: RequestRow, timeZone: string): { title: string; detail: string } {
   const when = (iso: string | null | undefined) => formatShort(iso, timeZone);
   switch (r.status) {
-    case "resolved": return { title: `${r.title}, resolved`, detail: [when(r.resolved_at), r.resolution_note].filter(Boolean).join(": ") };
-    case "cancelled": return { title: `${r.title}, cancelled`, detail: [when(r.cancelled_at), r.cancel_reason].filter(Boolean).join(": ") };
-    case "in_progress": return { title: `${r.title}, in progress`, detail: when(r.started_at ?? r.created_at) };
-    default: return { title: `${r.title}, waiting`, detail: when(r.created_at) };
+    case "resolved":
+      return { title: `${r.title}, resolved`, detail: [when(r.resolved_at), r.resolution_note].filter(Boolean).join(": ") };
+    case "cancelled":
+      return { title: `${r.title}, cancelled`, detail: [when(r.cancelled_at), r.cancel_reason].filter(Boolean).join(": ") };
+    case "in_progress":
+      return { title: `${r.title}, in progress`, detail: when(r.started_at ?? r.created_at) };
+    default:
+      return { title: `${r.title}, waiting`, detail: when(r.created_at) };
   }
 }
 
@@ -189,7 +220,12 @@ type ClaimLike = { id: string; room_id: string; claim_type: string; start_date: 
  * The room blocks a request may point at: this room's blocks that have not ended yet, plus the one already linked
  * (even if it has ended or been released, so the screen can show it). Soonest first.
  */
-export function blocksForRequest<C extends ClaimLike>(r: Pick<RequestRow, "room_id" | "room_block_id">, claims: C[], today: string, describe: (c: C) => string): BlockChoice[] {
+export function blocksForRequest<C extends ClaimLike>(
+  r: Pick<RequestRow, "room_id" | "room_block_id">,
+  claims: C[],
+  today: string,
+  describe: (c: C) => string,
+): BlockChoice[] {
   if (!r.room_id) return [];
   return claims
     .filter((c) => c.claim_type === "block" && c.room_id === r.room_id && (c.end_date > today || c.id === r.room_block_id))

@@ -40,7 +40,9 @@ export async function reserveAction(formData: FormData): Promise<void> {
   });
   if (!result.ok) redirect(`${base}&error=${result.error.code}`);
 
-  after(() => { drainNow(5).catch(() => {}); });   // quick send; the maintenance route is the backstop
+  after(() => {
+    drainNow(5).catch(() => {});
+  }); // quick send; the maintenance route is the backstop
   const token = createBookingToken(result.data.reservation_id, serverEnv().BOOKING_TOKEN_SECRET, BOOKING_LINK_TTL_SECONDS);
   redirect(`/booking/${token}`);
 }

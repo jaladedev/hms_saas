@@ -24,6 +24,9 @@ export async function requestLinkAction(formData: FormData): Promise<void> {
   if (!limit.allowed) redirect("/booking/find?error=rate_limited");
 
   const result = await requestBookingLink(await requestHost(), input.data.reference, input.data.email);
-  if (result.ok && result.data) after(() => { drainNow(5).catch(() => {}); });
+  if (result.ok && result.data)
+    after(() => {
+      drainNow(5).catch(() => {});
+    });
   redirect("/booking/find?sent=1");
 }

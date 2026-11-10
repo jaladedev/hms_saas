@@ -56,11 +56,7 @@ export type VerifyResult = { ok: true; transaction: VerifiedTransaction } | { ok
  * Throws on network errors, 5xx, rate limits and unexpected shapes so the webhook is answered with an
  * error and Paystack retries. A clean 404 means the reference is not known to this account.
  */
-export async function verifyTransaction(
-  reference: string,
-  secretKey: string,
-  fetchFn: typeof fetch = fetch,
-): Promise<VerifyResult> {
+export async function verifyTransaction(reference: string, secretKey: string, fetchFn: typeof fetch = fetch): Promise<VerifyResult> {
   const res = await fetchFn(`${paystackBaseUrl()}/transaction/verify/${encodeURIComponent(reference)}`, {
     method: "GET",
     headers: { Authorization: `Bearer ${secretKey}` },
@@ -144,7 +140,12 @@ export async function createRefund(
   const res = await fetchFn(`${paystackBaseUrl()}/refund`, {
     method: "POST",
     headers: { Authorization: `Bearer ${secretKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ transaction: args.transactionReference, amount: args.amountMinor, currency: args.currency, merchant_note: args.merchantNote }),
+    body: JSON.stringify({
+      transaction: args.transactionReference,
+      amount: args.amountMinor,
+      currency: args.currency,
+      merchant_note: args.merchantNote,
+    }),
     cache: "no-store",
   });
   if (res.status >= 400 && res.status < 500 && res.status !== 429) {
@@ -160,7 +161,11 @@ export async function createRefund(
   if (!res.ok) throw new Error(`Paystack refund call failed with HTTP ${res.status}`);
   const parsed = refundResponseSchema.safeParse(await res.json());
   if (!parsed.success || !parsed.data.status || !parsed.data.data) throw new Error("Paystack refund returned an unexpected response");
-  return { kind: "accepted", providerStatus: parsed.data.data.status, providerRefundId: parsed.data.data.id !== undefined ? String(parsed.data.data.id) : null };
+  return {
+    kind: "accepted",
+    providerStatus: parsed.data.data.status,
+    providerRefundId: parsed.data.data.id !== undefined ? String(parsed.data.data.id) : null,
+  };
 }
 
 const banksResponseSchema = z.object({
@@ -197,9 +202,7 @@ export async function listBanks(currency: string, secretKey: string, fetchFn: ty
   return [...banks.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export type RetryRefundResult =
-  | { kind: "accepted" }
-  | { kind: "rejected"; httpStatus: number; message: string };
+export type RetryRefundResult = { kind: "accepted" } | { kind: "rejected"; httpStatus: number; message: string };
 
 /**
  * Completes a refund Paystack reported as needs-attention (`POST /refund/retry_with_customer_details/:id`, body
@@ -233,7 +236,10 @@ export async function retryRefundWithCustomerDetails(
     return { kind: "rejected", httpStatus: res.status, message };
   }
   if (!res.ok) throw new Error(`Paystack refund retry failed with HTTP ${res.status}`);
-  const parsed = z.object({ status: z.boolean() }).passthrough().safeParse(await res.json());
+  const parsed = z
+    .object({ status: z.boolean() })
+    .passthrough()
+    .safeParse(await res.json());
   if (!parsed.success || !parsed.data.status) throw new Error("Paystack refund retry returned an unexpected response");
   return { kind: "accepted" };
 }

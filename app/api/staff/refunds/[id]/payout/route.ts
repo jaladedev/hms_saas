@@ -51,8 +51,13 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         createRefund: (args, secret) => createRefund(args, secret),
         async recordResult(a) {
           const { error } = await service.rpc("record_refund_result", {
-            p_provider: "paystack", p_event_id: a.eventId, p_refund_id: a.refundId, p_status: a.status,
-            p_provider_refund_id: a.providerRefundId, p_failure_reason: a.failureReason, p_payload: { source: "payout" },
+            p_provider: "paystack",
+            p_event_id: a.eventId,
+            p_refund_id: a.refundId,
+            p_status: a.status,
+            p_provider_refund_id: a.providerRefundId,
+            p_failure_reason: a.failureReason,
+            p_payload: { source: "payout" },
           });
           if (error) throw new Error(error.message);
         },
@@ -61,7 +66,11 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
           if (error) throw new Error(error.message);
         },
         async markNeedsDetails(refundId, providerRefundId, note) {
-          const { error } = await service.rpc("mark_refund_needs_details", { p_refund_id: refundId, p_provider_refund_id: providerRefundId, p_note: note });
+          const { error } = await service.rpc("mark_refund_needs_details", {
+            p_refund_id: refundId,
+            p_provider_refund_id: providerRefundId,
+            p_note: note,
+          });
           if (error) throw new Error(error.message);
         },
         log: (level, message, ctx) => console[level === "info" ? "log" : level](`[refund-payout] ${message}`, ctx ?? {}),
@@ -72,7 +81,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   } catch (e) {
     const message = e instanceof Error ? e.message : "";
     if (/NOT_FOUND/.test(message)) return Response.json({ error: "not found" }, { status: 404 });
-    if (/POLICY_VIOLATION|INVALID_STATE/.test(message)) return Response.json({ error: message.replace(/^.*?(POLICY_VIOLATION|INVALID_STATE)/, "$1") }, { status: 409 });
+    if (/POLICY_VIOLATION|INVALID_STATE/.test(message))
+      return Response.json({ error: message.replace(/^.*?(POLICY_VIOLATION|INVALID_STATE)/, "$1") }, { status: 409 });
     console.error("[refund-payout] failed", { refundId: id, message });
     return Response.json({ error: "payout failed" }, { status: 500 });
   }

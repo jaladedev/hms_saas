@@ -3,7 +3,16 @@ import { adrMinor, formatBp, isQuietDay, occupancyBp, revparMinor, type Occupanc
 import { occupancyCsv, occupancyFileName } from "./occupancy-csv";
 
 const day = (over: Partial<OccupancyDay> = {}): OccupancyDay => ({
-  date: "2026-11-03", rooms_total: 10, rooms_blocked: 0, rooms_available: 10, rooms_sold: 0, room_revenue_minor: 0, arrivals: 0, departures: 0, no_shows: 0, ...over,
+  date: "2026-11-03",
+  rooms_total: 10,
+  rooms_blocked: 0,
+  rooms_available: 10,
+  rooms_sold: 0,
+  room_revenue_minor: 0,
+  arrivals: 0,
+  departures: 0,
+  no_shows: 0,
+  ...over,
 });
 
 describe("occupancy, ADR and RevPAR", () => {
@@ -51,9 +60,25 @@ describe("isQuietDay", () => {
 
 describe("occupancyCsv", () => {
   const report: OccupancyReport = {
-    property_id: "p", currency: "NGN", timezone: "Africa/Lagos", from: "2026-11-03", to: "2026-11-04",
-    days: [day({ rooms_sold: 4, rooms_available: 10, room_revenue_minor: 1_000_000, arrivals: 2 }), day({ date: "2026-11-04", rooms_available: 0, rooms_total: 0 })],
-    totals: { rooms_total: 10, rooms_blocked: 0, rooms_available: 10, rooms_sold: 4, room_revenue_minor: 1_000_000, arrivals: 2, departures: 0, no_shows: 0 },
+    property_id: "p",
+    currency: "NGN",
+    timezone: "Africa/Lagos",
+    from: "2026-11-03",
+    to: "2026-11-04",
+    days: [
+      day({ rooms_sold: 4, rooms_available: 10, room_revenue_minor: 1_000_000, arrivals: 2 }),
+      day({ date: "2026-11-04", rooms_available: 0, rooms_total: 0 }),
+    ],
+    totals: {
+      rooms_total: 10,
+      rooms_blocked: 0,
+      rooms_available: 10,
+      rooms_sold: 4,
+      room_revenue_minor: 1_000_000,
+      arrivals: 2,
+      departures: 0,
+      no_shows: 0,
+    },
   };
   it("writes a header, a row per day and a total, with blanks where a ratio has no answer", () => {
     const lines = occupancyCsv(report).split("\r\n");
@@ -64,7 +89,9 @@ describe("occupancyCsv", () => {
     expect(lines[4]).toBe("");
   });
   it("names the file after the hotel and the range", () => {
-    expect(occupancyFileName("Hotel A (Ibadan)!", "2026-11-01", "2026-11-30")).toBe("occupancy-hotel-a-ibadan-2026-11-01-to-2026-11-30.csv");
+    expect(occupancyFileName("Hotel A (Ibadan)!", "2026-11-01", "2026-11-30")).toBe(
+      "occupancy-hotel-a-ibadan-2026-11-01-to-2026-11-30.csv",
+    );
     expect(occupancyFileName("???", "2026-11-01", "2026-11-02")).toBe("occupancy-hotel-2026-11-01-to-2026-11-02.csv");
   });
 });

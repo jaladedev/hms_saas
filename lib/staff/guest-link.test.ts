@@ -4,7 +4,8 @@ import { classifyGuestLinkError, guestLinkResultCode, parseGuestLinkReason } fro
 describe("guest link reset", () => {
   it("needs a reason of 1 to 200 characters", () => {
     expect(parseGuestLinkReason("  sent to the wrong person ")).toEqual({ ok: true, reason: "sent to the wrong person" });
-    for (const bad of ["", "   ", "x".repeat(201), undefined, null, 5]) expect(parseGuestLinkReason(bad), String(bad)).toEqual({ ok: false, code: "gl_reason" });
+    for (const bad of ["", "   ", "x".repeat(201), undefined, null, 5])
+      expect(parseGuestLinkReason(bad), String(bad)).toEqual({ ok: false, code: "gl_reason" });
     expect(parseGuestLinkReason("x".repeat(200)).ok).toBe(true);
   });
   it("words refusals", () => {

@@ -12,14 +12,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 
 export default tseslint.config(
   {
-    ignores: [
-      "**/node_modules/**",
-      "**/.next/**",
-      "**/.next-e2e/**",
-      "tools/lint/**",
-      "next-env.d.ts",
-      "supabase/**",
-    ],
+    ignores: ["**/node_modules/**", "**/.next/**", "**/.next-e2e/**", "tools/lint/**", "next-env.d.ts", "supabase/**"],
   },
   { files: ["**/*.{ts,tsx,mjs,js,mts}"], ...js.configs.recommended },
   ...tseslint.configs.recommended,
@@ -50,10 +43,7 @@ export default tseslint.config(
   },
   {
     rules: {
-      "@typescript-eslint/no-unused-vars": [
-        "error",
-        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
-      ],
+      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
     },
   },
 );

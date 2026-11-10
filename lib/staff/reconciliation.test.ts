@@ -1,18 +1,47 @@
 import { describe, expect, it } from "vitest";
-import { decimalToMinor, detectUnit, parseCsv, readProviderRows, reconcile, statusOf, type OurPayment, type ProviderRow } from "./reconciliation";
+import {
+  decimalToMinor,
+  detectUnit,
+  parseCsv,
+  readProviderRows,
+  reconcile,
+  statusOf,
+  type OurPayment,
+  type ProviderRow,
+} from "./reconciliation";
 
-const row = (reference: string, amountText: string, status: ProviderRow["status"] = "success", line = 2, currency: string | null = null): ProviderRow =>
-  ({ line, reference, amountText, status, statusText: status, currency });
-const pay = (reference: string, amount_minor: number, extra: Partial<OurPayment> = {}): OurPayment =>
-  ({ id: `p-${reference}`, reservation_id: `r-${reference}`, reference, amount_minor, currency: "NGN", payment_status: "succeeded", ...extra });
+const row = (
+  reference: string,
+  amountText: string,
+  status: ProviderRow["status"] = "success",
+  line = 2,
+  currency: string | null = null,
+): ProviderRow => ({ line, reference, amountText, status, statusText: status, currency });
+const pay = (reference: string, amount_minor: number, extra: Partial<OurPayment> = {}): OurPayment => ({
+  id: `p-${reference}`,
+  reservation_id: `r-${reference}`,
+  reference,
+  amount_minor,
+  currency: "NGN",
+  payment_status: "succeeded",
+  ...extra,
+});
 
 describe("parseCsv", () => {
   it("reads quotes, doubled quotes, commas and line breaks inside quotes, CRLF and a byte order mark", () => {
     const text = '\ufeffa,b,c\r\n1,"x, y","he said ""hi"""\r\n2,"two\nlines",z\r\n';
-    expect(parseCsv(text)).toEqual([["a", "b", "c"], ["1", "x, y", 'he said "hi"'], ["2", "two\nlines", "z"]]);
+    expect(parseCsv(text)).toEqual([
+      ["a", "b", "c"],
+      ["1", "x, y", 'he said "hi"'],
+      ["2", "two\nlines", "z"],
+    ]);
   });
   it("keeps empty fields and ignores blank lines and a missing final newline", () => {
-    expect(parseCsv("a,b\n\n1,\n,2")).toEqual([["a", "b"], ["1", ""], ["", "2"]]);
+    expect(parseCsv("a,b\n\n1,\n,2")).toEqual([
+      ["a", "b"],
+      ["1", ""],
+      ["", "2"],
+    ]);
   });
   it("refuses a file that ends inside a quote", () => {
     expect(() => parseCsv('a,b\n1,"oops')).toThrow(/quoted/);
@@ -21,17 +50,28 @@ describe("parseCsv", () => {
 
 describe("statusOf", () => {
   it("maps the words Paystack uses and treats anything else as other", () => {
-    expect(["success", "Successful", " FAILED ", "abandoned", "reversed", "ongoing", ""].map(statusOf))
-      .toEqual(["success", "success", "failed", "abandoned", "reversed", "other", "other"]);
+    expect(["success", "Successful", " FAILED ", "abandoned", "reversed", "ongoing", ""].map(statusOf)).toEqual([
+      "success",
+      "success",
+      "failed",
+      "abandoned",
+      "reversed",
+      "other",
+      "other",
+    ]);
   });
 });
 
 describe("readProviderRows", () => {
   it("finds the columns by header name, whatever the order, case or extra columns", () => {
-    const r = readProviderRows("Paid At,Status,Transaction Reference,Amount (NGN),Currency,Email\n2026-11-03,success,HMS-1,\"1,500.50\",ngn,a@b.c\n");
+    const r = readProviderRows(
+      'Paid At,Status,Transaction Reference,Amount (NGN),Currency,Email\n2026-11-03,success,HMS-1,"1,500.50",ngn,a@b.c\n',
+    );
     expect(r.fatal).toBe(false);
     expect(r.columns).toEqual({ reference: "Transaction Reference", amount: "Amount (NGN)", status: "Status", currency: "Currency" });
-    expect(r.rows).toEqual([{ line: 2, reference: "HMS-1", amountText: "1,500.50", status: "success", statusText: "success", currency: "NGN" }]);
+    expect(r.rows).toEqual([
+      { line: 2, reference: "HMS-1", amountText: "1,500.50", status: "success", statusText: "success", currency: "NGN" },
+    ]);
   });
   it("stops and names what is missing and what was found", () => {
     const r = readProviderRows("Paid At,Email\n2026-11-03,a@b.c\n");
@@ -106,7 +146,11 @@ describe("reconcile", () => {
   });
 
   it("flags a payment we hold that Paystack did not succeed, and one it reversed", () => {
-    const r = reconcile([row("A", "200", "failed"), row("B", "200", "reversed", 3), row("C", "200", "abandoned", 4)], [pay("A", 20000), pay("B", 20000)], "naira");
+    const r = reconcile(
+      [row("A", "200", "failed"), row("B", "200", "reversed", 3), row("C", "200", "abandoned", 4)],
+      [pay("A", 20000), pay("B", 20000)],
+      "naira",
+    );
     expect(r.findings.map((f) => `${f.kind}:${f.reference}`)).toEqual(["not_successful_at_provider:A", "reversed_at_provider:B"]);
     expect(r.ignored).toBe(1);
   });
@@ -122,7 +166,11 @@ describe("reconcile", () => {
   });
 
   it("reports an unreadable amount and a reference listed twice, using the first line only", () => {
-    const r = reconcile([row("A", "oops", "success", 2), row("B", "200", "success", 3), row("B", "300", "success", 4)], [pay("B", 20000)], "naira");
+    const r = reconcile(
+      [row("A", "oops", "success", 2), row("B", "200", "success", 3), row("B", "300", "success", 4)],
+      [pay("B", 20000)],
+      "naira",
+    );
     expect(r.findings.map((f) => f.kind).sort()).toEqual(["bad_amount", "duplicate_in_file"]);
     expect(r.findings.find((f) => f.kind === "duplicate_in_file")).toMatchObject({ lines: [3, 4] });
     expect(r.matched).toBe(1);

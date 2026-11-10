@@ -5,7 +5,16 @@ import { friendlyError, messageForCode } from "./errors";
 import type { CancelPreview } from "./server";
 
 const fmt = (m: number, c: string) => `${c} ${m / 100}`;
-const base: CancelPreview = { allowed: true, why_not: null, currency: "NGN", charge_minor: 0, held_minor: 0, refund_minor: 0, still_owed_minor: 0, hours_before_arrival: 100 };
+const base: CancelPreview = {
+  allowed: true,
+  why_not: null,
+  currency: "NGN",
+  charge_minor: 0,
+  held_minor: 0,
+  refund_minor: 0,
+  still_owed_minor: 0,
+  hours_before_arrival: 100,
+};
 
 describe("cancelSummary", () => {
   it("says a cancel is free and, when paid, that everything comes back", () => {
@@ -40,7 +49,8 @@ describe("parseExpectedCharge", () => {
   it("accepts whole kobo and nothing else", () => {
     expect(parseExpectedCharge("0")).toBe(0);
     expect(parseExpectedCharge("150000")).toBe(150000);
-    for (const v of ["", "-1", "1.5", "1e3", " 5", "abc", undefined, 5, "9999999999999"]) expect(parseExpectedCharge(v), String(v)).toBeNull();
+    for (const v of ["", "-1", "1.5", "1e3", " 5", "abc", undefined, 5, "9999999999999"])
+      expect(parseExpectedCharge(v), String(v)).toBeNull();
   });
 });
 
@@ -48,9 +58,11 @@ describe("guest error wording", () => {
   it("maps what migration 035 can raise to a sentence the guest can act on", () => {
     expect(friendlyError("POLICY_VIOLATION: charge changed").code).toBe("charge_changed");
     expect(friendlyError("INVALID_STATE: too late").code).toBe("cancel_too_late");
-    for (const s of ["cancelled", "checked_in", "checked_out", "no_show"]) expect(friendlyError(`INVALID_STATE: ${s}`).code, s).toBe("cancel_not_allowed");
+    for (const s of ["cancelled", "checked_in", "checked_out", "no_show"])
+      expect(friendlyError(`INVALID_STATE: ${s}`).code, s).toBe("cancel_not_allowed");
     expect(friendlyError("INVALID_STATE: disabled").code).toBe("cancel_disabled");
-    for (const c of ["charge_changed", "cancel_too_late", "cancel_not_allowed", "cancel_disabled"]) expect(messageForCode(c), c).toBeTruthy();
+    for (const c of ["charge_changed", "cancel_too_late", "cancel_not_allowed", "cancel_disabled"])
+      expect(messageForCode(c), c).toBeTruthy();
   });
   it("only uses texts the migration really raises", () => {
     const sql = readFileSync(new URL("../../supabase/migrations/20261026000035_guest_cancel.sql", import.meta.url), "utf8");

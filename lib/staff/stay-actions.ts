@@ -28,8 +28,12 @@ export async function editStay(formData: FormData) {
 
   const supabase = await staffClient();
   const { data, error } = await supabase.rpc("update_reservation_stay", {
-    p_reservation_id: head.data.reservationId, p_arrival: e.arrival, p_departure: e.departure,
-    p_guests: guestsPayload(e.guests), p_reason: e.reason, p_idempotency_key: head.data.idempotencyKey,
+    p_reservation_id: head.data.reservationId,
+    p_arrival: e.arrival,
+    p_departure: e.departure,
+    p_guests: guestsPayload(e.guests),
+    p_reason: e.reason,
+    p_idempotency_key: head.data.idempotencyKey,
   });
   if (error) return back(page, { err: classifyStayError(error.message) });
 

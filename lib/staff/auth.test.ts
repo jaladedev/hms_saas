@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
-  afterSignIn, callbackTarget, classifyAuthError, classifyUpdateError, resetErrorMessage, safeNext, signInErrorMessage, signInNotice, siteOrigin,
+  afterSignIn,
+  callbackTarget,
+  classifyAuthError,
+  classifyUpdateError,
+  resetErrorMessage,
+  safeNext,
+  signInErrorMessage,
+  signInNotice,
+  siteOrigin,
   validateNewPassword,
 } from "./auth";
 
@@ -12,8 +20,20 @@ describe("safeNext", () => {
   });
   it("refuses anything that could leave the site or the staff area", () => {
     for (const bad of [
-      "https://evil.example", "//evil.example", "/\\evil.example", "/app//evil.example", "/application", "/appx/refunds",
-      "/login", "/", "app/refunds", "javascript:alert(1)", "/app/x\nSet-Cookie: a=b", "/app/ x", "", "/app/" + "a".repeat(600),
+      "https://evil.example",
+      "//evil.example",
+      "/\\evil.example",
+      "/app//evil.example",
+      "/application",
+      "/appx/refunds",
+      "/login",
+      "/",
+      "app/refunds",
+      "javascript:alert(1)",
+      "/app/x\nSet-Cookie: a=b",
+      "/app/ x",
+      "",
+      "/app/" + "a".repeat(600),
     ]) {
       expect(safeNext(bad), bad).toBe("/app");
     }
@@ -51,7 +71,7 @@ describe("recovery flow rules", () => {
     expect(validateNewPassword("short", "short")).toBe("short");
     expect(validateNewPassword("a".repeat(72), "a".repeat(72))).toBeNull();
     expect(validateNewPassword("a".repeat(73), "a".repeat(73))).toBe("long");
-    expect(validateNewPassword("é".repeat(37), "é".repeat(37))).toBe("long");   // 74 bytes, 37 characters
+    expect(validateNewPassword("é".repeat(37), "é".repeat(37))).toBe("long"); // 74 bytes, 37 characters
   });
   it("words every problem and never echoes raw auth text", () => {
     for (const c of ["mismatch", "short", "long", "same", "weak", "expired", "unavailable", "anything"]) {
@@ -67,7 +87,9 @@ describe("recovery flow rules", () => {
     const h = (o: Record<string, string>) => ({ get: (n: string) => o[n.toLowerCase()] ?? null });
     expect(siteOrigin(h({ host: "hotel.example.com", "x-forwarded-proto": "https" }), true)).toBe("https://hotel.example.com");
     expect(siteOrigin(h({ host: "localhost:3000" }), false)).toBe("http://localhost:3000");
-    expect(siteOrigin(h({ host: "a.example", "x-forwarded-host": "b.example, c.example", "x-forwarded-proto": "https, http" }), true)).toBe("https://b.example");
+    expect(siteOrigin(h({ host: "a.example", "x-forwarded-host": "b.example, c.example", "x-forwarded-proto": "https, http" }), true)).toBe(
+      "https://b.example",
+    );
     expect(siteOrigin(h({ host: "x.example" }), true)).toBe("https://x.example");
     for (const bad of ["evil.example/path", "a b", "a.example@evil.example", "", "-bad.example"]) {
       expect(siteOrigin(h({ host: bad }), true), bad).toBeNull();
@@ -82,7 +104,9 @@ describe("recovery flow rules", () => {
 describe("safeNext and /platform", () => {
   it("allows paths inside /platform and nothing that only starts with the word", () => {
     expect(safeNext("/platform")).toBe("/platform");
-    expect(safeNext("/platform/5e0bf524-147f-43a5-8476-e0baecadd7e9?ok=created")).toBe("/platform/5e0bf524-147f-43a5-8476-e0baecadd7e9?ok=created");
+    expect(safeNext("/platform/5e0bf524-147f-43a5-8476-e0baecadd7e9?ok=created")).toBe(
+      "/platform/5e0bf524-147f-43a5-8476-e0baecadd7e9?ok=created",
+    );
     expect(safeNext("/platformer")).toBe("/app");
     expect(safeNext("/platform//evil.example")).toBe("/app");
     expect(safeNext("/platform\\evil")).toBe("/app");

@@ -32,9 +32,14 @@ export function HoldCountdown({ initialSeconds }: { initialSeconds: number }) {
     tick();
     const timer = setInterval(tick, 1000);
     // Timers are slowed or paused in a background tab; catch up the moment the guest comes back.
-    const onVisible = () => { if (document.visibilityState === "visible") tick(); };
+    const onVisible = () => {
+      if (document.visibilityState === "visible") tick();
+    };
     document.addEventListener("visibilitychange", onVisible);
-    return () => { clearInterval(timer); document.removeEventListener("visibilitychange", onVisible); };
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [initialSeconds]);
 
   useEffect(() => {
@@ -49,10 +54,14 @@ export function HoldCountdown({ initialSeconds }: { initialSeconds: number }) {
     <>
       <p className="text-sm text-muted">
         Your room is held for{" "}
-        <span role="timer" className={`font-semibold tabular-nums ${isUrgent(left) ? "text-pending" : "text-ink"}`}>{formatCountdown(left)}</span>
-        {" "}more. Keep this page&apos;s link: it is how you come back to your booking.
+        <span role="timer" className={`font-semibold tabular-nums ${isUrgent(left) ? "text-pending" : "text-ink"}`}>
+          {formatCountdown(left)}
+        </span>{" "}
+        more. Keep this page&apos;s link: it is how you come back to your booking.
       </p>
-      <p className="sr-only" role="status" aria-live="polite">{spoken}</p>
+      <p className="sr-only" role="status" aria-live="polite">
+        {spoken}
+      </p>
     </>
   );
 }

@@ -66,7 +66,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   } catch (e) {
     const message = e instanceof Error ? e.message : "";
     if (/NOT_FOUND/.test(message)) return Response.json({ error: "not found" }, { status: 404 });
-    if (/INVALID_STATE/.test(message)) return Response.json({ error: message.replace(/^.*?INVALID_STATE/, "INVALID_STATE") }, { status: 409 });
+    if (/INVALID_STATE/.test(message))
+      return Response.json({ error: message.replace(/^.*?INVALID_STATE/, "INVALID_STATE") }, { status: 409 });
     console.error("[refund-details] failed", { refundId: id });
     return Response.json({ error: "failed" }, { status: 500 });
   }

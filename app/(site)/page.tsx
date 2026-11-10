@@ -16,10 +16,7 @@ export default async function GuestHome({ searchParams }: Props) {
   const stay = parseStayParams(raw);
   const limited = stay ? !(await checkGuestLimits({ ip: ["search"] })).allowed : false;
   const host = await requestHost();
-  const [result, hotelResult] = await Promise.all([
-    stay && !limited ? searchAvailability(host, stay) : null,
-    guestHotel(host),
-  ]);
+  const [result, hotelResult] = await Promise.all([stay && !limited ? searchAvailability(host, stay) : null, guestHotel(host)]);
   const hotel = hotelResult.ok ? hotelResult.data : null;
   const place = hotel ? placeLine(hotel) : "";
   const today = new Date().toISOString().slice(0, 10);
@@ -30,7 +27,8 @@ export default async function GuestHome({ searchParams }: Props) {
       <h1 className="font-display text-3xl">Find a room</h1>
       {hotel ? (
         <p className="mt-2 text-sm text-muted">
-          {hotel.name}{place ? ` · ${place}` : ""}
+          {hotel.name}
+          {place ? ` · ${place}` : ""}
           <br />
           {timesLine(hotel)}
         </p>
@@ -38,36 +36,100 @@ export default async function GuestHome({ searchParams }: Props) {
       {hotel?.intro ? <p className="mt-3 max-w-prose text-sm">{hotel.intro}</p> : null}
       {hotel && (hotel.phone || hotel.email) ? (
         <p className="mt-2 text-sm text-muted">
-          {hotel.phone ? (telHref(hotel.phone) ? <a href={telHref(hotel.phone) as string} className="text-primary underline">{hotel.phone}</a> : hotel.phone) : null}
+          {hotel.phone ? (
+            telHref(hotel.phone) ? (
+              <a href={telHref(hotel.phone) as string} className="text-primary underline">
+                {hotel.phone}
+              </a>
+            ) : (
+              hotel.phone
+            )
+          ) : null}
           {hotel.phone && hotel.email ? " · " : null}
-          {hotel.email ? <a href={`mailto:${hotel.email}`} className="text-primary underline">{hotel.email}</a> : null}
+          {hotel.email ? (
+            <a href={`mailto:${hotel.email}`} className="text-primary underline">
+              {hotel.email}
+            </a>
+          ) : null}
         </p>
       ) : null}
-      {notice ? <p role="alert" className="mt-4 rounded border border-critical/40 bg-white p-3 text-critical">{notice}</p> : null}
+      {notice ? (
+        <p role="alert" className="mt-4 rounded border border-critical/40 bg-white p-3 text-critical">
+          {notice}
+        </p>
+      ) : null}
 
       <form action="/" method="get" className="mt-6 grid grid-cols-2 gap-4 rounded border border-line bg-white p-4 sm:grid-cols-4">
-        <label className="text-sm">Check in
-          <input type="date" name="arrival" min={today} defaultValue={stay?.arrival} required className="mt-1 w-full rounded border border-line p-2" />
+        <label className="text-sm">
+          Check in
+          <input
+            type="date"
+            name="arrival"
+            min={today}
+            defaultValue={stay?.arrival}
+            required
+            className="mt-1 w-full rounded border border-line p-2"
+          />
         </label>
-        <label className="text-sm">Check out
-          <input type="date" name="departure" min={today} defaultValue={stay?.departure} required className="mt-1 w-full rounded border border-line p-2" />
+        <label className="text-sm">
+          Check out
+          <input
+            type="date"
+            name="departure"
+            min={today}
+            defaultValue={stay?.departure}
+            required
+            className="mt-1 w-full rounded border border-line p-2"
+          />
         </label>
-        <label className="text-sm">Adults
-          <input type="number" name="adults" min={1} max={20} defaultValue={stay?.adults ?? 2} required className="mt-1 w-full rounded border border-line p-2" />
+        <label className="text-sm">
+          Adults
+          <input
+            type="number"
+            name="adults"
+            min={1}
+            max={20}
+            defaultValue={stay?.adults ?? 2}
+            required
+            className="mt-1 w-full rounded border border-line p-2"
+          />
         </label>
-        <label className="text-sm">Children
-          <input type="number" name="children" min={0} max={20} defaultValue={stay?.children ?? 0} className="mt-1 w-full rounded border border-line p-2" />
+        <label className="text-sm">
+          Children
+          <input
+            type="number"
+            name="children"
+            min={0}
+            max={20}
+            defaultValue={stay?.children ?? 0}
+            className="mt-1 w-full rounded border border-line p-2"
+          />
         </label>
-        <button type="submit" className="col-span-2 rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-strong sm:col-span-4">Search</button>
+        <button
+          type="submit"
+          className="col-span-2 rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-strong sm:col-span-4"
+        >
+          Search
+        </button>
       </form>
 
-      {limited ? <p role="alert" className="mt-6 text-critical">{messageForCode("rate_limited")}</p> : null}
+      {limited ? (
+        <p role="alert" className="mt-6 text-critical">
+          {messageForCode("rate_limited")}
+        </p>
+      ) : null}
       {raw.arrival && !stay ? <p className="mt-6 text-critical">Please check your dates and guest numbers.</p> : null}
-      {result && !result.ok ? <p role="alert" className="mt-6 text-critical">{result.error.message}</p> : null}
+      {result && !result.ok ? (
+        <p role="alert" className="mt-6 text-critical">
+          {result.error.message}
+        </p>
+      ) : null}
 
       {stay && result?.ok ? (
         <section className="mt-8" aria-live="polite">
-          <h2 className="text-lg font-medium">{result.data.property_name}: {result.data.nights} {result.data.nights === 1 ? "night" : "nights"}</h2>
+          <h2 className="text-lg font-medium">
+            {result.data.property_name}: {result.data.nights} {result.data.nights === 1 ? "night" : "nights"}
+          </h2>
           {result.data.room_types.length === 0 ? (
             <p className="mt-3 text-muted">No rooms are available for those dates and guests. Try different dates.</p>
           ) : (
@@ -79,30 +141,45 @@ export default async function GuestHome({ searchParams }: Props) {
                       <h3 className="font-display text-xl">{t.name}</h3>
                       {t.description ? <p className="mt-1 text-sm text-muted">{t.description}</p> : null}
                       {t.photos && t.photos.length > 0 ? (
-<>
-                        <ul aria-label="Photos" className="mt-2 flex gap-2 overflow-x-auto">
-                          {t.photos.map((ph) => (
-                            <li key={ph.path} className="shrink-0">
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img src={photoUrl(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "", ph.path)} alt={ph.caption ?? `${t.name} photo`} loading="lazy" className="h-28 w-40 rounded border border-line object-cover" />
-                            </li>
-                          ))}
-                        </ul>
-                        <p className="mt-1 text-xs text-muted">{photoCountLabel(t.photos.length)}</p>
-</>
+                        <>
+                          <ul aria-label="Photos" className="mt-2 flex gap-2 overflow-x-auto">
+                            {t.photos.map((ph) => (
+                              <li key={ph.path} className="shrink-0">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={photoUrl(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "", ph.path)}
+                                  alt={ph.caption ?? `${t.name} photo`}
+                                  loading="lazy"
+                                  className="h-28 w-40 rounded border border-line object-cover"
+                                />
+                              </li>
+                            ))}
+                          </ul>
+                          <p className="mt-1 text-xs text-muted">{photoCountLabel(t.photos.length)}</p>
+                        </>
                       ) : null}
                       {t.amenities && t.amenities.length > 0 ? (
                         <ul aria-label="Amenities" className="mt-2 flex flex-wrap gap-1.5">
-                          {t.amenities.map((a) => <li key={a} className="rounded-full border border-line px-2.5 py-0.5 text-xs text-muted">{a}</li>)}
+                          {t.amenities.map((a) => (
+                            <li key={a} className="rounded-full border border-line px-2.5 py-0.5 text-xs text-muted">
+                              {a}
+                            </li>
+                          ))}
                         </ul>
                       ) : null}
-                      <p className="mt-2 text-sm text-muted">Up to {t.max_occupancy} guests{t.rooms_available <= 3 ? ` · only ${t.rooms_available} left` : ""}</p>
+                      <p className="mt-2 text-sm text-muted">
+                        Up to {t.max_occupancy} guests{t.rooms_available <= 3 ? ` · only ${t.rooms_available} left` : ""}
+                      </p>
                     </div>
                     <div className="ml-auto text-right">
                       <p className="text-xl font-medium">{formatMoney(t.total_minor, result.data.currency)}</p>
                       <p className="text-xs text-muted">total, taxes included</p>
-                      <a href={`/reserve?${stayQuery(stay)}&type=${t.room_type_id}`}
-                         className="mt-3 inline-block rounded bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-strong">Reserve</a>
+                      <a
+                        href={`/reserve?${stayQuery(stay)}&type=${t.room_type_id}`}
+                        className="mt-3 inline-block rounded bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-strong"
+                      >
+                        Reserve
+                      </a>
                     </div>
                   </div>
                 </li>

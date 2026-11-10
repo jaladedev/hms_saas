@@ -3,7 +3,11 @@ import { classifyPhotoError, logoPath, MAX_PHOTO_BYTES, photoPath, photoUrl, val
 
 describe("validatePhoto", () => {
   it("accepts jpeg, png and webp up to 2 MB", () => {
-    for (const [type, ext] of [["image/jpeg", "jpg"], ["image/png", "png"], ["image/webp", "webp"]] as const) {
+    for (const [type, ext] of [
+      ["image/jpeg", "jpg"],
+      ["image/png", "png"],
+      ["image/webp", "webp"],
+    ] as const) {
       expect(validatePhoto({ type, size: MAX_PHOTO_BYTES }, "")).toEqual({ ok: true, contentType: type, ext, caption: null });
     }
   });

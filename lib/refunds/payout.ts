@@ -19,7 +19,13 @@ export type PayoutDeps = {
     args: { transactionReference: string; amountMinor: number; currency: string; merchantNote: string },
     secret: string,
   ): Promise<CreateRefundResult>;
-  recordResult(args: { refundId: string; eventId: string; status: "succeeded" | "failed"; providerRefundId: string | null; failureReason: string | null }): Promise<void>;
+  recordResult(args: {
+    refundId: string;
+    eventId: string;
+    status: "succeeded" | "failed";
+    providerRefundId: string | null;
+    failureReason: string | null;
+  }): Promise<void>;
   noteAttention(refundId: string, note: string): Promise<void>;
   /** Paystack answered needs-attention: remember the provider refund id and open the bank-details retry. */
   markNeedsDetails(refundId: string, providerRefundId: string | null, note: string): Promise<void>;
@@ -59,7 +65,12 @@ export async function payoutRefund(deps: PayoutDeps, refundId: string): Promise<
   let result: CreateRefundResult;
   try {
     result = await deps.createRefund(
-      { transactionReference: started.payment_provider_reference, amountMinor: started.amount_minor, currency: started.currency, merchantNote: `Refund ${started.internal_reference}` },
+      {
+        transactionReference: started.payment_provider_reference,
+        amountMinor: started.amount_minor,
+        currency: started.currency,
+        merchantNote: `Refund ${started.internal_reference}`,
+      },
       secret,
     );
   } catch (e) {
@@ -70,7 +81,13 @@ export async function payoutRefund(deps: PayoutDeps, refundId: string): Promise<
   }
 
   if (result.kind === "rejected") {
-    await deps.recordResult({ refundId, eventId, status: "failed", providerRefundId: null, failureReason: `Paystack refused: ${result.message}` });
+    await deps.recordResult({
+      refundId,
+      eventId,
+      status: "failed",
+      providerRefundId: null,
+      failureReason: `Paystack refused: ${result.message}`,
+    });
     return { status: "failed", reason: result.message };
   }
   if (result.providerStatus === "processed") {
@@ -78,11 +95,21 @@ export async function payoutRefund(deps: PayoutDeps, refundId: string): Promise<
     return { status: "succeeded" };
   }
   if (result.providerStatus === "failed") {
-    await deps.recordResult({ refundId, eventId, status: "failed", providerRefundId: result.providerRefundId, failureReason: "Paystack reported the refund as failed" });
+    await deps.recordResult({
+      refundId,
+      eventId,
+      status: "failed",
+      providerRefundId: result.providerRefundId,
+      failureReason: "Paystack reported the refund as failed",
+    });
     return { status: "failed", reason: "Paystack reported the refund as failed" };
   }
   if (result.providerStatus === "needs-attention") {
-    await deps.markNeedsDetails(refundId, result.providerRefundId, "Paystack needs the customer's bank details to complete this refund (needs-attention)");
+    await deps.markNeedsDetails(
+      refundId,
+      result.providerRefundId,
+      "Paystack needs the customer's bank details to complete this refund (needs-attention)",
+    );
   }
   return { status: "submitted", providerStatus: result.providerStatus };
 }

@@ -27,19 +27,31 @@ describe("subjectKey", () => {
 describe("enforceRateLimits", () => {
   it("allows when every rule allows and spends one hit on each rule", async () => {
     const consume = vi.fn(async () => ({ allowed: true, retry_after_seconds: 1 }));
-    const out = await enforceRateLimits(consume, [{ rule: "hold", subject: "ip1" }, { rule: "holdEmail", subject: "em1" }]);
+    const out = await enforceRateLimits(consume, [
+      { rule: "hold", subject: "ip1" },
+      { rule: "holdEmail", subject: "em1" },
+    ]);
     expect(out).toEqual({ allowed: true });
     expect(consume).toHaveBeenCalledWith("hold:ip1", RATE_RULES.hold.limit, RATE_RULES.hold.windowSeconds);
     expect(consume).toHaveBeenCalledWith("holdEmail:em1", RATE_RULES.holdEmail.limit, RATE_RULES.holdEmail.windowSeconds);
   });
   it("refuses if any rule refuses, reporting the longest wait, and still counts the others", async () => {
-    const consume = vi.fn(async (key: string) => (key.startsWith("hold:") ? { allowed: false, retry_after_seconds: 90 } : { allowed: false, retry_after_seconds: 300 }));
-    const out = await enforceRateLimits(consume, [{ rule: "hold", subject: "a" }, { rule: "holdEmail", subject: "b" }]);
+    const consume = vi.fn(async (key: string) =>
+      key.startsWith("hold:") ? { allowed: false, retry_after_seconds: 90 } : { allowed: false, retry_after_seconds: 300 },
+    );
+    const out = await enforceRateLimits(consume, [
+      { rule: "hold", subject: "a" },
+      { rule: "holdEmail", subject: "b" },
+    ]);
     expect(out).toEqual({ allowed: false, retryAfterSeconds: 300 });
     expect(consume).toHaveBeenCalledTimes(2);
   });
   it("lets a database failure propagate (fail closed)", async () => {
-    await expect(enforceRateLimits(async () => { throw new Error("db down"); }, [{ rule: "pay", subject: "x" }])).rejects.toThrow("db down");
+    await expect(
+      enforceRateLimits(async () => {
+        throw new Error("db down");
+      }, [{ rule: "pay", subject: "x" }]),
+    ).rejects.toThrow("db down");
   });
 });
 
@@ -47,7 +59,9 @@ describe("maintenance", () => {
   it("runs every step and isolates failures", async () => {
     const out = await runMaintenance({
       expireLapsedHolds: async () => 3,
-      drainEmails: async () => { throw new Error("mailer exploded"); },
+      drainEmails: async () => {
+        throw new Error("mailer exploded");
+      },
       purgeOldData: async () => ({ rate_limit_rows: 1 }),
       sweepNotifications: async () => ({ overdue_raised: 2, purged: 0 }),
       staleRefunds: async () => [{ refund_id: "r1" }],

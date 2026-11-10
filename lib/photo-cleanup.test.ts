@@ -3,14 +3,23 @@ import { drainPhotoCleanup } from "./photo-cleanup";
 
 describe("drainPhotoCleanup", () => {
   it("does nothing when nothing is queued", async () => {
-    const remove = vi.fn(), finish = vi.fn();
+    const remove = vi.fn(),
+      finish = vi.fn();
     expect(await drainPhotoCleanup({ claim: async () => [], remove, finish })).toEqual({ claimed: 0, cleared: 0, error: null });
     expect(remove).not.toHaveBeenCalled();
     expect(finish).not.toHaveBeenCalled();
   });
   it("removes the claimed files and then clears exactly those paths", async () => {
-    const remove = vi.fn(async () => ({ error: null })), finish = vi.fn(async (p: string[]) => p.length);
-    const out = await drainPhotoCleanup({ claim: async (l) => { expect(l).toBe(50); return ["a.jpg", "b.png"]; }, remove, finish });
+    const remove = vi.fn(async () => ({ error: null })),
+      finish = vi.fn(async (p: string[]) => p.length);
+    const out = await drainPhotoCleanup({
+      claim: async (l) => {
+        expect(l).toBe(50);
+        return ["a.jpg", "b.png"];
+      },
+      remove,
+      finish,
+    });
     expect(remove).toHaveBeenCalledWith(["a.jpg", "b.png"]);
     expect(finish).toHaveBeenCalledWith(["a.jpg", "b.png"]);
     expect(out).toEqual({ claimed: 2, cleared: 2, error: null });

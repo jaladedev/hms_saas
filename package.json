@@ -12,7 +12,9 @@
     "db:types:local": "npx supabase gen types typescript --local --schema public > types/database.ts",
     "test": "vitest run",
     "e2e": "bash e2e/run.sh",
-    "lint": "npm run lint --prefix tools/lint"
+    "lint": "npm run lint --prefix tools/lint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
@@ -29,6 +31,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "postcss": "^8.5.31",
+    "prettier": "3.3.3",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
     "vitest": "^5.0.5"

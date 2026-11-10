@@ -4,7 +4,15 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { back, ok, staffClient } from "./action-helpers";
 import { classifyRpcError } from "./refunds";
-import { classifySetupError, isRoomStatus, isRoomTypeStatus, nameClashes, validateRoom, validateRoomType, validateRoomTypeEdit } from "./room-setup";
+import {
+  classifySetupError,
+  isRoomStatus,
+  isRoomTypeStatus,
+  nameClashes,
+  validateRoom,
+  validateRoomType,
+  validateRoomTypeEdit,
+} from "./room-setup";
 import { todayIn } from "./reservations";
 
 /**
@@ -16,7 +24,11 @@ import { todayIn } from "./reservations";
 const PAGE = "/app/settings/rooms";
 const uuid = z.guid();
 const failWith = (err: { code?: string; message?: string }) => back(PAGE, { err: classifySetupError(err) });
-const refresh = () => { revalidatePath(PAGE); revalidatePath("/app/rooms"); revalidatePath("/app/reservations/new"); };
+const refresh = () => {
+  revalidatePath(PAGE);
+  revalidatePath("/app/rooms");
+  revalidatePath("/app/reservations/new");
+};
 
 export async function addRoomType(formData: FormData) {
   const v = validateRoomType(Object.fromEntries(formData));
@@ -28,9 +40,18 @@ export async function addRoomType(formData: FormData) {
   if (!prop) return back(PAGE, { err: "setup_forbidden" });
 
   const { error } = await supabase.from("room_types").insert({
-    tenant_id: prop.tenant_id, property_id: value.propertyId, name: value.name, code: value.code, slug: value.slug,
-    description: value.description, amenities: value.amenities, max_adults: value.maxAdults, max_children: value.maxChildren, max_occupancy: value.maxOccupancy,
-    base_rate_minor: value.baseRateMinor, is_public: value.isPublic,
+    tenant_id: prop.tenant_id,
+    property_id: value.propertyId,
+    name: value.name,
+    code: value.code,
+    slug: value.slug,
+    description: value.description,
+    amenities: value.amenities,
+    max_adults: value.maxAdults,
+    max_children: value.maxChildren,
+    max_occupancy: value.maxOccupancy,
+    base_rate_minor: value.baseRateMinor,
+    is_public: value.isPublic,
   });
   if (error) return failWith(error);
   refresh();
@@ -51,14 +72,28 @@ export async function updateRoomType(formData: FormData) {
   const { data: type } = await supabase.from("room_types").select("id, property_id").eq("id", value.roomTypeId).maybeSingle();
   if (!type) return back(PAGE, { err: "not_found" });
 
-  const { data: others, error: othersError } = await supabase.from("room_types").select("name, slug").eq("property_id", type.property_id).neq("id", type.id);
+  const { data: others, error: othersError } = await supabase
+    .from("room_types")
+    .select("name, slug")
+    .eq("property_id", type.property_id)
+    .neq("id", type.id);
   if (othersError) return failWith(othersError);
   if (nameClashes(value.name, others ?? [])) return back(PAGE, { err: "setup_duplicate_name" });
 
-  const { data: changed, error } = await supabase.from("room_types").update({
-    name: value.name, description: value.description, amenities: value.amenities, max_adults: value.maxAdults, max_children: value.maxChildren,
-    max_occupancy: value.maxOccupancy, base_rate_minor: value.baseRateMinor, is_public: value.isPublic,
-  }).eq("id", type.id).select("id");
+  const { data: changed, error } = await supabase
+    .from("room_types")
+    .update({
+      name: value.name,
+      description: value.description,
+      amenities: value.amenities,
+      max_adults: value.maxAdults,
+      max_children: value.maxChildren,
+      max_occupancy: value.maxOccupancy,
+      base_rate_minor: value.baseRateMinor,
+      is_public: value.isPublic,
+    })
+    .eq("id", type.id)
+    .select("id");
   if (error) return failWith(error);
   if (!changed || changed.length === 0) return back(PAGE, { err: "setup_forbidden" });
   refresh();
@@ -95,7 +130,11 @@ export async function addRoom(formData: FormData) {
   if (!type) return back(PAGE, { err: "setup_forbidden" });
 
   const { error } = await supabase.from("rooms").insert({
-    tenant_id: type.tenant_id, property_id: type.property_id, room_type_id: value.roomTypeId, room_number: value.roomNumber, floor: value.floor,
+    tenant_id: type.tenant_id,
+    property_id: type.property_id,
+    room_type_id: value.roomTypeId,
+    room_number: value.roomNumber,
+    floor: value.floor,
   });
   if (error) return failWith(error);
   refresh();
@@ -115,8 +154,12 @@ export async function setRoomStatus(formData: FormData) {
   if (status !== "active") {
     const { data: prop } = await supabase.from("properties").select("timezone").eq("id", room.property_id).maybeSingle();
     const today = todayIn(prop?.timezone ?? "UTC", new Date());
-    const { count, error: claimError } = await supabase.from("room_inventory_claims")
-      .select("id", { count: "exact", head: true }).eq("room_id", roomId).eq("status", "active").gt("end_date", today);
+    const { count, error: claimError } = await supabase
+      .from("room_inventory_claims")
+      .select("id", { count: "exact", head: true })
+      .eq("room_id", roomId)
+      .eq("status", "active")
+      .gt("end_date", today);
     if (claimError) return back(PAGE, { err: classifyRpcError(claimError.message).code });
     // Out of service is a temporary pause the board already flags, so only retiring is blocked by bookings.
     if (status === "retired" && (count ?? 0) > 0) return back(PAGE, { err: "room_has_bookings" });

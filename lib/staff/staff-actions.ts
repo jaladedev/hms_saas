@@ -21,14 +21,20 @@ const roleKey = z.string().refine(isRoleKey);
 const property = z.union([uuid, z.literal("")]);
 
 export async function inviteStaff(formData: FormData) {
-  const parsed = z.object({ tenantId: uuid, email: z.string().max(254), roleKey, propertyId: property }).safeParse(Object.fromEntries(formData));
+  const parsed = z
+    .object({ tenantId: uuid, email: z.string().max(254), roleKey, propertyId: property })
+    .safeParse(Object.fromEntries(formData));
   if (!parsed.success) return back(PAGE, { err: "bad_request" });
   const email = parsed.data.email.trim().toLowerCase();
   if (!z.email().safeParse(email).success) return back(PAGE, { err: "email_invalid" });
   const propertyId = parsed.data.propertyId || null;
 
   const supabase = await staffClient();
-  const check = await supabase.rpc("staff_check_grant", { p_tenant: parsed.data.tenantId, p_role_key: parsed.data.roleKey, p_property: propertyId });
+  const check = await supabase.rpc("staff_check_grant", {
+    p_tenant: parsed.data.tenantId,
+    p_role_key: parsed.data.roleKey,
+    p_property: propertyId,
+  });
   if (check.error) return fail(PAGE, check.error.message);
 
   const service = createServiceClient();
@@ -44,7 +50,10 @@ export async function inviteStaff(formData: FormData) {
   }
 
   const added = await supabase.rpc("add_staff_member", {
-    p_tenant: parsed.data.tenantId, p_user: userId, p_role_key: parsed.data.roleKey, p_property: propertyId,
+    p_tenant: parsed.data.tenantId,
+    p_user: userId,
+    p_role_key: parsed.data.roleKey,
+    p_property: propertyId,
   });
   if (added.error) return fail(PAGE, added.error.message);
   revalidatePath(PAGE);
@@ -56,7 +65,10 @@ export async function addStaffRole(formData: FormData) {
   if (!parsed.success) return back(PAGE, { err: "bad_request" });
   const supabase = await staffClient();
   const { error } = await supabase.rpc("add_staff_member", {
-    p_tenant: parsed.data.tenantId, p_user: parsed.data.userId, p_role_key: parsed.data.roleKey, p_property: parsed.data.propertyId || null,
+    p_tenant: parsed.data.tenantId,
+    p_user: parsed.data.userId,
+    p_role_key: parsed.data.roleKey,
+    p_property: parsed.data.propertyId || null,
   });
   if (error) return fail(PAGE, error.message);
   revalidatePath(PAGE);
@@ -74,11 +86,16 @@ export async function removeStaffRole(formData: FormData) {
 }
 
 export async function setStaffStatus(formData: FormData) {
-  const parsed = z.object({ membershipId: uuid, status: z.enum(["active", "suspended", "revoked"]) }).safeParse(Object.fromEntries(formData));
+  const parsed = z
+    .object({ membershipId: uuid, status: z.enum(["active", "suspended", "revoked"]) })
+    .safeParse(Object.fromEntries(formData));
   if (!parsed.success) return back(PAGE, { err: "bad_request" });
   const supabase = await staffClient();
   const { error } = await supabase.rpc("set_staff_status", { p_membership: parsed.data.membershipId, p_status: parsed.data.status });
   if (error) return fail(PAGE, error.message);
   revalidatePath(PAGE);
-  return ok(PAGE, parsed.data.status === "active" ? "staff_reinstated" : parsed.data.status === "suspended" ? "staff_suspended_ok" : "staff_revoked_ok");
+  return ok(
+    PAGE,
+    parsed.data.status === "active" ? "staff_reinstated" : parsed.data.status === "suspended" ? "staff_suspended_ok" : "staff_revoked_ok",
+  );
 }

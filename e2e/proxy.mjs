@@ -18,21 +18,34 @@ function userFromBearer(header) {
   if (want.length !== got.length || !timingSafeEqual(want, got)) return null;
   const claims = JSON.parse(Buffer.from(parts[1], "base64url").toString());
   if (claims.role !== "authenticated" || !claims.sub || (claims.exp && claims.exp < Date.now() / 1000)) return null;
-  return { id: claims.sub, aud: "authenticated", role: "authenticated", email: claims.email ?? null, app_metadata: {}, user_metadata: {}, created_at: "2026-01-01T00:00:00Z" };
+  return {
+    id: claims.sub,
+    aud: "authenticated",
+    role: "authenticated",
+    email: claims.email ?? null,
+    app_metadata: {},
+    user_metadata: {},
+    created_at: "2026-01-01T00:00:00Z",
+  };
 }
 
-http.createServer((req, res) => {
-  if (req.url.startsWith("/auth/v1/user")) {
-    const user = userFromBearer(req.headers.authorization);
-    res.writeHead(user ? 200 : 401, { "content-type": "application/json" });
-    res.end(JSON.stringify(user ?? { code: 401, msg: "invalid token" }));
-    return;
-  }
-  const path = req.url.replace(/^\/rest\/v1/, "") || "/";
-  const upstream = http.request({ host: "127.0.0.1", port: target, path, method: req.method, headers: req.headers }, (r) => {
-    res.writeHead(r.statusCode ?? 502, r.headers);
-    r.pipe(res);
-  });
-  upstream.on("error", () => { res.writeHead(502); res.end(); });
-  req.pipe(upstream);
-}).listen(port, "127.0.0.1", () => console.log(`proxy on ${port}`));
+http
+  .createServer((req, res) => {
+    if (req.url.startsWith("/auth/v1/user")) {
+      const user = userFromBearer(req.headers.authorization);
+      res.writeHead(user ? 200 : 401, { "content-type": "application/json" });
+      res.end(JSON.stringify(user ?? { code: 401, msg: "invalid token" }));
+      return;
+    }
+    const path = req.url.replace(/^\/rest\/v1/, "") || "/";
+    const upstream = http.request({ host: "127.0.0.1", port: target, path, method: req.method, headers: req.headers }, (r) => {
+      res.writeHead(r.statusCode ?? 502, r.headers);
+      r.pipe(res);
+    });
+    upstream.on("error", () => {
+      res.writeHead(502);
+      res.end();
+    });
+    req.pipe(upstream);
+  })
+  .listen(port, "127.0.0.1", () => console.log(`proxy on ${port}`));

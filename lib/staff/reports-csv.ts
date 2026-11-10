@@ -15,6 +15,11 @@ export function csvField(v: string | number): string {
 }
 
 export function csvFileName(propertyName: string, from: string, to: string): string {
-  const slug = propertyName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "hotel";
+  const slug =
+    propertyName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 40) || "hotel";
   return `report-${slug}-${from}-to-${to}.csv`;
 }

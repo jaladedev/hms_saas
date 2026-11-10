@@ -41,7 +41,10 @@ export function buildWorklist(rooms: BoardRoom[], claims: BoardClaim[], today: M
 
   const out: Worklist = { urgent: [], toClean: [], inProgress: [], ready: 0, skipped: 0 };
   for (const room of rooms) {
-    if (room.operational_status !== "active") { out.skipped += 1; continue; }
+    if (room.operational_status !== "active") {
+      out.skipped += 1;
+      continue;
+    }
     const t = today.get(room.property_id) ?? "";
     const mine = byRoom.get(room.id) ?? [];
     const stays = mine.filter((c) => c.claim_type === "stay" || c.claim_type === "hold");

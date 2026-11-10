@@ -27,7 +27,9 @@ describe("csvField", () => {
 
 describe("csvFileName", () => {
   it("is a safe, readable name", () => {
-    expect(csvFileName("Grand Hotel & Spa (Lekki)", "2026-11-01", "2026-11-07")).toBe("report-grand-hotel-spa-lekki-2026-11-01-to-2026-11-07.csv");
+    expect(csvFileName("Grand Hotel & Spa (Lekki)", "2026-11-01", "2026-11-07")).toBe(
+      "report-grand-hotel-spa-lekki-2026-11-01-to-2026-11-07.csv",
+    );
     expect(csvFileName("???", "2026-11-01", "2026-11-01")).toBe("report-hotel-2026-11-01-to-2026-11-01.csv");
   });
 });

@@ -23,7 +23,10 @@ export function expandDates(from: string, to: string): string[] {
 export type RateRangeInput = { propertyId: string; roomTypeId: string; from: string; to: string; amountMinor: number | null };
 
 /** `needAmount` is false when clearing overrides, where no price is given. */
-export function validateRateRange(raw: Record<string, unknown>, needAmount: boolean): { ok: true; value: RateRangeInput } | { ok: false; code: ErrorCode } {
+export function validateRateRange(
+  raw: Record<string, unknown>,
+  needAmount: boolean,
+): { ok: true; value: RateRangeInput } | { ok: false; code: ErrorCode } {
   const propertyId = clean(raw.propertyId, 50);
   const roomTypeId = clean(raw.roomTypeId, 50);
   if (!GUID.test(propertyId) || !GUID.test(roomTypeId)) return { ok: false, code: "bad_request" };
@@ -48,8 +51,10 @@ export function groupRanges(rows: StoredRate[]): RateRange[] {
   const out: RateRange[] = [];
   for (const r of sorted) {
     const last = out[out.length - 1];
-    if (last && last.amountMinor === r.amount_minor && addDay(last.to, 1) === r.business_date) { last.to = r.business_date; last.nights += 1; }
-    else out.push({ from: r.business_date, to: r.business_date, amountMinor: r.amount_minor, nights: 1 });
+    if (last && last.amountMinor === r.amount_minor && addDay(last.to, 1) === r.business_date) {
+      last.to = r.business_date;
+      last.nights += 1;
+    } else out.push({ from: r.business_date, to: r.business_date, amountMinor: r.amount_minor, nights: 1 });
   }
   return out;
 }

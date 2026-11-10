@@ -1,7 +1,23 @@
 import { describe, expect, it } from "vitest";
-import { classifyPlatformError, ERROR_MESSAGES, FIELD_MESSAGES, normalizeHost, normalizeSecretReference, OK_MESSAGES, shortDate, slugFromName, validateNewHotel } from "./hotel";
+import {
+  classifyPlatformError,
+  ERROR_MESSAGES,
+  FIELD_MESSAGES,
+  normalizeHost,
+  normalizeSecretReference,
+  OK_MESSAGES,
+  shortDate,
+  slugFromName,
+  validateNewHotel,
+} from "./hotel";
 
-const good = { name: "  Grand   Hotels ", propertyName: "Grand Ibadan", propertyCode: "gib", host: "https://Book.Grand-Hotels.com:443/rooms?x=1", ownerEmail: " Owner@Grand-Hotels.com " };
+const good = {
+  name: "  Grand   Hotels ",
+  propertyName: "Grand Ibadan",
+  propertyCode: "gib",
+  host: "https://Book.Grand-Hotels.com:443/rooms?x=1",
+  ownerEmail: " Owner@Grand-Hotels.com ",
+};
 
 describe("slugFromName", () => {
   it("makes a short name from a hotel name", () => {
@@ -36,15 +52,26 @@ describe("validateNewHotel", () => {
   it("cleans a good form and fills the defaults", () => {
     const r = validateNewHotel(good);
     expect(r.ok && r.value).toMatchObject({
-      name: "Grand Hotels", slug: "grand-hotels", propertyName: "Grand Ibadan", propertyCode: "GIB", host: "book.grand-hotels.com",
-      ownerEmail: "owner@grand-hotels.com", timezone: "Africa/Lagos", currency: "NGN", secretReference: "", paymentMode: "test",
+      name: "Grand Hotels",
+      slug: "grand-hotels",
+      propertyName: "Grand Ibadan",
+      propertyCode: "GIB",
+      host: "book.grand-hotels.com",
+      ownerEmail: "owner@grand-hotels.com",
+      timezone: "Africa/Lagos",
+      currency: "NGN",
+      secretReference: "",
+      paymentMode: "test",
     });
   });
   it("takes an explicit slug, secret and live mode", () => {
     const r = validateNewHotel({ ...good, slug: "Grand-1", secretReference: "PAYSTACK_SECRET_GRAND", paymentMode: "live" });
     expect(r.ok && r.value).toMatchObject({ slug: "grand-1", secretReference: "env:PAYSTACK_SECRET_GRAND", paymentMode: "live" });
   });
-  const field = (over: Record<string, unknown>) => { const r = validateNewHotel({ ...good, ...over }); return r.ok ? "ok" : r.field; };
+  const field = (over: Record<string, unknown>) => {
+    const r = validateNewHotel({ ...good, ...over });
+    return r.ok ? "ok" : r.field;
+  };
   it("names the first field that is wrong", () => {
     expect(field({ name: "   " })).toBe("name");
     expect(field({ name: "x".repeat(121) })).toBe("name");
@@ -62,7 +89,18 @@ describe("validateNewHotel", () => {
     expect(field({ paymentMode: "sandbox" })).toBe("payment_mode");
   });
   it("has a message for every field it can name", () => {
-    for (const f of ["name", "slug", "property_name", "code", "timezone", "currency", "host", "owner_email", "secret_reference", "payment_mode"] as const) {
+    for (const f of [
+      "name",
+      "slug",
+      "property_name",
+      "code",
+      "timezone",
+      "currency",
+      "host",
+      "owner_email",
+      "secret_reference",
+      "payment_mode",
+    ] as const) {
       expect(FIELD_MESSAGES[f].length).toBeGreaterThan(10);
     }
   });
@@ -76,9 +114,23 @@ describe("classifyPlatformError", () => {
     expect(c("NOT_FOUND: property")).toBe("property");
     expect(c("CONFLICT: slug")).toBe("slug_taken");
     expect(c("CONFLICT: host")).toBe("host_taken");
-    for (const [m, k] of [["name", "name"], ["slug", "slug"], ["code", "code"], ["currency", "currency"], ["host", "host"], ["timezone", "timezone"], ["reason", "reason"], ["status", "status"],
-                          ["secret reference", "secret_reference"], ["payment mode", "payment_mode"], ["verified", "bad_request"],
-                          ["plan", "plan"], ["subscription status", "subscription_status"], ["feature key", "feature_key"], ["enabled", "bad_request"]] as const) {
+    for (const [m, k] of [
+      ["name", "name"],
+      ["slug", "slug"],
+      ["code", "code"],
+      ["currency", "currency"],
+      ["host", "host"],
+      ["timezone", "timezone"],
+      ["reason", "reason"],
+      ["status", "status"],
+      ["secret reference", "secret_reference"],
+      ["payment mode", "payment_mode"],
+      ["verified", "bad_request"],
+      ["plan", "plan"],
+      ["subscription status", "subscription_status"],
+      ["feature key", "feature_key"],
+      ["enabled", "bad_request"],
+    ] as const) {
       expect(c(`POLICY_VIOLATION: ${m}`)).toBe(k);
     }
   });
@@ -97,7 +149,9 @@ describe("migrations 050, 051 and 054 and the wording agree", () => {
   it("every refusal the migration raises is one the classifier understands", async () => {
     const { readFileSync, readdirSync } = await import("node:fs");
     const dir = "supabase/migrations";
-    const sql = ["_platform_admin.sql", "_platform_plans.sql", "_owner_invite.sql"].map((end) => readFileSync(`${dir}/${readdirSync(dir).find((f) => f.endsWith(end))!}`, "utf8")).join("\n");
+    const sql = ["_platform_admin.sql", "_platform_plans.sql", "_owner_invite.sql"]
+      .map((end) => readFileSync(`${dir}/${readdirSync(dir).find((f) => f.endsWith(end))!}`, "utf8"))
+      .join("\n");
     const raised = [...sql.matchAll(/raise exception '((?:POLICY_VIOLATION|NOT_FOUND|CONFLICT)[^']*)'/g)].map((m) => m[1]!);
     expect(raised.length).toBeGreaterThan(10);
     for (const msg of new Set(raised)) expect(classifyPlatformError({ message: msg }), msg).not.toBe("unavailable");

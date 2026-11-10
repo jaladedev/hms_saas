@@ -62,15 +62,26 @@ export async function createHotel(formData: FormData) {
   if (!ownerId) {
     const origin = siteOrigin(await headers(), process.env.NODE_ENV === "production");
     if (!origin) return fail(NEW, "invite_failed");
-    const invited = await service.auth.admin.inviteUserByEmail(h.ownerEmail, { redirectTo: `${origin}/auth/callback?next=/reset-password` });
+    const invited = await service.auth.admin.inviteUserByEmail(h.ownerEmail, {
+      redirectTo: `${origin}/auth/callback?next=/reset-password`,
+    });
     if (invited.error || !invited.data.user) return fail(NEW, "invite_failed");
     ownerId = invited.data.user.id;
   }
 
   const created = await supabase.rpc("platform_create_tenant", {
-    p_name: h.name, p_slug: h.slug, p_property_name: h.propertyName, p_property_code: h.propertyCode, p_city: h.city || null, p_state: h.state || null,
-    p_timezone: h.timezone, p_currency: h.currency, p_host: h.host, p_owner_user_id: ownerId,
-    p_paystack_secret_reference: h.secretReference || null, p_paystack_mode: h.secretReference ? h.paymentMode : null,
+    p_name: h.name,
+    p_slug: h.slug,
+    p_property_name: h.propertyName,
+    p_property_code: h.propertyCode,
+    p_city: h.city || null,
+    p_state: h.state || null,
+    p_timezone: h.timezone,
+    p_currency: h.currency,
+    p_host: h.host,
+    p_owner_user_id: ownerId,
+    p_paystack_secret_reference: h.secretReference || null,
+    p_paystack_mode: h.secretReference ? h.paymentMode : null,
   });
   if (created.error) return fail(NEW, classifyPlatformError(created.error));
   const tenantId = (created.data as { tenant_id?: string } | null)?.tenant_id;
@@ -80,22 +91,34 @@ export async function createHotel(formData: FormData) {
 }
 
 export async function setTenantStatus(formData: FormData) {
-  const p = z.object({ tenantId: uuid, status: z.enum(["active", "suspended", "closed"]), reason: z.string().max(500) }).safeParse(Object.fromEntries(formData));
+  const p = z
+    .object({ tenantId: uuid, status: z.enum(["active", "suspended", "closed"]), reason: z.string().max(500) })
+    .safeParse(Object.fromEntries(formData));
   if (!p.success) return fail(LIST, "bad_request");
   const page = `/platform/${p.data.tenantId}`;
   const supabase = await adminClient(page);
-  const { data, error } = await supabase.rpc("platform_set_tenant_status", { p_tenant: p.data.tenantId, p_status: p.data.status, p_reason: p.data.reason });
+  const { data, error } = await supabase.rpc("platform_set_tenant_status", {
+    p_tenant: p.data.tenantId,
+    p_status: p.data.status,
+    p_reason: p.data.reason,
+  });
   if (error) return fail(page, classifyPlatformError(error));
   revalidatePath(page);
   return done(page, (data as { changed?: boolean } | null)?.changed === false ? "unchanged" : "status");
 }
 
 export async function addDomain(formData: FormData) {
-  const p = z.object({ tenantId: uuid, propertyId: z.union([uuid, z.literal("")]), host: z.string().max(400) }).safeParse(Object.fromEntries(formData));
+  const p = z
+    .object({ tenantId: uuid, propertyId: z.union([uuid, z.literal("")]), host: z.string().max(400) })
+    .safeParse(Object.fromEntries(formData));
   if (!p.success) return fail(LIST, "bad_request");
   const page = `/platform/${p.data.tenantId}`;
   const supabase = await adminClient(page);
-  const { error } = await supabase.rpc("platform_add_domain", { p_tenant: p.data.tenantId, p_property: p.data.propertyId || null, p_host: normalizeHost(p.data.host) });
+  const { error } = await supabase.rpc("platform_add_domain", {
+    p_tenant: p.data.tenantId,
+    p_property: p.data.propertyId || null,
+    p_host: normalizeHost(p.data.host),
+  });
   if (error) return fail(page, classifyPlatformError(error));
   revalidatePath(page);
   return done(page, "domain_added");
@@ -110,11 +133,16 @@ export async function setDomainVerified(formData: FormData) {
   const { data, error } = await supabase.rpc("platform_set_domain_verified", { p_domain: p.data.domainId, p_verified: verified });
   if (error) return fail(page, classifyPlatformError(error));
   revalidatePath(page);
-  return done(page, (data as { changed?: boolean } | null)?.changed === false ? "unchanged" : verified ? "domain_verified" : "domain_unverified");
+  return done(
+    page,
+    (data as { changed?: boolean } | null)?.changed === false ? "unchanged" : verified ? "domain_verified" : "domain_unverified",
+  );
 }
 
 export async function setProviderStatus(formData: FormData) {
-  const p = z.object({ tenantId: uuid, accountId: uuid, status: z.enum(["inactive", "active", "disabled"]) }).safeParse(Object.fromEntries(formData));
+  const p = z
+    .object({ tenantId: uuid, accountId: uuid, status: z.enum(["inactive", "active", "disabled"]) })
+    .safeParse(Object.fromEntries(formData));
   if (!p.success) return fail(LIST, "bad_request");
   const page = `/platform/${p.data.tenantId}`;
   const supabase = await adminClient(page);
@@ -126,23 +154,43 @@ export async function setProviderStatus(formData: FormData) {
 
 export async function setSubscription(formData: FormData) {
   const day = z.union([z.literal(""), z.iso.date()]);
-  const p = z.object({ tenantId: uuid, plan: z.string().max(60), status: z.enum(["trial", "active", "past_due", "cancelled"]), trialEnds: day, periodEnd: day }).safeParse(Object.fromEntries(formData));
+  const p = z
+    .object({
+      tenantId: uuid,
+      plan: z.string().max(60),
+      status: z.enum(["trial", "active", "past_due", "cancelled"]),
+      trialEnds: day,
+      periodEnd: day,
+    })
+    .safeParse(Object.fromEntries(formData));
   if (!p.success) return fail(LIST, "bad_request");
   const page = `/platform/${p.data.tenantId}`;
   const supabase = await adminClient(page);
   const at = (d: string) => (d ? `${d}T00:00:00Z` : null);
-  const { error } = await supabase.rpc("platform_set_subscription", { p_tenant: p.data.tenantId, p_plan_code: p.data.plan, p_status: p.data.status, p_trial_ends_at: at(p.data.trialEnds), p_period_end: at(p.data.periodEnd) });
+  const { error } = await supabase.rpc("platform_set_subscription", {
+    p_tenant: p.data.tenantId,
+    p_plan_code: p.data.plan,
+    p_status: p.data.status,
+    p_trial_ends_at: at(p.data.trialEnds),
+    p_period_end: at(p.data.periodEnd),
+  });
   if (error) return fail(page, classifyPlatformError(error));
   revalidatePath(page);
   return done(page, "plan_set");
 }
 
 export async function setEntitlement(formData: FormData) {
-  const p = z.object({ tenantId: uuid, key: z.string().max(80), enabled: z.enum(["true", "false"]) }).safeParse(Object.fromEntries(formData));
+  const p = z
+    .object({ tenantId: uuid, key: z.string().max(80), enabled: z.enum(["true", "false"]) })
+    .safeParse(Object.fromEntries(formData));
   if (!p.success) return fail(LIST, "bad_request");
   const page = `/platform/${p.data.tenantId}`;
   const supabase = await adminClient(page);
-  const { data, error } = await supabase.rpc("platform_set_entitlement", { p_tenant: p.data.tenantId, p_feature_key: p.data.key, p_enabled: p.data.enabled === "true" });
+  const { data, error } = await supabase.rpc("platform_set_entitlement", {
+    p_tenant: p.data.tenantId,
+    p_feature_key: p.data.key,
+    p_enabled: p.data.enabled === "true",
+  });
   if (error) return fail(page, classifyPlatformError(error));
   revalidatePath(page);
   return done(page, (data as { changed?: boolean } | null)?.changed === false ? "unchanged" : "feature_set");
@@ -162,7 +210,9 @@ export async function resendOwnerInvite(formData: FormData) {
 
   const origin = siteOrigin(await headers(), process.env.NODE_ENV === "production");
   if (!origin) return fail(page, "invite_failed");
-  const sent = await createServiceClient().auth.admin.inviteUserByEmail(info.email, { redirectTo: `${origin}/auth/callback?next=/reset-password` });
+  const sent = await createServiceClient().auth.admin.inviteUserByEmail(info.email, {
+    redirectTo: `${origin}/auth/callback?next=/reset-password`,
+  });
   if (sent.error) return fail(page, "invite_failed");
   const logged = await supabase.rpc("platform_log_owner_invite", { p_tenant: p.data.tenantId, p_user: p.data.userId });
   if (logged.error) return fail(page, classifyPlatformError(logged.error));

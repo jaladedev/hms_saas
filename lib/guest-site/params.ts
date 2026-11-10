@@ -1,6 +1,9 @@
 import { z } from "zod";
 
-const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((v) => !Number.isNaN(Date.parse(`${v}T00:00:00Z`)), "invalid date");
+const isoDate = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .refine((v) => !Number.isNaN(Date.parse(`${v}T00:00:00Z`)), "invalid date");
 const intIn = (min: number, max: number) => z.coerce.number().int().min(min).max(max);
 
 export const stayParamsSchema = z
@@ -33,5 +36,10 @@ export const guestSchema = z.object({
 export const uuidSchema = z.guid();
 
 export function stayQuery(p: StayParams): string {
-  return new URLSearchParams({ arrival: p.arrival, departure: p.departure, adults: String(p.adults), children: String(p.children) }).toString();
+  return new URLSearchParams({
+    arrival: p.arrival,
+    departure: p.departure,
+    adults: String(p.adults),
+    children: String(p.children),
+  }).toString();
 }

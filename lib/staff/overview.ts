@@ -83,29 +83,82 @@ export type OverviewInput = {
 /** The things that need a person, most urgent first. Anything at zero is left out. */
 export function buildTasks(i: OverviewInput): Task[] {
   const all: Task[] = [
-    { key: "overdue", count: i.desk.overdue.length, tone: "critical", href: "/app/front-desk",
-      label: plural(i.desk.overdue.length, "guest is still in house past their departure date", "guests are still in house past their departure date") },
-    { key: "flagged", count: i.flaggedReservations, tone: "critical", href: "/app/reservations?status=attention",
-      label: plural(i.flaggedReservations, "reservation is flagged for attention", "reservations are flagged for attention") },
-    { key: "stuck", count: i.refunds.stuck, tone: "critical", href: "/app/refunds",
-      label: plural(i.refunds.stuck, "refund payout has an unknown or overdue result", "refund payouts have an unknown or overdue result") },
-    { key: "repairsOverdue", count: i.repairs.overdue, tone: "critical", href: "/app/maintenance",
-      label: plural(i.repairs.overdue, "repair is overdue", "repairs are overdue") },
-    { key: "toApprove", count: i.refunds.toApprove, tone: "normal", href: "/app/refunds",
-      label: plural(i.refunds.toApprove, "refund is waiting for your approval", "refunds are waiting for your approval") },
-    { key: "toPay", count: i.refunds.toPay, tone: "normal", href: "/app/refunds",
-      label: plural(i.refunds.toPay, "approved refund is ready to pay out", "approved refunds are ready to pay out") },
-    { key: "repairsHigh", count: i.repairs.highPriority, tone: "normal", href: "/app/maintenance",
-      label: plural(i.repairs.highPriority, "urgent or high-priority repair is open", "urgent or high-priority repairs are open") },
-    { key: "emails", count: i.failedEmails, tone: "normal", href: "/app/emails",
-      label: plural(i.failedEmails, "guest email could not be delivered", "guest emails could not be delivered") },
-    { key: "late", count: i.desk.lateArrivals.length, tone: "normal", href: "/app/front-desk",
-      label: plural(i.desk.lateArrivals.length, "confirmed guest has not arrived yet", "confirmed guests have not arrived yet") },
+    {
+      key: "overdue",
+      count: i.desk.overdue.length,
+      tone: "critical",
+      href: "/app/front-desk",
+      label: plural(
+        i.desk.overdue.length,
+        "guest is still in house past their departure date",
+        "guests are still in house past their departure date",
+      ),
+    },
+    {
+      key: "flagged",
+      count: i.flaggedReservations,
+      tone: "critical",
+      href: "/app/reservations?status=attention",
+      label: plural(i.flaggedReservations, "reservation is flagged for attention", "reservations are flagged for attention"),
+    },
+    {
+      key: "stuck",
+      count: i.refunds.stuck,
+      tone: "critical",
+      href: "/app/refunds",
+      label: plural(i.refunds.stuck, "refund payout has an unknown or overdue result", "refund payouts have an unknown or overdue result"),
+    },
+    {
+      key: "repairsOverdue",
+      count: i.repairs.overdue,
+      tone: "critical",
+      href: "/app/maintenance",
+      label: plural(i.repairs.overdue, "repair is overdue", "repairs are overdue"),
+    },
+    {
+      key: "toApprove",
+      count: i.refunds.toApprove,
+      tone: "normal",
+      href: "/app/refunds",
+      label: plural(i.refunds.toApprove, "refund is waiting for your approval", "refunds are waiting for your approval"),
+    },
+    {
+      key: "toPay",
+      count: i.refunds.toPay,
+      tone: "normal",
+      href: "/app/refunds",
+      label: plural(i.refunds.toPay, "approved refund is ready to pay out", "approved refunds are ready to pay out"),
+    },
+    {
+      key: "repairsHigh",
+      count: i.repairs.highPriority,
+      tone: "normal",
+      href: "/app/maintenance",
+      label: plural(i.repairs.highPriority, "urgent or high-priority repair is open", "urgent or high-priority repairs are open"),
+    },
+    {
+      key: "emails",
+      count: i.failedEmails,
+      tone: "normal",
+      href: "/app/emails",
+      label: plural(i.failedEmails, "guest email could not be delivered", "guest emails could not be delivered"),
+    },
+    {
+      key: "late",
+      count: i.desk.lateArrivals.length,
+      tone: "normal",
+      href: "/app/front-desk",
+      label: plural(i.desk.lateArrivals.length, "confirmed guest has not arrived yet", "confirmed guests have not arrived yet"),
+    },
   ];
   return all.filter((t) => t.count > 0);
 }
 
 /** Figures for the "today" strip. In house counts everyone checked in, including those leaving today or overdue. */
 export function todayFigures(g: DeskGroups): { arriving: number; departing: number; inHouse: number } {
-  return { arriving: g.arrivals.length, departing: g.departures.length, inHouse: g.inHouse.length + g.departures.length + g.overdue.length };
+  return {
+    arriving: g.arrivals.length,
+    departing: g.departures.length,
+    inHouse: g.inHouse.length + g.departures.length + g.overdue.length,
+  };
 }

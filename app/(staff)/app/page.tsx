@@ -2,7 +2,16 @@ import Link from "next/link";
 import { formatDate } from "@/lib/guest-site/format";
 import { loadDeskRows } from "@/lib/staff/desk-query";
 import { bucketFrontDesk } from "@/lib/staff/front-desk";
-import { buildTasks, countCleaning, countRefunds, countRepairs, todayFigures, type RefundBrief, type RequestBrief, type RoomBrief } from "@/lib/staff/overview";
+import {
+  buildTasks,
+  countCleaning,
+  countRefunds,
+  countRepairs,
+  todayFigures,
+  type RefundBrief,
+  type RequestBrief,
+  type RoomBrief,
+} from "@/lib/staff/overview";
 import { todayIn } from "@/lib/staff/reservations";
 import { createClient } from "@/lib/supabase/server";
 import { linkClass, ErrorBanner, PageTitle, SectionTitle } from "@/components/staff/ui";
@@ -10,7 +19,11 @@ import { linkClass, ErrorBanner, PageTitle, SectionTitle } from "@/components/st
 export const dynamic = "force-dynamic";
 
 /** True when the signed-in user holds at least one of the permissions at any of the properties. A failed check counts as no. */
-async function anyPermission(supabase: Awaited<ReturnType<typeof createClient>>, propertyIds: string[], permissions: string[]): Promise<boolean> {
+async function anyPermission(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  propertyIds: string[],
+  permissions: string[],
+): Promise<boolean> {
   const checks = propertyIds.flatMap((id) => permissions.map((p) => supabase.rpc("has_permission", { p_property: id, p_permission: p })));
   const results = await Promise.all(checks);
   return results.some((r) => r.data === true);
@@ -19,10 +32,7 @@ async function anyPermission(supabase: Awaited<ReturnType<typeof createClient>>,
 export default async function Dashboard() {
   const supabase = await createClient();
   const now = new Date();
-  const [{ data: auth }, propQ] = await Promise.all([
-    supabase.auth.getUser(),
-    supabase.from("properties").select("id, name, timezone"),
-  ]);
+  const [{ data: auth }, propQ] = await Promise.all([supabase.auth.getUser(), supabase.from("properties").select("id, name, timezone")]);
   const properties = (propQ.data ?? []) as { id: string; name: string; timezone: string }[];
   const todayByProperty = new Map(properties.map((p) => [p.id, todayIn(p.timezone, now)]));
   const dates = [...todayByProperty.values()].sort();
@@ -34,15 +44,31 @@ export default async function Dashboard() {
   const [desk, flaggedQ, refundQ, emailQ, repairQ, canSeeRepairs, roomQ, canSeeCleaning] = await Promise.all([
     earliest && latest ? loadDeskRows(supabase, earliest, latest) : Promise.resolve({ rows: [], error: null }),
     supabase.from("reservations").select("id", { count: "exact", head: true }).not("attention_reason", "is", null),
-    supabase.from("refunds").select("refund_status, requested_by, attention_note, provider_call_started_at").in("refund_status", ["requested", "approved", "processing"]).limit(500),
+    supabase
+      .from("refunds")
+      .select("refund_status, requested_by, attention_note, provider_call_started_at")
+      .in("refund_status", ["requested", "approved", "processing"])
+      .limit(500),
     supabase.rpc("staff_failed_emails", { p_limit: 200 }),
     // A thin read of live requests; row level security returns only what this person may see (maintenance.view or manage).
     supabase.from("maintenance_requests").select("status, priority, assigned_to, due_at").in("status", ["open", "in_progress"]).limit(500),
     // The repair figure is shown only to people who can read requests, so "0 open" is never shown to a role that sees none.
-    anyPermission(supabase, properties.map((p) => p.id), ["maintenance.view", "maintenance.manage"]),
+    anyPermission(
+      supabase,
+      properties.map((p) => p.id),
+      ["maintenance.view", "maintenance.manage"],
+    ),
     // Rooms not yet clean: two status columns only. Shown only to people who can open housekeeping, for the same reason.
-    supabase.from("rooms").select("housekeeping_status, operational_status").in("housekeeping_status", ["dirty", "in_progress"]).limit(1000),
-    anyPermission(supabase, properties.map((p) => p.id), ["housekeeping.view", "housekeeping.update"]),
+    supabase
+      .from("rooms")
+      .select("housekeeping_status, operational_status")
+      .in("housekeeping_status", ["dirty", "in_progress"])
+      .limit(1000),
+    anyPermission(
+      supabase,
+      properties.map((p) => p.id),
+      ["housekeeping.view", "housekeeping.update"],
+    ),
   ]);
 
   const groups = bucketFrontDesk(desk.rows, todayByProperty);
@@ -68,13 +94,15 @@ export default async function Dashboard() {
       <section className="mt-8" aria-labelledby="today">
         <SectionTitle id="today">Today</SectionTitle>
         <dl className="mt-3 flex flex-wrap border-y border-line">
-          {([
-            ["Arriving", figures.arriving],
-            ["Departing", figures.departing],
-            ["In house", figures.inHouse],
-            ...(canSeeRepairs ? ([["Open repairs", repairs.open]] as const) : []),
-            ...(canSeeCleaning ? ([["Rooms to clean", cleaning.total]] as const) : []),
-          ] as readonly (readonly [string, number])[]).map(([label, n], i) => (
+          {(
+            [
+              ["Arriving", figures.arriving],
+              ["Departing", figures.departing],
+              ["In house", figures.inHouse],
+              ...(canSeeRepairs ? ([["Open repairs", repairs.open]] as const) : []),
+              ...(canSeeCleaning ? ([["Rooms to clean", cleaning.total]] as const) : []),
+            ] as readonly (readonly [string, number])[]
+          ).map(([label, n], i) => (
             <div key={label} className={`min-w-32 flex-1 px-4 py-4 ${i > 0 ? "border-l border-line" : "pl-0"}`}>
               <dt className="text-sm text-muted">{label}</dt>
               <dd className="mt-1 text-3xl font-semibold tabular-nums">{n}</dd>
@@ -82,17 +110,23 @@ export default async function Dashboard() {
           ))}
         </dl>
         <p className="mt-2 text-sm">
-          <Link href="/app/front-desk" className={linkClass}>Open the front desk</Link>
+          <Link href="/app/front-desk" className={linkClass}>
+            Open the front desk
+          </Link>
           {canSeeCleaning && (
             <>
               {" · "}
-              <Link href="/app/housekeeping" className={linkClass}>Open housekeeping</Link>
+              <Link href="/app/housekeeping" className={linkClass}>
+                Open housekeeping
+              </Link>
             </>
           )}
           {canSeeRepairs && (
             <>
               {" · "}
-              <Link href="/app/maintenance" className={linkClass}>Open maintenance</Link>
+              <Link href="/app/maintenance" className={linkClass}>
+                Open maintenance
+              </Link>
             </>
           )}
         </p>
@@ -108,8 +142,13 @@ export default async function Dashboard() {
           <ul className="mt-3 border-t border-line">
             {tasks.map((t) => (
               <li key={t.key} className="border-b border-line">
-                <Link href={t.href} className="flex items-baseline gap-4 py-3 hover:bg-white focus-visible:outline-2 focus-visible:outline-primary">
-                  <span className={`w-10 text-right text-2xl font-semibold tabular-nums ${t.tone === "critical" ? "text-critical" : ""}`}>{t.count}</span>
+                <Link
+                  href={t.href}
+                  className="flex items-baseline gap-4 py-3 hover:bg-white focus-visible:outline-2 focus-visible:outline-primary"
+                >
+                  <span className={`w-10 text-right text-2xl font-semibold tabular-nums ${t.tone === "critical" ? "text-critical" : ""}`}>
+                    {t.count}
+                  </span>
                   <span>{t.label}</span>
                 </Link>
               </li>
@@ -118,7 +157,8 @@ export default async function Dashboard() {
         )}
         {refunds.waitingOnOthers > 0 && (
           <p className="mt-3 max-w-prose text-sm text-muted">
-            {refunds.waitingOnOthers} {refunds.waitingOnOthers === 1 ? "refund you requested is" : "refunds you requested are"} waiting for a second person to approve.
+            {refunds.waitingOnOthers} {refunds.waitingOnOthers === 1 ? "refund you requested is" : "refunds you requested are"} waiting for
+            a second person to approve.
           </p>
         )}
       </section>

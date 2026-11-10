@@ -22,7 +22,8 @@ export async function signIn(formData: FormData) {
   const raw = Object.fromEntries(formData);
   const next = typeof raw.next === "string" ? raw.next : undefined;
   const parsed = z.object({ email: z.email().max(254), password: z.string().min(1).max(200) }).safeParse({
-    email: typeof raw.email === "string" ? raw.email.trim() : "", password: raw.password,
+    email: typeof raw.email === "string" ? raw.email.trim() : "",
+    password: raw.password,
   });
   if (!parsed.success) return toLogin("invalid", next);
 
@@ -62,7 +63,7 @@ export async function requestPasswordReset(formData: FormData) {
   const parsed = z.object({ email: z.email().max(254) }).safeParse({
     email: typeof formData.get("email") === "string" ? String(formData.get("email")).trim() : "",
   });
-  if (!parsed.success) redirect("/forgot-password?sent=1");   // a malformed address gets the same screen
+  if (!parsed.success) redirect("/forgot-password?sent=1"); // a malformed address gets the same screen
 
   const origin = siteOrigin(await headers(), process.env.NODE_ENV === "production");
   if (!origin) redirect("/forgot-password?err=unavailable");

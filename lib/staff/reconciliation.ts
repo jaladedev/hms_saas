@@ -49,26 +49,51 @@ export function parseCsv(input: string): string[][] {
     const c = text[i]!;
     if (quoted) {
       if (c === '"') {
-        if (text[i + 1] === '"') { field += '"'; i++; } else quoted = false;
+        if (text[i + 1] === '"') {
+          field += '"';
+          i++;
+        } else quoted = false;
       } else field += c;
       continue;
     }
-    if (c === '"' && field === "") { quoted = true; touched = true; continue; }
-    if (c === ",") { row.push(field); field = ""; touched = true; continue; }
-    if (c === "\r" || c === "\n") {
-      if (c === "\r" && text[i + 1] === "\n") i++;
-      if (touched || field !== "") { row.push(field); rows.push(row); }
-      row = []; field = ""; touched = false;
+    if (c === '"' && field === "") {
+      quoted = true;
+      touched = true;
       continue;
     }
-    field += c; touched = true;
+    if (c === ",") {
+      row.push(field);
+      field = "";
+      touched = true;
+      continue;
+    }
+    if (c === "\r" || c === "\n") {
+      if (c === "\r" && text[i + 1] === "\n") i++;
+      if (touched || field !== "") {
+        row.push(field);
+        rows.push(row);
+      }
+      row = [];
+      field = "";
+      touched = false;
+      continue;
+    }
+    field += c;
+    touched = true;
   }
   if (quoted) throw new Error("The file ends inside a quoted value, so it is not a complete CSV file.");
-  if (touched || field !== "") { row.push(field); rows.push(row); }
+  if (touched || field !== "") {
+    row.push(field);
+    rows.push(row);
+  }
   return rows;
 }
 
-const normalizeHeader = (h: string) => h.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+const normalizeHeader = (h: string) =>
+  h
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 
 /** Header names we accept, best first. */
 const ALIASES = {
@@ -106,7 +131,9 @@ export type ReadResult = {
 
 export function readProviderRows(csv: string): ReadResult {
   let table: string[][];
-  try { table = parseCsv(csv); } catch (e) {
+  try {
+    table = parseCsv(csv);
+  } catch (e) {
     return { rows: [], problems: [(e as Error).message], fatal: true, columns: null };
   }
   if (table.length === 0) return { rows: [], problems: ["The file is empty."], fatal: true, columns: null };
@@ -119,12 +146,26 @@ export function readProviderRows(csv: string): ReadResult {
   const missing = [ref < 0 ? "reference" : "", amt < 0 ? "amount" : "", sta < 0 ? "status" : ""].filter(Boolean);
   if (missing.length > 0) {
     return {
-      rows: [], fatal: true, columns: null,
-      problems: [`The file has no ${missing.join(", ")} column. Export again with those columns included. The columns found were: ${rawHeaders.map((h) => h.trim()).filter(Boolean).join(", ") || "none"}.`],
+      rows: [],
+      fatal: true,
+      columns: null,
+      problems: [
+        `The file has no ${missing.join(", ")} column. Export again with those columns included. The columns found were: ${
+          rawHeaders
+            .map((h) => h.trim())
+            .filter(Boolean)
+            .join(", ") || "none"
+        }.`,
+      ],
     };
   }
   if (table.length - 1 > MAX_ROWS) {
-    return { rows: [], fatal: true, columns: null, problems: [`The file has more than ${MAX_ROWS.toLocaleString("en")} rows. Export a shorter period.`] };
+    return {
+      rows: [],
+      fatal: true,
+      columns: null,
+      problems: [`The file has more than ${MAX_ROWS.toLocaleString("en")} rows. Export a shorter period.`],
+    };
   }
 
   const problems: string[] = [];
@@ -133,17 +174,31 @@ export function readProviderRows(csv: string): ReadResult {
   for (let i = 1; i < table.length; i++) {
     const r = table[i]!;
     const reference = (r[ref] ?? "").trim();
-    if (reference === "") { blank++; continue; }
+    if (reference === "") {
+      blank++;
+      continue;
+    }
     const statusText = (r[sta] ?? "").trim();
     rows.push({
-      line: i + 1, reference, amountText: (r[amt] ?? "").trim(), status: statusOf(statusText), statusText,
-      currency: cur >= 0 ? ((r[cur] ?? "").trim().toUpperCase() || null) : null,
+      line: i + 1,
+      reference,
+      amountText: (r[amt] ?? "").trim(),
+      status: statusOf(statusText),
+      statusText,
+      currency: cur >= 0 ? (r[cur] ?? "").trim().toUpperCase() || null : null,
     });
   }
   if (blank > 0) problems.push(`${blank} row${blank === 1 ? " has" : "s have"} no reference and ${blank === 1 ? "was" : "were"} skipped.`);
   return {
-    rows, problems, fatal: false,
-    columns: { reference: rawHeaders[ref]!.trim(), amount: rawHeaders[amt]!.trim(), status: rawHeaders[sta]!.trim(), currency: cur >= 0 ? rawHeaders[cur]!.trim() : null },
+    rows,
+    problems,
+    fatal: false,
+    columns: {
+      reference: rawHeaders[ref]!.trim(),
+      amount: rawHeaders[amt]!.trim(),
+      status: rawHeaders[sta]!.trim(),
+      currency: cur >= 0 ? rawHeaders[cur]!.trim() : null,
+    },
   };
 }
 
@@ -154,7 +209,10 @@ export function readProviderRows(csv: string): ReadResult {
  * that is not a plain non-negative amount (a symbol or NGN prefix and thousands commas are allowed).
  */
 export function decimalToMinor(text: string, unit: AmountUnit): number | null {
-  const t = text.trim().replace(/^(?:NGN|₦)\s*/i, "").replace(/,/g, "");
+  const t = text
+    .trim()
+    .replace(/^(?:NGN|₦)\s*/i, "")
+    .replace(/,/g, "");
   const m = /^(\d{1,13})(?:\.(\d+))?$/.exec(t);
   if (!m) return null;
   const whole = m[1]!;
@@ -189,9 +247,33 @@ export function detectUnit(rows: ProviderRow[], ours: OurPayment[]): { unit: Amo
 
 export type Finding =
   | { kind: "missing_here"; reference: string; line: number; providerMinor: number; currency: string | null }
-  | { kind: "amount_differs"; reference: string; line: number; providerMinor: number; ourMinor: number; paymentId: string; reservationId: string }
-  | { kind: "currency_differs"; reference: string; line: number; providerCurrency: string; ourCurrency: string; paymentId: string; reservationId: string }
-  | { kind: "not_successful_at_provider"; reference: string; line: number; providerStatus: string; ourMinor: number; paymentId: string; reservationId: string }
+  | {
+      kind: "amount_differs";
+      reference: string;
+      line: number;
+      providerMinor: number;
+      ourMinor: number;
+      paymentId: string;
+      reservationId: string;
+    }
+  | {
+      kind: "currency_differs";
+      reference: string;
+      line: number;
+      providerCurrency: string;
+      ourCurrency: string;
+      paymentId: string;
+      reservationId: string;
+    }
+  | {
+      kind: "not_successful_at_provider";
+      reference: string;
+      line: number;
+      providerStatus: string;
+      ourMinor: number;
+      paymentId: string;
+      reservationId: string;
+    }
   | { kind: "reversed_at_provider"; reference: string; line: number; ourMinor: number; paymentId: string; reservationId: string }
   | { kind: "reversed_here"; reference: string; line: number; providerMinor: number; paymentId: string; reservationId: string }
   | { kind: "not_in_file"; reference: string; ourMinor: number; paymentId: string; reservationId: string }
@@ -202,8 +284,15 @@ export type FindingKind = Finding["kind"];
 
 /** Most serious first: money Paystack has that we do not show, then the rest. */
 export const KIND_ORDER: FindingKind[] = [
-  "missing_here", "amount_differs", "currency_differs", "not_successful_at_provider", "reversed_at_provider",
-  "reversed_here", "not_in_file", "bad_amount", "duplicate_in_file",
+  "missing_here",
+  "amount_differs",
+  "currency_differs",
+  "not_successful_at_provider",
+  "reversed_at_provider",
+  "reversed_here",
+  "not_in_file",
+  "bad_amount",
+  "duplicate_in_file",
 ];
 
 export type ReconcileResult = {
@@ -224,43 +313,105 @@ export function reconcile(rows: ProviderRow[], ours: OurPayment[], unit: AmountU
   const byRef = new Map(ours.map((p) => [p.reference, p]));
   const seen = new Map<string, number[]>();
   const findings: Finding[] = [];
-  let matched = 0, matchedMinor = 0, ignored = 0;
+  let matched = 0,
+    matchedMinor = 0,
+    ignored = 0;
 
   for (const r of rows) {
     const lines = seen.get(r.reference);
-    if (lines) { lines.push(r.line); continue; }
+    if (lines) {
+      lines.push(r.line);
+      continue;
+    }
     seen.set(r.reference, [r.line]);
     const p = byRef.get(r.reference);
 
     if (r.status === "success") {
       const minor = decimalToMinor(r.amountText, unit);
-      if (minor === null) { findings.push({ kind: "bad_amount", reference: r.reference, line: r.line, amountText: r.amountText }); continue; }
-      if (!p) { findings.push({ kind: "missing_here", reference: r.reference, line: r.line, providerMinor: minor, currency: r.currency }); continue; }
-      if (p.payment_status === "reversed") { findings.push({ kind: "reversed_here", reference: r.reference, line: r.line, providerMinor: minor, paymentId: p.id, reservationId: p.reservation_id }); continue; }
+      if (minor === null) {
+        findings.push({ kind: "bad_amount", reference: r.reference, line: r.line, amountText: r.amountText });
+        continue;
+      }
+      if (!p) {
+        findings.push({ kind: "missing_here", reference: r.reference, line: r.line, providerMinor: minor, currency: r.currency });
+        continue;
+      }
+      if (p.payment_status === "reversed") {
+        findings.push({
+          kind: "reversed_here",
+          reference: r.reference,
+          line: r.line,
+          providerMinor: minor,
+          paymentId: p.id,
+          reservationId: p.reservation_id,
+        });
+        continue;
+      }
       if (r.currency && r.currency !== p.currency.toUpperCase()) {
-        findings.push({ kind: "currency_differs", reference: r.reference, line: r.line, providerCurrency: r.currency, ourCurrency: p.currency, paymentId: p.id, reservationId: p.reservation_id });
+        findings.push({
+          kind: "currency_differs",
+          reference: r.reference,
+          line: r.line,
+          providerCurrency: r.currency,
+          ourCurrency: p.currency,
+          paymentId: p.id,
+          reservationId: p.reservation_id,
+        });
         continue;
       }
       if (minor !== p.amount_minor) {
-        findings.push({ kind: "amount_differs", reference: r.reference, line: r.line, providerMinor: minor, ourMinor: p.amount_minor, paymentId: p.id, reservationId: p.reservation_id });
+        findings.push({
+          kind: "amount_differs",
+          reference: r.reference,
+          line: r.line,
+          providerMinor: minor,
+          ourMinor: p.amount_minor,
+          paymentId: p.id,
+          reservationId: p.reservation_id,
+        });
         continue;
       }
-      matched++; matchedMinor += minor;
+      matched++;
+      matchedMinor += minor;
       continue;
     }
 
-    if (!p || p.payment_status === "reversed") { ignored++; continue; }
+    if (!p || p.payment_status === "reversed") {
+      ignored++;
+      continue;
+    }
     if (r.status === "reversed") {
-      findings.push({ kind: "reversed_at_provider", reference: r.reference, line: r.line, ourMinor: p.amount_minor, paymentId: p.id, reservationId: p.reservation_id });
+      findings.push({
+        kind: "reversed_at_provider",
+        reference: r.reference,
+        line: r.line,
+        ourMinor: p.amount_minor,
+        paymentId: p.id,
+        reservationId: p.reservation_id,
+      });
     } else {
-      findings.push({ kind: "not_successful_at_provider", reference: r.reference, line: r.line, providerStatus: r.statusText || "unknown", ourMinor: p.amount_minor, paymentId: p.id, reservationId: p.reservation_id });
+      findings.push({
+        kind: "not_successful_at_provider",
+        reference: r.reference,
+        line: r.line,
+        providerStatus: r.statusText || "unknown",
+        ourMinor: p.amount_minor,
+        paymentId: p.id,
+        reservationId: p.reservation_id,
+      });
     }
   }
 
   for (const [reference, lines] of seen) if (lines.length > 1) findings.push({ kind: "duplicate_in_file", reference, lines });
   for (const p of ours) {
     if (p.payment_status === "succeeded" && !seen.has(p.reference)) {
-      findings.push({ kind: "not_in_file", reference: p.reference, ourMinor: p.amount_minor, paymentId: p.id, reservationId: p.reservation_id });
+      findings.push({
+        kind: "not_in_file",
+        reference: p.reference,
+        ourMinor: p.amount_minor,
+        paymentId: p.id,
+        reservationId: p.reservation_id,
+      });
     }
   }
 

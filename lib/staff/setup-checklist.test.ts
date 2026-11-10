@@ -24,18 +24,38 @@ describe("buildChecklist and progressOf", () => {
     expect(p).toMatchObject({ done: 5, complete: true, ready: true, next: null });
   });
   it("links every step to a settings screen", () => {
-    expect(buildChecklist(empty).map((s) => s.href)).toEqual(["/app/settings/rooms", "/app/settings/rooms", "/app/settings/rates", "/app/settings/tax", "/app/settings/policies"]);
+    expect(buildChecklist(empty).map((s) => s.href)).toEqual([
+      "/app/settings/rooms",
+      "/app/settings/rooms",
+      "/app/settings/rates",
+      "/app/settings/tax",
+      "/app/settings/policies",
+    ]);
   });
 });
 
 describe("countsFor", () => {
-  const A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", B = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+  const A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    B = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
   it("counts only this property, switched-on room types, rooms that are not retired and an active default plan", () => {
     const c = countsFor(A, {
-      roomTypes: [{ property_id: A, status: "active" }, { property_id: A, status: "inactive" }, { property_id: B, status: "active" }],
-      rooms: [{ property_id: A, operational_status: "active" }, { property_id: A, operational_status: "out_of_service" }, { property_id: A, operational_status: "retired" }, { property_id: B, operational_status: "active" }],
-      ratePlans: [{ property_id: A, is_default: true, status: "inactive" }, { property_id: B, is_default: true, status: "active" }],
-      taxRules: [{ property_id: A }, { property_id: B }], policies: [{ property_id: B }],
+      roomTypes: [
+        { property_id: A, status: "active" },
+        { property_id: A, status: "inactive" },
+        { property_id: B, status: "active" },
+      ],
+      rooms: [
+        { property_id: A, operational_status: "active" },
+        { property_id: A, operational_status: "out_of_service" },
+        { property_id: A, operational_status: "retired" },
+        { property_id: B, operational_status: "active" },
+      ],
+      ratePlans: [
+        { property_id: A, is_default: true, status: "inactive" },
+        { property_id: B, is_default: true, status: "active" },
+      ],
+      taxRules: [{ property_id: A }, { property_id: B }],
+      policies: [{ property_id: B }],
     });
     expect(c).toEqual({ roomTypes: 1, rooms: 2, hasDefaultRatePlan: false, taxRules: 1, policyVersions: 0 });
   });

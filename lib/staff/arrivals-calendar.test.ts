@@ -4,7 +4,15 @@ import { parseWindow } from "./room-calendar";
 
 const w = parseWindow("2026-11-05", "7", "2026-11-05"); // 5 to 11 November
 const r = (ref: string, arrival: string, departure: string, status = "confirmed", over: Partial<AgendaRow> = {}): AgendaRow => ({
-  id: ref, property_id: "p", booking_reference: ref, primary_guest_id: "g", reservation_status: status, payment_status: "paid", arrival_date: arrival, departure_date: departure, ...over,
+  id: ref,
+  property_id: "p",
+  booking_reference: ref,
+  primary_guest_id: "g",
+  reservation_status: status,
+  payment_status: "paid",
+  arrival_date: arrival,
+  departure_date: departure,
+  ...over,
 });
 const day = (rows: AgendaRow[], date: string) => buildAgenda(rows, w).find((d) => d.date === date)!;
 
@@ -36,7 +44,11 @@ describe("buildAgenda", () => {
     expect(agendaTotals(buildAgenda(rows, w))).toEqual({ arrivals: 1, departures: 1 });
   });
   it("lists a hold but does not count it as staying; never lists a cancelled or no-show booking", () => {
-    const rows = [r("H", "2026-11-06", "2026-11-08", "pending"), r("X", "2026-11-06", "2026-11-08", "cancelled"), r("Z", "2026-11-06", "2026-11-08", "no_show")];
+    const rows = [
+      r("H", "2026-11-06", "2026-11-08", "pending"),
+      r("X", "2026-11-06", "2026-11-08", "cancelled"),
+      r("Z", "2026-11-06", "2026-11-08", "no_show"),
+    ];
     expect(day(rows, "2026-11-06").arrivals.map((x) => x.id)).toEqual(["H"]);
     expect(day(rows, "2026-11-06").staying).toBe(0);
   });

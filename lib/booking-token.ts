@@ -12,19 +12,27 @@ const PURPOSE = "hms.booking.v1:";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function sign(payload: string, secret: string): string {
-  return createHmac("sha256", secret).update(PURPOSE + payload).digest("base64url");
+  return createHmac("sha256", secret)
+    .update(PURPOSE + payload)
+    .digest("base64url");
 }
 
 export function createBookingToken(reservationId: string, secret: string, ttlSeconds: number, nowMs: number = Date.now()): string {
   if (!UUID.test(reservationId)) throw new Error("reservationId must be a UUID");
   if (secret.length < 32) throw new Error("booking token secret must be at least 32 characters");
   if (!Number.isInteger(ttlSeconds) || ttlSeconds <= 0) throw new Error("ttlSeconds must be a positive integer");
-  const payload = Buffer.from(JSON.stringify({ r: reservationId, e: Math.floor(nowMs / 1000) + ttlSeconds, i: Math.floor(nowMs / 1000) })).toString("base64url");
+  const payload = Buffer.from(
+    JSON.stringify({ r: reservationId, e: Math.floor(nowMs / 1000) + ttlSeconds, i: Math.floor(nowMs / 1000) }),
+  ).toString("base64url");
   return `${payload}.${sign(payload, secret)}`;
 }
 
 /** The reservation id and the second the token was issued (0 for a token that carries none), for a valid, unexpired token. */
-export function readBookingToken(token: string, secret: string, nowMs: number = Date.now()): { reservationId: string; issuedAt: number } | null {
+export function readBookingToken(
+  token: string,
+  secret: string,
+  nowMs: number = Date.now(),
+): { reservationId: string; issuedAt: number } | null {
   if (typeof token !== "string" || token.length > 512) return null;
   const parts = token.split(".");
   if (parts.length !== 2) return null;

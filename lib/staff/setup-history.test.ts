@@ -2,8 +2,19 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
-  actionsFor, actorName, collectIds, describeEvent, entityName, FILTER_ACTIONS, fieldLabel, formatValue, historyQuery, parseHistoryFilters,
-  type AuditRow, type Format, type Lookup,
+  actionsFor,
+  actorName,
+  collectIds,
+  describeEvent,
+  entityName,
+  FILTER_ACTIONS,
+  fieldLabel,
+  formatValue,
+  historyQuery,
+  parseHistoryFilters,
+  type AuditRow,
+  type Format,
+  type Lookup,
 } from "./setup-history";
 
 const RT = "11111111-1111-4111-8111-111111111111";
@@ -16,13 +27,28 @@ const P1 = "77777777-7777-4777-8777-777777777777";
 
 const fmt: Format = { money: (m) => `₦${(m / 100).toFixed(2)}`, date: (d) => `d:${d}` };
 const lookup = (over: Partial<Lookup> = {}): Lookup => ({
-  roomTypes: new Map([[RT, "Deluxe"]]), rooms: new Map([[RM, "101"]]), ratePlans: new Map([[RP, "Standard"]]),
-  taxRules: new Map([[TX, { name: "VAT", basis: "percent" }]]), people: new Map([[U1, "Ada Owner"], [U2, "Tunde"]]),
-  roles: new Map([["front_desk", "Front desk"]]), properties: new Map([[P1, "Main House"]]), ...over,
+  roomTypes: new Map([[RT, "Deluxe"]]),
+  rooms: new Map([[RM, "101"]]),
+  ratePlans: new Map([[RP, "Standard"]]),
+  taxRules: new Map([[TX, { name: "VAT", basis: "percent" }]]),
+  people: new Map([
+    [U1, "Ada Owner"],
+    [U2, "Tunde"],
+  ]),
+  roles: new Map([["front_desk", "Front desk"]]),
+  properties: new Map([[P1, "Main House"]]),
+  ...over,
 });
 const row = (over: Partial<AuditRow>): AuditRow => ({
-  id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", property_id: P1, actor_user_id: U1, action: "room_type.updated", entity_type: "room_type", entity_id: RT,
-  metadata: {}, created_at: "2026-11-01T10:00:00Z", ...over,
+  id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  property_id: P1,
+  actor_user_id: U1,
+  action: "room_type.updated",
+  entity_type: "room_type",
+  entity_id: RT,
+  metadata: {},
+  created_at: "2026-11-01T10:00:00Z",
+  ...over,
 });
 
 describe("filters", () => {
@@ -41,12 +67,15 @@ describe("filters", () => {
   it("names actions outright, so room.blocked and room.transferred are never shown as setup", () => {
     const all = actionsFor("all");
     expect(all).toEqual(Object.values(FILTER_ACTIONS).flat());
-    for (const notSetup of ["room.blocked", "room.transferred", "room.housekeeping_set", "reservation.cancelled"]) expect(all).not.toContain(notSetup);
+    for (const notSetup of ["room.blocked", "room.transferred", "room.housekeeping_set", "reservation.cancelled"])
+      expect(all).not.toContain(notSetup);
     expect(actionsFor("tax")).toEqual(["tax_rule.created", "tax_rule.updated", "tax_rule.deleted"]);
   });
   it("only lists actions the database really writes", () => {
     const dir = join(process.cwd(), "supabase/migrations");
-    const sql = readdirSync(dir).map((f) => readFileSync(join(dir, f), "utf8")).join("\n");
+    const sql = readdirSync(dir)
+      .map((f) => readFileSync(join(dir, f), "utf8"))
+      .join("\n");
     const entities = new Set([...sql.matchAll(/audit_setup_row\('(\w+)'/g)].map((m) => m[1]));
     for (const action of [...FILTER_ACTIONS.rooms, ...FILTER_ACTIONS.tax, "rate_plan.created", "rate_plan.updated", "rate_plan.deleted"]) {
       const [entity, verb] = action.split(".");
@@ -55,15 +84,22 @@ describe("filters", () => {
     }
     expect(sql.includes("audit_config_row('property'")).toBe(true);
     expect(FILTER_ACTIONS.hotel).toEqual(["property.updated"]);
-    for (const literal of ["rates.set", "rates.changed", "rates.cleared", ...FILTER_ACTIONS.staff]) expect(sql.includes(`'${literal}'`), literal).toBe(true);
+    for (const literal of ["rates.set", "rates.changed", "rates.cleared", ...FILTER_ACTIONS.staff])
+      expect(sql.includes(`'${literal}'`), literal).toBe(true);
   });
 });
 
 describe("collectIds", () => {
   it("collects what needs a name, from the row and from inside its metadata, once each", () => {
     const rows = [
-      row({}), row({ action: "rates.set", metadata: { rate_plan_id: RP } }),
-      row({ action: "room.updated", entity_type: "room", entity_id: RM, metadata: { changed: { room_type_id: { from: RT, to: "88888888-8888-4888-8888-888888888888" } } } }),
+      row({}),
+      row({ action: "rates.set", metadata: { rate_plan_id: RP } }),
+      row({
+        action: "room.updated",
+        entity_type: "room",
+        entity_id: RM,
+        metadata: { changed: { room_type_id: { from: RT, to: "88888888-8888-4888-8888-888888888888" } } },
+      }),
       row({ action: "tax_rule.updated", entity_type: "tax_rule", entity_id: TX, actor_user_id: U2 }),
       row({ action: "staff.role_added", entity_type: "membership", entity_id: null, metadata: { user_id: U2, role: "front_desk" } }),
       row({ actor_user_id: null, metadata: { values: { room_type_id: "not-an-id" } } }),
@@ -127,24 +163,52 @@ describe("entityName", () => {
 
 describe("describeEvent", () => {
   it("shows an edit as from and to", () => {
-    const e = describeEvent(row({ metadata: { changed: { base_rate_minor: { from: 4000000, to: 4500000 }, is_public: { from: false, to: true } } } }), lookup(), fmt);
+    const e = describeEvent(
+      row({ metadata: { changed: { base_rate_minor: { from: 4000000, to: 4500000 }, is_public: { from: false, to: true } } } }),
+      lookup(),
+      fmt,
+    );
     expect(e.summary).toBe("Changed the room type \u201cDeluxe\u201d");
     expect(e.details).toEqual(["Standard price a night: ₦40000.00 \u2192 ₦45000.00", "Bookable online: No \u2192 Yes"]);
   });
   it("shows an amenities change as the old and new list, and any other structure only as changed", () => {
-    const e = describeEvent(row({ metadata: { changed: {
-      amenities: { from: [], to: ["Air conditioning", "Wi-Fi"] },
-      bed_config: { from: [], to: [{ type: "queen" }] },
-    } } }), lookup(), fmt);
+    const e = describeEvent(
+      row({
+        metadata: {
+          changed: {
+            amenities: { from: [], to: ["Air conditioning", "Wi-Fi"] },
+            bed_config: { from: [], to: [{ type: "queen" }] },
+          },
+        },
+      }),
+      lookup(),
+      fmt,
+    );
     expect(e.details).toEqual(["Amenities: none \u2192 Air conditioning, Wi-Fi", "Beds changed"]);
     const back = describeEvent(row({ metadata: { changed: { amenities: { from: ["Safe"], to: [] } } } }), lookup(), fmt);
     expect(back.details).toEqual(["Amenities: Safe \u2192 none"]);
   });
   it("shows a new tax rule with its rate in the right unit and leaves out empty values", () => {
-    const e = describeEvent(row({
-      action: "tax_rule.created", entity_type: "tax_rule", entity_id: TX,
-      metadata: { values: { name: "VAT", basis: "percent", rate_value: 7.5, compounds: false, effective_from: "2026-11-01", effective_to: null, applies_to_charges: false } },
-    }), lookup(), fmt);
+    const e = describeEvent(
+      row({
+        action: "tax_rule.created",
+        entity_type: "tax_rule",
+        entity_id: TX,
+        metadata: {
+          values: {
+            name: "VAT",
+            basis: "percent",
+            rate_value: 7.5,
+            compounds: false,
+            effective_from: "2026-11-01",
+            effective_to: null,
+            applies_to_charges: false,
+          },
+        },
+      }),
+      lookup(),
+      fmt,
+    );
     expect(e.summary).toBe("Added the tax rule \u201cVAT\u201d");
     expect(e.details).toContain("Rate: 7.5%");
     expect(e.details).toContain("Kind of tax: A percentage of the night's price");
@@ -152,83 +216,238 @@ describe("describeEvent", () => {
     expect(e.details.some((d) => d.startsWith("Last day"))).toBe(false);
   });
   it("reads a tax rate edit by the rule's stored kind", () => {
-    const e = describeEvent(row({ action: "tax_rule.updated", entity_type: "tax_rule", entity_id: TX, metadata: { changed: { rate_value: { from: 7.5, to: 10 } } } }), lookup(), fmt);
+    const e = describeEvent(
+      row({
+        action: "tax_rule.updated",
+        entity_type: "tax_rule",
+        entity_id: TX,
+        metadata: { changed: { rate_value: { from: 7.5, to: 10 } } },
+      }),
+      lookup(),
+      fmt,
+    );
     expect(e.details).toEqual(["Rate: 7.5% \u2192 10%"]);
   });
   it("words a removed thing from the name stored with the row when it is gone", () => {
-    const e = describeEvent(row({ action: "room.deleted", entity_type: "room", entity_id: RM, metadata: { values: { room_number: "205", floor: 2 } } }), lookup({ rooms: new Map() }), fmt);
+    const e = describeEvent(
+      row({ action: "room.deleted", entity_type: "room", entity_id: RM, metadata: { values: { room_number: "205", floor: 2 } } }),
+      lookup({ rooms: new Map() }),
+      fmt,
+    );
     expect(e.summary).toBe("Removed room 205");
     expect(e.details).toEqual(["Room number: 205", "Floor: 2"]);
   });
   it("words a photo added to or removed from a room type, with its caption", () => {
-    const add = describeEvent(row({ action: "room_type_photo.created", entity_type: "room_type_photo", entity_id: "p1", metadata: { values: { room_type_id: RT, caption: "Sea view" } } }), lookup(), fmt);
+    const add = describeEvent(
+      row({
+        action: "room_type_photo.created",
+        entity_type: "room_type_photo",
+        entity_id: "p1",
+        metadata: { values: { room_type_id: RT, caption: "Sea view" } },
+      }),
+      lookup(),
+      fmt,
+    );
     expect(add.summary).toBe("Added a photo to the room type \u201cDeluxe\u201d");
     expect(add.details).toEqual(["Caption: Sea view"]);
-    const del = describeEvent(row({ action: "room_type_photo.deleted", entity_type: "room_type_photo", entity_id: "p1", metadata: { values: { room_type_id: RT } } }), lookup(), fmt);
+    const del = describeEvent(
+      row({
+        action: "room_type_photo.deleted",
+        entity_type: "room_type_photo",
+        entity_id: "p1",
+        metadata: { values: { room_type_id: RT } },
+      }),
+      lookup(),
+      fmt,
+    );
     expect(del.summary).toBe("Removed a photo from the room type \u201cDeluxe\u201d");
     expect(del.details).toEqual([]);
   });
   it("words a photo caption edit and a move", () => {
-    const cap = describeEvent(row({ action: "room_type_photo.updated", entity_type: "room_type_photo", entity_id: "p1", metadata: { changed: { caption: { from: null, to: "Sea view" } } } }), lookup(), fmt);
+    const cap = describeEvent(
+      row({
+        action: "room_type_photo.updated",
+        entity_type: "room_type_photo",
+        entity_id: "p1",
+        metadata: { changed: { caption: { from: null, to: "Sea view" } } },
+      }),
+      lookup(),
+      fmt,
+    );
     expect(cap).toEqual({ summary: "Changed a room photo", details: ["Caption: none \u2192 Sea view"] });
-    const mv = describeEvent(row({ action: "room_type_photo.updated", entity_type: "room_type_photo", entity_id: "p1", metadata: { changed: { sort_order: { from: 0, to: 1 } } } }), lookup(), fmt);
+    const mv = describeEvent(
+      row({
+        action: "room_type_photo.updated",
+        entity_type: "room_type_photo",
+        entity_id: "p1",
+        metadata: { changed: { sort_order: { from: 0, to: 1 } } },
+      }),
+      lookup(),
+      fmt,
+    );
     expect(mv.details).toEqual(["Moved in the order guests see"]);
   });
   it("words a change to the hotel details, shortening a long introduction and showing blanks as none", () => {
     const long = "x".repeat(100);
-    const e = describeEvent(row({ action: "property.updated", entity_type: "property", entity_id: "pp", metadata: { changed: { phone: { from: null, to: "+234 802 000 0000" }, intro: { from: long, to: "Hi" } } } }), lookup(), fmt);
+    const e = describeEvent(
+      row({
+        action: "property.updated",
+        entity_type: "property",
+        entity_id: "pp",
+        metadata: { changed: { phone: { from: null, to: "+234 802 000 0000" }, intro: { from: long, to: "Hi" } } },
+      }),
+      lookup(),
+      fmt,
+    );
     expect(e.summary).toBe("Changed the hotel details");
     expect(e.details).toEqual(["Phone: none \u2192 +234 802 000 0000", `Introduction: ${"x".repeat(80)}\u2026 \u2192 Hi`]);
   });
   it("says a logo was added or removed without showing the file path", () => {
-    const add = describeEvent(row({ action: "property.updated", entity_type: "property", entity_id: "pp", metadata: { changed: { logo_path: { from: null, to: "t/p/logo/x.png" } } } }), lookup(), fmt);
+    const add = describeEvent(
+      row({
+        action: "property.updated",
+        entity_type: "property",
+        entity_id: "pp",
+        metadata: { changed: { logo_path: { from: null, to: "t/p/logo/x.png" } } },
+      }),
+      lookup(),
+      fmt,
+    );
     expect(add.details).toEqual(["Logo: none \u2192 a logo"]);
-    const del = describeEvent(row({ action: "property.updated", entity_type: "property", entity_id: "pp", metadata: { changed: { logo_path: { from: "t/p/logo/x.png", to: null } } } }), lookup(), fmt);
+    const del = describeEvent(
+      row({
+        action: "property.updated",
+        entity_type: "property",
+        entity_id: "pp",
+        metadata: { changed: { logo_path: { from: "t/p/logo/x.png", to: null } } },
+      }),
+      lookup(),
+      fmt,
+    );
     expect(del.details).toEqual(["Logo: a logo \u2192 none"]);
   });
   it("shows check-in times without seconds", () => {
-    const e = describeEvent(row({ action: "property.updated", entity_type: "property", entity_id: "pp", metadata: { changed: { check_in_time: { from: "14:00:00", to: "15:30:00" } } } }), lookup(), fmt);
+    const e = describeEvent(
+      row({
+        action: "property.updated",
+        entity_type: "property",
+        entity_id: "pp",
+        metadata: { changed: { check_in_time: { from: "14:00:00", to: "15:30:00" } } },
+      }),
+      lookup(),
+      fmt,
+    );
     expect(e.details).toEqual(["Check-in time: 14:00 \u2192 15:30"]);
   });
   it("summarises nightly price changes", () => {
     const base = { rate_plan_id: RP, nights: 9, from: "2026-12-20", to: "2026-12-28" };
-    const set = describeEvent(row({ action: "rates.set", metadata: { ...base, amount_minor_min: 5000000, amount_minor_max: 6000000 } }), lookup(), fmt);
+    const set = describeEvent(
+      row({ action: "rates.set", metadata: { ...base, amount_minor_min: 5000000, amount_minor_max: 6000000 } }),
+      lookup(),
+      fmt,
+    );
     expect(set.summary).toBe("Set nightly prices for the room type \u201cDeluxe\u201d");
     expect(set.details).toEqual(["9 nights: d:2026-12-20 to d:2026-12-28", "Price: ₦50000.00 to ₦60000.00"]);
-    const changed = describeEvent(row({ action: "rates.changed", metadata: { ...base, nights: 1, to: "2026-12-20", old_amount_minor_min: 5000000, old_amount_minor_max: 5000000, new_amount_minor_min: 5500000, new_amount_minor_max: 5500000 } }), lookup(), fmt);
+    const changed = describeEvent(
+      row({
+        action: "rates.changed",
+        metadata: {
+          ...base,
+          nights: 1,
+          to: "2026-12-20",
+          old_amount_minor_min: 5000000,
+          old_amount_minor_max: 5000000,
+          new_amount_minor_min: 5500000,
+          new_amount_minor_max: 5500000,
+        },
+      }),
+      lookup(),
+      fmt,
+    );
     expect(changed.details).toEqual(["1 night: d:2026-12-20", "Price: ₦50000.00 \u2192 ₦55000.00"]);
-    const cleared = describeEvent(row({ action: "rates.cleared", metadata: { ...base, old_amount_minor_min: 5000000, old_amount_minor_max: 5000000 } }), lookup(), fmt);
+    const cleared = describeEvent(
+      row({ action: "rates.cleared", metadata: { ...base, old_amount_minor_min: 5000000, old_amount_minor_max: 5000000 } }),
+      lookup(),
+      fmt,
+    );
     expect(cleared.summary).toMatch(/^Cleared nightly prices for the room type/);
     expect(cleared.details[1]).toBe("Was: ₦50000.00");
   });
   it("words staff access changes", () => {
-    const added = describeEvent(row({ action: "staff.role_added", entity_type: "membership", entity_id: null, metadata: { user_id: U2, role: "front_desk", property_id: P1, new_member: false } }), lookup(), fmt);
+    const added = describeEvent(
+      row({
+        action: "staff.role_added",
+        entity_type: "membership",
+        entity_id: null,
+        metadata: { user_id: U2, role: "front_desk", property_id: P1, new_member: false },
+      }),
+      lookup(),
+      fmt,
+    );
     expect(added.summary).toBe("Gave Tunde the role Front desk");
     expect(added.details).toEqual(["Covers: Main House"]);
-    const first = describeEvent(row({ action: "staff.role_added", entity_type: "membership", entity_id: null, metadata: { user_id: U2, role: "front_desk", property_id: null, new_member: true } }), lookup(), fmt);
+    const first = describeEvent(
+      row({
+        action: "staff.role_added",
+        entity_type: "membership",
+        entity_id: null,
+        metadata: { user_id: U2, role: "front_desk", property_id: null, new_member: true },
+      }),
+      lookup(),
+      fmt,
+    );
     expect(first.summary).toBe("Added Tunde as Front desk");
     expect(first.details).toEqual(["Covers: all properties"]);
-    const removed = describeEvent(row({ action: "staff.role_removed", entity_type: "membership", entity_id: null, metadata: { user_id: "99999999-9999-4999-8999-999999999999", role: "unknown_role" } }), lookup(), fmt);
+    const removed = describeEvent(
+      row({
+        action: "staff.role_removed",
+        entity_type: "membership",
+        entity_id: null,
+        metadata: { user_id: "99999999-9999-4999-8999-999999999999", role: "unknown_role" },
+      }),
+      lookup(),
+      fmt,
+    );
     expect(removed.summary).toBe("Removed the role unknown_role from a staff member");
   });
   it("copes with missing metadata and unknown actions without throwing", () => {
-    expect(describeEvent(row({ metadata: null }), lookup(), fmt)).toEqual({ summary: "Changed the room type \u201cDeluxe\u201d", details: [] });
+    expect(describeEvent(row({ metadata: null }), lookup(), fmt)).toEqual({
+      summary: "Changed the room type \u201cDeluxe\u201d",
+      details: [],
+    });
     expect(describeEvent(row({ action: "mystery.thing" }), lookup(), fmt)).toEqual({ summary: "mystery.thing", details: [] });
     expect(describeEvent(row({ action: "rates.set", metadata: {} }), lookup(), fmt).details).toEqual([]);
   });
   it("does not show a policy's contents, only that it changed", () => {
-    const e = describeEvent(row({ action: "rate_plan.updated", entity_type: "rate_plan", entity_id: RP, metadata: { changed: { cancellation_policy: { from: { a: 1 }, to: { a: 2 } } } } }), lookup(), fmt);
+    const e = describeEvent(
+      row({
+        action: "rate_plan.updated",
+        entity_type: "rate_plan",
+        entity_id: RP,
+        metadata: { changed: { cancellation_policy: { from: { a: 1 }, to: { a: 2 } } } },
+      }),
+      lookup(),
+      fmt,
+    );
     expect(e.details).toEqual(["Cancellation policy changed"]);
   });
 });
 
 describe("policy versions", () => {
   const policyRow = row({
-    action: "property_policy.created", entity_type: "property_policy", entity_id: "99999999-9999-4999-8999-999999999999",
-    metadata: { values: { version: 4, effective_from: "2026-11-09", config: {
-      online_payment: { mode: "deposit_percent", value: 30 },
-      cancellation_rules: [{ within_hours: 48, charge: { type: "percent", value: 50 } }],
-    } } },
+    action: "property_policy.created",
+    entity_type: "property_policy",
+    entity_id: "99999999-9999-4999-8999-999999999999",
+    metadata: {
+      values: {
+        version: 4,
+        effective_from: "2026-11-09",
+        config: {
+          online_payment: { mode: "deposit_percent", value: 30 },
+          cancellation_rules: [{ within_hours: 48, charge: { type: "percent", value: 50 } }],
+        },
+      },
+    },
   });
   it("is listed under its own filter and under everything", () => {
     expect(actionsFor("policies")).toEqual(["property_policy.created"]);
@@ -245,6 +464,8 @@ describe("policy versions", () => {
     ]);
   });
   it("copes with a row that has no values", () => {
-    expect(describeEvent(row({ action: "property_policy.created", entity_type: "property_policy", metadata: null }), lookup(), fmt).summary).toBe("Published a new policy version");
+    expect(
+      describeEvent(row({ action: "property_policy.created", entity_type: "property_policy", metadata: null }), lookup(), fmt).summary,
+    ).toBe("Published a new policy version");
   });
 });

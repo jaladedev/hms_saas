@@ -62,8 +62,15 @@ export async function changeDatesAction(formData: FormData): Promise<void> {
   const arrival = String(formData.get("arrival") ?? "");
   const departure = String(formData.get("departure") ?? "");
   const total = Number(formData.get("expectedTotal"));
-  if (!isoDate.test(arrival) || !isoDate.test(departure) || !Number.isSafeInteger(total) || total < 0) redirect(`${here}?error=change_dates`);
-  const result = await changeDates({ reservationId, arrival, departure, expectedTotalMinor: total, idempotencyKey: `gdates:${reservationId}:${key}` });
+  if (!isoDate.test(arrival) || !isoDate.test(departure) || !Number.isSafeInteger(total) || total < 0)
+    redirect(`${here}?error=change_dates`);
+  const result = await changeDates({
+    reservationId,
+    arrival,
+    departure,
+    expectedTotalMinor: total,
+    idempotencyKey: `gdates:${reservationId}:${key}`,
+  });
   if (!result.ok) redirect(`${here}?error=${result.error.code}`);
   redirect(`/booking/${token}?done=dates_changed`);
 }

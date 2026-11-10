@@ -1,9 +1,28 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
-  CATEGORY_LABEL, checkoutNote, classifyFolioError, FOLIO_CATEGORIES, FOLIO_LIMITS, FOLIO_OK_CODES, folioActions, folioIsOpen,
-  isFolioCategory, isFolioResult, owingMinor, owingNotice, parseChargeForm, parsePaymentForm, parseReason, prefillPayment,
-  splitCharges, splitPayments, type ChargeRow, type FolioBalance, type FolioViewer, type PaymentRow,
+  CATEGORY_LABEL,
+  checkoutNote,
+  classifyFolioError,
+  FOLIO_CATEGORIES,
+  FOLIO_LIMITS,
+  FOLIO_OK_CODES,
+  folioActions,
+  folioIsOpen,
+  isFolioCategory,
+  isFolioResult,
+  owingMinor,
+  owingNotice,
+  parseChargeForm,
+  parsePaymentForm,
+  parseReason,
+  prefillPayment,
+  splitCharges,
+  splitPayments,
+  type ChargeRow,
+  type FolioBalance,
+  type FolioViewer,
+  type PaymentRow,
 } from "./folio";
 import { errorMessage, OK_MESSAGES, type ErrorCode } from "./refunds";
 import { PAYMENT_METHODS } from "./reservations";
@@ -12,22 +31,58 @@ const money = (m: number) => `N${m / 100}`;
 const ROOM = "6f1c1c1e-2b7a-4a55-9a43-1d2a8d9a1f10";
 
 const charge = (id: string, over: Partial<ChargeRow> = {}): ChargeRow => ({
-  id, reservation_room_id: null, category: "minibar", description: `Item ${id}`, quantity: 1, unit_amount_minor: 100000, tax_minor: 0,
-  total_minor: 100000, charge_date: "2026-11-02", status: "posted", created_at: "2026-11-02T10:00:00Z", voided_at: null, void_reason: null, folio_invoice_id: null, ...over,
+  id,
+  reservation_room_id: null,
+  category: "minibar",
+  description: `Item ${id}`,
+  quantity: 1,
+  unit_amount_minor: 100000,
+  tax_minor: 0,
+  total_minor: 100000,
+  charge_date: "2026-11-02",
+  status: "posted",
+  created_at: "2026-11-02T10:00:00Z",
+  voided_at: null,
+  void_reason: null,
+  folio_invoice_id: null,
+  ...over,
 });
 const payment = (id: string, over: Partial<PaymentRow> = {}): PaymentRow => ({
-  id, payment_method: "cash", provider_reference: null, internal_reference: `FOL-${id}`, amount_minor: 100000, payment_status: "succeeded",
-  note: null, received_at: "2026-11-02T12:00:00Z", reversed_at: null, reverse_reason: null, ...over,
+  id,
+  payment_method: "cash",
+  provider_reference: null,
+  internal_reference: `FOL-${id}`,
+  amount_minor: 100000,
+  payment_status: "succeeded",
+  note: null,
+  received_at: "2026-11-02T12:00:00Z",
+  reversed_at: null,
+  reverse_reason: null,
+  ...over,
 });
 const bal = (over: Partial<FolioBalance> = {}): FolioBalance => ({
-  currency: "NGN", charge_count: 2, charges_minor: 500000, tax_minor: 0, paid_minor: 0, balance_minor: 500000, ...over,
+  currency: "NGN",
+  charge_count: 2,
+  charges_minor: 500000,
+  tax_minor: 0,
+  paid_minor: 0,
+  balance_minor: 500000,
+  ...over,
 });
 const ALL: FolioViewer = { charge: true, record: true, reverse: true };
 const NONE: FolioViewer = { charge: false, record: false, reverse: false };
 
 describe("categories and the database's lists", () => {
   it("uses plain words, with a label for every category", () => {
-    expect(FOLIO_CATEGORIES.map((c) => c.label)).toEqual(["Minibar", "Food and drink", "Laundry", "Late check-out", "Phone calls", "Damage or loss", "Something else"]);
+    expect(FOLIO_CATEGORIES.map((c) => c.label)).toEqual([
+      "Minibar",
+      "Food and drink",
+      "Laundry",
+      "Late check-out",
+      "Phone calls",
+      "Damage or loss",
+      "Something else",
+    ]);
     for (const c of FOLIO_CATEGORIES) expect(CATEGORY_LABEL[c.value]).toBe(c.label);
     expect(isFolioCategory("laundry")).toBe(true);
     expect(isFolioCategory("food_beverage")).toBe(true);
@@ -38,10 +93,19 @@ describe("categories and the database's lists", () => {
     const sql = readFileSync(new URL("../../supabase/migrations/20261026000027_folio_charges.sql", import.meta.url), "utf8");
     const list = (re: RegExp) => [...(re.exec(sql)?.[1] ?? "").matchAll(/'([a-z_]+)'/g)].map((m) => m[1]).sort();
     expect(list(/category\s+text not null check \(category in \(([^)]*)\)/)).toEqual(FOLIO_CATEGORIES.map((c) => c.value).sort());
-    expect(list(/payment_method\s+text not null check \(payment_method in \(([^)]*)\)/)).toEqual(PAYMENT_METHODS.map((m) => m.value).sort());
+    expect(list(/payment_method\s+text not null check \(payment_method in \(([^)]*)\)/)).toEqual(
+      PAYMENT_METHODS.map((m) => m.value).sort(),
+    );
   });
   it("repeats the database's limits", () => {
-    expect(FOLIO_LIMITS).toEqual({ quantityMax: 1000, unitMaxMinor: 1_000_000_000, descriptionMax: 200, reasonMax: 200, referenceMax: 100, noteMax: 500 });
+    expect(FOLIO_LIMITS).toEqual({
+      quantityMax: 1000,
+      unitMaxMinor: 1_000_000_000,
+      descriptionMax: 200,
+      reasonMax: 200,
+      referenceMax: 100,
+      noteMax: 500,
+    });
     const sql = readFileSync(new URL("../../supabase/migrations/20261026000027_folio_charges.sql", import.meta.url), "utf8");
     expect(sql).toMatch(/quantity\s+integer not null check \(quantity between 1 and 1000\)/);
     expect(sql).toMatch(/unit_amount_minor\s+bigint not null check \(unit_amount_minor between 1 and 1000000000\)/);
@@ -106,7 +170,11 @@ describe("folioActions", () => {
     expect(folioActions("checked_in", bal(), { charge: true, record: false, reverse: false }).post).toBe(true);
     expect(folioActions("checked_in", bal(), { charge: true, record: false, reverse: false }).recordPayment).toBe(false);
     // An accountant takes and reverses money but does not post charges.
-    const acct = folioActions("checked_out", bal({ paid_minor: 100000, balance_minor: 400000 }), { charge: false, record: true, reverse: true });
+    const acct = folioActions("checked_out", bal({ paid_minor: 100000, balance_minor: 400000 }), {
+      charge: false,
+      record: true,
+      reverse: true,
+    });
     expect(acct.post).toBe(false);
     expect(acct.recordPayment).toBe(true);
     expect(acct.voidCharge(charge("a"))).toBe(false);
@@ -179,10 +247,25 @@ describe("owing warnings", () => {
 });
 
 describe("parseChargeForm", () => {
-  const good = { category: "minibar", description: "  2 bottles of water ", quantity: "2", amount: "1,500.50", date: "2026-11-02", reservationRoomId: "" };
+  const good = {
+    category: "minibar",
+    description: "  2 bottles of water ",
+    quantity: "2",
+    amount: "1,500.50",
+    date: "2026-11-02",
+    reservationRoomId: "",
+  };
   it("reads a good form into kobo and trims the words", () => {
     expect(parseChargeForm(good)).toEqual({
-      ok: true, value: { category: "minibar", description: "2 bottles of water", quantity: 2, unitAmountMinor: 150050, date: "2026-11-02", roomId: null },
+      ok: true,
+      value: {
+        category: "minibar",
+        description: "2 bottles of water",
+        quantity: 2,
+        unitAmountMinor: 150050,
+        date: "2026-11-02",
+        roomId: null,
+      },
     });
   });
   it("treats an empty date as today (the database decides what today is) and keeps a room that looks like an id", () => {
@@ -190,7 +273,8 @@ describe("parseChargeForm", () => {
     expect(v).toMatchObject({ ok: true, value: { date: null, roomId: ROOM } });
   });
   it("refuses an unknown or missing category", () => {
-    for (const category of ["spa", "", undefined]) expect(parseChargeForm({ ...good, category }), String(category)).toEqual({ ok: false, code: "fo_category" });
+    for (const category of ["spa", "", undefined])
+      expect(parseChargeForm({ ...good, category }), String(category)).toEqual({ ok: false, code: "fo_category" });
   });
   it("needs words of up to 200 characters", () => {
     expect(parseChargeForm({ ...good, description: "   " })).toEqual({ ok: false, code: "fo_description" });
@@ -213,7 +297,8 @@ describe("parseChargeForm", () => {
     expect(parseChargeForm({ ...good, amount: "₦ 750" })).toMatchObject({ ok: true, value: { unitAmountMinor: 75000 } });
   });
   it("refuses a date that is not a real day", () => {
-    for (const date of ["2026-02-30", "02/11/2026", "yesterday"]) expect(parseChargeForm({ ...good, date }), date).toEqual({ ok: false, code: "fo_date" });
+    for (const date of ["2026-02-30", "02/11/2026", "yesterday"])
+      expect(parseChargeForm({ ...good, date }), date).toEqual({ ok: false, code: "fo_date" });
   });
   it("refuses a room that is not an id", () => {
     expect(parseChargeForm({ ...good, reservationRoomId: "room 204" })).toEqual({ ok: false, code: "fo_room" });
@@ -226,17 +311,23 @@ describe("parseChargeForm", () => {
 describe("parsePaymentForm", () => {
   const good = { amount: "2,000", method: "pos", reference: " 88123 ", note: " tip included " };
   it("reads a good form and trims", () => {
-    expect(parsePaymentForm(good)).toEqual({ ok: true, value: { amountMinor: 200000, method: "pos", reference: "88123", note: "tip included" } });
+    expect(parsePaymentForm(good)).toEqual({
+      ok: true,
+      value: { amountMinor: 200000, method: "pos", reference: "88123", note: "tip included" },
+    });
   });
   it("turns empty optional fields into null", () => {
     expect(parsePaymentForm({ amount: "10", method: "cash", reference: "", note: "  " })).toEqual({
-      ok: true, value: { amountMinor: 1000, method: "cash", reference: null, note: null },
+      ok: true,
+      value: { amountMinor: 1000, method: "cash", reference: null, note: null },
     });
     expect(parsePaymentForm({ amount: "10", method: "cash" }).ok).toBe(true);
   });
   it("refuses a bad amount, an unknown method and words that are too long", () => {
-    for (const amount of ["0", "-1", "x", "", undefined]) expect(parsePaymentForm({ ...good, amount }), String(amount)).toEqual({ ok: false, code: "fo_amount" });
-    for (const method of ["card", "", undefined, "paystack"]) expect(parsePaymentForm({ ...good, method }), String(method)).toEqual({ ok: false, code: "fo_method" });
+    for (const amount of ["0", "-1", "x", "", undefined])
+      expect(parsePaymentForm({ ...good, amount }), String(amount)).toEqual({ ok: false, code: "fo_amount" });
+    for (const method of ["card", "", undefined, "paystack"])
+      expect(parsePaymentForm({ ...good, method }), String(method)).toEqual({ ok: false, code: "fo_method" });
     expect(parsePaymentForm({ ...good, reference: "r".repeat(101) })).toEqual({ ok: false, code: "fo_too_long" });
     expect(parsePaymentForm({ ...good, note: "n".repeat(501) })).toEqual({ ok: false, code: "fo_too_long" });
     expect(parsePaymentForm({ ...good, reference: "r".repeat(100), note: "n".repeat(500) }).ok).toBe(true);
@@ -261,14 +352,22 @@ describe("classifyFolioError", () => {
   });
   it("tells a folio that cannot be voided from a reservation with no folio", () => {
     expect(classifyFolioError("INVALID_STATE: folio paid")).toEqual({ code: "fo_paid" });
-    for (const s of ["confirmed", "pending", "cancelled", "no_show", "expired"]) expect(classifyFolioError(`INVALID_STATE: ${s}`), s).toEqual({ code: "fo_not_open" });
+    for (const s of ["confirmed", "pending", "cancelled", "no_show", "expired"])
+      expect(classifyFolioError(`INVALID_STATE: ${s}`), s).toEqual({ code: "fo_not_open" });
   });
   it("words each refused field", () => {
     const cases: [string, ErrorCode][] = [
-      ["POLICY_VIOLATION: category", "fo_category"], ["POLICY_VIOLATION: description", "fo_description"], ["POLICY_VIOLATION: quantity", "fo_quantity"],
-      ["POLICY_VIOLATION: amount", "fo_amount"], ["POLICY_VIOLATION: amount must be positive", "fo_amount"], ["POLICY_VIOLATION: date", "fo_date"],
-      ["POLICY_VIOLATION: room", "fo_room"], ["POLICY_VIOLATION: reason", "fo_reason"], ["POLICY_VIOLATION: payment method", "fo_method"],
-      ["POLICY_VIOLATION: too long", "fo_too_long"], ["IDEMPOTENCY_MISMATCH", "fo_duplicate"],
+      ["POLICY_VIOLATION: category", "fo_category"],
+      ["POLICY_VIOLATION: description", "fo_description"],
+      ["POLICY_VIOLATION: quantity", "fo_quantity"],
+      ["POLICY_VIOLATION: amount", "fo_amount"],
+      ["POLICY_VIOLATION: amount must be positive", "fo_amount"],
+      ["POLICY_VIOLATION: date", "fo_date"],
+      ["POLICY_VIOLATION: room", "fo_room"],
+      ["POLICY_VIOLATION: reason", "fo_reason"],
+      ["POLICY_VIOLATION: payment method", "fo_method"],
+      ["POLICY_VIOLATION: too long", "fo_too_long"],
+      ["IDEMPOTENCY_MISMATCH", "fo_duplicate"],
     ];
     for (const [message, code] of cases) expect(classifyFolioError(message), message).toEqual({ code });
   });
@@ -279,7 +378,14 @@ describe("classifyFolioError", () => {
     expect(classifyFolioError("")).toEqual({ code: "fo_unknown" });
   });
   it("never answers with a code outside the folio's own", () => {
-    for (const m of ["NOT_FOUND", "INVALID_STATE: x", "POLICY_VIOLATION: nothing we know", "boom", "FORBIDDEN: x", "IDEMPOTENCY_MISMATCH"]) {
+    for (const m of [
+      "NOT_FOUND",
+      "INVALID_STATE: x",
+      "POLICY_VIOLATION: nothing we know",
+      "boom",
+      "FORBIDDEN: x",
+      "IDEMPOTENCY_MISMATCH",
+    ]) {
       expect(classifyFolioError(m).code, m).toMatch(/^fo_/);
     }
   });
@@ -287,8 +393,20 @@ describe("classifyFolioError", () => {
 
 describe("words for the folio", () => {
   const codes: ErrorCode[] = [
-    "fo_category", "fo_description", "fo_quantity", "fo_amount", "fo_date", "fo_room", "fo_reason", "fo_method", "fo_too_long",
-    "fo_overpay", "fo_not_open", "fo_paid", "fo_not_found", "fo_duplicate",
+    "fo_category",
+    "fo_description",
+    "fo_quantity",
+    "fo_amount",
+    "fo_date",
+    "fo_room",
+    "fo_reason",
+    "fo_method",
+    "fo_too_long",
+    "fo_overpay",
+    "fo_not_open",
+    "fo_paid",
+    "fo_not_found",
+    "fo_duplicate",
   ];
   it("has a plain sentence for every error code and never echoes raw database text", () => {
     for (const c of codes) {

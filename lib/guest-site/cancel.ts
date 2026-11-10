@@ -20,7 +20,9 @@ export function cancelSummary(p: CancelPreview, format: (minor: number, currency
     lines.push("This is the hotel's cancellation charge for the time left before your arrival.");
   }
   if (p.refund_minor > 0) {
-    lines.push(`You paid ${m(p.held_minor)}, so ${m(p.refund_minor)} will be refunded. The hotel approves and sends refunds, and you will get an email when it is processed.`);
+    lines.push(
+      `You paid ${m(p.held_minor)}, so ${m(p.refund_minor)} will be refunded. The hotel approves and sends refunds, and you will get an email when it is processed.`,
+    );
   } else if (p.still_owed_minor > 0) {
     lines.push(`You have paid ${m(p.held_minor)}, so ${m(p.still_owed_minor)} would still be owed. The hotel will contact you about it.`);
   } else if (p.held_minor > 0) {
@@ -37,14 +39,19 @@ export function cancelSummary(p: CancelPreview, format: (minor: number, currency
  */
 export function notAllowedText(why: CancelPreview["why_not"], status?: string): string {
   switch (why) {
-    case "too_late": return "It is too late to cancel online because check-in time has passed. Please contact the hotel.";
-    case "disabled": return "This hotel does not take cancellations online. Please contact the hotel to cancel.";
-    case "started": return "This stay has already started, so it cannot be cancelled online. Please contact the hotel.";
+    case "too_late":
+      return "It is too late to cancel online because check-in time has passed. Please contact the hotel.";
+    case "disabled":
+      return "This hotel does not take cancellations online. Please contact the hotel to cancel.";
+    case "started":
+      return "This stay has already started, so it cannot be cancelled online. Please contact the hotel.";
     case "status":
       if (status === "cancelled") return "This booking is already cancelled.";
-      if (status === "expired") return "The time to pay for this booking ran out and the rooms were released, so there is nothing to cancel.";
+      if (status === "expired")
+        return "The time to pay for this booking ran out and the rooms were released, so there is nothing to cancel.";
       return "This booking cannot be cancelled online. If it is a hold that has not been paid, it will release itself when the time runs out.";
-    default: return "This booking cannot be cancelled online. Please contact the hotel.";
+    default:
+      return "This booking cannot be cancelled online. Please contact the hotel.";
   }
 }
 

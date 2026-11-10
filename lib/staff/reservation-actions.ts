@@ -32,14 +32,18 @@ function refresh(reservationId: string) {
 }
 
 export async function cancelReservation(formData: FormData) {
-  const parsed = z.object({ reservationId: uuid, idempotencyKey: key, reason: z.string().max(500) }).safeParse(Object.fromEntries(formData));
+  const parsed = z
+    .object({ reservationId: uuid, idempotencyKey: key, reason: z.string().max(500) })
+    .safeParse(Object.fromEntries(formData));
   if (!parsed.success) return back(LIST, { err: "bad_request" });
   const page = pageFor(parsed.data.reservationId);
   if (!parsed.data.reason.trim()) return back(page, { err: "reason_required" });
 
   const supabase = await staffClient();
   const { error } = await supabase.rpc("cancel_reservation", {
-    p_reservation_id: parsed.data.reservationId, p_reason: parsed.data.reason.trim(), p_idempotency_key: parsed.data.idempotencyKey,
+    p_reservation_id: parsed.data.reservationId,
+    p_reason: parsed.data.reason.trim(),
+    p_idempotency_key: parsed.data.idempotencyKey,
   });
   if (error) {
     // The database answers INVALID_STATE for anything that cannot be cancelled any more; say so in those words.
@@ -59,7 +63,9 @@ export async function markNoShow(formData: FormData) {
 
   const supabase = await staffClient();
   const { error } = await supabase.rpc("mark_no_show", {
-    p_reservation_id: parsed.data.reservationId, p_note: form.value.note, p_waive_charge: form.value.waive,
+    p_reservation_id: parsed.data.reservationId,
+    p_note: form.value.note,
+    p_waive_charge: form.value.waive,
     p_idempotency_key: parsed.data.idempotencyKey,
   });
   if (error) return fail(page, error.message);
@@ -68,13 +74,16 @@ export async function markNoShow(formData: FormData) {
 }
 
 export async function checkInRoom(formData: FormData) {
-  const parsed = z.object({ reservationId: uuid, reservationRoomId: uuid, overrideReason: z.string().max(500).optional() }).safeParse(Object.fromEntries(formData));
+  const parsed = z
+    .object({ reservationId: uuid, reservationRoomId: uuid, overrideReason: z.string().max(500).optional() })
+    .safeParse(Object.fromEntries(formData));
   if (!parsed.success) return back(LIST, { err: "bad_request" });
   const page = pageFor(parsed.data.reservationId);
 
   const supabase = await staffClient();
   const { error } = await supabase.rpc("check_in", {
-    p_reservation_room_id: parsed.data.reservationRoomId, p_override_reason: parsed.data.overrideReason?.trim() || null,
+    p_reservation_room_id: parsed.data.reservationRoomId,
+    p_override_reason: parsed.data.overrideReason?.trim() || null,
   });
   if (error) return fail(page, error.message);
   refresh(parsed.data.reservationId);
@@ -83,13 +92,20 @@ export async function checkInRoom(formData: FormData) {
 
 /** Checks a guest in before their booked arrival date (migration 061). A written reason is required and is audited. With `waive` ticked (migration 073) the added nights are taken off as a discount; the database checks the person's discount limit. */
 export async function earlyCheckInRoom(formData: FormData) {
-  const parsed = z.object({ reservationId: uuid, reservationRoomId: uuid, reason: z.string().trim().min(1).max(200), waive: z.string().optional() }).safeParse(Object.fromEntries(formData));
-  if (!parsed.success) return back(LIST, { err: parsed.error.issues.some((i) => i.path[0] === "reason") ? "reason_required" : "bad_request" });
+  const parsed = z
+    .object({ reservationId: uuid, reservationRoomId: uuid, reason: z.string().trim().min(1).max(200), waive: z.string().optional() })
+    .safeParse(Object.fromEntries(formData));
+  if (!parsed.success)
+    return back(LIST, { err: parsed.error.issues.some((i) => i.path[0] === "reason") ? "reason_required" : "bad_request" });
   const page = pageFor(parsed.data.reservationId);
   const waive = parsed.data.waive === "on";
 
   const supabase = await staffClient();
-  const { error } = await supabase.rpc("early_check_in", { p_reservation_room_id: parsed.data.reservationRoomId, p_reason: parsed.data.reason, p_waive: waive });
+  const { error } = await supabase.rpc("early_check_in", {
+    p_reservation_room_id: parsed.data.reservationRoomId,
+    p_reason: parsed.data.reason,
+    p_waive: waive,
+  });
   if (error) return fail(page, error.message);
   refresh(parsed.data.reservationId);
   return ok(page, waive ? "checked_in_early_waived" : "checked_in_early");
@@ -108,10 +124,16 @@ export async function checkOutRoom(formData: FormData) {
 }
 
 export async function recordPayment(formData: FormData) {
-  const parsed = z.object({
-    reservationId: uuid, idempotencyKey: key, amount: z.string().max(40), method: z.string().max(30),
-    reference: z.string().max(200).optional(), note: z.string().max(500).optional(),
-  }).safeParse(Object.fromEntries(formData));
+  const parsed = z
+    .object({
+      reservationId: uuid,
+      idempotencyKey: key,
+      amount: z.string().max(40),
+      method: z.string().max(30),
+      reference: z.string().max(200).optional(),
+      note: z.string().max(500).optional(),
+    })
+    .safeParse(Object.fromEntries(formData));
   if (!parsed.success) return back(LIST, { err: "bad_request" });
   const page = pageFor(parsed.data.reservationId);
 
@@ -121,8 +143,11 @@ export async function recordPayment(formData: FormData) {
 
   const supabase = await staffClient();
   const { data, error } = await supabase.rpc("record_manual_payment", {
-    p_reservation_id: parsed.data.reservationId, p_amount_minor: minor, p_method: parsed.data.method,
-    p_reference: parsed.data.reference?.trim() || null, p_note: parsed.data.note?.trim() || null,
+    p_reservation_id: parsed.data.reservationId,
+    p_amount_minor: minor,
+    p_method: parsed.data.method,
+    p_reference: parsed.data.reference?.trim() || null,
+    p_note: parsed.data.note?.trim() || null,
     p_idempotency_key: parsed.data.idempotencyKey,
   });
   if (error) return fail(page, error.message);
@@ -146,20 +171,33 @@ export async function createManualReservation(formData: FormData) {
   // Reuse the guest with the same email so repeat visitors keep one record; otherwise add a new one.
   let guestId: string | null = null;
   if (value.guest.email) {
-    const { data: found } = await supabase.from("guests").select("id").eq("tenant_id", prop.tenant_id).ilike("email", value.guest.email).order("created_at").limit(1).maybeSingle();
+    const { data: found } = await supabase
+      .from("guests")
+      .select("id")
+      .eq("tenant_id", prop.tenant_id)
+      .ilike("email", value.guest.email)
+      .order("created_at")
+      .limit(1)
+      .maybeSingle();
     guestId = found?.id ?? null;
   }
   if (!guestId) {
-    const { data: created, error: guestError } = await supabase.from("guests")
+    const { data: created, error: guestError } = await supabase
+      .from("guests")
       .insert({ tenant_id: prop.tenant_id, full_name: value.guest.name, email: value.guest.email, phone: value.guest.phone })
-      .select("id").single();
+      .select("id")
+      .single();
     if (guestError || !created) return back(NEW, { err: "guest_failed" });
     guestId = created.id;
   }
 
   const { data, error } = await supabase.rpc(value.holdUntilPaid ? "create_staff_hold" : "create_reservation", {
-    p_property_id: value.propertyId, p_primary_guest_id: guestId, p_source: value.source,
-    p_arrival: value.arrival, p_departure: value.departure, p_rooms: roomsPayload(value),
+    p_property_id: value.propertyId,
+    p_primary_guest_id: guestId,
+    p_source: value.source,
+    p_arrival: value.arrival,
+    p_departure: value.departure,
+    p_rooms: roomsPayload(value),
     p_idempotency_key: idempotencyKey.data,
   });
   if (error) return fail(NEW, error.message);
@@ -175,20 +213,27 @@ export async function issueInvoice(formData: FormData) {
   if (!parsed.success) return back(LIST, { err: "bad_request" });
   const page = pageFor(parsed.data.reservationId);
   const supabase = await staffClient();
-  const { error } = await supabase.rpc("issue_invoice", { p_reservation_id: parsed.data.reservationId, p_idempotency_key: parsed.data.idempotencyKey });
+  const { error } = await supabase.rpc("issue_invoice", {
+    p_reservation_id: parsed.data.reservationId,
+    p_idempotency_key: parsed.data.idempotencyKey,
+  });
   if (error) return fail(page, error.message);
   refresh(parsed.data.reservationId);
   return ok(page, "invoice_issued");
 }
 
 export async function voidInvoice(formData: FormData) {
-  const parsed = z.object({ reservationId: uuid, invoiceId: uuid, idempotencyKey: key, reason: z.string().max(500) }).safeParse(Object.fromEntries(formData));
+  const parsed = z
+    .object({ reservationId: uuid, invoiceId: uuid, idempotencyKey: key, reason: z.string().max(500) })
+    .safeParse(Object.fromEntries(formData));
   if (!parsed.success) return back(LIST, { err: "bad_request" });
   const page = pageFor(parsed.data.reservationId);
   if (!parsed.data.reason.trim()) return back(page, { err: "reason_required" });
   const supabase = await staffClient();
   const { error } = await supabase.rpc("void_invoice", {
-    p_invoice_id: parsed.data.invoiceId, p_reason: parsed.data.reason.trim(), p_idempotency_key: parsed.data.idempotencyKey,
+    p_invoice_id: parsed.data.invoiceId,
+    p_reason: parsed.data.reason.trim(),
+    p_idempotency_key: parsed.data.idempotencyKey,
   });
   if (error) return fail(page, error.message);
   refresh(parsed.data.reservationId);
@@ -200,10 +245,16 @@ export async function voidInvoice(formData: FormData) {
  * first free one when none is named). All or nothing: if the new room is taken, the guest keeps the old one.
  */
 export async function transferRoom(formData: FormData) {
-  const parsed = z.object({
-    reservationId: uuid, reservationRoomId: uuid, idempotencyKey: key, newRoomId: z.union([uuid, z.literal("")]),
-    effective: z.string().max(10), reason: z.string().max(500),
-  }).safeParse(Object.fromEntries(formData));
+  const parsed = z
+    .object({
+      reservationId: uuid,
+      reservationRoomId: uuid,
+      idempotencyKey: key,
+      newRoomId: z.union([uuid, z.literal("")]),
+      effective: z.string().max(10),
+      reason: z.string().max(500),
+    })
+    .safeParse(Object.fromEntries(formData));
   if (!parsed.success) return back(LIST, { err: "bad_request" });
   const page = pageFor(parsed.data.reservationId);
   const effective = parseIsoDate(parsed.data.effective);
@@ -212,12 +263,17 @@ export async function transferRoom(formData: FormData) {
 
   const supabase = await staffClient();
   const { error } = await supabase.rpc("transfer_room", {
-    p_reservation_room_id: parsed.data.reservationRoomId, p_new_room_id: parsed.data.newRoomId || null,
-    p_effective: effective, p_reason: parsed.data.reason.trim(), p_idempotency_key: parsed.data.idempotencyKey,
+    p_reservation_room_id: parsed.data.reservationRoomId,
+    p_new_room_id: parsed.data.newRoomId || null,
+    p_effective: effective,
+    p_reason: parsed.data.reason.trim(),
+    p_idempotency_key: parsed.data.idempotencyKey,
   });
   if (error) {
     // Here "unavailable" means the guest stays where they are, not that a booking failed.
-    return classifyRpcError(error.message).code === "room_unavailable" ? back(page, { err: "transfer_unavailable" }) : fail(page, error.message);
+    return classifyRpcError(error.message).code === "room_unavailable"
+      ? back(page, { err: "transfer_unavailable" })
+      : fail(page, error.message);
   }
   refresh(parsed.data.reservationId);
   revalidatePath("/app/rooms");
@@ -230,9 +286,16 @@ export async function transferRoom(formData: FormData) {
  * live invoice is replaced, and a surplus is flagged for refund. All or nothing: if no room of that type is free, nothing changes.
  */
 export async function changeRoomType(formData: FormData) {
-  const parsed = z.object({
-    reservationId: uuid, reservationRoomId: uuid, idempotencyKey: key, newTypeId: uuid, effective: z.string().max(10), reason: z.string().max(200),
-  }).safeParse(Object.fromEntries(formData));
+  const parsed = z
+    .object({
+      reservationId: uuid,
+      reservationRoomId: uuid,
+      idempotencyKey: key,
+      newTypeId: uuid,
+      effective: z.string().max(10),
+      reason: z.string().max(200),
+    })
+    .safeParse(Object.fromEntries(formData));
   if (!parsed.success) return back(LIST, { err: "bad_request" });
   const page = pageFor(parsed.data.reservationId);
   const effective = parseIsoDate(parsed.data.effective);
@@ -241,8 +304,11 @@ export async function changeRoomType(formData: FormData) {
 
   const supabase = await staffClient();
   const { data, error } = await supabase.rpc("change_room_type", {
-    p_reservation_room_id: parsed.data.reservationRoomId, p_new_room_type: parsed.data.newTypeId,
-    p_effective: effective, p_reason: parsed.data.reason.trim(), p_idempotency_key: parsed.data.idempotencyKey,
+    p_reservation_room_id: parsed.data.reservationRoomId,
+    p_new_room_type: parsed.data.newTypeId,
+    p_effective: effective,
+    p_reason: parsed.data.reason.trim(),
+    p_idempotency_key: parsed.data.idempotencyKey,
   });
   if (error) {
     const known = typeChangeError(error.message);

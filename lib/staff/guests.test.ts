@@ -22,15 +22,27 @@ describe("searchPattern", () => {
 });
 
 describe("summariseStays and stayLine", () => {
-  const r = (g: string, st: string, a: string, d: string): StayRow => ({ primary_guest_id: g, reservation_status: st, arrival_date: a, departure_date: d });
+  const r = (g: string, st: string, a: string, d: string): StayRow => ({
+    primary_guest_id: g,
+    reservation_status: st,
+    arrival_date: a,
+    departure_date: d,
+  });
   const fmt = (d: string) => d;
-  const m = summariseStays([
-    r("a", "checked_out", "2026-09-01", "2026-09-03"), r("a", "checked_out", "2026-10-01", "2026-10-04"),
-    r("a", "confirmed", "2026-11-20", "2026-11-22"), r("a", "confirmed", "2026-11-05", "2026-11-06"), r("a", "confirmed", "2026-10-01", "2026-10-02"),
-    r("a", "cancelled", "2026-12-01", "2026-12-03"),
-    r("b", "checked_in", "2026-10-30", "2026-11-02"),
-    r("c", "cancelled", "2026-09-01", "2026-09-03"), r("c", "expired", "2026-09-05", "2026-09-06"),
-  ], "2026-10-31");
+  const m = summariseStays(
+    [
+      r("a", "checked_out", "2026-09-01", "2026-09-03"),
+      r("a", "checked_out", "2026-10-01", "2026-10-04"),
+      r("a", "confirmed", "2026-11-20", "2026-11-22"),
+      r("a", "confirmed", "2026-11-05", "2026-11-06"),
+      r("a", "confirmed", "2026-10-01", "2026-10-02"),
+      r("a", "cancelled", "2026-12-01", "2026-12-03"),
+      r("b", "checked_in", "2026-10-30", "2026-11-02"),
+      r("c", "cancelled", "2026-09-01", "2026-09-03"),
+      r("c", "expired", "2026-09-05", "2026-09-06"),
+    ],
+    "2026-10-31",
+  );
   it("counts finished stays and finds the next arrival from today on", () => {
     expect(m.get("a")).toEqual({ completed: 2, nextArrival: "2026-11-05", lastDeparture: "2026-10-04", inHouse: false });
     expect(m.get("b")).toEqual({ completed: 0, nextArrival: null, lastDeparture: "2026-11-02", inHouse: true });
@@ -39,7 +51,9 @@ describe("summariseStays and stayLine", () => {
   it("words one line per guest", () => {
     expect(stayLine(m.get("b"), fmt)).toBe("In house now");
     expect(stayLine(m.get("a"), fmt)).toBe("Arrives 2026-11-05");
-    expect(stayLine({ completed: 1, nextArrival: null, lastDeparture: "2026-10-04", inHouse: false }, fmt)).toBe("1 stay, last left 2026-10-04");
+    expect(stayLine({ completed: 1, nextArrival: null, lastDeparture: "2026-10-04", inHouse: false }, fmt)).toBe(
+      "1 stay, last left 2026-10-04",
+    );
     expect(stayLine({ completed: 3, nextArrival: null, lastDeparture: null, inHouse: false }, fmt)).toBe("3 stays");
     expect(stayLine(m.get("c"), fmt)).toBe("No stays yet");
     expect(stayLine(undefined, fmt)).toBe("No stays yet");
@@ -60,7 +74,12 @@ describe("checkGuestForm and errors", () => {
     expect(checkGuestForm({ ...ok, phone: "9".repeat(41) })).toBe("guest_field");
   });
   it("maps the database's refusals", () => {
-    for (const [msg, code] of [["POLICY_VIOLATION: name", "guest_name"], ["POLICY_VIOLATION: email", "guest_email"], ["POLICY_VIOLATION: country", "guest_country"], ["POLICY_VIOLATION: too long", "guest_field"]] as const) {
+    for (const [msg, code] of [
+      ["POLICY_VIOLATION: name", "guest_name"],
+      ["POLICY_VIOLATION: email", "guest_email"],
+      ["POLICY_VIOLATION: country", "guest_country"],
+      ["POLICY_VIOLATION: too long", "guest_field"],
+    ] as const) {
       expect(classifyRpcError(msg).code).toBe(code);
       expect(errorMessage(code, null, String)).not.toMatch(/Something went wrong/);
     }

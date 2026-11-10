@@ -31,7 +31,9 @@ export function parseVerificationView(v: string | string[] | undefined): "unveri
 export function parseQueue(data: unknown): VerificationQueue {
   const d = (data ?? {}) as { items?: unknown; unverified?: unknown };
   const items = Array.isArray(d.items)
-    ? (d.items as PaymentToVerify[]).filter((i) => i && typeof i.id === "string" && typeof i.amount_minor === "number" && typeof i.reservation_id === "string")
+    ? (d.items as PaymentToVerify[]).filter(
+        (i) => i && typeof i.id === "string" && typeof i.amount_minor === "number" && typeof i.reservation_id === "string",
+      )
     : [];
   return { items, unverified: typeof d.unverified === "number" && d.unverified > 0 ? d.unverified : 0 };
 }

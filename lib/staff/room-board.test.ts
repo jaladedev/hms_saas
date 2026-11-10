@@ -4,10 +4,28 @@ import { compareRoomNumbers, countStates, roomViews, type BoardClaim, type Board
 const TODAY = new Map([["p1", "2026-11-03"]]);
 
 function room(id: string, over: Partial<BoardRoom> = {}): BoardRoom {
-  return { id, property_id: "p1", room_type_id: "t1", room_number: id, floor: 1, operational_status: "active", housekeeping_status: "clean", ...over };
+  return {
+    id,
+    property_id: "p1",
+    room_type_id: "t1",
+    room_number: id,
+    floor: 1,
+    operational_status: "active",
+    housekeeping_status: "clean",
+    ...over,
+  };
 }
 function claim(room_id: string, start: string, end: string, over: Partial<BoardClaim> = {}): BoardClaim {
-  return { id: `c-${room_id}-${start}`, room_id, claim_type: "stay", start_date: start, end_date: end, reservation_room_id: `rr-${room_id}-${start}`, block_reason: null, ...over };
+  return {
+    id: `c-${room_id}-${start}`,
+    room_id,
+    claim_type: "stay",
+    start_date: start,
+    end_date: end,
+    reservation_room_id: `rr-${room_id}-${start}`,
+    block_reason: null,
+    ...over,
+  };
 }
 const stateOf = (views: ReturnType<typeof roomViews>, id: string) => views.find((v) => v.room.id === id)?.state;
 
@@ -19,7 +37,12 @@ describe("roomViews", () => {
       claim("103", "2026-11-03", "2026-11-04", { claim_type: "hold" }),
       claim("104", "2026-11-02", "2026-11-09", { claim_type: "block", reservation_room_id: null, block_reason: "Repainting" }),
     ];
-    const v = roomViews(["101", "102", "103", "104", "105"].map((id) => room(id)), claims, new Set(["rr-101-2026-11-01"]), TODAY);
+    const v = roomViews(
+      ["101", "102", "103", "104", "105"].map((id) => room(id)),
+      claims,
+      new Set(["rr-101-2026-11-01"]),
+      TODAY,
+    );
     expect(["101", "102", "103", "104", "105"].map((id) => stateOf(v, id))).toEqual(["occupied", "arriving", "held", "blocked", "vacant"]);
   });
 
@@ -30,10 +53,20 @@ describe("roomViews", () => {
   });
 
   it("does not call a block or a hold occupied, whatever the flag says", () => {
-    const v = roomViews([room("701"), room("702")], [
-      claim("701", "2026-11-02", "2026-11-05", { claim_type: "block", reservation_room_id: null, block_reason: "Leak", checked_in: true }),
-      claim("702", "2026-11-02", "2026-11-05", { claim_type: "hold", checked_in: true }),
-    ], new Set(), TODAY);
+    const v = roomViews(
+      [room("701"), room("702")],
+      [
+        claim("701", "2026-11-02", "2026-11-05", {
+          claim_type: "block",
+          reservation_room_id: null,
+          block_reason: "Leak",
+          checked_in: true,
+        }),
+        claim("702", "2026-11-02", "2026-11-05", { claim_type: "hold", checked_in: true }),
+      ],
+      new Set(),
+      TODAY,
+    );
     expect([stateOf(v, "701"), stateOf(v, "702")]).toEqual(["blocked", "held"]);
   });
 
@@ -46,13 +79,23 @@ describe("roomViews", () => {
 
   it("lets room status outrank claims, so a booking on a closed room stands out", () => {
     const c = [claim("201", "2026-11-02", "2026-11-06")];
-    const v = roomViews([room("201", { operational_status: "out_of_service" }), room("202", { operational_status: "retired" })], c, new Set(), TODAY);
+    const v = roomViews(
+      [room("201", { operational_status: "out_of_service" }), room("202", { operational_status: "retired" })],
+      c,
+      new Set(),
+      TODAY,
+    );
     expect(v[0]).toMatchObject({ state: "out_of_service", current: { room_id: "201" } });
     expect(v[1]?.state).toBe("retired");
   });
 
   it("finds the next claim after today", () => {
-    const v = roomViews([room("301")], [claim("301", "2026-11-08", "2026-11-10"), claim("301", "2026-11-05", "2026-11-07")], new Set(), TODAY);
+    const v = roomViews(
+      [room("301")],
+      [claim("301", "2026-11-08", "2026-11-10"), claim("301", "2026-11-05", "2026-11-07")],
+      new Set(),
+      TODAY,
+    );
     expect(v[0]).toMatchObject({ state: "vacant", next: { start_date: "2026-11-05" } });
   });
 

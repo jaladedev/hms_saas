@@ -24,7 +24,11 @@ export async function createRole(formData: FormData) {
   const checked = readForm(formData);
   if (!checked.ok) return back(PAGE, { err: checked.code });
   const supabase = await staffClient();
-  const { error } = await supabase.rpc("create_custom_role", { p_tenant: tenantId.data, p_name: checked.value.name, p_permissions: checked.value.permissions });
+  const { error } = await supabase.rpc("create_custom_role", {
+    p_tenant: tenantId.data,
+    p_name: checked.value.name,
+    p_permissions: checked.value.permissions,
+  });
   if (error) return failRole(error.message);
   revalidatePath(PAGE);
   revalidatePath("/app/staff");
@@ -37,7 +41,11 @@ export async function updateRole(formData: FormData) {
   const checked = readForm(formData);
   if (!checked.ok) return back(PAGE, { err: checked.code });
   const supabase = await staffClient();
-  const { error } = await supabase.rpc("update_custom_role", { p_role: roleId.data, p_name: checked.value.name, p_permissions: checked.value.permissions });
+  const { error } = await supabase.rpc("update_custom_role", {
+    p_role: roleId.data,
+    p_name: checked.value.name,
+    p_permissions: checked.value.permissions,
+  });
   if (error) return failRole(error.message);
   revalidatePath(PAGE);
   revalidatePath("/app/staff");

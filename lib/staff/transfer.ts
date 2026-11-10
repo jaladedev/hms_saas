@@ -14,9 +14,11 @@ export function addDays(iso: string, n: number): string {
  * not been checked out or cancelled. (transfer_room itself also accepts a held, unpaid online booking.)
  */
 export function canTransfer(roomStatus: string, reservationStatus: string, mayAssign: boolean): boolean {
-  return mayAssign
-    && (roomStatus === "booked" || roomStatus === "checked_in")
-    && (reservationStatus === "pending" || reservationStatus === "confirmed" || reservationStatus === "checked_in");
+  return (
+    mayAssign &&
+    (roomStatus === "booked" || roomStatus === "checked_in") &&
+    (reservationStatus === "pending" || reservationStatus === "confirmed" || reservationStatus === "checked_in")
+  );
 }
 
 export type TransferWindow = { min: string; max: string; initial: string };
@@ -42,13 +44,19 @@ export type RoomOption = { id: string; room_number: string; busy: boolean };
  * because the person may choose a later start date on which the room is free. The database has the last word.
  */
 export function candidateRooms(
-  rooms: CandidateRoom[], typeId: string, exclude: Set<string>, from: string, until: string, claims: ClaimSpan[],
+  rooms: CandidateRoom[],
+  typeId: string,
+  exclude: Set<string>,
+  from: string,
+  until: string,
+  claims: ClaimSpan[],
 ): RoomOption[] {
   return rooms
     .filter((r) => r.room_type_id === typeId && r.operational_status === "active" && !exclude.has(r.id))
     .sort((a, b) => compareRoomNumbers(a.room_number, b.room_number))
     .map((r) => ({
-      id: r.id, room_number: r.room_number,
+      id: r.id,
+      room_number: r.room_number,
       busy: claims.some((c) => c.room_id === r.id && c.start_date < until && c.end_date > from),
     }));
 }

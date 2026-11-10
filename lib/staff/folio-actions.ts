@@ -52,9 +52,14 @@ export async function postFolioCharge(formData: FormData) {
 
   const supabase = await staffClient();
   const { error } = await supabase.rpc("post_folio_charge", {
-    p_reservation_id: id, p_category: c.category, p_description: c.description, p_quantity: c.quantity,
-    p_unit_amount_minor: c.unitAmountMinor, p_idempotency_key: ids.data.idempotencyKey,
-    p_charge_date: c.date, p_reservation_room_id: c.roomId,
+    p_reservation_id: id,
+    p_category: c.category,
+    p_description: c.description,
+    p_quantity: c.quantity,
+    p_unit_amount_minor: c.unitAmountMinor,
+    p_idempotency_key: ids.data.idempotencyKey,
+    p_charge_date: c.date,
+    p_reservation_room_id: c.roomId,
   });
   return finish(id, error, "fo_posted");
 }
@@ -87,7 +92,11 @@ export async function recordFolioPayment(formData: FormData) {
 
   const supabase = await staffClient();
   const { error } = await supabase.rpc("record_folio_payment", {
-    p_reservation_id: id, p_amount_minor: p.amountMinor, p_method: p.method, p_reference: p.reference, p_note: p.note,
+    p_reservation_id: id,
+    p_amount_minor: p.amountMinor,
+    p_method: p.method,
+    p_reference: p.reference,
+    p_note: p.note,
     p_idempotency_key: ids.data.idempotencyKey,
   });
   return finish(id, error, "fo_payment");
@@ -113,8 +122,14 @@ export async function emailFolioInvoice(formData: FormData) {
   if (!ids.success) return back(LIST, { err: "bad_request" });
 
   const supabase = await staffClient();
-  const { error } = await supabase.rpc("email_folio_invoice", { p_invoice_id: ids.data.invoiceId, p_idempotency_key: ids.data.idempotencyKey });
-  if (!error) after(() => { drainNow(5).catch(() => {}); });
+  const { error } = await supabase.rpc("email_folio_invoice", {
+    p_invoice_id: ids.data.invoiceId,
+    p_idempotency_key: ids.data.idempotencyKey,
+  });
+  if (!error)
+    after(() => {
+      drainNow(5).catch(() => {});
+    });
   return finish(ids.data.reservationId, error, "fo_emailed");
 }
 

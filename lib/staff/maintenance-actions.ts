@@ -38,18 +38,20 @@ function finish(page: string, requestId: string | null, error: { message: string
 }
 
 export async function reportRequest(formData: FormData) {
-  const parsed = z.object({
-    propertyId: maybeUuid,
-    roomId: maybeUuid,
-    location: z.string().max(100).default(""),
-    title: z.string().max(120),
-    description: z.string().max(2000).default(""),
-    priority: z.enum(REQUEST_PRIORITIES),
-    due: z.string().max(16).default(""),
-    assignedTo: maybeUuid,
-    idempotencyKey: key,
-    from: z.enum(["list", "rooms"]).default("list"),
-  }).safeParse(Object.fromEntries(formData));
+  const parsed = z
+    .object({
+      propertyId: maybeUuid,
+      roomId: maybeUuid,
+      location: z.string().max(100).default(""),
+      title: z.string().max(120),
+      description: z.string().max(2000).default(""),
+      priority: z.enum(REQUEST_PRIORITIES),
+      due: z.string().max(16).default(""),
+      assignedTo: maybeUuid,
+      idempotencyKey: key,
+      from: z.enum(["list", "rooms"]).default("list"),
+    })
+    .safeParse(Object.fromEntries(formData));
   const page = pageFor(parsed.success ? parsed.data.from : "list");
   if (!parsed.success) return back(page, { err: "mt_invalid" });
 
@@ -76,9 +78,15 @@ export async function reportRequest(formData: FormData) {
     if (!dueAt) return back(page, { err: "mt_invalid" });
   }
   const { error } = await supabase.rpc("report_maintenance_request", {
-    p_property_id: propertyId, p_room_id: d.roomId || null, p_location: location || null, p_title: title,
-    p_description: d.description.trim() || null, p_priority: d.priority, p_due_at: dueAt,
-    p_assigned_to: d.assignedTo || null, p_idempotency_key: d.idempotencyKey,
+    p_property_id: propertyId,
+    p_room_id: d.roomId || null,
+    p_location: location || null,
+    p_title: title,
+    p_description: d.description.trim() || null,
+    p_priority: d.priority,
+    p_due_at: dueAt,
+    p_assigned_to: d.assignedTo || null,
+    p_idempotency_key: d.idempotencyKey,
   });
   return finish(page, null, error, "mt_reported");
 }
@@ -110,7 +118,8 @@ export async function resolveRequest(formData: FormData) {
   const page = pageFor(parsed.data.from, parsed.data.requestId);
   const supabase = await staffClient();
   const { data, error } = await supabase.rpc("resolve_maintenance_request", {
-    p_request_id: parsed.data.requestId, p_note: parsed.data.note.trim() || null,
+    p_request_id: parsed.data.requestId,
+    p_note: parsed.data.note.trim() || null,
   });
   const stillBlocked = (data as { block_still_active?: boolean } | null)?.block_still_active === true;
   return finish(page, parsed.data.requestId, error, stillBlocked ? "mt_resolved_block" : "mt_resolved");
@@ -133,7 +142,10 @@ export async function assignRequest(formData: FormData) {
   if (!parsed.success) return back(LIST, { err: "bad_request" });
   const page = pageFor(parsed.data.from, parsed.data.requestId);
   const supabase = await staffClient();
-  const { error } = await supabase.rpc("assign_maintenance_request", { p_request_id: parsed.data.requestId, p_user_id: parsed.data.userId || null });
+  const { error } = await supabase.rpc("assign_maintenance_request", {
+    p_request_id: parsed.data.requestId,
+    p_user_id: parsed.data.userId || null,
+  });
   return finish(page, parsed.data.requestId, error, parsed.data.userId ? "mt_assigned" : "mt_unassigned");
 }
 
@@ -142,7 +154,10 @@ export async function setRequestPriority(formData: FormData) {
   if (!parsed.success) return back(LIST, { err: "mt_invalid" });
   const page = pageFor(parsed.data.from, parsed.data.requestId);
   const supabase = await staffClient();
-  const { error } = await supabase.rpc("set_maintenance_priority", { p_request_id: parsed.data.requestId, p_priority: parsed.data.priority });
+  const { error } = await supabase.rpc("set_maintenance_priority", {
+    p_request_id: parsed.data.requestId,
+    p_priority: parsed.data.priority,
+  });
   return finish(page, parsed.data.requestId, error, "mt_priority");
 }
 
@@ -152,6 +167,9 @@ export async function linkBlock(formData: FormData) {
   if (!parsed.success) return back(LIST, { err: "bad_request" });
   const page = pageFor(parsed.data.from, parsed.data.requestId);
   const supabase = await staffClient();
-  const { error } = await supabase.rpc("link_maintenance_block", { p_request_id: parsed.data.requestId, p_block_id: parsed.data.blockId || null });
+  const { error } = await supabase.rpc("link_maintenance_block", {
+    p_request_id: parsed.data.requestId,
+    p_block_id: parsed.data.blockId || null,
+  });
   return finish(page, parsed.data.requestId, error, parsed.data.blockId ? "mt_block_linked" : "mt_block_unlinked");
 }

@@ -3,11 +3,19 @@
 export type DocKind = "confirmation" | "invoice" | "receipt" | "cancellation";
 
 export const DOC_LABEL: Record<DocKind, string> = {
-  confirmation: "Booking confirmation", invoice: "Invoice", receipt: "Receipt", cancellation: "Cancellation confirmation",
+  confirmation: "Booking confirmation",
+  invoice: "Invoice",
+  receipt: "Receipt",
+  cancellation: "Cancellation confirmation",
 };
 const ORDER: DocKind[] = ["confirmation", "invoice", "receipt", "cancellation"];
 
-export const PAYMENT_METHOD_LABEL: Record<string, string> = { cash: "Cash", bank_transfer: "Bank transfer", pos: "Card machine", other: "Other" };
+export const PAYMENT_METHOD_LABEL: Record<string, string> = {
+  cash: "Cash",
+  bank_transfer: "Bank transfer",
+  pos: "Card machine",
+  other: "Other",
+};
 
 export type DocInput = { status: string; invoices: number; succeededPayments: number };
 
@@ -39,12 +47,20 @@ export type ReceiptPayment = { amount_minor: number; payment_status: string };
 export function receiptTotals(payments: ReceiptPayment[], refunds: Array<{ amount_minor: number; refund_status: string }>) {
   const received = payments.filter((p) => p.payment_status === "succeeded").reduce((s, p) => s + p.amount_minor, 0);
   const refunded = refunds.filter((r) => r.refund_status === "succeeded").reduce((s, r) => s + r.amount_minor, 0);
-  const pending = refunds.filter((r) => ["requested", "approved", "processing"].includes(r.refund_status)).reduce((s, r) => s + r.amount_minor, 0);
+  const pending = refunds
+    .filter((r) => ["requested", "approved", "processing"].includes(r.refund_status))
+    .reduce((s, r) => s + r.amount_minor, 0);
   return { received, refunded, pending, kept: received - refunded };
 }
 
 export const REFUND_STATUS_LABEL: Record<string, string> = {
-  requested: "Asked for", approved: "Approved", processing: "On its way", succeeded: "Paid back", rejected: "Declined", failed: "Failed",
+  requested: "Asked for",
+  approved: "Approved",
+  processing: "On its way",
+  succeeded: "Paid back",
+  rejected: "Declined",
+  failed: "Failed",
 };
 
-export const documentsPath = (reservationId: string, kind?: DocKind) => `/app/reservations/${reservationId}/documents${kind ? `?doc=${kind}` : ""}`;
+export const documentsPath = (reservationId: string, kind?: DocKind) =>
+  `/app/reservations/${reservationId}/documents${kind ? `?doc=${kind}` : ""}`;

@@ -7,8 +7,15 @@ import { canDropOn, moveEffective, moveSummary } from "@/lib/staff/calendar-move
 import { moveStayFromCalendar } from "@/lib/staff/calendar-actions";
 
 type Pending = {
-  rr: string; label: string; fromNumber: string; toId: string; toNumber: string;
-  effective: string; start: string; end: string; key: string;
+  rr: string;
+  label: string;
+  fromNumber: string;
+  toId: string;
+  toNumber: string;
+  effective: string;
+  start: string;
+  end: string;
+  key: string;
 };
 
 const OVER = ["bg-primary/10"];
@@ -20,7 +27,19 @@ const OVER = ["bg-primary/10"];
  * same transfer_room call as the booking page. Mouse drag only: on a phone or by keyboard, open the booking and use
  * "Move to another room" there. The database decides on submit; nothing here is trusted.
  */
-export function CalendarDrag({ containerId, today, property, from, days }: { containerId: string; today: string; property: string; from: string; days: number }) {
+export function CalendarDrag({
+  containerId,
+  today,
+  property,
+  from,
+  days,
+}: {
+  containerId: string;
+  today: string;
+  property: string;
+  from: string;
+  days: number;
+}) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [pending, setPending] = useState<Pending | null>(null);
 
@@ -33,27 +52,46 @@ export function CalendarDrag({ containerId, today, property, from, days }: { con
     const targetRow = (el: EventTarget | null): HTMLElement | null => {
       const row = (el as HTMLElement | null)?.closest<HTMLElement>("tr[data-room-id]") ?? null;
       if (!row || !source) return null;
-      const target = { id: row.dataset.roomId ?? "", room_type_id: row.dataset.roomType ?? "", operational_status: row.dataset.roomStatus ?? "" };
+      const target = {
+        id: row.dataset.roomId ?? "",
+        room_type_id: row.dataset.roomType ?? "",
+        operational_status: row.dataset.roomStatus ?? "",
+      };
       return canDropOn({ roomId: source.roomId, roomTypeId: source.typeId }, target) ? row : null;
     };
-    const unlight = () => { lit?.classList.remove(...OVER); lit = null; };
+    const unlight = () => {
+      lit?.classList.remove(...OVER);
+      lit = null;
+    };
 
     const onStart = (e: DragEvent) => {
       const bar = (e.target as HTMLElement | null)?.closest<HTMLElement>("[data-move-rr]");
       if (!bar || !e.dataTransfer) return;
       source = {
-        rr: bar.dataset.moveRr!, label: bar.dataset.moveLabel ?? "this booking", roomId: bar.dataset.moveRoom!, typeId: bar.dataset.moveType!,
-        roomNumber: bar.dataset.moveRoomNumber ?? "", start: bar.dataset.moveStart!, end: bar.dataset.moveEnd!,
+        rr: bar.dataset.moveRr!,
+        label: bar.dataset.moveLabel ?? "this booking",
+        roomId: bar.dataset.moveRoom!,
+        typeId: bar.dataset.moveType!,
+        roomNumber: bar.dataset.moveRoomNumber ?? "",
+        start: bar.dataset.moveStart!,
+        end: bar.dataset.moveEnd!,
       };
       e.dataTransfer.effectAllowed = "move";
       e.dataTransfer.setData("text/plain", source.label);
     };
     const onOver = (e: DragEvent) => {
       const row = targetRow(e.target);
-      if (!row) { unlight(); return; }
+      if (!row) {
+        unlight();
+        return;
+      }
       e.preventDefault();
       if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
-      if (lit !== row) { unlight(); row.classList.add(...OVER); lit = row; }
+      if (lit !== row) {
+        unlight();
+        row.classList.add(...OVER);
+        lit = row;
+      }
     };
     const onDrop = (e: DragEvent) => {
       const row = targetRow(e.target);
@@ -64,12 +102,22 @@ export function CalendarDrag({ containerId, today, property, from, days }: { con
       const effective = moveEffective(source.start, source.end, today, cell?.dataset.date ?? null);
       if (!effective) return;
       setPending({
-        rr: source.rr, label: source.label, fromNumber: source.roomNumber, toId: row.dataset.roomId!, toNumber: row.dataset.roomNumber ?? "",
-        effective, start: source.start, end: source.end, key: crypto.randomUUID(),
+        rr: source.rr,
+        label: source.label,
+        fromNumber: source.roomNumber,
+        toId: row.dataset.roomId!,
+        toNumber: row.dataset.roomNumber ?? "",
+        effective,
+        start: source.start,
+        end: source.end,
+        key: crypto.randomUUID(),
       });
       source = null;
     };
-    const onEnd = () => { unlight(); source = null; };
+    const onEnd = () => {
+      unlight();
+      source = null;
+    };
 
     box.addEventListener("dragstart", onStart);
     box.addEventListener("dragover", onOver);
@@ -91,7 +139,12 @@ export function CalendarDrag({ containerId, today, property, from, days }: { con
   }, [pending]);
 
   return (
-    <dialog ref={dialog} onClose={() => setPending(null)} aria-labelledby="move-title" className="m-auto w-[min(32rem,calc(100vw-2rem))] rounded border border-line bg-white p-5 text-ink backdrop:bg-ink/40">
+    <dialog
+      ref={dialog}
+      onClose={() => setPending(null)}
+      aria-labelledby="move-title"
+      className="m-auto w-[min(32rem,calc(100vw-2rem))] rounded border border-line bg-white p-5 text-ink backdrop:bg-ink/40"
+    >
       {pending && (
         <form action={moveStayFromCalendar} className="space-y-4">
           <input type="hidden" name="reservationRoomId" value={pending.rr} />
@@ -103,15 +156,29 @@ export function CalendarDrag({ containerId, today, property, from, days }: { con
           <input type="hidden" name="days" value={String(days)} />
           <SectionTitle id="move-title">Move guest to room {pending.toNumber}?</SectionTitle>
           <p className="text-sm">
-            {moveSummary({ label: pending.label, from: pending.fromNumber, to: pending.toNumber, effective: pending.effective, start: pending.start, end: pending.end, dateText: formatDate })}
+            {moveSummary({
+              label: pending.label,
+              from: pending.fromNumber,
+              to: pending.toNumber,
+              effective: pending.effective,
+              start: pending.start,
+              end: pending.end,
+              dateText: formatDate,
+            })}
           </p>
           <div>
-            <label htmlFor="move-reason" className="block text-sm">Reason</label>
+            <label htmlFor="move-reason" className="block text-sm">
+              Reason
+            </label>
             <textarea id="move-reason" name="reason" required maxLength={500} rows={2} autoFocus className={inputClass} />
           </div>
           <div className="flex gap-2">
-            <button type="submit" className={buttonPrimary}>Move guest</button>
-            <button type="button" onClick={() => setPending(null)} className={buttonQuiet}>Cancel</button>
+            <button type="submit" className={buttonPrimary}>
+              Move guest
+            </button>
+            <button type="button" onClick={() => setPending(null)} className={buttonQuiet}>
+              Cancel
+            </button>
           </div>
         </form>
       )}

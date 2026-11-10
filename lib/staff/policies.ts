@@ -63,9 +63,26 @@ export function readConfig(config: unknown): PolicyConfig {
   }
   const op = isObject(c.online_payment) ? c.online_payment : {};
   const pct = Number(op.value);
-  const online: OnlinePayment = op.mode === "deposit_percent" && Number.isFinite(pct) && pct > 0 && pct <= 100
-    ? { mode: "deposit_percent", value: pct } : { mode: "full" };
-  return { cancellation_rules: sortRules(rules), online_payment: online, checkin_payment: c.checkin_payment === "full" ? "full" : "none", guest_cancellation: c.guest_cancellation === "off" ? "off" : "on", early_checkout: c.early_checkout === "credit" || c.early_checkout === "one_night" ? c.early_checkout : "none", early_checkin_days: Number.isInteger(c.early_checkin_days) && (c.early_checkin_days as number) >= 1 && (c.early_checkin_days as number) <= 7 ? (c.early_checkin_days as number) : 0, guest_changes: c.guest_changes === "on" ? "on" : "off", guest_change_hours: Number.isInteger(c.guest_change_hours) && (c.guest_change_hours as number) >= 0 && (c.guest_change_hours as number) <= 720 ? (c.guest_change_hours as number) : 48 };
+  const online: OnlinePayment =
+    op.mode === "deposit_percent" && Number.isFinite(pct) && pct > 0 && pct <= 100
+      ? { mode: "deposit_percent", value: pct }
+      : { mode: "full" };
+  return {
+    cancellation_rules: sortRules(rules),
+    online_payment: online,
+    checkin_payment: c.checkin_payment === "full" ? "full" : "none",
+    guest_cancellation: c.guest_cancellation === "off" ? "off" : "on",
+    early_checkout: c.early_checkout === "credit" || c.early_checkout === "one_night" ? c.early_checkout : "none",
+    early_checkin_days:
+      Number.isInteger(c.early_checkin_days) && (c.early_checkin_days as number) >= 1 && (c.early_checkin_days as number) <= 7
+        ? (c.early_checkin_days as number)
+        : 0,
+    guest_changes: c.guest_changes === "on" ? "on" : "off",
+    guest_change_hours:
+      Number.isInteger(c.guest_change_hours) && (c.guest_change_hours as number) >= 0 && (c.guest_change_hours as number) <= 720
+        ? (c.guest_change_hours as number)
+        : 48,
+  };
 }
 
 /** Widest window first, the order a person reads them in. The database picks the smallest window that still covers the time left. */
@@ -76,7 +93,10 @@ export function sortRules(rules: CancellationRule[]): CancellationRule[] {
 /** "7 days", "48 hours", "check-in time": how a window reads. */
 export function describeWindow(hours: number): string {
   if (hours === 0) return "after check-in time";
-  if (hours % 24 === 0) { const d = hours / 24; return `${d} ${d === 1 ? "day" : "days"} or less before check-in`; }
+  if (hours % 24 === 0) {
+    const d = hours / 24;
+    return `${d} ${d === 1 ? "day" : "days"} or less before check-in`;
+  }
   return `${hours} ${hours === 1 ? "hour" : "hours"} or less before check-in`;
 }
 
@@ -90,17 +110,26 @@ export function describeCharge(c: CancellationRule["charge"], formatMinor: (mino
 /** The sentences a guest would read on the reserve page. */
 export function guestSummary(cfg: PolicyConfig, formatMinor: (minor: number) => string): string[] {
   const lines: string[] = [];
-  lines.push(cfg.online_payment.mode === "deposit_percent"
-    ? `Pay a ${Number.parseFloat(cfg.online_payment.value.toFixed(4))}% deposit online to confirm your booking. The balance is due at the hotel.`
-    : "Pay the full amount online to confirm your booking.");
+  lines.push(
+    cfg.online_payment.mode === "deposit_percent"
+      ? `Pay a ${Number.parseFloat(cfg.online_payment.value.toFixed(4))}% deposit online to confirm your booking. The balance is due at the hotel.`
+      : "Pay the full amount online to confirm your booking.",
+  );
   if (cfg.checkin_payment === "full") lines.push("The booking must be fully paid before check-in.");
   const rules = cfg.cancellation_rules;
   const widest = rules[0];
   if (!widest) {
     lines.push("You can cancel free of charge at any time before check-in.");
   } else {
-    lines.push(widest.within_hours > 0 ? `Cancel free of charge until ${describeWindow(widest.within_hours).replace(" or less before check-in", "")} before check-in.` : "Cancel free of charge until check-in time.");
-    for (const r of rules) lines.push(`${r.within_hours === 0 ? "After check-in time" : `Within ${describeWindow(r.within_hours).replace(" or less before check-in", "")} of check-in`}, you pay ${describeCharge(r.charge, formatMinor)}.`);
+    lines.push(
+      widest.within_hours > 0
+        ? `Cancel free of charge until ${describeWindow(widest.within_hours).replace(" or less before check-in", "")} before check-in.`
+        : "Cancel free of charge until check-in time.",
+    );
+    for (const r of rules)
+      lines.push(
+        `${r.within_hours === 0 ? "After check-in time" : `Within ${describeWindow(r.within_hours).replace(" or less before check-in", "")} of check-in`}, you pay ${describeCharge(r.charge, formatMinor)}.`,
+      );
   }
   if (cfg.guest_cancellation === "off") lines.push("To cancel, contact the hotel: bookings cannot be cancelled online.");
   return lines;
@@ -125,7 +154,9 @@ const GUID = z.guid();
  * The form's fields, checked. Rules arrive as parallel fields `rule_hours_0`, `rule_type_0`, `rule_value_0`, and a
  * row with every field empty is skipped (an unused slot). A fixed amount is typed in naira and stored as kobo.
  */
-export function validatePolicy(input: PolicyInput):
+export function validatePolicy(
+  input: PolicyInput,
+):
   | { ok: true; value: { propertyId: string; effectiveFrom: string; config: PolicyConfig } }
   | { ok: false; code: "policy_invalid"; field: PolicyField } {
   const bad = (field: PolicyField) => ({ ok: false as const, code: "policy_invalid" as const, field });
@@ -193,7 +224,23 @@ export function validatePolicy(input: PolicyInput):
   if (!/^\d{1,3}$/.test(gchRaw) || Number(gchRaw) > 720) return bad("rules");
   const guestChangeHours = Number(gchRaw);
 
-  return { ok: true, value: { propertyId: propertyId.data, effectiveFrom, config: { cancellation_rules: sortRules(rules), online_payment: online, checkin_payment: checkin, guest_cancellation: guestCancel, early_checkout: early, early_checkin_days: earlyCheckinDays, guest_changes: guestChanges, guest_change_hours: guestChangeHours } } };
+  return {
+    ok: true,
+    value: {
+      propertyId: propertyId.data,
+      effectiveFrom,
+      config: {
+        cancellation_rules: sortRules(rules),
+        online_payment: online,
+        checkin_payment: checkin,
+        guest_cancellation: guestCancel,
+        early_checkout: early,
+        early_checkin_days: earlyCheckinDays,
+        guest_changes: guestChanges,
+        guest_change_hours: guestChangeHours,
+      },
+    },
+  };
 }
 
 /**
@@ -205,10 +252,25 @@ export function validatePolicy(input: PolicyInput):
  */
 export function mergeConfig(previous: unknown, next: PolicyConfig): Record<string, unknown> {
   const base = isObject(previous) ? { ...previous } : {};
-  delete base.cancellation_rules; delete base.online_payment; delete base.checkin_payment; delete base.guest_cancellation; delete base.early_checkout; delete base.early_checkin_days; delete base.guest_changes; delete base.guest_change_hours;
+  delete base.cancellation_rules;
+  delete base.online_payment;
+  delete base.checkin_payment;
+  delete base.guest_cancellation;
+  delete base.early_checkout;
+  delete base.early_checkin_days;
+  delete base.guest_changes;
+  delete base.guest_change_hours;
   const { checkin_payment, early_checkout, early_checkin_days, guest_changes, guest_change_hours, ...rest } = next;
   // Both are stored only when they say something: an absent key is "no payment needed" and "keep the whole price".
-  return { ...base, ...rest, ...(checkin_payment === "full" ? { checkin_payment } : {}), ...(early_checkout !== "none" ? { early_checkout } : {}), ...(early_checkin_days > 0 ? { early_checkin_days } : {}), ...(guest_changes === "on" ? { guest_changes } : {}), ...(guest_changes === "on" && guest_change_hours !== 48 ? { guest_change_hours } : {}) };
+  return {
+    ...base,
+    ...rest,
+    ...(checkin_payment === "full" ? { checkin_payment } : {}),
+    ...(early_checkout !== "none" ? { early_checkout } : {}),
+    ...(early_checkin_days > 0 ? { early_checkin_days } : {}),
+    ...(guest_changes === "on" ? { guest_changes } : {}),
+    ...(guest_changes === "on" && guest_change_hours !== 48 ? { guest_change_hours } : {}),
+  };
 }
 
 /**
@@ -222,7 +284,10 @@ export function checkEffectiveDate(effectiveFrom: string, today: string, latestF
 }
 
 /** The version in force on a date, the next one scheduled, and the number to give a new version. */
-export function versionsOn(rows: Pick<PolicyRow, "version" | "effective_from">[], today: string): { current: number | null; upcoming: number | null; nextVersion: number } {
+export function versionsOn(
+  rows: Pick<PolicyRow, "version" | "effective_from">[],
+  today: string,
+): { current: number | null; upcoming: number | null; nextVersion: number } {
   const sorted = [...rows].sort((a, b) => a.effective_from.localeCompare(b.effective_from));
   const started = sorted.filter((r) => r.effective_from <= today);
   const later = sorted.filter((r) => r.effective_from > today);
@@ -231,7 +296,10 @@ export function versionsOn(rows: Pick<PolicyRow, "version" | "effective_from">[]
 }
 
 /** Which refusal a failed write means: the database's own words are never shown. */
-export function classifyPolicyError(err: { code?: string; message?: string }): "policy_forbidden" | "policy_conflict" | "policy_invalid" | "unknown" {
+export function classifyPolicyError(err: {
+  code?: string;
+  message?: string;
+}): "policy_forbidden" | "policy_conflict" | "policy_invalid" | "unknown" {
   const msg = err.message ?? "";
   if (err.code === "42501" || /row-level security/i.test(msg)) return "policy_forbidden";
   if (err.code === "23505") return "policy_conflict";

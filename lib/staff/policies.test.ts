@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
-  checkEffectiveDate, classifyPolicyError, describeCharge, describeWindow, guestSummary, mergeConfig, readConfig, validatePolicy, versionsOn,
+  checkEffectiveDate,
+  classifyPolicyError,
+  describeCharge,
+  describeWindow,
+  guestSummary,
+  mergeConfig,
+  readConfig,
+  validatePolicy,
+  versionsOn,
 } from "./policies";
 
 const P = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -10,49 +18,92 @@ const base = { propertyId: P, effectiveFrom: "2026-11-09", onlineMode: "deposit_
 describe("readConfig", () => {
   it("reads the shape cancel_reservation and create_payment_attempt use, widest window first", () => {
     const cfg = readConfig({
-      cancellation_rules: [{ within_hours: 0, charge: { type: "percent", value: 100 } }, { within_hours: 48, charge: { type: "nights", value: 1 } }],
-      online_payment: { mode: "deposit_percent", value: 30 }, checkin_payment: "full",
+      cancellation_rules: [
+        { within_hours: 0, charge: { type: "percent", value: 100 } },
+        { within_hours: 48, charge: { type: "nights", value: 1 } },
+      ],
+      online_payment: { mode: "deposit_percent", value: 30 },
+      checkin_payment: "full",
     });
     expect(cfg.cancellation_rules.map((r) => r.within_hours)).toEqual([48, 0]);
     expect(cfg.online_payment).toEqual({ mode: "deposit_percent", value: 30 });
     expect(cfg.checkin_payment).toBe("full");
   });
   it("falls back to what the database falls back to: full payment, no check-in requirement, no rules", () => {
-    expect(readConfig({})).toEqual({ cancellation_rules: [], online_payment: { mode: "full" }, checkin_payment: "none", guest_cancellation: "on", early_checkout: "none", early_checkin_days: 0, guest_changes: "off", guest_change_hours: 48 });
+    expect(readConfig({})).toEqual({
+      cancellation_rules: [],
+      online_payment: { mode: "full" },
+      checkin_payment: "none",
+      guest_cancellation: "on",
+      early_checkout: "none",
+      early_checkin_days: 0,
+      guest_changes: "off",
+      guest_change_hours: 48,
+    });
     expect(readConfig(null).online_payment).toEqual({ mode: "full" });
     expect(readConfig({ online_payment: { mode: "deposit_percent", value: 0 } }).online_payment).toEqual({ mode: "full" });
   });
   it("drops rules it cannot use instead of guessing", () => {
-    const cfg = readConfig({ cancellation_rules: [{ within_hours: -1, charge: { type: "percent", value: 10 } }, { within_hours: 5, charge: { type: "weird", value: 1 } }, "x", { within_hours: 5 }] });
+    const cfg = readConfig({
+      cancellation_rules: [
+        { within_hours: -1, charge: { type: "percent", value: 10 } },
+        { within_hours: 5, charge: { type: "weird", value: 1 } },
+        "x",
+        { within_hours: 5 },
+      ],
+    });
     expect(cfg.cancellation_rules).toEqual([]);
   });
 });
 
 describe("guest cancellation setting", () => {
-  const form = { propertyId: "6f1c1c1e-2b7a-4a55-9a43-1d2a8d9a1f10", effectiveFrom: "2026-12-01", onlineMode: "full", depositPercent: "30", checkinPayment: "none" };
+  const form = {
+    propertyId: "6f1c1c1e-2b7a-4a55-9a43-1d2a8d9a1f10",
+    effectiveFrom: "2026-12-01",
+    onlineMode: "full",
+    depositPercent: "30",
+    checkinPayment: "none",
+  };
   it("reads on unless the policy says off", () => {
     expect(readConfig({}).guest_cancellation).toBe("on");
     expect(readConfig({ guest_cancellation: "off" }).guest_cancellation).toBe("off");
     for (const v of ["OFF", "no", false, 0, null]) expect(readConfig({ guest_cancellation: v }).guest_cancellation, String(v)).toBe("on");
   });
   it("takes on or off from the form, treats a missing field as on and refuses anything else", () => {
-    expect(validatePolicy({ ...form, guestCancellation: "off" })).toMatchObject({ ok: true, value: { config: { guest_cancellation: "off" } } });
-    expect(validatePolicy({ ...form, guestCancellation: "on" })).toMatchObject({ ok: true, value: { config: { guest_cancellation: "on" } } });
+    expect(validatePolicy({ ...form, guestCancellation: "off" })).toMatchObject({
+      ok: true,
+      value: { config: { guest_cancellation: "off" } },
+    });
+    expect(validatePolicy({ ...form, guestCancellation: "on" })).toMatchObject({
+      ok: true,
+      value: { config: { guest_cancellation: "on" } },
+    });
     expect(validatePolicy(form)).toMatchObject({ ok: true, value: { config: { guest_cancellation: "on" } } });
     expect(validatePolicy({ ...form, guestCancellation: "maybe" })).toEqual({ ok: false, code: "policy_invalid", field: "rules" });
     // early check-out and early check-in (migrations 060 and 061): an older form without the field means "off"
     expect(validatePolicy(form)).toMatchObject({ ok: true, value: { config: { early_checkout: "none", early_checkin_days: 0 } } });
-    expect(validatePolicy({ ...form, earlyCheckout: "credit", earlyCheckinDays: "3" })).toMatchObject({ ok: true, value: { config: { early_checkout: "credit", early_checkin_days: 3 } } });
-    for (const bad of ["8", "-1", "2.5", "abc", "10"]) expect(validatePolicy({ ...form, earlyCheckinDays: bad }), bad).toEqual({ ok: false, code: "policy_invalid", field: "rules" });
+    expect(validatePolicy({ ...form, earlyCheckout: "credit", earlyCheckinDays: "3" })).toMatchObject({
+      ok: true,
+      value: { config: { early_checkout: "credit", early_checkin_days: 3 } },
+    });
+    for (const bad of ["8", "-1", "2.5", "abc", "10"])
+      expect(validatePolicy({ ...form, earlyCheckinDays: bad }), bad).toEqual({ ok: false, code: "policy_invalid", field: "rules" });
     expect(validatePolicy({ ...form, earlyCheckout: "all" })).toEqual({ ok: false, code: "policy_invalid", field: "rules" });
     // guest changes (migration 069): an older form means off and 48 hours
     expect(validatePolicy(form)).toMatchObject({ ok: true, value: { config: { guest_changes: "off", guest_change_hours: 48 } } });
-    expect(validatePolicy({ ...form, guestChanges: "on", guestChangeHours: "72" })).toMatchObject({ ok: true, value: { config: { guest_changes: "on", guest_change_hours: 72 } } });
-    for (const bad of ["-1", "721", "2.5", "abc", ""]) expect(validatePolicy({ ...form, guestChangeHours: bad }), bad).toEqual({ ok: false, code: "policy_invalid", field: "rules" });
+    expect(validatePolicy({ ...form, guestChanges: "on", guestChangeHours: "72" })).toMatchObject({
+      ok: true,
+      value: { config: { guest_changes: "on", guest_change_hours: 72 } },
+    });
+    for (const bad of ["-1", "721", "2.5", "abc", ""])
+      expect(validatePolicy({ ...form, guestChangeHours: bad }), bad).toEqual({ ok: false, code: "policy_invalid", field: "rules" });
     expect(validatePolicy({ ...form, guestChanges: "yes" })).toEqual({ ok: false, code: "policy_invalid", field: "rules" });
   });
   it("replaces the old value when a new version is saved, and tells guests to contact the hotel when it is off", () => {
-    expect(mergeConfig({ guest_cancellation: "off", check_in_time: "14:00" }, readConfig({}))).toMatchObject({ guest_cancellation: "on", check_in_time: "14:00" });
+    expect(mergeConfig({ guest_cancellation: "off", check_in_time: "14:00" }, readConfig({}))).toMatchObject({
+      guest_cancellation: "on",
+      check_in_time: "14:00",
+    });
     const lines = guestSummary(readConfig({ guest_cancellation: "off" }), (m) => String(m));
     expect(lines.at(-1)).toMatch(/contact the hotel/);
     expect(guestSummary(readConfig({}), (m) => String(m)).join(" ")).not.toMatch(/contact the hotel/);
@@ -61,7 +112,15 @@ describe("guest cancellation setting", () => {
 
 describe("validatePolicy", () => {
   it("builds the config from the form and stores a fixed amount in kobo", () => {
-    const v = validatePolicy({ ...base, rule_hours_0: "0", rule_type_0: "percent", rule_value_0: "100", rule_hours_1: "168", rule_type_1: "fixed", rule_value_1: "₦5,000" });
+    const v = validatePolicy({
+      ...base,
+      rule_hours_0: "0",
+      rule_type_0: "percent",
+      rule_value_0: "100",
+      rule_hours_1: "168",
+      rule_type_1: "fixed",
+      rule_value_1: "₦5,000",
+    });
     expect(v.ok).toBe(true);
     if (!v.ok) return;
     expect(v.value.config.cancellation_rules).toEqual([
@@ -75,7 +134,15 @@ describe("validatePolicy", () => {
     expect(v.ok && v.value.config.cancellation_rules).toEqual([]);
   });
   it("refuses a repeated window, because the database would take whichever it met first", () => {
-    const v = validatePolicy({ ...base, rule_hours_0: "48", rule_type_0: "percent", rule_value_0: "50", rule_hours_1: "48", rule_type_1: "nights", rule_value_1: "1" });
+    const v = validatePolicy({
+      ...base,
+      rule_hours_0: "48",
+      rule_type_0: "percent",
+      rule_value_0: "50",
+      rule_hours_1: "48",
+      rule_type_1: "nights",
+      rule_value_1: "1",
+    });
     expect(v).toEqual({ ok: false, code: "policy_invalid", field: "rules" });
   });
   it.each([
@@ -113,7 +180,10 @@ describe("mergeConfig", () => {
     expect(mergeConfig({ guest_changes: "on", guest_change_hours: 12 }, base)).not.toHaveProperty("guest_changes");
     expect(mergeConfig({}, { ...base, guest_changes: "on" })).toMatchObject({ guest_changes: "on" });
     expect(mergeConfig({}, { ...base, guest_changes: "on" })).not.toHaveProperty("guest_change_hours");
-    expect(mergeConfig({}, { ...base, guest_changes: "on", guest_change_hours: 0 })).toMatchObject({ guest_changes: "on", guest_change_hours: 0 });
+    expect(mergeConfig({}, { ...base, guest_changes: "on", guest_change_hours: 0 })).toMatchObject({
+      guest_changes: "on",
+      guest_change_hours: 0,
+    });
     expect(mergeConfig({}, { ...base, guest_change_hours: 6 })).not.toHaveProperty("guest_change_hours");
   });
   it("keeps keys the screen does not manage and replaces the ones it does", () => {
@@ -138,9 +208,13 @@ describe("mergeConfig", () => {
     expect(mergeConfig({ early_checkin_days: 2 }, readConfig({})).early_checkin_days).toBeUndefined();
   });
   it("copes with no previous version", () => {
-    expect(mergeConfig(null, readConfig({}))).toEqual({ cancellation_rules: [], online_payment: { mode: "full" }, guest_cancellation: "on" });
+    expect(mergeConfig(null, readConfig({}))).toEqual({
+      cancellation_rules: [],
+      online_payment: { mode: "full" },
+      guest_cancellation: "on",
+    });
   });
-  it("stores checkin_payment only as \"full\", the one value the database accepts (migration 035)", () => {
+  it('stores checkin_payment only as "full", the one value the database accepts (migration 035)', () => {
     expect(mergeConfig(null, readConfig({ checkin_payment: "full" })).checkin_payment).toBe("full");
     for (const none of [readConfig({}), readConfig({ checkin_payment: "none" })]) {
       expect(Object.values(mergeConfig({ checkin_payment: "full" }, none))).not.toContain("none");
@@ -164,10 +238,18 @@ describe("checkEffectiveDate", () => {
 
 describe("versionsOn", () => {
   it("finds what is in force, what is scheduled and the next number", () => {
-    const rows = [{ version: 1, effective_from: "2026-01-01" }, { version: 3, effective_from: "2026-12-01" }, { version: 2, effective_from: "2026-09-12" }];
+    const rows = [
+      { version: 1, effective_from: "2026-01-01" },
+      { version: 3, effective_from: "2026-12-01" },
+      { version: 2, effective_from: "2026-09-12" },
+    ];
     expect(versionsOn(rows, "2026-11-02")).toEqual({ current: 2, upcoming: 3, nextVersion: 4 });
     expect(versionsOn([], "2026-11-02")).toEqual({ current: null, upcoming: null, nextVersion: 1 });
-    expect(versionsOn([{ version: 1, effective_from: "2027-01-01" }], "2026-11-02")).toEqual({ current: null, upcoming: 1, nextVersion: 2 });
+    expect(versionsOn([{ version: 1, effective_from: "2027-01-01" }], "2026-11-02")).toEqual({
+      current: null,
+      upcoming: 1,
+      nextVersion: 2,
+    });
   });
 });
 
@@ -184,10 +266,18 @@ describe("wording", () => {
     expect(describeCharge({ type: "fixed", value: 500000 }, naira)).toBe("₦5000.00");
   });
   it("tells a guest the deposit, the check-in rule and every cancellation step", () => {
-    const lines = guestSummary(readConfig({
-      cancellation_rules: [{ within_hours: 168, charge: { type: "nights", value: 1 } }, { within_hours: 48, charge: { type: "percent", value: 50 } }, { within_hours: 0, charge: { type: "percent", value: 100 } }],
-      online_payment: { mode: "deposit_percent", value: 30 }, checkin_payment: "full",
-    }), naira);
+    const lines = guestSummary(
+      readConfig({
+        cancellation_rules: [
+          { within_hours: 168, charge: { type: "nights", value: 1 } },
+          { within_hours: 48, charge: { type: "percent", value: 50 } },
+          { within_hours: 0, charge: { type: "percent", value: 100 } },
+        ],
+        online_payment: { mode: "deposit_percent", value: 30 },
+        checkin_payment: "full",
+      }),
+      naira,
+    );
     expect(lines).toEqual([
       "Pay a 30% deposit online to confirm your booking. The balance is due at the hotel.",
       "The booking must be fully paid before check-in.",
@@ -198,14 +288,19 @@ describe("wording", () => {
     ]);
   });
   it("says cancelling is free when there are no rules, and full payment when no deposit is set", () => {
-    expect(guestSummary(readConfig({}), naira)).toEqual(["Pay the full amount online to confirm your booking.", "You can cancel free of charge at any time before check-in."]);
+    expect(guestSummary(readConfig({}), naira)).toEqual([
+      "Pay the full amount online to confirm your booking.",
+      "You can cancel free of charge at any time before check-in.",
+    ]);
   });
 });
 
 describe("classifyPolicyError", () => {
   it("never shows the database's words", () => {
     expect(classifyPolicyError({ code: "42501" })).toBe("policy_forbidden");
-    expect(classifyPolicyError({ code: "P0001", message: "POLICY_VIOLATION: policy date not after the latest version" })).toBe("policy_conflict");
+    expect(classifyPolicyError({ code: "P0001", message: "POLICY_VIOLATION: policy date not after the latest version" })).toBe(
+      "policy_conflict",
+    );
     expect(classifyPolicyError({ code: "P0001", message: "POLICY_VIOLATION: policy date in the past" })).toBe("policy_invalid");
     expect(classifyPolicyError({ message: "new row violates row-level security policy" })).toBe("policy_forbidden");
     expect(classifyPolicyError({ code: "23505" })).toBe("policy_conflict");

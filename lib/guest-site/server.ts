@@ -29,8 +29,8 @@ export type RoomTypeQuote = {
   room_type_id: string;
   name: string;
   description: string | null;
-  amenities?: string[];   // absent from answers given before migration 077
-  photos?: { path: string; caption: string | null }[];   // absent from answers given before migration 080
+  amenities?: string[]; // absent from answers given before migration 077
+  photos?: { path: string; caption: string | null }[]; // absent from answers given before migration 080
   max_adults: number;
   max_children: number;
   max_occupancy: number;
@@ -70,7 +70,13 @@ export type BookingStatus = {
   hold_expires_at: string | null;
   rooms: Array<{ room_type: string; adults: number; children: number }>;
 };
-export type HoldResult = { reservation_id: string; booking_reference: string; hold_expires_at: string; total_minor: number; currency: string };
+export type HoldResult = {
+  reservation_id: string;
+  booking_reference: string;
+  hold_expires_at: string;
+  total_minor: number;
+  currency: string;
+};
 
 /** A database function that exists, so a misspelt name fails the typecheck. */
 type DbFunction = keyof Database["public"]["Functions"];
@@ -84,14 +90,24 @@ async function call<T>(fn: DbFunction, args: Record<string, unknown>): Promise<R
 
 export function searchAvailability(host: string, stay: StayParams) {
   return call<Availability>("search_availability", {
-    p_host: host, p_arrival: stay.arrival, p_departure: stay.departure, p_adults: stay.adults, p_children: stay.children,
+    p_host: host,
+    p_arrival: stay.arrival,
+    p_departure: stay.departure,
+    p_adults: stay.adults,
+    p_children: stay.children,
   });
 }
 
 /** The hotel's name, address, town and check-in and check-out times for the host (migration 041). */
 export const guestHotel = cache((host: string) => call<GuestHotel>("guest_hotel", { p_host: host }));
 
-export type GuestPolicy = { currency: string; cancellation_rules: unknown; online_payment: unknown; checkin_payment: unknown; guest_cancellation: unknown };
+export type GuestPolicy = {
+  currency: string;
+  cancellation_rules: unknown;
+  online_payment: unknown;
+  checkin_payment: unknown;
+  guest_cancellation: unknown;
+};
 
 /** The cancellation and payment policy in force for the hotel behind this host (migration 032). */
 export function guestPolicy(host: string) {
@@ -99,15 +115,25 @@ export function guestPolicy(host: string) {
 }
 
 export function createHold(args: {
-  host: string; stay: StayParams; roomTypeId: string; quantity: number;
-  guest: { full_name: string; email: string; phone?: string }; idempotencyKey: string;
+  host: string;
+  stay: StayParams;
+  roomTypeId: string;
+  quantity: number;
+  guest: { full_name: string; email: string; phone?: string };
+  idempotencyKey: string;
 }) {
   const rooms = Array.from({ length: args.quantity }, () => ({
-    room_type_id: args.roomTypeId, adults: args.stay.adults, children: args.stay.children,
+    room_type_id: args.roomTypeId,
+    adults: args.stay.adults,
+    children: args.stay.children,
   }));
   return call<HoldResult>("create_hold", {
-    p_host: args.host, p_arrival: args.stay.arrival, p_departure: args.stay.departure,
-    p_rooms: rooms, p_guest: args.guest, p_idempotency_key: args.idempotencyKey,
+    p_host: args.host,
+    p_arrival: args.stay.arrival,
+    p_departure: args.stay.departure,
+    p_rooms: rooms,
+    p_guest: args.guest,
+    p_idempotency_key: args.idempotencyKey,
   });
 }
 
@@ -124,8 +150,14 @@ export function bookingStatus(reservationId: string) {
 }
 
 export type CancelPreview = {
-  allowed: boolean; why_not: "status" | "started" | "too_late" | "disabled" | null; currency: string;
-  charge_minor: number; held_minor: number; refund_minor: number; still_owed_minor: number; hours_before_arrival: number;
+  allowed: boolean;
+  why_not: "status" | "started" | "too_late" | "disabled" | null;
+  currency: string;
+  charge_minor: number;
+  held_minor: number;
+  refund_minor: number;
+  still_owed_minor: number;
+  hours_before_arrival: number;
 };
 
 export function cancelPreview(reservationId: string) {
@@ -134,14 +166,27 @@ export function cancelPreview(reservationId: string) {
 
 export function cancelBooking(reservationId: string, expectedChargeMinor: number, idempotencyKey: string) {
   return call<{ reservation_id: string; status: string; cancellation_charge_minor: number }>("guest_cancel_reservation", {
-    p_reservation_id: reservationId, p_expected_charge_minor: expectedChargeMinor, p_idempotency_key: idempotencyKey,
+    p_reservation_id: reservationId,
+    p_expected_charge_minor: expectedChargeMinor,
+    p_idempotency_key: idempotencyKey,
   });
 }
 
 export type ChangeOptions = {
-  allowed: boolean; why_not: "disabled" | "status" | "started" | null; dates_open: boolean; window_hours: number; hours_before_arrival: number;
+  allowed: boolean;
+  why_not: "disabled" | "status" | "started" | null;
+  dates_open: boolean;
+  window_hours: number;
+  hours_before_arrival: number;
   phone: string | null;
-  open_request: { id: string; kind: "dates" | "room" | "other"; arrival: string | null; departure: string | null; message: string | null; created_at: string } | null;
+  open_request: {
+    id: string;
+    kind: "dates" | "room" | "other";
+    arrival: string | null;
+    departure: string | null;
+    message: string | null;
+    created_at: string;
+  } | null;
   last_answer: { status: "done" | "declined"; note: string | null; resolved_at: string } | null;
 };
 
@@ -150,13 +195,28 @@ export function changeOptions(reservationId: string) {
 }
 
 export function updateContact(reservationId: string, phone: string, idempotencyKey: string) {
-  return call<{ updated: boolean }>("guest_update_contact", { p_reservation_id: reservationId, p_phone: phone, p_idempotency_key: idempotencyKey });
+  return call<{ updated: boolean }>("guest_update_contact", {
+    p_reservation_id: reservationId,
+    p_phone: phone,
+    p_idempotency_key: idempotencyKey,
+  });
 }
 
-export function requestChange(args: { reservationId: string; kind: "dates" | "room" | "other"; arrival: string | null; departure: string | null; message: string | null; idempotencyKey: string }) {
+export function requestChange(args: {
+  reservationId: string;
+  kind: "dates" | "room" | "other";
+  arrival: string | null;
+  departure: string | null;
+  message: string | null;
+  idempotencyKey: string;
+}) {
   return call<{ request_id: string }>("guest_request_change", {
-    p_reservation_id: args.reservationId, p_kind: args.kind, p_arrival: args.arrival, p_departure: args.departure,
-    p_message: args.message, p_idempotency_key: args.idempotencyKey,
+    p_reservation_id: args.reservationId,
+    p_kind: args.kind,
+    p_arrival: args.arrival,
+    p_departure: args.departure,
+    p_message: args.message,
+    p_idempotency_key: args.idempotencyKey,
   });
 }
 
@@ -180,21 +240,33 @@ export function datesQuote(reservationId: string, arrival: string, departure: st
   return call<DatesQuote>("guest_change_dates_quote", { p_reservation_id: reservationId, p_arrival: arrival, p_departure: departure });
 }
 
-export function changeDates(args: { reservationId: string; arrival: string; departure: string; expectedTotalMinor: number; idempotencyKey: string }) {
+export function changeDates(args: {
+  reservationId: string;
+  arrival: string;
+  departure: string;
+  expectedTotalMinor: number;
+  idempotencyKey: string;
+}) {
   return call<{ arrival_date: string; departure_date: string; total_minor: number }>("guest_change_dates", {
-    p_reservation_id: args.reservationId, p_arrival: args.arrival, p_departure: args.departure,
-    p_expected_total_minor: args.expectedTotalMinor, p_idempotency_key: args.idempotencyKey,
+    p_reservation_id: args.reservationId,
+    p_arrival: args.arrival,
+    p_departure: args.departure,
+    p_expected_total_minor: args.expectedTotalMinor,
+    p_idempotency_key: args.idempotencyKey,
   });
 }
 
 export function paymentStartContext(reservationId: string) {
-  return call<{ account_id: string; secret_reference: string; guest_email: string; booking_reference: string }>(
-    "payment_start_context", { p_reservation_id: reservationId });
+  return call<{ account_id: string; secret_reference: string; guest_email: string; booking_reference: string }>("payment_start_context", {
+    p_reservation_id: reservationId,
+  });
 }
 
 export function createPaymentAttempt(reservationId: string, idempotencyKey: string) {
-  return call<{ attempt_id: string; reference: string; amount_minor: number; currency: string }>(
-    "create_payment_attempt", { p_reservation_id: reservationId, p_idempotency_key: idempotencyKey });
+  return call<{ attempt_id: string; reference: string; amount_minor: number; currency: string }>("create_payment_attempt", {
+    p_reservation_id: reservationId,
+    p_idempotency_key: idempotencyKey,
+  });
 }
 
 export function requestBookingLink(host: string, reference: string, email: string) {

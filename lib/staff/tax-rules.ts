@@ -26,7 +26,8 @@ export type TaxRuleRow = {
   applies_to_charges: boolean;
 };
 
-export const TAX_RULE_COLUMNS = "id, property_id, name, basis, rate_value, sequence, compounds, effective_from, effective_to, status, applies_to_charges";
+export const TAX_RULE_COLUMNS =
+  "id, property_id, name, basis, rate_value, sequence, compounds, effective_from, effective_to, status, applies_to_charges";
 
 /** "7.5%" or, for a fixed rule, "₦1,000.00 a night" (the caller formats the money so this file stays free of locale code). */
 export function describeRate(r: Pick<TaxRuleRow, "basis" | "rate_value">, formatMinor: (minor: number) => string): string {
@@ -68,12 +69,18 @@ export const isTaxBasis = (v: unknown): v is TaxBasis => v === "percent" || v ==
 export function appliesLine(r: Pick<TaxRuleRow, "basis" | "applies_to_charges">): string {
   if (r.basis === "fixed_per_stay") return "Charged once for each room, on its first night. Cannot be applied to extras.";
   if (r.basis !== "percent") return "Added to each night of a stay. Cannot be applied to extras.";
-  return r.applies_to_charges ? "Added to each night of a stay and to extras posted to a guest's folio." : "Added to each night of a stay. Extras are not taxed by this rule.";
+  return r.applies_to_charges
+    ? "Added to each night of a stay and to extras posted to a guest's folio."
+    : "Added to each night of a stay. Extras are not taxed by this rule.";
 }
 
 /** What the extras on a property are taxed with today: the marked rules that are in force, in the order they apply. */
 export function extrasTaxRules(rules: TaxRuleRow[], propertyId: string, today: string): TaxRuleRow[] {
-  return sortRules(rules.filter((r) => r.property_id === propertyId && r.applies_to_charges && r.basis === "percent" && ruleState(r, today) === "in_force"));
+  return sortRules(
+    rules.filter(
+      (r) => r.property_id === propertyId && r.applies_to_charges && r.basis === "percent" && ruleState(r, today) === "in_force",
+    ),
+  );
 }
 
 const toggleSchema = z.object({ ruleId: z.guid(), apply: z.enum(["on", "off"]) });
@@ -85,12 +92,16 @@ export function parseToggle(input: Record<string, unknown>): { ok: true; ruleId:
 }
 
 /** Which refusal a failed write means: the database's own words are never shown. */
-export function classifyTaxError(err: { code?: string; message?: string }): "tax_forbidden" | "tax_not_percent" | "tax_invalid" | "unknown" {
+export function classifyTaxError(err: {
+  code?: string;
+  message?: string;
+}): "tax_forbidden" | "tax_not_percent" | "tax_invalid" | "unknown" {
   const msg = err.message ?? "";
   if (err.code === "42501" || /row-level security/i.test(msg)) return "tax_forbidden";
   if (/tax_rules_charges_percent_only/.test(msg)) return "tax_not_percent";
   // Other check constraints (rate below zero, last day before the first day) and values the column cannot hold.
-  if (err.code === "23514" || err.code === "22003" || err.code === "22P02" || err.code === "22007" || err.code === "22008") return "tax_invalid";
+  if (err.code === "23514" || err.code === "22003" || err.code === "22P02" || err.code === "22007" || err.code === "22008")
+    return "tax_invalid";
   return "unknown";
 }
 
@@ -187,7 +198,10 @@ export function validateTaxRule(raw: Record<string, unknown>): { ok: true; value
 }
 
 /** The rule's basis comes from the database row, never from the form. */
-export function validateTaxRuleEdit(raw: Record<string, unknown>, basis: string): { ok: true; value: TaxRuleEdit } | { ok: false; code: ErrorCode } {
+export function validateTaxRuleEdit(
+  raw: Record<string, unknown>,
+  basis: string,
+): { ok: true; value: TaxRuleEdit } | { ok: false; code: ErrorCode } {
   const ruleId = clean(raw.ruleId, 40);
   if (!GUID.test(ruleId)) return { ok: false, code: "bad_request" };
   if (!isTaxBasis(basis)) return { ok: false, code: "tax_invalid" };
@@ -216,10 +230,13 @@ export function doubleTaxes(
   others: Pick<TaxRuleRow, "name" | "status" | "effective_from" | "effective_to">[],
 ): boolean {
   if (candidate.status !== "active") return false;
-  return others.some((o) =>
-    o.status === "active" && sameName(o.name, candidate.name)
-    && o.effective_from <= (candidate.effective_to ?? "9999-12-31")
-    && candidate.effective_from <= (o.effective_to ?? "9999-12-31"));
+  return others.some(
+    (o) =>
+      o.status === "active" &&
+      sameName(o.name, candidate.name) &&
+      o.effective_from <= (candidate.effective_to ?? "9999-12-31") &&
+      candidate.effective_from <= (o.effective_to ?? "9999-12-31"),
+  );
 }
 
 /** The figure to show in the rate box when editing: 7.5 for a percentage, 1000.00 (naira) for a fixed amount. */

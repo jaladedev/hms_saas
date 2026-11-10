@@ -36,7 +36,10 @@ describe("labels", () => {
 });
 
 const channels: ChannelReport = {
-  property_id: "p", currency: "NGN", from: "2026-11-01", to: "2026-11-30",
+  property_id: "p",
+  currency: "NGN",
+  from: "2026-11-01",
+  to: "2026-11-30",
   rows: [
     { source: "website", bookings: 3, room_nights: 6, room_revenue_minor: 3_000_000, cancelled: 1, no_shows: 0 },
     { source: "phone", bookings: 0, room_nights: 0, room_revenue_minor: 0, cancelled: 0, no_shows: 0 },
@@ -56,9 +59,19 @@ describe("channelsCsv", () => {
 
 describe("guestsCsv", () => {
   const g: GuestReport = {
-    property_id: "p", currency: "NGN", from: "2026-11-01", to: "2026-11-30", guests_total: 3, guests_new: 2, guests_returning: 1,
-    countries: [{ country: "NG", guests: 2, room_nights: 5 }, { country: "unknown", guests: 1, room_nights: 1 }],
-    top_guests: [{ guest_id: "g", name: "=Evil, Ada", stays: 2, room_nights: 3, room_revenue_minor: 750_000 }], names_hidden: false,
+    property_id: "p",
+    currency: "NGN",
+    from: "2026-11-01",
+    to: "2026-11-30",
+    guests_total: 3,
+    guests_new: 2,
+    guests_returning: 1,
+    countries: [
+      { country: "NG", guests: 2, room_nights: 5 },
+      { country: "unknown", guests: 1, room_nights: 1 },
+    ],
+    top_guests: [{ guest_id: "g", name: "=Evil, Ada", stays: 2, room_nights: 3, room_revenue_minor: 750_000 }],
+    names_hidden: false,
   };
   it("writes the summary, countries and top guests, neutralising names a spreadsheet would run", () => {
     const text = guestsCsv(g);

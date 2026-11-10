@@ -3,7 +3,16 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { back, ok, staffClient } from "./action-helpers";
-import { classifyTaxError, doubleTaxes, nextSequence, parseToggle, TAX_RULE_COLUMNS, validateTaxRule, validateTaxRuleEdit, type TaxRuleRow } from "./tax-rules";
+import {
+  classifyTaxError,
+  doubleTaxes,
+  nextSequence,
+  parseToggle,
+  TAX_RULE_COLUMNS,
+  validateTaxRule,
+  validateTaxRuleEdit,
+  type TaxRuleRow,
+} from "./tax-rules";
 
 /**
  * Tax rule actions. They run as the signed-in person; the table's row-level security allows a write only to
@@ -24,7 +33,11 @@ export async function setExtrasTax(formData: FormData) {
   const supabase = await staffClient();
   // Select the changed row back: a rule that is not visible, or not changeable by this person, updates zero rows
   // without an error, and that must not be shown as a success.
-  const { data, error } = await supabase.from("tax_rules").update({ applies_to_charges: parsed.apply }).eq("id", parsed.ruleId).select("id");
+  const { data, error } = await supabase
+    .from("tax_rules")
+    .update({ applies_to_charges: parsed.apply })
+    .eq("id", parsed.ruleId)
+    .select("id");
   if (error) return back(PAGE, { err: classifyTaxError(error) });
   if (!data || data.length === 0) return back(PAGE, { err: "tax_not_found" });
   revalidatePath(PAGE);
@@ -41,19 +54,35 @@ export async function addTaxRule(formData: FormData) {
   const { data: prop } = await supabase.from("properties").select("tenant_id").eq("id", value.propertyId).maybeSingle();
   if (!prop) return back(PAGE, { err: "tax_forbidden" });
 
-  const { data: existing, error: existingError } = await supabase.from("tax_rules").select(TAX_RULE_COLUMNS).eq("property_id", value.propertyId).limit(500);
+  const { data: existing, error: existingError } = await supabase
+    .from("tax_rules")
+    .select(TAX_RULE_COLUMNS)
+    .eq("property_id", value.propertyId)
+    .limit(500);
   if (existingError) return back(PAGE, { err: classifyTaxError(existingError) });
   const others = (existing ?? []) as TaxRuleRow[];
   // Checked here, not in the database, so two people saving at the same moment could still both get through.
-  if (doubleTaxes({ name: value.name, status: value.status, effective_from: value.effectiveFrom, effective_to: value.effectiveTo }, others)) {
+  if (
+    doubleTaxes({ name: value.name, status: value.status, effective_from: value.effectiveFrom, effective_to: value.effectiveTo }, others)
+  ) {
     return back(PAGE, { err: "tax_duplicate" });
   }
 
-  const { data, error } = await supabase.from("tax_rules").insert({
-    tenant_id: prop.tenant_id, property_id: value.propertyId, name: value.name, basis: value.basis, rate_value: value.rateValue,
-    sequence: value.sequence ?? nextSequence(others), compounds: value.compounds,
-    effective_from: value.effectiveFrom, effective_to: value.effectiveTo, status: "active",
-  }).select("id");
+  const { data, error } = await supabase
+    .from("tax_rules")
+    .insert({
+      tenant_id: prop.tenant_id,
+      property_id: value.propertyId,
+      name: value.name,
+      basis: value.basis,
+      rate_value: value.rateValue,
+      sequence: value.sequence ?? nextSequence(others),
+      compounds: value.compounds,
+      effective_from: value.effectiveFrom,
+      effective_to: value.effectiveTo,
+      status: "active",
+    })
+    .select("id");
   if (error) return back(PAGE, { err: classifyTaxError(error) });
   if (!data || data.length === 0) return back(PAGE, { err: "tax_forbidden" });
   revalidatePath(PAGE);
@@ -81,16 +110,35 @@ export async function updateTaxRule(formData: FormData) {
   if (!v.ok) return back(PAGE, { err: v.code });
   const { value } = v;
 
-  const { data: siblings, error: siblingsError } = await supabase.from("tax_rules").select(TAX_RULE_COLUMNS).eq("property_id", rule.property_id).neq("id", rule.id).limit(500);
+  const { data: siblings, error: siblingsError } = await supabase
+    .from("tax_rules")
+    .select(TAX_RULE_COLUMNS)
+    .eq("property_id", rule.property_id)
+    .neq("id", rule.id)
+    .limit(500);
   if (siblingsError) return back(PAGE, { err: classifyTaxError(siblingsError) });
-  if (doubleTaxes({ name: value.name, status: value.status, effective_from: value.effectiveFrom, effective_to: value.effectiveTo }, (siblings ?? []) as TaxRuleRow[])) {
+  if (
+    doubleTaxes(
+      { name: value.name, status: value.status, effective_from: value.effectiveFrom, effective_to: value.effectiveTo },
+      (siblings ?? []) as TaxRuleRow[],
+    )
+  ) {
     return back(PAGE, { err: "tax_duplicate" });
   }
 
-  const { data, error } = await supabase.from("tax_rules").update({
-    name: value.name, rate_value: value.rateValue, sequence: value.sequence, compounds: value.compounds,
-    effective_from: value.effectiveFrom, effective_to: value.effectiveTo, status: value.status,
-  }).eq("id", rule.id).select("id");
+  const { data, error } = await supabase
+    .from("tax_rules")
+    .update({
+      name: value.name,
+      rate_value: value.rateValue,
+      sequence: value.sequence,
+      compounds: value.compounds,
+      effective_from: value.effectiveFrom,
+      effective_to: value.effectiveTo,
+      status: value.status,
+    })
+    .eq("id", rule.id)
+    .select("id");
   if (error) return back(PAGE, { err: classifyTaxError(error) });
   if (!data || data.length === 0) return back(PAGE, { err: "tax_not_found" });
   revalidatePath(PAGE);

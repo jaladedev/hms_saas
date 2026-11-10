@@ -18,10 +18,13 @@ const uuid = z.guid();
 
 export async function setHousekeeping(formData: FormData) {
   // The room board and the housekeeping worklist both use this; only those two pages may be returned to.
-  const parsed = z.object({
-    roomId: uuid, status: z.enum(HOUSEKEEPING_STATUSES),
-    returnTo: z.enum([BOARD, "/app/housekeeping"]).default(BOARD),
-  }).safeParse(Object.fromEntries(formData));
+  const parsed = z
+    .object({
+      roomId: uuid,
+      status: z.enum(HOUSEKEEPING_STATUSES),
+      returnTo: z.enum([BOARD, "/app/housekeeping"]).default(BOARD),
+    })
+    .safeParse(Object.fromEntries(formData));
   if (!parsed.success) return back(BOARD, { err: "bad_request" });
   const page = parsed.data.returnTo;
   const supabase = await staffClient();
@@ -33,10 +36,16 @@ export async function setHousekeeping(formData: FormData) {
 }
 
 export async function blockRoom(formData: FormData) {
-  const parsed = z.object({
-    roomId: uuid, idempotencyKey: key, start: z.string().max(10), end: z.string().max(10), reason: z.string().max(500),
-    resolution: z.enum(["fail", "move", "cancel"]).default("fail"),
-  }).safeParse(Object.fromEntries(formData));
+  const parsed = z
+    .object({
+      roomId: uuid,
+      idempotencyKey: key,
+      start: z.string().max(10),
+      end: z.string().max(10),
+      reason: z.string().max(500),
+      resolution: z.enum(["fail", "move", "cancel"]).default("fail"),
+    })
+    .safeParse(Object.fromEntries(formData));
   if (!parsed.success) return back(BOARD, { err: "bad_request" });
   const start = parseIsoDate(parsed.data.start);
   const end = parseIsoDate(parsed.data.end);
@@ -47,7 +56,11 @@ export async function blockRoom(formData: FormData) {
   // The default, 'fail', only reports clashes. Moving guests to other rooms or cancelling their bookings
   // (no charge; money paid goes to the normal refund queue) happens only when the person picks it on the form.
   const { data, error } = await supabase.rpc("create_room_block", {
-    p_room_id: parsed.data.roomId, p_start: start, p_end: end, p_reason: reason, p_resolution: parsed.data.resolution,
+    p_room_id: parsed.data.roomId,
+    p_start: start,
+    p_end: end,
+    p_reason: reason,
+    p_resolution: parsed.data.resolution,
     p_idempotency_key: parsed.data.idempotencyKey,
   });
   if (error) return fail(BOARD, error.message);

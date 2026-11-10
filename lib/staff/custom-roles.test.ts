@@ -7,7 +7,8 @@ describe("validateRole", () => {
     expect(r).toEqual({ ok: true, value: { name: "Night auditor", permissions: ["report.view", "payment.verify"] } });
   });
   it("rejects bad names", () => {
-    for (const n of ["", "A", "x".repeat(61), "<b>", null, 4]) expect(validateRole(n, ["report.view"])).toEqual({ ok: false, code: "role_name" });
+    for (const n of ["", "A", "x".repeat(61), "<b>", null, 4])
+      expect(validateRole(n, ["report.view"])).toEqual({ ok: false, code: "role_name" });
   });
   it("rejects empty, unknown, staff.manage and request-plus-approve", () => {
     for (const p of [[], ["nope"], ["staff.manage"], ["refund.request", "refund.approve"], "report.view", null]) {

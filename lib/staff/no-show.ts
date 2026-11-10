@@ -4,8 +4,20 @@ import type { ErrorCode } from "./refunds";
 export const NOTE_MAX = 200;
 
 /** Offered to someone who may cancel, for a confirmed booking with nobody in the room, from the arrival date on. */
-export function canMarkNoShow(a: { reservationStatus: string; rooms: { room_status: string }[]; canCancel: boolean; today: string; arrival: string }): boolean {
-  return a.canCancel && a.reservationStatus === "confirmed" && a.rooms.length > 0 && a.rooms.every((r) => r.room_status === "booked") && a.today >= a.arrival;
+export function canMarkNoShow(a: {
+  reservationStatus: string;
+  rooms: { room_status: string }[];
+  canCancel: boolean;
+  today: string;
+  arrival: string;
+}): boolean {
+  return (
+    a.canCancel &&
+    a.reservationStatus === "confirmed" &&
+    a.rooms.length > 0 &&
+    a.rooms.every((r) => r.room_status === "booked") &&
+    a.today >= a.arrival
+  );
 }
 
 export type NoShowForm = { note: string | null; waive: boolean };

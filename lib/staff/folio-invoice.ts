@@ -19,7 +19,8 @@ export type FolioInvoiceRow = {
   voided_at: string | null;
   void_reason: string | null;
 };
-export const FOLIO_INVOICE_COLUMNS = "id, invoice_number, invoice_status, subtotal_minor, tax_minor, total_minor, issued_at, voided_at, void_reason";
+export const FOLIO_INVOICE_COLUMNS =
+  "id, invoice_number, invoice_status, subtotal_minor, tax_minor, total_minor, issued_at, voided_at, void_reason";
 
 export type FolioInvoiceLine = {
   id: string;
@@ -57,7 +58,9 @@ export type InvoiceActions = {
 };
 
 export function invoiceActions(
-  folioOpen: boolean, charges: Pick<ChargeRow, "status" | "folio_invoice_id" | "total_minor">[], viewer: InvoiceViewer,
+  folioOpen: boolean,
+  charges: Pick<ChargeRow, "status" | "folio_invoice_id" | "total_minor">[],
+  viewer: InvoiceViewer,
 ): InvoiceActions {
   const left = uninvoiced(charges);
   return {
@@ -70,21 +73,31 @@ export function invoiceActions(
 
 /** Live invoices in the order they were issued, then voided ones, most recently voided first. */
 export function splitInvoices(rows: FolioInvoiceRow[]): { live: FolioInvoiceRow[]; voided: FolioInvoiceRow[] } {
-  const live = rows.filter((i) => i.invoice_status === "issued").sort((a, b) => a.issued_at.localeCompare(b.issued_at) || a.invoice_number.localeCompare(b.invoice_number));
+  const live = rows
+    .filter((i) => i.invoice_status === "issued")
+    .sort((a, b) => a.issued_at.localeCompare(b.issued_at) || a.invoice_number.localeCompare(b.invoice_number));
   const voided = rows.filter((i) => i.invoice_status === "void").sort((a, b) => (b.voided_at ?? "").localeCompare(a.voided_at ?? ""));
   return { live, voided };
 }
 
 /** Which invoice number a charge is on, for the tag beside it; undefined when it is on none (or the invoice is not known). */
-export function invoiceNumberOf(chargeInvoiceId: string | null, invoices: Pick<FolioInvoiceRow, "id" | "invoice_number">[]): string | undefined {
+export function invoiceNumberOf(
+  chargeInvoiceId: string | null,
+  invoices: Pick<FolioInvoiceRow, "id" | "invoice_number">[],
+): string | undefined {
   return chargeInvoiceId ? invoices.find((i) => i.id === chargeInvoiceId)?.invoice_number : undefined;
 }
 
 /** Where the printable invoice lives. */
-export const folioInvoicePath = (reservationId: string, invoiceId: string) => `/app/reservations/${reservationId}/folio-invoice/${invoiceId}`;
+export const folioInvoicePath = (reservationId: string, invoiceId: string) =>
+  `/app/reservations/${reservationId}/folio-invoice/${invoiceId}`;
 
 /** Adds up lines the way the invoice does, to show that the page agrees with the stored totals. */
-export function lineTotals(lines: Pick<FolioInvoiceLine, "quantity" | "unit_amount_minor" | "tax_minor">[]): { subtotal: number; tax: number; total: number } {
+export function lineTotals(lines: Pick<FolioInvoiceLine, "quantity" | "unit_amount_minor" | "tax_minor">[]): {
+  subtotal: number;
+  tax: number;
+  total: number;
+} {
   const subtotal = lines.reduce((n, l) => n + l.quantity * l.unit_amount_minor, 0);
   const tax = lines.reduce((n, l) => n + l.tax_minor, 0);
   return { subtotal, tax, total: subtotal + tax };

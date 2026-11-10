@@ -32,7 +32,11 @@ export function RefundDetailsForm({ refundId }: { refundId: string }) {
       const res = await fetch(`/api/staff/refunds/${refundId}/banks`, { cache: "no-store" });
       const body = (await res.json().catch(() => ({}))) as { banks?: Bank[]; error?: string };
       if (!res.ok || !body.banks?.length) {
-        setError(res.status === 404 ? "Refund not found, or you cannot send bank details for it." : "Could not load the list of banks. Try again in a moment.");
+        setError(
+          res.status === 404
+            ? "Refund not found, or you cannot send bank details for it."
+            : "Could not load the list of banks. Try again in a moment.",
+        );
         setPhase("closed");
         return;
       }
@@ -66,23 +70,37 @@ export function RefundDetailsForm({ refundId }: { refundId: string }) {
       } else if (body.status === "already_started") {
         setDoneMessage({ tone: "warn", text: "Someone else already sent bank details for this refund." });
       } else if (body.status === "unknown") {
-        setDoneMessage({ tone: "warn", text: "Paystack did not answer clearly. Do not send the details again: check the refund on the Paystack dashboard." });
+        setDoneMessage({
+          tone: "warn",
+          text: "Paystack did not answer clearly. Do not send the details again: check the refund on the Paystack dashboard.",
+        });
       } else if (body.status === "rejected") {
         // Nothing was sent, so the details can be corrected and sent again.
         setError(`Paystack refused the details: ${body.reason ?? "no reason given"}. Check the bank and account number and try again.`);
         setPhase("form");
         return;
       } else if (res.status === 400) {
-        setError(body.error === "bank_required" ? "Choose the bank." : "The account number is not valid for this bank. Check it and try again.");
+        setError(
+          body.error === "bank_required" ? "Choose the bank." : "The account number is not valid for this bank. Check it and try again.",
+        );
         setPhase("form");
         return;
       } else if (res.status === 409) {
         setDoneMessage({ tone: "warn", text: "This refund has already moved on. Reload the page." });
       } else {
-        setDoneMessage({ tone: "bad", text: res.status === 404 ? "Refund not found, or you cannot send bank details for it." : "The call failed. Reload and check the refund before trying again." });
+        setDoneMessage({
+          tone: "bad",
+          text:
+            res.status === 404
+              ? "Refund not found, or you cannot send bank details for it."
+              : "The call failed. Reload and check the refund before trying again.",
+        });
       }
     } catch {
-      setDoneMessage({ tone: "warn", text: "The connection dropped. The details may have been sent: reload and check before trying again." });
+      setDoneMessage({
+        tone: "warn",
+        text: "The connection dropped. The details may have been sent: reload and check before trying again.",
+      });
     }
     setAccount("");
     setPhase("done");
@@ -91,7 +109,11 @@ export function RefundDetailsForm({ refundId }: { refundId: string }) {
 
   if (phase === "done" && doneMessage) {
     const color = doneMessage.tone === "ok" ? "text-primary-strong" : doneMessage.tone === "warn" ? "text-pending" : "text-critical";
-    return <p role="status" className={`max-w-xs text-sm ${color}`}>{doneMessage.text}</p>;
+    return (
+      <p role="status" className={`max-w-xs text-sm ${color}`}>
+        {doneMessage.text}
+      </p>
+    );
   }
 
   if (phase === "closed" || phase === "loading") {
@@ -100,7 +122,11 @@ export function RefundDetailsForm({ refundId }: { refundId: string }) {
         <button type="button" onClick={open} disabled={phase === "loading"} className={buttonPrimary}>
           {phase === "loading" ? "Loading banks…" : "Enter bank details"}
         </button>
-        {error && <p role="alert" className="max-w-xs text-sm text-critical">{error}</p>}
+        {error && (
+          <p role="alert" className="max-w-xs text-sm text-critical">
+            {error}
+          </p>
+        )}
       </div>
     );
   }
@@ -109,11 +135,18 @@ export function RefundDetailsForm({ refundId }: { refundId: string }) {
     return (
       <div className="space-y-3">
         <p className="max-w-xs text-sm">
-          Send the refund to account ending <strong>{digits.slice(-4)}</strong> at <strong>{bankName}</strong>? Paystack cannot be asked twice, so check this is right.
+          Send the refund to account ending <strong>{digits.slice(-4)}</strong> at <strong>{bankName}</strong>? Paystack cannot be asked
+          twice, so check this is right.
         </p>
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" onClick={send} disabled={phase === "sending"} className={buttonPrimary}>{phase === "sending" ? "Sending…" : "Send to Paystack"}</button>
-          {phase === "review" && <button type="button" onClick={() => setPhase("form")} className={buttonQuiet}>Change</button>}
+          <button type="button" onClick={send} disabled={phase === "sending"} className={buttonPrimary}>
+            {phase === "sending" ? "Sending…" : "Send to Paystack"}
+          </button>
+          {phase === "review" && (
+            <button type="button" onClick={() => setPhase("form")} className={buttonQuiet}>
+              Change
+            </button>
+          )}
         </div>
       </div>
     );
@@ -121,18 +154,53 @@ export function RefundDetailsForm({ refundId }: { refundId: string }) {
 
   return (
     <form onSubmit={review} className="space-y-2" autoComplete="off">
-      <p className="max-w-xs text-sm text-muted">Any valid account in the guest&apos;s name works, even if it is not the one they paid from.</p>
-      <label className="block text-sm" htmlFor={`bank-${refundId}`}>Bank</label>
+      <p className="max-w-xs text-sm text-muted">
+        Any valid account in the guest&apos;s name works, even if it is not the one they paid from.
+      </p>
+      <label className="block text-sm" htmlFor={`bank-${refundId}`}>
+        Bank
+      </label>
       <select id={`bank-${refundId}`} value={bankId} onChange={(e) => setBankId(e.target.value)} required className={inputClass}>
         <option value="">Choose a bank</option>
-        {banks.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+        {banks.map((b) => (
+          <option key={b.id} value={b.id}>
+            {b.name}
+          </option>
+        ))}
       </select>
-      <label className="block text-sm" htmlFor={`acct-${refundId}`}>Account number</label>
-      <input id={`acct-${refundId}`} value={account} onChange={(e) => setAccount(e.target.value)} inputMode="numeric" autoComplete="off" maxLength={24} required className={inputClass} />
-      {error && <p role="alert" className="max-w-xs text-sm text-critical">{error}</p>}
+      <label className="block text-sm" htmlFor={`acct-${refundId}`}>
+        Account number
+      </label>
+      <input
+        id={`acct-${refundId}`}
+        value={account}
+        onChange={(e) => setAccount(e.target.value)}
+        inputMode="numeric"
+        autoComplete="off"
+        maxLength={24}
+        required
+        className={inputClass}
+      />
+      {error && (
+        <p role="alert" className="max-w-xs text-sm text-critical">
+          {error}
+        </p>
+      )}
       <div className="flex flex-wrap items-center gap-2">
-        <button type="submit" className={buttonPrimary}>Review</button>
-        <button type="button" onClick={() => { setAccount(""); setError(null); setPhase("closed"); }} className={buttonQuiet}>Cancel</button>
+        <button type="submit" className={buttonPrimary}>
+          Review
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setAccount("");
+            setError(null);
+            setPhase("closed");
+          }}
+          className={buttonQuiet}
+        >
+          Cancel
+        </button>
       </div>
     </form>
   );

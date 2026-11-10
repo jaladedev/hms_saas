@@ -1,8 +1,28 @@
 import Link from "next/link";
 import { PriorityChip, ReportForm, StatusBadge } from "@/components/staff/maintenance-bits";
-import { buttonPrimary, buttonQuiet, cardClass, inputClass, Notice, ErrorBanner, EmptyState, PageIntro, PageTitle, SectionTitle } from "@/components/staff/ui";
 import {
-  actionsFor, countRequests, filterByPerson, formatDue, groupLive, placeOf, recentlyResolved, REQUEST_COLUMNS, sortRequests, type RequestRow,
+  buttonPrimary,
+  buttonQuiet,
+  cardClass,
+  inputClass,
+  Notice,
+  ErrorBanner,
+  EmptyState,
+  PageIntro,
+  PageTitle,
+  SectionTitle,
+} from "@/components/staff/ui";
+import {
+  actionsFor,
+  countRequests,
+  filterByPerson,
+  formatDue,
+  groupLive,
+  placeOf,
+  recentlyResolved,
+  REQUEST_COLUMNS,
+  sortRequests,
+  type RequestRow,
 } from "@/lib/staff/maintenance";
 import { claimRequest, resolveRequest, startRequest } from "@/lib/staff/maintenance-actions";
 import type { BoardRoom } from "@/lib/staff/room-board";
@@ -30,7 +50,13 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
     supabase.from("rooms").select("id, property_id, room_type_id, room_number, floor, operational_status, housekeeping_status").limit(1000),
     supabase.from("properties").select("id, name, timezone"),
     supabase.from("maintenance_requests").select(REQUEST_COLUMNS).in("status", ["open", "in_progress"]).limit(500),
-    supabase.from("maintenance_requests").select(REQUEST_COLUMNS).eq("status", "resolved").gte("resolved_at", since).order("resolved_at", { ascending: false }).limit(100),
+    supabase
+      .from("maintenance_requests")
+      .select(REQUEST_COLUMNS)
+      .eq("status", "resolved")
+      .gte("resolved_at", since)
+      .order("resolved_at", { ascending: false })
+      .limit(100),
   ]);
   const userId = userQ.data.user?.id ?? "";
   const rooms = (roomQ.data ?? []) as BoardRoom[];
@@ -43,18 +69,20 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
   const canReport = new Map<string, boolean>();
   const canManage = new Map<string, boolean>();
   const staff = new Map<string, Staff[]>();
-  await Promise.all(properties.map(async (p) => {
-    const [view, manage] = await Promise.all([
-      supabase.rpc("has_permission", { p_property: p.id, p_permission: "maintenance.view" }),
-      supabase.rpc("has_permission", { p_property: p.id, p_permission: "maintenance.manage" }),
-    ]);
-    canManage.set(p.id, manage.data === true);
-    canReport.set(p.id, view.data === true || manage.data === true);
-    if (manage.data === true) {
-      const { data } = await supabase.rpc("list_maintenance_staff", { p_property: p.id });
-      staff.set(p.id, (data ?? []) as Staff[]);
-    }
-  }));
+  await Promise.all(
+    properties.map(async (p) => {
+      const [view, manage] = await Promise.all([
+        supabase.rpc("has_permission", { p_property: p.id, p_permission: "maintenance.view" }),
+        supabase.rpc("has_permission", { p_property: p.id, p_permission: "maintenance.manage" }),
+      ]);
+      canManage.set(p.id, manage.data === true);
+      canReport.set(p.id, view.data === true || manage.data === true);
+      if (manage.data === true) {
+        const { data } = await supabase.rpc("list_maintenance_staff", { p_property: p.id });
+        staff.set(p.id, (data ?? []) as Staff[]);
+      }
+    }),
+  );
 
   const roomById = new Map(rooms.map((r) => [r.id, r]));
   const tz = new Map(properties.map((p) => [p.id, p.timezone]));
@@ -88,8 +116,13 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
     return (
       <li className={cardClass}>
         <div className="flex items-baseline justify-between gap-2">
-          <Link href={`/app/maintenance/${r.id}`} className="font-semibold text-primary-strong underline underline-offset-2">{r.title}</Link>
-          <span className="shrink-0 text-xs text-muted">{place}{showProperty ? `, ${propName.get(r.property_id) ?? ""}` : ""}</span>
+          <Link href={`/app/maintenance/${r.id}`} className="font-semibold text-primary-strong underline underline-offset-2">
+            {r.title}
+          </Link>
+          <span className="shrink-0 text-xs text-muted">
+            {place}
+            {showProperty ? `, ${propName.get(r.property_id) ?? ""}` : ""}
+          </span>
         </div>
         <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs">
           <PriorityChip priority={r.priority} />
@@ -104,20 +137,32 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
             {a.claim && (
               <form action={claimRequest}>
                 <input type="hidden" name="requestId" value={r.id} />
-                <button type="submit" className={buttonQuiet}>Take it</button>
+                <button type="submit" className={buttonQuiet}>
+                  Take it
+                </button>
               </form>
             )}
             {a.start && (
               <form action={startRequest}>
                 <input type="hidden" name="requestId" value={r.id} />
-                <button type="submit" className={buttonQuiet}>Start</button>
+                <button type="submit" className={buttonQuiet}>
+                  Start
+                </button>
               </form>
             )}
             {a.resolve && (
               <form action={resolveRequest} className="flex flex-wrap items-center gap-2">
                 <input type="hidden" name="requestId" value={r.id} />
-                <input name="note" maxLength={1000} placeholder="What was done (optional)" aria-label={`What was done for ${r.title}`} className={`${inputClass} w-44`} />
-                <button type="submit" className={buttonPrimary}>Fixed</button>
+                <input
+                  name="note"
+                  maxLength={1000}
+                  placeholder="What was done (optional)"
+                  aria-label={`What was done for ${r.title}`}
+                  className={`${inputClass} w-44`}
+                />
+                <button type="submit" className={buttonPrimary}>
+                  Fixed
+                </button>
               </form>
             )}
           </div>
@@ -130,9 +175,15 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
     if (items.length === 0) return null;
     return (
       <section className="mt-8 first:mt-0" aria-label={title}>
-        <SectionTitle>{title} <span className="text-base text-muted">({items.length})</span></SectionTitle>
+        <SectionTitle>
+          {title} <span className="text-base text-muted">({items.length})</span>
+        </SectionTitle>
         {hint && <p className="mt-1 max-w-prose text-sm text-muted">{hint}</p>}
-        <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{items.map((r) => <RequestCard key={r.id} r={r} />)}</ul>
+        <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {items.map((r) => (
+            <RequestCard key={r.id} r={r} />
+          ))}
+        </ul>
       </section>
     );
   }
@@ -140,50 +191,87 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
   return (
     <main className="max-w-5xl">
       <PageTitle>Maintenance</PageTitle>
-      <PageIntro>What is broken and who is fixing it, most urgent first. A repair never takes a room out of sale by itself; blocks are made on the room board.</PageIntro>
+      <PageIntro>
+        What is broken and who is fixing it, most urgent first. A repair never takes a room out of sale by itself; blocks are made on the
+        room board.
+      </PageIntro>
 
-      <div className="mt-6"><Notice search={search} currency="NGN" /></div>
+      <div className="mt-6">
+        <Notice search={search} currency="NGN" />
+      </div>
       {loadError && <ErrorBanner className="mb-6">The requests could not be loaded. Reload the page.</ErrorBanner>}
 
       {!loadError && (
         <p className="flex flex-wrap gap-x-5 gap-y-1 text-sm" aria-label="Request totals">
-          <span><span className="font-semibold tabular-nums">{counts.open}</span> <span className="text-muted">open</span></span>
-          <span><span className="font-semibold tabular-nums">{counts.highPriority}</span> <span className="text-muted">high priority</span></span>
-          <span className={counts.overdue > 0 ? "text-critical" : undefined}><span className="font-semibold tabular-nums">{counts.overdue}</span> <span className={counts.overdue > 0 ? "" : "text-muted"}>overdue</span></span>
-          <span><span className="font-semibold tabular-nums">{counts.mine}</span> <span className="text-muted">yours</span></span>
+          <span>
+            <span className="font-semibold tabular-nums">{counts.open}</span> <span className="text-muted">open</span>
+          </span>
+          <span>
+            <span className="font-semibold tabular-nums">{counts.highPriority}</span> <span className="text-muted">high priority</span>
+          </span>
+          <span className={counts.overdue > 0 ? "text-critical" : undefined}>
+            <span className="font-semibold tabular-nums">{counts.overdue}</span>{" "}
+            <span className={counts.overdue > 0 ? "" : "text-muted"}>overdue</span>
+          </span>
+          <span>
+            <span className="font-semibold tabular-nums">{counts.mine}</span> <span className="text-muted">yours</span>
+          </span>
         </p>
       )}
 
       {anyManager && (
         <form method="get" className="mb-4 mt-4 flex flex-wrap items-center gap-2" aria-label="Filter requests">
-          <label htmlFor="who" className="text-sm text-muted">Show</label>
+          <label htmlFor="who" className="text-sm text-muted">
+            Show
+          </label>
           <select id="who" name="who" defaultValue={who} className={`${inputClass} w-auto`}>
             <option value="">Everyone's requests</option>
             <option value="me">Mine</option>
             <option value="unassigned">Nobody's</option>
-            {[...people].map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+            {[...people].map(([id, name]) => (
+              <option key={id} value={id}>
+                {name}
+              </option>
+            ))}
           </select>
-          <button type="submit" className={buttonQuiet}>Show</button>
+          <button type="submit" className={buttonQuiet}>
+            Show
+          </button>
         </form>
       )}
 
       <div className="mt-6">
         {!loadError && counts.open === 0 && <EmptyState>No open requests right now.</EmptyState>}
         <Section title="My requests" items={groups.mine} />
-        <Section title="Nobody has these yet" hint={anyManager ? "Take one, or start it and it becomes yours." : "Maintenance will pick these up."} items={groups.unassigned} />
+        <Section
+          title="Nobody has these yet"
+          hint={anyManager ? "Take one, or start it and it becomes yours." : "Maintenance will pick these up."}
+          items={groups.unassigned}
+        />
         <Section title="With others" items={groups.others} />
 
         {resolved.length > 0 && (
           <section className="mt-8" aria-label="Resolved lately">
-            <SectionTitle>Resolved in the last 7 days <span className="text-base text-muted">({resolved.length})</span></SectionTitle>
+            <SectionTitle>
+              Resolved in the last 7 days <span className="text-base text-muted">({resolved.length})</span>
+            </SectionTitle>
             <ul className="mt-3 divide-y divide-line rounded border border-line bg-white text-sm">
               {resolved.map((r) => (
                 <li key={r.id} className="flex flex-wrap items-baseline justify-between gap-2 px-3 py-2">
                   <span>
-                    <Link href={`/app/maintenance/${r.id}`} className="font-medium underline underline-offset-2">{r.title}</Link>{" "}
-                    <span className="text-muted">{placeOf(r, roomById)}{r.resolution_note ? `: ${r.resolution_note}` : ""}</span>
+                    <Link href={`/app/maintenance/${r.id}`} className="font-medium underline underline-offset-2">
+                      {r.title}
+                    </Link>{" "}
+                    <span className="text-muted">
+                      {placeOf(r, roomById)}
+                      {r.resolution_note ? `: ${r.resolution_note}` : ""}
+                    </span>
                   </span>
-                  <span className="text-xs text-muted">{new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: tz.get(r.property_id) ?? "UTC" }).format(new Date(r.resolved_at ?? now))}</span>
+                  <span className="text-xs text-muted">
+                    {new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: tz.get(r.property_id) ?? "UTC" }).format(
+                      new Date(r.resolved_at ?? now),
+                    )}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -203,7 +291,9 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
                 people={singleManager ? staff.get(reportable[0]?.id ?? "") : undefined}
               />
             </div>
-            <p className="mt-2 max-w-prose text-xs text-muted">Reporting a fault tells maintenance. It does not block the room or change what can be booked.</p>
+            <p className="mt-2 max-w-prose text-xs text-muted">
+              Reporting a fault tells maintenance. It does not block the room or change what can be booked.
+            </p>
           </section>
         )}
       </div>

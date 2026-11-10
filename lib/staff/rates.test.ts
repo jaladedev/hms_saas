@@ -5,7 +5,10 @@ import { expandDates, groupRanges, MAX_RANGE_NIGHTS, validateRateRange } from ".
 const P = "11111111-1111-4111-8111-111111111111";
 const T = "22222222-2222-4222-8222-222222222222";
 const base = { propertyId: P, roomTypeId: T, from: "2026-12-20", to: "2026-12-31", amount: "60,000" };
-const code = (over: Record<string, unknown>, need = true) => { const r = validateRateRange({ ...base, ...over }, need); return r.ok ? "ok" : r.code; };
+const code = (over: Record<string, unknown>, need = true) => {
+  const r = validateRateRange({ ...base, ...over }, need);
+  return r.ok ? "ok" : r.code;
+};
 
 describe("expandDates", () => {
   it("includes both ends and crosses month and year boundaries", () => {
@@ -21,7 +24,10 @@ describe("expandDates", () => {
 
 describe("validateRateRange", () => {
   it("accepts a range and prices it in kobo", () => {
-    expect(validateRateRange(base, true)).toEqual({ ok: true, value: { propertyId: P, roomTypeId: T, from: "2026-12-20", to: "2026-12-31", amountMinor: 6000000 } });
+    expect(validateRateRange(base, true)).toEqual({
+      ok: true,
+      value: { propertyId: P, roomTypeId: T, from: "2026-12-20", to: "2026-12-31", amountMinor: 6000000 },
+    });
   });
   it("needs no price when clearing", () => {
     expect(validateRateRange({ ...base, amount: "" }, false)).toMatchObject({ ok: true, value: { amountMinor: null } });
@@ -32,8 +38,8 @@ describe("validateRateRange", () => {
     expect(code({ to: "2026-12-19" })).toBe("rate_range_invalid");
     expect(code({ amount: "0" })).toBe("rate_range_invalid");
     expect(code({ amount: "" })).toBe("rate_range_invalid");
-    expect(code({ from: "2026-01-01", to: "2027-01-01" })).toBe("ok");          // 366 nights, both ends counted: the limit
-    expect(code({ from: "2026-01-01", to: "2027-01-02" })).toBe("rate_range_long");   // 367
+    expect(code({ from: "2026-01-01", to: "2027-01-01" })).toBe("ok"); // 366 nights, both ends counted: the limit
+    expect(code({ from: "2026-01-01", to: "2027-01-02" })).toBe("rate_range_long"); // 367
     expect(code({ from: "2026-01-01", to: "2027-01-02" }, false)).toBe("rate_range_long");
     expect(MAX_RANGE_NIGHTS).toBe(366);
   });
@@ -42,7 +48,9 @@ describe("validateRateRange", () => {
 describe("groupRanges", () => {
   const r = (d: string, a: number) => ({ business_date: d, amount_minor: a });
   it("merges consecutive nights at one price", () => {
-    expect(groupRanges([r("2026-12-02", 100), r("2026-12-01", 100), r("2026-12-03", 100)])).toEqual([{ from: "2026-12-01", to: "2026-12-03", amountMinor: 100, nights: 3 }]);
+    expect(groupRanges([r("2026-12-02", 100), r("2026-12-01", 100), r("2026-12-03", 100)])).toEqual([
+      { from: "2026-12-01", to: "2026-12-03", amountMinor: 100, nights: 3 },
+    ]);
   });
   it("splits on a price change or a gap, and handles month ends", () => {
     expect(groupRanges([r("2026-12-31", 100), r("2027-01-01", 100), r("2027-01-02", 120), r("2027-01-04", 120)])).toEqual([
@@ -56,6 +64,7 @@ describe("groupRanges", () => {
 
 describe("wording", () => {
   it("has a sentence for every rate code", () => {
-    for (const c of ["rate_range_invalid", "rate_range_long", "rate_forbidden", "rate_no_plan"]) expect(errorMessage(c, null, String), c).not.toMatch(/Nothing was changed/);
+    for (const c of ["rate_range_invalid", "rate_range_long", "rate_forbidden", "rate_no_plan"])
+      expect(errorMessage(c, null, String), c).not.toMatch(/Nothing was changed/);
   });
 });

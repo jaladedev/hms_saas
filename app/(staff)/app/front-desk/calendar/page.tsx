@@ -1,7 +1,23 @@
 import Link from "next/link";
 import { PrintButton } from "@/components/staff/print-button";
 import { PrintHeader } from "@/components/staff/print-header";
-import { buttonPrimary, inputClass, PaymentChip, ReservationChip, linkClass, ErrorBanner, EmptyState, PageIntro, tdNum, thNum, headRow, thRowHead, totalRow, PageTitle, SectionTitle } from "@/components/staff/ui";
+import {
+  buttonPrimary,
+  inputClass,
+  PaymentChip,
+  ReservationChip,
+  linkClass,
+  ErrorBanner,
+  EmptyState,
+  PageIntro,
+  tdNum,
+  thNum,
+  headRow,
+  thRowHead,
+  totalRow,
+  PageTitle,
+  SectionTitle,
+} from "@/components/staff/ui";
 import { formatDate } from "@/lib/guest-site/format";
 import { AGENDA_LIMIT, AGENDA_STATUSES, agendaTotals, buildAgenda, busyDays, type AgendaRow } from "@/lib/staff/arrivals-calendar";
 import { todayIn, nightsBetween } from "@/lib/staff/reservations";
@@ -18,26 +34,53 @@ const COLUMNS = "id, property_id, booking_reference, primary_guest_id, reservati
 export default async function ArrivalsCalendarPage({ searchParams }: { searchParams: Promise<Search> }) {
   const search = await searchParams;
   const supabase = await createClient();
-  const { data: props, error: propError } = await supabase.from("properties").select("id, name, timezone").eq("status", "active").order("name");
+  const { data: props, error: propError } = await supabase
+    .from("properties")
+    .select("id, name, timezone")
+    .eq("status", "active")
+    .order("name");
   const properties = (props ?? []) as { id: string; name: string; timezone: string }[];
   const property = pickProperty(properties, typeof search.property === "string" ? search.property : undefined, await rememberedProperty());
   const heading = <PageTitle>Arrivals and departures</PageTitle>;
-  const back = <p className="text-sm print:hidden"><Link href="/app/front-desk" className={linkClass}>Front desk</Link></p>;
+  const back = (
+    <p className="text-sm print:hidden">
+      <Link href="/app/front-desk" className={linkClass}>
+        Front desk
+      </Link>
+    </p>
+  );
 
   if (propError) {
-    return <main className="max-w-5xl">{back}<div className="mt-2">{heading}</div><ErrorBanner className="mt-6">The calendar could not be loaded. Reload the page.</ErrorBanner></main>;
+    return (
+      <main className="max-w-5xl">
+        {back}
+        <div className="mt-2">{heading}</div>
+        <ErrorBanner className="mt-6">The calendar could not be loaded. Reload the page.</ErrorBanner>
+      </main>
+    );
   }
   if (!property) {
-    return <main className="max-w-5xl">{back}<div className="mt-2">{heading}</div><EmptyState className="mt-6">No hotel to show.</EmptyState></main>;
+    return (
+      <main className="max-w-5xl">
+        {back}
+        <div className="mt-2">{heading}</div>
+        <EmptyState className="mt-6">No hotel to show.</EmptyState>
+      </main>
+    );
   }
 
   const today = todayIn(property.timezone, new Date());
   const w = parseWindow(search.from, search.days, today);
   // Bookings with an arrival or a departure in the window, or a night in it: arriving before the window ends and leaving on or after its first day.
-  const resQ = await supabase.from("reservations").select(COLUMNS)
-    .eq("property_id", property.id).in("reservation_status", [...AGENDA_STATUSES])
-    .lt("arrival_date", w.end).gte("departure_date", w.start)
-    .order("booking_reference").limit(AGENDA_LIMIT);
+  const resQ = await supabase
+    .from("reservations")
+    .select(COLUMNS)
+    .eq("property_id", property.id)
+    .in("reservation_status", [...AGENDA_STATUSES])
+    .lt("arrival_date", w.end)
+    .gte("departure_date", w.start)
+    .order("booking_reference")
+    .limit(AGENDA_LIMIT);
   const rows = (resQ.data ?? []) as AgendaRow[];
   const cut = rows.length >= AGENDA_LIMIT;
 
@@ -51,22 +94,39 @@ export default async function ArrivalsCalendarPage({ searchParams }: { searchPar
   const headOf = new Map(heads.map((h) => [h.date, h]));
   const busy = busyDays(days);
   const totals = agendaTotals(days);
-  const qs = (over: Record<string, string>) => `?${new URLSearchParams({ property: property.id, from: w.start, days: String(w.days), ...over })}`;
+  const qs = (over: Record<string, string>) =>
+    `?${new URLSearchParams({ property: property.id, from: w.start, days: String(w.days), ...over })}`;
   const lastNight = heads[heads.length - 1]!.date;
-  const dayLabel = (date: string) => { const h = headOf.get(date)!; return `${h.weekday} ${h.day} ${h.month}`; };
+  const dayLabel = (date: string) => {
+    const h = headOf.get(date)!;
+    return `${h.weekday} ${h.day} ${h.month}`;
+  };
 
   const List = ({ title, items }: { title: string; items: AgendaRow[] }) => (
     <div>
-      <h3 className="text-sm font-medium text-muted">{title} <span className="tabular-nums">({items.length})</span></h3>
-      {items.length === 0 ? <p className="mt-1 text-sm text-muted">None.</p> : (
+      <h3 className="text-sm font-medium text-muted">
+        {title} <span className="tabular-nums">({items.length})</span>
+      </h3>
+      {items.length === 0 ? (
+        <p className="mt-1 text-sm text-muted">None.</p>
+      ) : (
         <ul className="mt-1 border-t border-line">
           {items.map((r) => (
             <li key={`${title}-${r.id}`} className="border-b border-line">
-              <Link href={`/app/reservations/${r.id}`} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2 hover:bg-white focus-visible:outline-2 focus-visible:outline-primary">
+              <Link
+                href={`/app/reservations/${r.id}`}
+                className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2 hover:bg-white focus-visible:outline-2 focus-visible:outline-primary"
+              >
                 <span className="font-medium">{r.booking_reference}</span>
                 <span className="text-sm">{guests.get(r.primary_guest_id) ?? ""}</span>
-                <span className="text-sm text-muted">{formatDate(r.arrival_date)} to {formatDate(r.departure_date)}, {nightsBetween(r.arrival_date, r.departure_date)} {nightsBetween(r.arrival_date, r.departure_date) === 1 ? "night" : "nights"}</span>
-                <span className="ml-auto flex flex-wrap items-center gap-2"><ReservationChip status={r.reservation_status} /><PaymentChip status={r.payment_status} /></span>
+                <span className="text-sm text-muted">
+                  {formatDate(r.arrival_date)} to {formatDate(r.departure_date)}, {nightsBetween(r.arrival_date, r.departure_date)}{" "}
+                  {nightsBetween(r.arrival_date, r.departure_date) === 1 ? "night" : "nights"}
+                </span>
+                <span className="ml-auto flex flex-wrap items-center gap-2">
+                  <ReservationChip status={r.reservation_status} />
+                  <PaymentChip status={r.payment_status} />
+                </span>
               </Link>
             </li>
           ))}
@@ -85,46 +145,83 @@ export default async function ArrivalsCalendarPage({ searchParams }: { searchPar
       <form method="get" className="mt-6 flex flex-wrap items-end gap-3 print:hidden">
         {properties.length > 1 && (
           <div>
-            <label htmlFor="property" className="block text-sm">Property</label>
+            <label htmlFor="property" className="block text-sm">
+              Property
+            </label>
             <select id="property" name="property" defaultValue={property.id} className={inputClass}>
-              {properties.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              {properties.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
             </select>
           </div>
         )}
         <div>
-          <label htmlFor="from" className="block text-sm">From</label>
+          <label htmlFor="from" className="block text-sm">
+            From
+          </label>
           <input id="from" name="from" type="date" required defaultValue={w.start} className={inputClass} />
         </div>
         <div>
-          <label htmlFor="days" className="block text-sm">Days</label>
+          <label htmlFor="days" className="block text-sm">
+            Days
+          </label>
           <select id="days" name="days" defaultValue={String(w.days)} className={inputClass}>
-            {WINDOW_CHOICES.map((n) => <option key={n} value={n}>{n}</option>)}
+            {WINDOW_CHOICES.map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
           </select>
         </div>
-        <button type="submit" className={buttonPrimary}>Show</button>
+        <button type="submit" className={buttonPrimary}>
+          Show
+        </button>
         <PrintButton />
       </form>
       <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm print:hidden">
-        <Link href={qs({ from: shiftStart(w, -1) })} className={linkClass}>Previous {w.days} days</Link>
-        <Link href={qs({ from: today })} className={linkClass}>Today</Link>
-        <Link href={qs({ from: shiftStart(w, 1) })} className={linkClass}>Next {w.days} days</Link>
+        <Link href={qs({ from: shiftStart(w, -1) })} className={linkClass}>
+          Previous {w.days} days
+        </Link>
+        <Link href={qs({ from: today })} className={linkClass}>
+          Today
+        </Link>
+        <Link href={qs({ from: shiftStart(w, 1) })} className={linkClass}>
+          Next {w.days} days
+        </Link>
       </p>
 
       {(resQ.error || cut) && (
-        <p role={resQ.error ? "alert" : "status"} className={`mt-4 border-l-4 px-4 py-3 text-sm ${resQ.error ? "border-critical bg-critical/5 text-critical" : "border-pending bg-pending/5 text-pending"}`}>
-          {resQ.error ? "The bookings could not be loaded. Reload the page." : `Only the first ${AGENDA_LIMIT} bookings are shown. Choose a shorter range.`}
+        <p
+          role={resQ.error ? "alert" : "status"}
+          className={`mt-4 border-l-4 px-4 py-3 text-sm ${resQ.error ? "border-critical bg-critical/5 text-critical" : "border-pending bg-pending/5 text-pending"}`}
+        >
+          {resQ.error
+            ? "The bookings could not be loaded. Reload the page."
+            : `Only the first ${AGENDA_LIMIT} bookings are shown. Choose a shorter range.`}
         </p>
       )}
 
       <div className="mt-6 overflow-x-auto print:overflow-visible">
         <table className="w-full min-w-[22rem] text-sm print:min-w-0">
-          <caption className="sr-only">Arrivals, departures and bookings staying, {property.name}, {w.start} to {lastNight}</caption>
+          <caption className="sr-only">
+            Arrivals, departures and bookings staying, {property.name}, {w.start} to {lastNight}
+          </caption>
           <thead>
             <tr className={headRow}>
-              <th scope="col" className="py-2 pr-3 font-normal">Day</th>
-              <th scope="col" className={thNum}>Arriving</th>
-              <th scope="col" className={thNum}>Departing</th>
-              <th scope="col" className={thNum}>Staying</th>
+              <th scope="col" className="py-2 pr-3 font-normal">
+                Day
+              </th>
+              <th scope="col" className={thNum}>
+                Arriving
+              </th>
+              <th scope="col" className={thNum}>
+                Departing
+              </th>
+              <th scope="col" className={thNum}>
+                Staying
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -132,9 +229,18 @@ export default async function ArrivalsCalendarPage({ searchParams }: { searchPar
               const h = headOf.get(d.date)!;
               const quiet = d.arrivals.length === 0 && d.departures.length === 0;
               return (
-                <tr key={d.date} className={`border-b border-line tabular-nums ${h.isToday ? "bg-primary/5" : h.isWeekend ? "bg-ink/5" : ""}`}>
+                <tr
+                  key={d.date}
+                  className={`border-b border-line tabular-nums ${h.isToday ? "bg-primary/5" : h.isWeekend ? "bg-ink/5" : ""}`}
+                >
                   <th scope="row" className={thRowHead}>
-                    {quiet ? dayLabel(d.date) : <a href={`#d-${d.date}`} className={linkClass}>{dayLabel(d.date)}</a>}
+                    {quiet ? (
+                      dayLabel(d.date)
+                    ) : (
+                      <a href={`#d-${d.date}`} className={linkClass}>
+                        {dayLabel(d.date)}
+                      </a>
+                    )}
                     {h.isToday && <span className="ml-2 text-xs text-primary-strong">Today</span>}
                   </th>
                   <td className={tdNum}>{d.arrivals.length || "–"}</td>
@@ -146,7 +252,9 @@ export default async function ArrivalsCalendarPage({ searchParams }: { searchPar
           </tbody>
           <tfoot>
             <tr className={totalRow}>
-              <th scope="row" className="py-2 pr-3 text-left">{w.days} days</th>
+              <th scope="row" className="py-2 pr-3 text-left">
+                {w.days} days
+              </th>
               <td className={tdNum}>{totals.arrivals}</td>
               <td className={tdNum}>{totals.departures}</td>
               <td />
@@ -160,7 +268,8 @@ export default async function ArrivalsCalendarPage({ searchParams }: { searchPar
         {busy.map((d) => (
           <section key={d.date} id={`d-${d.date}`} aria-labelledby={`h-${d.date}`} className="scroll-mt-4">
             <SectionTitle id={`h-${d.date}`}>
-              {dayLabel(d.date)}{headOf.get(d.date)!.isToday && <span className="ml-2 text-base text-primary-strong">Today</span>}
+              {dayLabel(d.date)}
+              {headOf.get(d.date)!.isToday && <span className="ml-2 text-base text-primary-strong">Today</span>}
             </SectionTitle>
             <div className="mt-3 grid gap-6 md:grid-cols-2 print:grid-cols-1">
               <List title="Arriving" items={d.arrivals} />
@@ -172,7 +281,10 @@ export default async function ArrivalsCalendarPage({ searchParams }: { searchPar
 
       <ul className="mt-10 max-w-prose list-disc space-y-1 pl-5 text-sm text-muted">
         <li>Cancelled and no-show bookings are left out. A hold (pending) is listed so you see it coming but is not counted as staying.</li>
-        <li>Staying is the number of bookings with a night on that day; the departure day is not a night. A booking with several rooms counts once.</li>
+        <li>
+          Staying is the number of bookings with a night on that day; the departure day is not a night. A booking with several rooms counts
+          once.
+        </li>
         <li>Guest names show only to people who may see guests.</li>
       </ul>
     </main>

@@ -25,7 +25,9 @@ export async function resetGuestLinks(formData: FormData) {
 
   const supabase = await staffClient();
   const { data, error } = await supabase.rpc("reset_guest_links", {
-    p_reservation_id: head.data.reservationId, p_reason: v.reason, p_idempotency_key: head.data.idempotencyKey,
+    p_reservation_id: head.data.reservationId,
+    p_reason: v.reason,
+    p_idempotency_key: head.data.idempotencyKey,
   });
   if (error) return back(page, { err: classifyGuestLinkError(error.message) });
 

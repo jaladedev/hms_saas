@@ -18,7 +18,10 @@ export const MAX_ROOMS = 5;
 export type RoomRequest = { roomTypeId: string; requestedRoomId: string | null; adults: number; children: number };
 
 export type NewReservation = {
-  propertyId: string; rooms: RoomRequest[]; arrival: string; departure: string;
+  propertyId: string;
+  rooms: RoomRequest[];
+  arrival: string;
+  departure: string;
   source: ManualSource;
   /** Hold the rooms for the hotel's hold time and confirm when payment is recorded (migration 034), instead of confirming at once. */
   holdUntilPaid: boolean;
@@ -71,12 +74,29 @@ export function validateNewReservation(raw: Record<string, unknown>): { ok: true
   const source = MANUAL_SOURCES.find((s) => s.value === raw.source)?.value;
   if (!source) return { ok: false, code: "bad_request" };
 
-  return { ok: true, value: { propertyId, rooms, arrival, departure, source, holdUntilPaid: raw.holdUntilPaid === "on", guest: { name, email: email || null, phone: phone || null } } };
+  return {
+    ok: true,
+    value: {
+      propertyId,
+      rooms,
+      arrival,
+      departure,
+      source,
+      holdUntilPaid: raw.holdUntilPaid === "on",
+      guest: { name, email: email || null, phone: phone || null },
+    },
+  };
 }
 
 /** The `p_rooms` argument for create_reservation. The rate plan is left null so the property's default applies. */
 export function roomsPayload(v: NewReservation) {
-  return v.rooms.map((r) => ({ room_type_id: r.roomTypeId, requested_room_id: r.requestedRoomId, rate_plan_id: null, adults: r.adults, children: r.children }));
+  return v.rooms.map((r) => ({
+    room_type_id: r.roomTypeId,
+    requested_room_id: r.requestedRoomId,
+    rate_plan_id: null,
+    adults: r.adults,
+    children: r.children,
+  }));
 }
 
 /** The link an empty night on the room calendar goes to: that room, arriving that night, leaving the next day. The form lets staff change the departure. */
@@ -84,7 +104,13 @@ export function bookFromCalendarHref(roomId: string, date: string): string {
   return `/app/reservations/new?${new URLSearchParams({ room: roomId, arrival: date, departure: addDays(date, 1) })}`;
 }
 
-export type Prefill = { propertyId: string | null; roomTypeId: string | null; roomId: string | null; arrival: string; departure: string | null };
+export type Prefill = {
+  propertyId: string | null;
+  roomTypeId: string | null;
+  roomId: string | null;
+  arrival: string;
+  departure: string | null;
+};
 
 const one = (v: unknown): string | undefined => (typeof v === "string" ? v : undefined);
 

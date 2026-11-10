@@ -65,7 +65,11 @@ function buildDeps(): WebhookDeps {
       return { result: out?.result, duplicate: out?.duplicate === true };
     },
     async markRefundNeedsDetails(refundId, providerRefundId, note) {
-      const { error } = await db.rpc("mark_refund_needs_details", { p_refund_id: refundId, p_provider_refund_id: providerRefundId, p_note: note });
+      const { error } = await db.rpc("mark_refund_needs_details", {
+        p_refund_id: refundId,
+        p_provider_refund_id: providerRefundId,
+        p_note: note,
+      });
       if (error) throw new Error(error.message);
     },
     log(level, message, context) {
@@ -88,6 +92,9 @@ export async function POST(request: Request, context: { params: Promise<{ accoun
     rawBody,
     signature: request.headers.get("x-paystack-signature"),
   });
-  if (outcome.status === 200) after(() => { drainNow(5).catch(() => {}); });   // confirmation and refund emails go out quickly
+  if (outcome.status === 200)
+    after(() => {
+      drainNow(5).catch(() => {});
+    }); // confirmation and refund emails go out quickly
   return Response.json(outcome.body, { status: outcome.status });
 }

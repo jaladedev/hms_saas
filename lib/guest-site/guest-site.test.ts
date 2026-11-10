@@ -14,8 +14,16 @@ describe("format", () => {
 
 describe("stay params", () => {
   it("parses valid params with defaults", () => {
-    expect(parseStayParams({ arrival: "2026-11-03", departure: "2026-11-05" })).toEqual({ arrival: "2026-11-03", departure: "2026-11-05", adults: 2, children: 0 });
-    expect(parseStayParams({ arrival: ["2026-11-03"], departure: "2026-11-05", adults: "1", children: "2" })).toMatchObject({ adults: 1, children: 2 });
+    expect(parseStayParams({ arrival: "2026-11-03", departure: "2026-11-05" })).toEqual({
+      arrival: "2026-11-03",
+      departure: "2026-11-05",
+      adults: 2,
+      children: 0,
+    });
+    expect(parseStayParams({ arrival: ["2026-11-03"], departure: "2026-11-05", adults: "1", children: "2" })).toMatchObject({
+      adults: 1,
+      children: 2,
+    });
   });
   it("rejects missing, reversed, malformed or out-of-range values", () => {
     expect(parseStayParams({})).toBeNull();
@@ -34,7 +42,11 @@ describe("stay params", () => {
 
 describe("guest details", () => {
   it("normalises email and rejects bad input", () => {
-    expect(guestSchema.parse({ full_name: " Ada Obi ", email: " ADA@Example.com ", phone: "" })).toEqual({ full_name: "Ada Obi", email: "ada@example.com", phone: "" });
+    expect(guestSchema.parse({ full_name: " Ada Obi ", email: " ADA@Example.com ", phone: "" })).toEqual({
+      full_name: "Ada Obi",
+      email: "ada@example.com",
+      phone: "",
+    });
     expect(guestSchema.safeParse({ full_name: "A", email: "ada@example.com" }).success).toBe(false);
     expect(guestSchema.safeParse({ full_name: "Ada Obi", email: "nope" }).success).toBe(false);
   });

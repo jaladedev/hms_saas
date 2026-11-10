@@ -1,25 +1,37 @@
 import { describe, expect, it } from "vitest";
 import { bucketFrontDesk, deskFlag, type DeskRow } from "./front-desk";
 
-const TODAY = new Map([["p1", "2026-11-03"], ["p2", "2026-11-04"]]);
+const TODAY = new Map([
+  ["p1", "2026-11-03"],
+  ["p2", "2026-11-04"],
+]);
 
 function row(over: Partial<DeskRow> & { id: string }): DeskRow {
   return {
-    property_id: "p1", booking_reference: `REF-${over.id}`, reservation_status: "confirmed", payment_status: "paid",
-    arrival_date: "2026-11-03", departure_date: "2026-11-06", attention_reason: null, ...over,
+    property_id: "p1",
+    booking_reference: `REF-${over.id}`,
+    reservation_status: "confirmed",
+    payment_status: "paid",
+    arrival_date: "2026-11-03",
+    departure_date: "2026-11-06",
+    attention_reason: null,
+    ...over,
   };
 }
 const ids = (rows: DeskRow[]) => rows.map((r) => r.id);
 
 describe("bucketFrontDesk", () => {
   it("sorts each reservation into its list", () => {
-    const g = bucketFrontDesk([
-      row({ id: "arr" }),
-      row({ id: "dep", reservation_status: "checked_in", arrival_date: "2026-11-01", departure_date: "2026-11-03" }),
-      row({ id: "stay", reservation_status: "checked_in", arrival_date: "2026-11-01", departure_date: "2026-11-05" }),
-      row({ id: "over", reservation_status: "checked_in", arrival_date: "2026-10-28", departure_date: "2026-11-02" }),
-      row({ id: "late", arrival_date: "2026-11-01", departure_date: "2026-11-05" }),
-    ], TODAY);
+    const g = bucketFrontDesk(
+      [
+        row({ id: "arr" }),
+        row({ id: "dep", reservation_status: "checked_in", arrival_date: "2026-11-01", departure_date: "2026-11-03" }),
+        row({ id: "stay", reservation_status: "checked_in", arrival_date: "2026-11-01", departure_date: "2026-11-05" }),
+        row({ id: "over", reservation_status: "checked_in", arrival_date: "2026-10-28", departure_date: "2026-11-02" }),
+        row({ id: "late", arrival_date: "2026-11-01", departure_date: "2026-11-05" }),
+      ],
+      TODAY,
+    );
     expect(ids(g.arrivals)).toEqual(["arr"]);
     expect(ids(g.departures)).toEqual(["dep"]);
     expect(ids(g.inHouse)).toEqual(["stay"]);
@@ -28,10 +40,13 @@ describe("bucketFrontDesk", () => {
   });
 
   it("judges each row against its own property's date", () => {
-    const g = bucketFrontDesk([
-      row({ id: "a", property_id: "p1", arrival_date: "2026-11-03" }),
-      row({ id: "b", property_id: "p2", arrival_date: "2026-11-03", departure_date: "2026-11-06" }),   // p2's today is the 4th
-    ], TODAY);
+    const g = bucketFrontDesk(
+      [
+        row({ id: "a", property_id: "p1", arrival_date: "2026-11-03" }),
+        row({ id: "b", property_id: "p2", arrival_date: "2026-11-03", departure_date: "2026-11-06" }), // p2's today is the 4th
+      ],
+      TODAY,
+    );
     expect(ids(g.arrivals)).toEqual(["a"]);
     expect(ids(g.lateArrivals)).toEqual(["b"]);
   });
@@ -43,13 +58,16 @@ describe("bucketFrontDesk", () => {
   });
 
   it("ignores other statuses, future arrivals and unknown properties", () => {
-    const g = bucketFrontDesk([
-      row({ id: "x1", reservation_status: "pending" }),
-      row({ id: "x2", reservation_status: "cancelled" }),
-      row({ id: "x3", arrival_date: "2026-11-10", departure_date: "2026-11-12" }),
-      row({ id: "x4", property_id: "unknown" }),
-      row({ id: "x5", arrival_date: "2026-10-30", departure_date: "2026-11-03" }),   // ended today without arriving
-    ], TODAY);
+    const g = bucketFrontDesk(
+      [
+        row({ id: "x1", reservation_status: "pending" }),
+        row({ id: "x2", reservation_status: "cancelled" }),
+        row({ id: "x3", arrival_date: "2026-11-10", departure_date: "2026-11-12" }),
+        row({ id: "x4", property_id: "unknown" }),
+        row({ id: "x5", arrival_date: "2026-10-30", departure_date: "2026-11-03" }), // ended today without arriving
+      ],
+      TODAY,
+    );
     for (const list of Object.values(g)) expect(list).toEqual([]);
   });
 

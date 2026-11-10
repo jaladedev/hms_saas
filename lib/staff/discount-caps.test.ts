@@ -4,8 +4,16 @@ import { errorMessage, OK_MESSAGES } from "./refunds";
 
 const P = "6f1c1c1e-2b7a-4a55-9a43-1d2a8d9a1f10";
 const Q = "7f1c1c1e-2b7a-4a55-9a43-1d2a8d9a1f11";
-const defaults = [{ role_key: "front_desk", max_percent: "10.00" }, { role_key: "owner", max_percent: 100 }, { role_key: "general_manager", max_percent: "100.00" }];
-const roles = [{ key: "owner", name: "Hotel owner" }, { key: "general_manager", name: "General manager" }, { key: "front_desk", name: "Front desk" }];
+const defaults = [
+  { role_key: "front_desk", max_percent: "10.00" },
+  { role_key: "owner", max_percent: 100 },
+  { role_key: "general_manager", max_percent: "100.00" },
+];
+const roles = [
+  { key: "owner", name: "Hotel owner" },
+  { key: "general_manager", name: "General manager" },
+  { key: "front_desk", name: "Front desk" },
+];
 
 describe("buildCaps", () => {
   it("lists the roles with a default, owner first, and uses the default when the hotel has no setting", () => {
@@ -16,9 +24,15 @@ describe("buildCaps", () => {
     expect(caps[2]!.name).toBe("Front desk");
   });
   it("uses this hotel's own setting, even a lower one, and ignores another hotel's", () => {
-    const caps = buildCaps(P, defaults, [
-      { property_id: P, role_key: "front_desk", max_percent: "0.00" }, { property_id: Q, role_key: "general_manager", max_percent: 5 },
-    ], roles);
+    const caps = buildCaps(
+      P,
+      defaults,
+      [
+        { property_id: P, role_key: "front_desk", max_percent: "0.00" },
+        { property_id: Q, role_key: "general_manager", max_percent: 5 },
+      ],
+      roles,
+    );
     const fd = caps.find((c) => c.roleKey === "front_desk")!;
     expect(fd).toMatchObject({ percent: 0, defaultPercent: 10, source: "override" });
     expect(caps.find((c) => c.roleKey === "general_manager")).toMatchObject({ percent: 100, source: "default" });
@@ -48,8 +62,14 @@ describe("wording", () => {
 
 describe("parseCapForm", () => {
   it("accepts a percent from 0 to 100 with at most two decimals", () => {
-    expect(parseCapForm({ property: P, role: "front_desk", percent: "15" })).toEqual({ ok: true, value: { property: P, role: "front_desk", percent: 15 } });
-    expect(parseCapForm({ property: P, role: "front_desk", percent: "7.5%" })).toEqual({ ok: true, value: { property: P, role: "front_desk", percent: 7.5 } });
+    expect(parseCapForm({ property: P, role: "front_desk", percent: "15" })).toEqual({
+      ok: true,
+      value: { property: P, role: "front_desk", percent: 15 },
+    });
+    expect(parseCapForm({ property: P, role: "front_desk", percent: "7.5%" })).toEqual({
+      ok: true,
+      value: { property: P, role: "front_desk", percent: 7.5 },
+    });
     expect(parseCapForm({ property: P, role: "front_desk", percent: "0" })).toMatchObject({ ok: true, value: { percent: 0 } });
     expect(parseCapForm({ property: P, role: "front_desk", percent: "100" })).toMatchObject({ ok: true, value: { percent: 100 } });
   });
@@ -59,7 +79,10 @@ describe("parseCapForm", () => {
     }
   });
   it("treats Use the default as a reset, whatever the field holds", () => {
-    expect(parseCapForm({ property: P, role: "front_desk", percent: "garbage", reset: "1" })).toEqual({ ok: true, value: { property: P, role: "front_desk", percent: null } });
+    expect(parseCapForm({ property: P, role: "front_desk", percent: "garbage", reset: "1" })).toEqual({
+      ok: true,
+      value: { property: P, role: "front_desk", percent: null },
+    });
   });
   it("refuses a missing or malformed hotel or role", () => {
     expect(parseCapForm({ role: "front_desk", percent: "5" })).toEqual({ ok: false, code: "bad_request" });

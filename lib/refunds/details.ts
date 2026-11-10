@@ -7,7 +7,10 @@ export type DetailsDeps = {
   start(refundId: string): Promise<DetailsStart>;
   /** The tenant's Paystack secret key. Throws when it cannot be resolved. */
   getSecret(refundId: string): Promise<string>;
-  retry(args: { providerRefundId: string; currency: string; accountNumber: string; bankId: string }, secret: string): Promise<RetryRefundResult>;
+  retry(
+    args: { providerRefundId: string; currency: string; accountNumber: string; bankId: string },
+    secret: string,
+  ): Promise<RetryRefundResult>;
   finish(refundId: string, outcome: "accepted" | "rejected" | "unknown", note: string | null): Promise<void>;
   log?(level: "info" | "warn" | "error", message: string, context?: Record<string, unknown>): void;
 };
@@ -62,7 +65,12 @@ export async function submitRefundDetails(deps: DetailsDeps, refundId: string, i
   let result: RetryRefundResult;
   try {
     result = await deps.retry(
-      { providerRefundId: started.provider_refund_id, currency: started.currency, accountNumber: input.accountNumber, bankId: input.bankId },
+      {
+        providerRefundId: started.provider_refund_id,
+        currency: started.currency,
+        accountNumber: input.accountNumber,
+        bankId: input.bankId,
+      },
       secret,
     );
   } catch (e) {

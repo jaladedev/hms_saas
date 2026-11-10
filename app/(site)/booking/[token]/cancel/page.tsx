@@ -30,22 +30,40 @@ export default async function CancelPage({ params, searchParams }: Props) {
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8">
-      <p className="text-sm"><a href={back} className="text-primary-strong underline underline-offset-2">Back to your booking</a></p>
+      <p className="text-sm">
+        <a href={back} className="text-primary-strong underline underline-offset-2">
+          Back to your booking
+        </a>
+      </p>
       <p className="mt-4 text-sm text-muted">Booking reference</p>
       <h1 className="font-display text-3xl">{b.booking_reference}</h1>
-      <p className="mt-1 text-muted">{b.property_name}, {formatDate(b.arrival_date)} to {formatDate(b.departure_date)}</p>
-      {notice ? <p role="alert" className="mt-4 rounded border border-critical/40 bg-white p-3 text-critical">{notice}</p> : null}
+      <p className="mt-1 text-muted">
+        {b.property_name}, {formatDate(b.arrival_date)} to {formatDate(b.departure_date)}
+      </p>
+      {notice ? (
+        <p role="alert" className="mt-4 rounded border border-critical/40 bg-white p-3 text-critical">
+          {notice}
+        </p>
+      ) : null}
 
       {summary ? (
         <section className="mt-6 rounded border border-line bg-white p-4">
           <h2 className="text-lg font-medium">{summary.headline}</h2>
-          {summary.lines.map((line, i) => <p key={i} className="mt-2 text-sm">{line}</p>)}
+          {summary.lines.map((line, i) => (
+            <p key={i} className="mt-2 text-sm">
+              {line}
+            </p>
+          ))}
           <form action={cancelAction} className="mt-5 flex flex-wrap items-center gap-4">
             <input type="hidden" name="token" value={token} />
             <input type="hidden" name="key" value={key} />
             <input type="hidden" name="charge" value={String(p.charge_minor)} />
-            <button type="submit" className="rounded bg-critical px-4 py-2 font-medium text-white">Cancel this booking</button>
-            <a href={back} className="text-sm underline underline-offset-2">Keep my booking</a>
+            <button type="submit" className="rounded bg-critical px-4 py-2 font-medium text-white">
+              Cancel this booking
+            </button>
+            <a href={back} className="text-sm underline underline-offset-2">
+              Keep my booking
+            </a>
           </form>
         </section>
       ) : (

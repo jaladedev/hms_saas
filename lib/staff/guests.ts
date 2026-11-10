@@ -6,7 +6,11 @@
  * wildcards would change the meaning of the filter string they are placed in.
  */
 export function searchPattern(input: string | undefined): string | null {
-  const cleaned = (input ?? "").normalize("NFKC").replace(/[^\p{L}\p{N} .@+'-]/gu, " ").replace(/\s+/g, " ").trim();
+  const cleaned = (input ?? "")
+    .normalize("NFKC")
+    .replace(/[^\p{L}\p{N} .@+'-]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
   return cleaned.length >= 2 ? `*${cleaned.slice(0, 60)}*` : null;
 }
 
@@ -20,7 +24,10 @@ export function summariseStays(rows: StayRow[], today: string): Map<string, Stay
     const s = out.get(r.primary_guest_id) ?? { completed: 0, nextArrival: null, lastDeparture: null, inHouse: false };
     if (r.reservation_status === "checked_out") s.completed++;
     if (r.reservation_status === "checked_in") s.inHouse = true;
-    if ((r.reservation_status === "checked_out" || r.reservation_status === "checked_in") && (s.lastDeparture === null || r.departure_date > s.lastDeparture)) {
+    if (
+      (r.reservation_status === "checked_out" || r.reservation_status === "checked_in") &&
+      (s.lastDeparture === null || r.departure_date > s.lastDeparture)
+    ) {
       s.lastDeparture = r.departure_date;
     }
     if (r.reservation_status === "confirmed" && r.arrival_date >= today && (s.nextArrival === null || r.arrival_date < s.nextArrival)) {
@@ -36,7 +43,8 @@ export function stayLine(s: StaySummary | undefined, fmt: (iso: string) => strin
   if (!s) return "No stays yet";
   if (s.inHouse) return "In house now";
   if (s.nextArrival) return `Arrives ${fmt(s.nextArrival)}`;
-  if (s.completed > 0) return `${s.completed} ${s.completed === 1 ? "stay" : "stays"}${s.lastDeparture ? `, last left ${fmt(s.lastDeparture)}` : ""}`;
+  if (s.completed > 0)
+    return `${s.completed} ${s.completed === 1 ? "stay" : "stays"}${s.lastDeparture ? `, last left ${fmt(s.lastDeparture)}` : ""}`;
   return "No stays yet";
 }
 

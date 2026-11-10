@@ -39,21 +39,29 @@ export default async function FrontDeskPage() {
   function Section({ title, hint, items, tone }: { title: string; hint?: string; items: DeskRow[]; tone?: "warn" }) {
     return (
       <section className="mt-10 first:mt-0" aria-labelledby={title.replace(/\W+/g, "-")}>
-        <h2 id={title.replace(/\W+/g, "-")} className={`font-display text-xl ${tone === "warn" && items.length > 0 ? "text-critical" : ""}`}>
+        <h2
+          id={title.replace(/\W+/g, "-")}
+          className={`font-display text-xl ${tone === "warn" && items.length > 0 ? "text-critical" : ""}`}
+        >
           {title} <span className="text-base text-muted">({items.length})</span>
         </h2>
         {hint && items.length > 0 && <p className="mt-1 max-w-prose text-sm text-muted">{hint}</p>}
-        {items.length === 0 ? <p className="mt-2 text-sm text-muted">None.</p> : (
+        {items.length === 0 ? (
+          <p className="mt-2 text-sm text-muted">None.</p>
+        ) : (
           <ul className="mt-2 border-t border-line">
             {items.map((r) => {
               const full = byId.get(r.id);
               const flag = deskFlag(r);
               return (
                 <li key={`${title}-${r.id}`} className="border-b border-line">
-                  <Link href={`/app/reservations/${r.id}`} className="grid gap-x-6 gap-y-1 py-3 hover:bg-white focus-visible:outline-2 focus-visible:outline-primary md:grid-cols-[minmax(0,1fr)_12rem_auto]">
+                  <Link
+                    href={`/app/reservations/${r.id}`}
+                    className="grid gap-x-6 gap-y-1 py-3 hover:bg-white focus-visible:outline-2 focus-visible:outline-primary md:grid-cols-[minmax(0,1fr)_12rem_auto]"
+                  >
                     <div className="min-w-0">
                       <span className="font-medium">{r.booking_reference}</span>
-                      <span className="ml-3 text-sm">{full ? guests.get(full.primary_guest_id) ?? "" : ""}</span>
+                      <span className="ml-3 text-sm">{full ? (guests.get(full.primary_guest_id) ?? "") : ""}</span>
                       {showProperty && <span className="ml-3 text-xs text-muted">{propName.get(r.property_id)}</span>}
                     </div>
                     <p className="text-sm text-muted md:text-right">
@@ -62,7 +70,9 @@ export default async function FrontDeskPage() {
                     <p className="flex flex-wrap items-center gap-2 md:justify-end">
                       <ReservationChip status={r.reservation_status} />
                       <PaymentChip status={r.payment_status} />
-                      {flag === "Needs attention" && <span className="rounded bg-critical/10 px-2 py-0.5 text-xs font-medium text-critical">{flag}</span>}
+                      {flag === "Needs attention" && (
+                        <span className="rounded bg-critical/10 px-2 py-0.5 text-xs font-medium text-critical">{flag}</span>
+                      )}
                     </p>
                   </Link>
                 </li>
@@ -77,18 +87,30 @@ export default async function FrontDeskPage() {
   return (
     <main className="max-w-5xl">
       <PageTitle>Front desk</PageTitle>
-      <PageIntro>
-        Today{earliest ? `, ${formatDate(earliest)}` : ""}. Open a booking to check guests in or out.
-      </PageIntro>
-      <p className="mt-2 text-sm"><Link href="/app/front-desk/calendar" className={linkClass}>Arrivals and departures for the days ahead</Link></p>
+      <PageIntro>Today{earliest ? `, ${formatDate(earliest)}` : ""}. Open a booking to check guests in or out.</PageIntro>
+      <p className="mt-2 text-sm">
+        <Link href="/app/front-desk/calendar" className={linkClass}>
+          Arrivals and departures for the days ahead
+        </Link>
+      </p>
 
       {loadError && <ErrorBanner className="mt-6">The front desk list could not be loaded. Reload the page.</ErrorBanner>}
 
       <div className="mt-8">
-        <Section title="Overdue departures" hint="These guests are still marked in house past their departure date. Check them out or extend the stay." items={g.overdue} tone="warn" />
+        <Section
+          title="Overdue departures"
+          hint="These guests are still marked in house past their departure date. Check them out or extend the stay."
+          items={g.overdue}
+          tone="warn"
+        />
         <Section title="Arriving today" items={g.arrivals} />
         <Section title="Departing today" items={g.departures} />
-        <Section title="Late arrivals" hint="Confirmed, expected before today, and not checked in yet." items={g.lateArrivals} tone="warn" />
+        <Section
+          title="Late arrivals"
+          hint="Confirmed, expected before today, and not checked in yet."
+          items={g.lateArrivals}
+          tone="warn"
+        />
         <Section title="In house" items={g.inHouse} />
       </div>
     </main>

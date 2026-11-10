@@ -3,7 +3,13 @@ import { describe, expect, it } from "vitest";
 import { canMarkNoShow, NOTE_MAX, parseNoShowForm } from "./no-show";
 import { classifyRpcError, errorMessage, OK_MESSAGES } from "./refunds";
 
-const base = { reservationStatus: "confirmed", rooms: [{ room_status: "booked" }], canCancel: true, today: "2026-11-03", arrival: "2026-11-03" };
+const base = {
+  reservationStatus: "confirmed",
+  rooms: [{ room_status: "booked" }],
+  canCancel: true,
+  today: "2026-11-03",
+  arrival: "2026-11-03",
+};
 
 describe("canMarkNoShow", () => {
   it("is offered from the arrival date for a confirmed booking nobody has arrived at", () => {
@@ -13,7 +19,8 @@ describe("canMarkNoShow", () => {
   it("is not offered before arrival, without permission, in other states or with a guest in a room", () => {
     expect(canMarkNoShow({ ...base, arrival: "2026-11-04" })).toBe(false);
     expect(canMarkNoShow({ ...base, canCancel: false })).toBe(false);
-    for (const s of ["pending", "checked_in", "checked_out", "cancelled", "expired", "no_show"]) expect(canMarkNoShow({ ...base, reservationStatus: s }), s).toBe(false);
+    for (const s of ["pending", "checked_in", "checked_out", "cancelled", "expired", "no_show"])
+      expect(canMarkNoShow({ ...base, reservationStatus: s }), s).toBe(false);
     expect(canMarkNoShow({ ...base, rooms: [{ room_status: "booked" }, { room_status: "checked_in" }] })).toBe(false);
     expect(canMarkNoShow({ ...base, rooms: [] })).toBe(false);
   });
@@ -24,7 +31,8 @@ describe("parseNoShowForm", () => {
     expect(parseNoShowForm({ note: "  did not call ", waive: "on" })).toEqual({ ok: true, value: { note: "did not call", waive: true } });
     expect(parseNoShowForm({ note: "   " })).toEqual({ ok: true, value: { note: null, waive: false } });
     expect(parseNoShowForm({})).toEqual({ ok: true, value: { note: null, waive: false } });
-    for (const w of ["off", "true", "1", undefined]) expect(parseNoShowForm({ waive: w }), String(w)).toMatchObject({ value: { waive: false } });
+    for (const w of ["off", "true", "1", undefined])
+      expect(parseNoShowForm({ waive: w }), String(w)).toMatchObject({ value: { waive: false } });
   });
   it("refuses a note over 200 characters", () => {
     expect(parseNoShowForm({ note: "x".repeat(NOTE_MAX + 1) })).toEqual({ ok: false, code: "ns_note" });

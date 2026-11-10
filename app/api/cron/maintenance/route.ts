@@ -35,22 +35,23 @@ async function handle(request: Request) {
       return data;
     },
     log: (level, message, context) => console[level](`[maintenance] ${message}`, context ?? {}),
-    cleanPhotoFiles: () => drainPhotoCleanup({
-      async claim(limit) {
-        const { data, error } = await db.rpc("claim_photo_cleanup", { p_limit: limit });
-        if (error) throw new Error(error.message);
-        return (data ?? []) as string[];
-      },
-      async remove(paths) {
-        const { error } = await db.storage.from(PHOTO_BUCKET).remove(paths);
-        return { error: error ? error.message : null };
-      },
-      async finish(paths) {
-        const { data, error } = await db.rpc("finish_photo_cleanup", { p_paths: paths });
-        if (error) throw new Error(error.message);
-        return (data ?? 0) as number;
-      },
-    }),
+    cleanPhotoFiles: () =>
+      drainPhotoCleanup({
+        async claim(limit) {
+          const { data, error } = await db.rpc("claim_photo_cleanup", { p_limit: limit });
+          if (error) throw new Error(error.message);
+          return (data ?? []) as string[];
+        },
+        async remove(paths) {
+          const { error } = await db.storage.from(PHOTO_BUCKET).remove(paths);
+          return { error: error ? error.message : null };
+        },
+        async finish(paths) {
+          const { data, error } = await db.rpc("finish_photo_cleanup", { p_paths: paths });
+          if (error) throw new Error(error.message);
+          return (data ?? 0) as number;
+        },
+      }),
     async purgeOldData() {
       const { data, error } = await db.rpc("purge_old_operational_data");
       if (error) throw new Error(error.message);

@@ -13,12 +13,21 @@ export function GuestLinkReset({ reservationId }: { reservationId: string }) {
       <form action={resetGuestLinks} className="mt-3 grid gap-3">
         <input type="hidden" name="reservationId" value={reservationId} />
         <input type="hidden" name="idempotencyKey" value={crypto.randomUUID()} />
-        <p className="text-xs text-muted">Use this if a booking link reached the wrong person. Every link sent so far stops working, and the guest is emailed a new one if we have their address.</p>
+        <p className="text-xs text-muted">
+          Use this if a booking link reached the wrong person. Every link sent so far stops working, and the guest is emailed a new one if
+          we have their address.
+        </p>
         <div>
-          <label htmlFor="guest-link-reason" className="block text-sm">Why?</label>
+          <label htmlFor="guest-link-reason" className="block text-sm">
+            Why?
+          </label>
           <textarea id="guest-link-reason" name="reason" required maxLength={GUEST_LINK_REASON_MAX} rows={2} className={inputClass} />
         </div>
-        <div><button type="submit" className={buttonQuiet}>Reset links</button></div>
+        <div>
+          <button type="submit" className={buttonQuiet}>
+            Reset links
+          </button>
+        </div>
       </form>
     </details>
   );

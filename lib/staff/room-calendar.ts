@@ -20,7 +20,15 @@ export function parseWindow(from: unknown, days: unknown, today: string): Calend
   return { start, days: length, end: addDays(start, length) };
 }
 
-export type DayHead = { date: string; day: number; weekday: string; month: string; isToday: boolean; isWeekend: boolean; monthStart: boolean };
+export type DayHead = {
+  date: string;
+  day: number;
+  weekday: string;
+  month: string;
+  isToday: boolean;
+  isWeekend: boolean;
+  monthStart: boolean;
+};
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -30,8 +38,13 @@ export function dayHeads(w: CalendarWindow, today: string): DayHead[] {
     const date = addDays(w.start, i);
     const dow = new Date(`${date}T00:00:00Z`).getUTCDay();
     return {
-      date, day: Number(date.slice(8)), weekday: WEEKDAYS[dow]!, month: MONTHS[Number(date.slice(5, 7)) - 1]!,
-      isToday: date === today, isWeekend: dow === 0 || dow === 6, monthStart: date.endsWith("-01") || i === 0,
+      date,
+      day: Number(date.slice(8)),
+      weekday: WEEKDAYS[dow]!,
+      month: MONTHS[Number(date.slice(5, 7)) - 1]!,
+      isToday: date === today,
+      isWeekend: dow === 0 || dow === 6,
+      monthStart: date.endsWith("-01") || i === 0,
     };
   });
 }
@@ -39,9 +52,11 @@ export function dayHeads(w: CalendarWindow, today: string): DayHead[] {
 export type Bar = {
   claim: BoardClaim;
   /** 1-based grid column of the first night shown, and how many nights are shown. */
-  column: number; span: number;
+  column: number;
+  span: number;
   /** The claim carries on beyond the left or right edge of the window. */
-  continuesBefore: boolean; continuesAfter: boolean;
+  continuesBefore: boolean;
+  continuesAfter: boolean;
   kind: "occupied" | "arriving" | "held" | "blocked";
 };
 
@@ -71,14 +86,19 @@ export function buildRows(rooms: BoardRoom[], claims: BoardClaim[], w: CalendarW
   return rooms
     .filter((r) => r.operational_status !== "retired")
     .map((room) => ({ room, bars: (byRoom.get(room.id) ?? []).sort((a, b) => a.column - b.column) }))
-    .sort((a, b) => (a.room.room_type_name ?? "").localeCompare(b.room.room_type_name ?? "", "en") || compareRoomNumbers(a.room.room_number, b.room.room_number));
+    .sort(
+      (a, b) =>
+        (a.room.room_type_name ?? "").localeCompare(b.room.room_type_name ?? "", "en") ||
+        compareRoomNumbers(a.room.room_number, b.room.room_number),
+    );
 }
 
 /** Rooms with a stay on each night of the window (holds and blocks are not stays), and how many rooms could be sold: in service and not blocked. */
 export function nightTotals(rows: CalendarRow[], w: CalendarWindow): { date: string; stays: number; sellable: number }[] {
   return Array.from({ length: w.days }, (_, i) => {
     const col = i + 1;
-    let stays = 0; let sellable = 0;
+    let stays = 0;
+    let sellable = 0;
     for (const r of rows) {
       const bar = r.bars.find((b) => col >= b.column && col < b.column + b.span);
       if (bar && (bar.kind === "occupied" || bar.kind === "arriving")) stays += 1;

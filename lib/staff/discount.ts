@@ -13,16 +13,16 @@ import type { ErrorCode } from "./refunds";
 
 export const DISCOUNT_REASON_MAX = 200;
 
-export type DiscountView =
-  | { kind: "hidden" }
-  | { kind: "blocked"; why: "invoiced" }
-  | { kind: "editable"; current: CurrentDiscount };
+export type DiscountView = { kind: "hidden" } | { kind: "blocked"; why: "invoiced" } | { kind: "editable"; current: CurrentDiscount };
 
 /** What the booking has now: nothing, a percentage, or an amount in kobo. */
 export type CurrentDiscount = { kind: "none" } | { kind: "percent"; percent: number } | { kind: "amount"; amountMinor: number };
 
 export function discountView(args: {
-  canApply: boolean; reservationStatus: string; liveInvoiceCount: number; current: CurrentDiscount;
+  canApply: boolean;
+  reservationStatus: string;
+  liveInvoiceCount: number;
+  current: CurrentDiscount;
 }): DiscountView {
   if (!args.canApply || args.reservationStatus !== "confirmed") return { kind: "hidden" };
   if (args.liveInvoiceCount > 0) return { kind: "blocked", why: "invoiced" };
@@ -58,7 +58,12 @@ export function parseDiscountForm(raw: Record<string, FormDataEntryValue | undef
   if (amount ? amountMinor === null : percent === null) return { ok: false, code: amount ? "dc_amount" : "dc_percent" };
   const reason = typeof raw.reason === "string" ? raw.reason.trim() : "";
   if (reason === "" || reason.length > DISCOUNT_REASON_MAX) return { ok: false, code: "dc_reason" };
-  return { ok: true, value: amount ? { kind: "amount", amountMinor: amountMinor as number, reason } : { kind: "percent", percent: percent as number, reason } };
+  return {
+    ok: true,
+    value: amount
+      ? { kind: "amount", amountMinor: amountMinor as number, reason }
+      : { kind: "percent", percent: percent as number, reason },
+  };
 }
 
 export function classifyDiscountError(message: string): ErrorCode {

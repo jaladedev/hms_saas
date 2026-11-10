@@ -15,11 +15,18 @@ const CALENDAR = "/app/rooms/calendar";
  * sends the person back to the same calendar window with a short result code.
  */
 export async function moveStayFromCalendar(formData: FormData) {
-  const parsed = z.object({
-    reservationRoomId: z.guid(), newRoomId: z.guid(), idempotencyKey: z.string().min(8).max(100),
-    effective: z.string().max(10), reason: z.string().max(500),
-    property: z.guid(), from: z.string().max(10), days: z.string().max(3),
-  }).safeParse(Object.fromEntries(formData));
+  const parsed = z
+    .object({
+      reservationRoomId: z.guid(),
+      newRoomId: z.guid(),
+      idempotencyKey: z.string().min(8).max(100),
+      effective: z.string().max(10),
+      reason: z.string().max(500),
+      property: z.guid(),
+      from: z.string().max(10),
+      days: z.string().max(3),
+    })
+    .safeParse(Object.fromEntries(formData));
   if (!parsed.success) return back(CALENDAR, { err: "bad_request" });
 
   const d = parsed.data;
@@ -32,13 +39,20 @@ export async function moveStayFromCalendar(formData: FormData) {
 
   const supabase = await staffClient();
   const { error } = await supabase.rpc("transfer_room", {
-    p_reservation_room_id: d.reservationRoomId, p_new_room_id: d.newRoomId,
-    p_effective: effective, p_reason: d.reason.trim(), p_idempotency_key: d.idempotencyKey,
+    p_reservation_room_id: d.reservationRoomId,
+    p_new_room_id: d.newRoomId,
+    p_effective: effective,
+    p_reason: d.reason.trim(),
+    p_idempotency_key: d.idempotencyKey,
   });
   if (error) {
     // Here "unavailable" means the guest stays where they are, not that a booking failed.
     const c = classifyRpcError(error.message);
-    return back(CALENDAR, { ...view, err: c.code === "room_unavailable" ? "transfer_unavailable" : c.code, ...(c.refundableMinor !== undefined ? { n: c.refundableMinor } : {}) });
+    return back(CALENDAR, {
+      ...view,
+      err: c.code === "room_unavailable" ? "transfer_unavailable" : c.code,
+      ...(c.refundableMinor !== undefined ? { n: c.refundableMinor } : {}),
+    });
   }
   revalidatePath(CALENDAR);
   revalidatePath("/app/rooms");

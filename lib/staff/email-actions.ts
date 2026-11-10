@@ -21,7 +21,9 @@ export async function resendEmail(formData: FormData) {
   const { error } = await supabase.rpc("resend_email", { p_email_id: parsed.data.emailId });
   if (error) return fail(EMAILS_PAGE, error.message);
 
-  after(() => { drainNow(5).catch(() => {}); });
+  after(() => {
+    drainNow(5).catch(() => {});
+  });
   revalidatePath(EMAILS_PAGE);
   return ok(EMAILS_PAGE, "resent");
 }

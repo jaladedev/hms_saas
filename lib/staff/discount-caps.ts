@@ -24,12 +24,16 @@ export function buildCaps(propertyId: string, defaults: DefaultCap[], overrides:
     .map((d): RoleCap => {
       const own = mine.get(d.role_key);
       return {
-        roleKey: d.role_key, name: name.get(d.role_key) ?? d.role_key, defaultPercent: Number(d.max_percent),
-        percent: own ?? Number(d.max_percent), source: own === undefined ? "default" : "override",
+        roleKey: d.role_key,
+        name: name.get(d.role_key) ?? d.role_key,
+        defaultPercent: Number(d.max_percent),
+        percent: own ?? Number(d.max_percent),
+        source: own === undefined ? "default" : "override",
       };
     })
     .sort((a, b) => {
-      const ia = ORDER.indexOf(a.roleKey), ib = ORDER.indexOf(b.roleKey);
+      const ia = ORDER.indexOf(a.roleKey),
+        ib = ORDER.indexOf(b.roleKey);
       if (ia !== ib) return (ia === -1 ? ORDER.length : ia) - (ib === -1 ? ORDER.length : ib);
       return a.name.localeCompare(b.name);
     });
@@ -39,7 +43,11 @@ export function buildCaps(propertyId: string, defaults: DefaultCap[], overrides:
 export const percentText = (p: number): string => `${Number(p.toFixed(2))}%`;
 
 export const capSummary = (c: RoleCap): string =>
-  c.percent === 0 ? "cannot give discounts" : c.percent >= 100 ? "may discount up to a free stay" : `may discount up to ${percentText(c.percent)}`;
+  c.percent === 0
+    ? "cannot give discounts"
+    : c.percent >= 100
+      ? "may discount up to a free stay"
+      : `may discount up to ${percentText(c.percent)}`;
 
 /** Prefills the input: 10 -> "10", 7.5 -> "7.5". */
 export const percentInput = (p: number): string => String(Number(p.toFixed(2)));

@@ -28,10 +28,16 @@ export function parsePhone(raw: unknown): string | null {
 
 export function notAllowedChangeText(why: ChangeOptions["why_not"], status?: string): string {
   switch (why) {
-    case "disabled": return "This hotel does not take booking changes online. Please contact the hotel.";
-    case "started": return "Your stay has started, so it can no longer be changed online. Please talk to the front desk.";
-    case "status": return status === "cancelled" ? "This booking was cancelled, so it cannot be changed." : "Only a confirmed booking can be changed online. Please contact the hotel.";
-    default: return "";
+    case "disabled":
+      return "This hotel does not take booking changes online. Please contact the hotel.";
+    case "started":
+      return "Your stay has started, so it can no longer be changed online. Please talk to the front desk.";
+    case "status":
+      return status === "cancelled"
+        ? "This booking was cancelled, so it cannot be changed."
+        : "Only a confirmed booking can be changed online. Please contact the hotel.";
+    default:
+      return "";
   }
 }
 
@@ -49,20 +55,36 @@ export function answerText(a: NonNullable<ChangeOptions["last_answer"]>): string
 /** Why the guest's new dates cannot be changed online (guest_change_dates_quote.why_not), in words, each ending by pointing at a request. */
 export function datesRefusalText(why: string | null): string {
   switch (why) {
-    case "window": return "It is too close to your arrival to change the dates online. You can send the hotel a message instead.";
-    case "dates": return "Please check the dates: they must be in the future, at most 30 nights, and the stay must end after it starts.";
-    case "same": return "Those are the dates you already have.";
-    case "dearer": return "A longer or dearer stay needs the hotel to confirm the price and take payment. Send the hotel a request for these dates and they will get back to you.";
-    case "overpaid": return "You have already paid more than the new price, so the hotel must handle the difference. Send the hotel a request for these dates.";
-    case "discount": case "extras": case "busy": return "The hotel has to make this change for you. Send them a request for these dates.";
-    case "no_rate": return "Those dates cannot be booked online yet. Send the hotel a request for them.";
-    case "disabled": case "status": case "started": return notAllowedChangeText(why);
-    default: return "These dates cannot be changed online. Send the hotel a request instead.";
+    case "window":
+      return "It is too close to your arrival to change the dates online. You can send the hotel a message instead.";
+    case "dates":
+      return "Please check the dates: they must be in the future, at most 30 nights, and the stay must end after it starts.";
+    case "same":
+      return "Those are the dates you already have.";
+    case "dearer":
+      return "A longer or dearer stay needs the hotel to confirm the price and take payment. Send the hotel a request for these dates and they will get back to you.";
+    case "overpaid":
+      return "You have already paid more than the new price, so the hotel must handle the difference. Send the hotel a request for these dates.";
+    case "discount":
+    case "extras":
+    case "busy":
+      return "The hotel has to make this change for you. Send them a request for these dates.";
+    case "no_rate":
+      return "Those dates cannot be booked online yet. Send the hotel a request for them.";
+    case "disabled":
+    case "status":
+    case "started":
+      return notAllowedChangeText(why);
+    default:
+      return "These dates cannot be changed online. Send the hotel a request instead.";
   }
 }
 
 /** A line the guest reads before confirming: what changes and what the price does. */
-export function datesSummary(q: { old_total_minor: number; new_total_minor: number | null; difference_minor: number | null }, money: (minor: number) => string): string {
+export function datesSummary(
+  q: { old_total_minor: number; new_total_minor: number | null; difference_minor: number | null },
+  money: (minor: number) => string,
+): string {
   if (q.new_total_minor === null || q.difference_minor === null) return "";
   if (q.difference_minor === 0) return `The price stays ${money(q.new_total_minor)}.`;
   return `The price goes from ${money(q.old_total_minor)} down to ${money(q.new_total_minor)}, ${money(Math.abs(q.difference_minor))} less.`;

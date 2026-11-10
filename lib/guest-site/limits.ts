@@ -9,10 +9,7 @@ import { clientIp, enforceRateLimits, subjectKey, type RateCheck, type RateRuleN
  * rules against a value such as an email or reservation id. Only keyed hashes are stored. A database
  * failure throws, so the guest action fails closed rather than skipping the limit.
  */
-export async function checkGuestLimits(spec: {
-  ip?: RateRuleName[];
-  keyed?: Array<{ rule: RateRuleName; value: string }>;
-}) {
+export async function checkGuestLimits(spec: { ip?: RateRuleName[]; keyed?: Array<{ rule: RateRuleName; value: string }> }) {
   const secret = serverEnv().BOOKING_TOKEN_SECRET;
   const checks: RateCheck[] = [];
   if (spec.ip?.length) {

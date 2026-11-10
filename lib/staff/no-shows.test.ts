@@ -3,12 +3,36 @@ import { channelsFileName } from "./channels-csv";
 import { chargedMinor, chargeLabel, isCut, noShowsCsv, type NoShowList, type NoShowRow } from "./no-shows";
 
 const row = (over: Partial<NoShowRow> = {}): NoShowRow => ({
-  reservation_id: "r1", booking_reference: "HMS-1001", arrival_date: "2026-11-02", nights: 2, source: "phone", guest_name: "Ade Bello", charge_minor: 2_500_000, ...over,
+  reservation_id: "r1",
+  booking_reference: "HMS-1001",
+  arrival_date: "2026-11-02",
+  nights: 2,
+  source: "phone",
+  guest_name: "Ade Bello",
+  charge_minor: 2_500_000,
+  ...over,
 });
 const list = (over: Partial<NoShowList> = {}): NoShowList => ({
-  property_id: "p", currency: "NGN", from: "2026-11-01", to: "2026-11-30", total: 2,
-  rows: [row(), row({ reservation_id: "r2", booking_reference: "HMS-1002", arrival_date: "2026-11-01", nights: 1, source: "walk_in", guest_name: "Ngozi, \"Nana\" Okoye", charge_minor: 0 })],
-  names_hidden: false, links_hidden: false, ...over,
+  property_id: "p",
+  currency: "NGN",
+  from: "2026-11-01",
+  to: "2026-11-30",
+  total: 2,
+  rows: [
+    row(),
+    row({
+      reservation_id: "r2",
+      booking_reference: "HMS-1002",
+      arrival_date: "2026-11-01",
+      nights: 1,
+      source: "walk_in",
+      guest_name: 'Ngozi, "Nana" Okoye',
+      charge_minor: 0,
+    }),
+  ],
+  names_hidden: false,
+  links_hidden: false,
+  ...over,
 });
 const naira = (n: number) => `₦${n / 100}`;
 
@@ -31,12 +55,18 @@ describe("noShowsCsv", () => {
   it("writes every column, quoting names, with money in naira", () => {
     expect(noShowsCsv(list())).toBe(
       "Arrival,Nights,Source,Booking,Guest,Charge\r\n" +
-      "2026-11-02,2,Phone,HMS-1001,Ade Bello,25000.00\r\n" +
-      "2026-11-01,1,Walk-in,HMS-1002,\"Ngozi, \"\"Nana\"\" Okoye\",0.00\r\n",
+        "2026-11-02,2,Phone,HMS-1001,Ade Bello,25000.00\r\n" +
+        '2026-11-01,1,Walk-in,HMS-1002,"Ngozi, ""Nana"" Okoye",0.00\r\n',
     );
   });
   it("leaves out the guest column without guest.view and the booking column without reservation.view", () => {
-    const hidden = noShowsCsv(list({ names_hidden: true, links_hidden: true, rows: list().rows.map((r) => ({ ...r, guest_name: null, booking_reference: null, reservation_id: null })) }));
+    const hidden = noShowsCsv(
+      list({
+        names_hidden: true,
+        links_hidden: true,
+        rows: list().rows.map((r) => ({ ...r, guest_name: null, booking_reference: null, reservation_id: null })),
+      }),
+    );
     expect(hidden.split("\r\n")[0]).toBe("Arrival,Nights,Source,Charge");
     expect(hidden).not.toContain("Ade");
     expect(hidden).not.toContain("HMS-");

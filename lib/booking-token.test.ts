@@ -13,7 +13,9 @@ describe("booking token issue time", () => {
   });
   it("reads a token from before resets existed (no issue time) as issued at 0", () => {
     const payload = Buffer.from(JSON.stringify({ r: RES, e: NOW / 1000 + 3600 })).toString("base64url");
-    const sig = createHmac("sha256", SECRET).update("hms.booking.v1:" + payload).digest("base64url");
+    const sig = createHmac("sha256", SECRET)
+      .update("hms.booking.v1:" + payload)
+      .digest("base64url");
     expect(readBookingToken(`${payload}.${sig}`, SECRET, NOW)).toEqual({ reservationId: RES, issuedAt: 0 });
   });
 });

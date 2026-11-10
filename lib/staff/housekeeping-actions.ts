@@ -26,13 +26,15 @@ function finish(error: { message: string } | null, code: OkCode): never {
 }
 
 export async function createTask(formData: FormData) {
-  const parsed = z.object({
-    roomId: uuid,
-    taskType: z.enum(TASK_TYPES),
-    priority: z.enum(TASK_PRIORITIES),
-    notes: z.string().max(500).default(""),
-    due: z.string().max(16).default(""),
-  }).safeParse(Object.fromEntries(formData));
+  const parsed = z
+    .object({
+      roomId: uuid,
+      taskType: z.enum(TASK_TYPES),
+      priority: z.enum(TASK_PRIORITIES),
+      notes: z.string().max(500).default(""),
+      due: z.string().max(16).default(""),
+    })
+    .safeParse(Object.fromEntries(formData));
   if (!parsed.success) return back(PAGE, { err: "bad_request" });
   const supabase = await staffClient();
 
@@ -45,8 +47,11 @@ export async function createTask(formData: FormData) {
     if (!dueAt) return back(PAGE, { err: "task_invalid" });
   }
   const { error } = await supabase.rpc("create_housekeeping_task", {
-    p_room_id: parsed.data.roomId, p_task_type: parsed.data.taskType, p_priority: parsed.data.priority,
-    p_notes: parsed.data.notes.trim() || null, p_due_at: dueAt,
+    p_room_id: parsed.data.roomId,
+    p_task_type: parsed.data.taskType,
+    p_priority: parsed.data.priority,
+    p_notes: parsed.data.notes.trim() || null,
+    p_due_at: dueAt,
   });
   return finish(error, "task_created");
 }
@@ -71,7 +76,10 @@ export async function completeTask(formData: FormData) {
   const parsed = z.object({ taskId: uuid, note: z.string().max(500).default("") }).safeParse(Object.fromEntries(formData));
   if (!parsed.success) return back(PAGE, { err: "task_invalid" });
   const supabase = await staffClient();
-  const { error } = await supabase.rpc("complete_housekeeping_task", { p_task_id: parsed.data.taskId, p_note: parsed.data.note.trim() || null });
+  const { error } = await supabase.rpc("complete_housekeeping_task", {
+    p_task_id: parsed.data.taskId,
+    p_note: parsed.data.note.trim() || null,
+  });
   return finish(error, "task_completed");
 }
 
@@ -80,7 +88,10 @@ export async function assignTask(formData: FormData) {
   const parsed = z.object({ taskId: uuid, userId: z.union([uuid, z.literal("")]) }).safeParse(Object.fromEntries(formData));
   if (!parsed.success) return back(PAGE, { err: "bad_request" });
   const supabase = await staffClient();
-  const { error } = await supabase.rpc("assign_housekeeping_task", { p_task_id: parsed.data.taskId, p_user_id: parsed.data.userId || null });
+  const { error } = await supabase.rpc("assign_housekeeping_task", {
+    p_task_id: parsed.data.taskId,
+    p_user_id: parsed.data.userId || null,
+  });
   return finish(error, parsed.data.userId ? "task_assigned" : "task_unassigned");
 }
 

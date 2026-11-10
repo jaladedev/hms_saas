@@ -31,7 +31,10 @@ export type TaskRow = {
 };
 
 export const TASK_TYPE_LABEL: Record<string, string> = {
-  cleaning: "Cleaning", deep_clean: "Deep clean", inspection: "Inspection", other: "Other",
+  cleaning: "Cleaning",
+  deep_clean: "Deep clean",
+  inspection: "Inspection",
+  other: "Other",
 };
 export const PRIORITY_LABEL: Record<string, string> = { low: "Low", normal: "Normal", high: "High", urgent: "Urgent" };
 const PRIORITY_RANK: Record<string, number> = { urgent: 0, high: 1, normal: 2, low: 3 };
@@ -65,13 +68,15 @@ export function activityByRoom(rooms: BoardRoom[], claims: BoardClaim[], today: 
 export function sortTasks(tasks: TaskRow[], rooms: Map<string, BoardRoom>, activity: Map<string, RoomActivity>): TaskRow[] {
   const due = (t: TaskRow) => (t.due_at ? Date.parse(t.due_at) : Number.POSITIVE_INFINITY);
   const floor = (t: TaskRow) => rooms.get(t.room_id)?.floor ?? Number.MAX_SAFE_INTEGER;
-  return [...tasks].sort((a, b) =>
-    (PRIORITY_RANK[a.priority] ?? 9) - (PRIORITY_RANK[b.priority] ?? 9) ||
-    (due(a) === due(b) ? 0 : due(a) < due(b) ? -1 : 1) ||
-    Number(activity.get(b.room_id)?.arrivesToday ?? false) - Number(activity.get(a.room_id)?.arrivesToday ?? false) ||
-    floor(a) - floor(b) ||
-    compareRoomNumbers(rooms.get(a.room_id)?.room_number ?? "", rooms.get(b.room_id)?.room_number ?? "") ||
-    a.created_at.localeCompare(b.created_at));
+  return [...tasks].sort(
+    (a, b) =>
+      (PRIORITY_RANK[a.priority] ?? 9) - (PRIORITY_RANK[b.priority] ?? 9) ||
+      (due(a) === due(b) ? 0 : due(a) < due(b) ? -1 : 1) ||
+      Number(activity.get(b.room_id)?.arrivesToday ?? false) - Number(activity.get(a.room_id)?.arrivesToday ?? false) ||
+      floor(a) - floor(b) ||
+      compareRoomNumbers(rooms.get(a.room_id)?.room_number ?? "", rooms.get(b.room_id)?.room_number ?? "") ||
+      a.created_at.localeCompare(b.created_at),
+  );
 }
 
 export type TaskGroups = { mine: TaskRow[]; unassigned: TaskRow[]; others: TaskRow[] };
@@ -116,8 +121,16 @@ export function actionsFor(task: TaskRow, userId: string, canWork: boolean, canA
 export function roomsWithoutTask(rooms: BoardRoom[], live: TaskRow[]): BoardRoom[] {
   const covered = new Set(live.filter((t) => t.task_type === "cleaning").map((t) => t.room_id));
   return rooms
-    .filter((r) => r.operational_status === "active" && (r.housekeeping_status === "dirty" || r.housekeeping_status === "in_progress") && !covered.has(r.id))
-    .sort((a, b) => (a.floor ?? Number.MAX_SAFE_INTEGER) - (b.floor ?? Number.MAX_SAFE_INTEGER) || compareRoomNumbers(a.room_number, b.room_number));
+    .filter(
+      (r) =>
+        r.operational_status === "active" &&
+        (r.housekeeping_status === "dirty" || r.housekeeping_status === "in_progress") &&
+        !covered.has(r.id),
+    )
+    .sort(
+      (a, b) =>
+        (a.floor ?? Number.MAX_SAFE_INTEGER) - (b.floor ?? Number.MAX_SAFE_INTEGER) || compareRoomNumbers(a.room_number, b.room_number),
+    );
 }
 
 /** Tasks finished in the last `hours` hours, newest first, for the "Done recently" list. */
@@ -140,7 +153,11 @@ export function formatDue(iso: string | null, timeZone: string, now: Date): { te
     return { sameDay: day.format(due) === day.format(now), time: time.format(due), date: date.format(due) };
   };
   let p;
-  try { p = parts(timeZone); } catch { p = parts("UTC"); }
+  try {
+    p = parts(timeZone);
+  } catch {
+    p = parts("UTC");
+  }
   const overdue = due.getTime() < now.getTime();
   return { text: `${overdue ? "Overdue, was due" : "Due"} ${p.sameDay ? p.time : `${p.date}, ${p.time}`}`, overdue };
 }
@@ -173,8 +190,13 @@ export function formatShort(iso: string | null | undefined, timeZone: string): s
   if (!iso) return "";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
-  const fmt = (tz: string) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: tz }).format(d);
-  try { return fmt(timeZone); } catch { return fmt("UTC"); }
+  const fmt = (tz: string) =>
+    new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: tz }).format(d);
+  try {
+    return fmt(timeZone);
+  } catch {
+    return fmt("UTC");
+  }
 }
 
 /** One line of a room's history: what the task was, where it stands, and when that happened. */
@@ -182,10 +204,14 @@ export function historyLine(t: TaskRow, timeZone: string): { title: string; deta
   const type = TASK_TYPE_LABEL[t.task_type] ?? t.task_type;
   const at = (iso: string | null | undefined) => formatShort(iso, timeZone);
   switch (t.status) {
-    case "done": return { title: `${type}, done`, detail: [at(t.completed_at), t.completion_note].filter(Boolean).join(": ") };
-    case "cancelled": return { title: `${type}, cancelled`, detail: [at(t.cancelled_at), t.cancel_reason].filter(Boolean).join(": ") };
-    case "in_progress": return { title: `${type}, in progress`, detail: at(t.started_at ?? t.created_at) };
-    default: return { title: `${type}, waiting`, detail: at(t.created_at) };
+    case "done":
+      return { title: `${type}, done`, detail: [at(t.completed_at), t.completion_note].filter(Boolean).join(": ") };
+    case "cancelled":
+      return { title: `${type}, cancelled`, detail: [at(t.cancelled_at), t.cancel_reason].filter(Boolean).join(": ") };
+    case "in_progress":
+      return { title: `${type}, in progress`, detail: at(t.started_at ?? t.created_at) };
+    default:
+      return { title: `${type}, waiting`, detail: at(t.created_at) };
   }
 }
 
@@ -210,7 +236,16 @@ export function zonedToIso(local: string, timeZone: string): string | null {
   if (check.getUTCMonth() !== mo - 1 || check.getUTCDate() !== d || h > 23 || mi > 59) return null;
   const offsetAt = (t: number): number => {
     try {
-      const f = new Intl.DateTimeFormat("en-US", { timeZone, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" });
+      const f = new Intl.DateTimeFormat("en-US", {
+        timeZone,
+        hourCycle: "h23",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
       const p = Object.fromEntries(f.formatToParts(new Date(t)).map((x) => [x.type, x.value]));
       return Date.UTC(Number(p.year), Number(p.month) - 1, Number(p.day), Number(p.hour), Number(p.minute), Number(p.second)) - t;
     } catch {

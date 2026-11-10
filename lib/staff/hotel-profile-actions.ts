@@ -20,7 +20,10 @@ export async function saveHotelProfile(formData: FormData) {
   if (!v.ok) return back(PAGE, { err: v.code });
   const supabase = await staffClient();
   const { error } = await supabase.rpc("update_hotel_profile", {
-    p_property: v.value.propertyId, p_phone: v.value.phone ?? "", p_email: v.value.email ?? "", p_intro: v.value.intro ?? "",
+    p_property: v.value.propertyId,
+    p_phone: v.value.phone ?? "",
+    p_email: v.value.email ?? "",
+    p_intro: v.value.intro ?? "",
   });
   if (error) return back(PAGE, { err: /NOT_FOUND/.test(error.message) ? "setup_forbidden" : classifySetupError(error) });
   revalidatePath(PAGE);
@@ -34,8 +37,13 @@ export async function saveHotelBasics(formData: FormData) {
   if (!v.ok) return back(PAGE, { err: v.code });
   const supabase = await staffClient();
   const { error } = await supabase.rpc("update_hotel_basics", {
-    p_property: v.value.propertyId, p_name: v.value.name, p_address: v.value.address ?? "", p_city: v.value.city, p_state: v.value.state,
-    p_check_in: v.value.checkIn, p_check_out: v.value.checkOut,
+    p_property: v.value.propertyId,
+    p_name: v.value.name,
+    p_address: v.value.address ?? "",
+    p_city: v.value.city,
+    p_state: v.value.state,
+    p_check_in: v.value.checkIn,
+    p_check_out: v.value.checkOut,
   });
   if (error) return back(PAGE, { err: /NOT_FOUND/.test(error.message) ? "setup_forbidden" : classifySetupError(error) });
   revalidatePath(PAGE);
@@ -61,7 +69,9 @@ export async function uploadHotelLogo(formData: FormData) {
 
   const path = logoPath(prop.tenant_id, id.value.propertyId, randomUUID(), check.ext);
   const service = createServiceClient();
-  const { error: upErr } = await service.storage.from(PHOTO_BUCKET).upload(path, await (file as File).arrayBuffer(), { contentType: check.contentType });
+  const { error: upErr } = await service.storage
+    .from(PHOTO_BUCKET)
+    .upload(path, await (file as File).arrayBuffer(), { contentType: check.contentType });
   if (upErr) return back(PAGE, { err: "photo_upload" });
   const { error } = await supabase.rpc("set_hotel_logo", { p_property: id.value.propertyId, p_path: path });
   if (error) {

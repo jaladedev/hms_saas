@@ -10,7 +10,11 @@ export const isPropertyId = (v: unknown): v is string => typeof v === "string" &
  * picked in the header, then the first. A remembered id the person can no longer see (access removed, property closed)
  * is ignored rather than trusted: the choice only ever comes from `list`, which the database already limited.
  */
-export function pickProperty<T extends { id: string }>(list: readonly T[], requested: string | undefined, remembered: string | undefined): T | undefined {
+export function pickProperty<T extends { id: string }>(
+  list: readonly T[],
+  requested: string | undefined,
+  remembered: string | undefined,
+): T | undefined {
   return list.find((p) => p.id === requested) ?? list.find((p) => p.id === remembered) ?? list[0];
 }
 

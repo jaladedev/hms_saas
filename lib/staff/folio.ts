@@ -26,7 +26,14 @@ export const CATEGORY_LABEL: Record<string, string> = Object.fromEntries(FOLIO_C
 export const isFolioCategory = (v: string): v is FolioCategory => FOLIO_CATEGORIES.some((c) => c.value === v);
 
 /** The database's limits (027), repeated here so a form is refused before it is sent. The database still checks them. */
-export const FOLIO_LIMITS = { quantityMax: 1000, unitMaxMinor: 1_000_000_000, descriptionMax: 200, reasonMax: 200, referenceMax: 100, noteMax: 500 } as const;
+export const FOLIO_LIMITS = {
+  quantityMax: 1000,
+  unitMaxMinor: 1_000_000_000,
+  descriptionMax: 200,
+  reasonMax: 200,
+  referenceMax: 100,
+  noteMax: 500,
+} as const;
 
 export type ChargeRow = {
   id: string;
@@ -78,7 +85,9 @@ export const folioIsOpen = (reservationStatus: string) => reservationStatus === 
 
 /** Posted charges in the order they happened; voided ones, most recently voided first. */
 export function splitCharges(rows: ChargeRow[]): { posted: ChargeRow[]; voided: ChargeRow[] } {
-  const posted = rows.filter((c) => c.status === "posted").sort((a, b) => a.charge_date.localeCompare(b.charge_date) || a.created_at.localeCompare(b.created_at));
+  const posted = rows
+    .filter((c) => c.status === "posted")
+    .sort((a, b) => a.charge_date.localeCompare(b.charge_date) || a.created_at.localeCompare(b.created_at));
   const voided = rows.filter((c) => c.status === "voided").sort((a, b) => (b.voided_at ?? "").localeCompare(a.voided_at ?? ""));
   return { posted, voided };
 }
@@ -86,7 +95,9 @@ export function splitCharges(rows: ChargeRow[]): { posted: ChargeRow[]; voided: 
 /** Money received in the order it came in; reversed payments, most recently reversed first. */
 export function splitPayments(rows: PaymentRow[]): { received: PaymentRow[]; reversed: PaymentRow[] } {
   const received = rows.filter((p) => p.payment_status === "succeeded").sort((a, b) => a.received_at.localeCompare(b.received_at));
-  const reversed = rows.filter((p) => p.payment_status === "reversed").sort((a, b) => (b.reversed_at ?? "").localeCompare(a.reversed_at ?? ""));
+  const reversed = rows
+    .filter((p) => p.payment_status === "reversed")
+    .sort((a, b) => (b.reversed_at ?? "").localeCompare(a.reversed_at ?? ""));
   return { received, reversed };
 }
 
@@ -238,7 +249,15 @@ export function classifyFolioError(message: string): { code: ErrorCode; n?: numb
 }
 
 /** Success codes the folio actions send back (worded in `OK_MESSAGES`). */
-export const FOLIO_OK_CODES = ["fo_posted", "fo_voided", "fo_payment", "fo_reversed", "fo_invoiced", "fo_invoice_voided", "fo_emailed"] as const;
+export const FOLIO_OK_CODES = [
+  "fo_posted",
+  "fo_voided",
+  "fo_payment",
+  "fo_reversed",
+  "fo_invoiced",
+  "fo_invoice_voided",
+  "fo_emailed",
+] as const;
 
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);

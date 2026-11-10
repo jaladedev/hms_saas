@@ -15,7 +15,12 @@ function deps(overrides: Partial<WebhookDeps> = {}) {
   const d = {
     loadAccount: vi.fn(async () => ({ tenantId: TENANT, secretReference: "env:X" })),
     resolveSecret: vi.fn(() => SECRET),
-    verifyTransaction: vi.fn(async (): Promise<VerifyResult> => ({ ok: true, transaction: { id: 77, status: "success", reference: "HMS-1", amountMinor: 250000, currency: "NGN", channel: "card" } })),
+    verifyTransaction: vi.fn(
+      async (): Promise<VerifyResult> => ({
+        ok: true,
+        transaction: { id: 77, status: "success", reference: "HMS-1", amountMinor: 250000, currency: "NGN", channel: "card" },
+      }),
+    ),
     confirmPayment: vi.fn(async () => ({ result: "confirmed" })),
     findProcessingRefund: vi.fn(async () => "refund-1" as string | null),
     recordRefundResult: vi.fn(async () => ({ result: "succeeded" })),
@@ -25,7 +30,10 @@ function deps(overrides: Partial<WebhookDeps> = {}) {
   };
   return d;
 }
-const charge = (data: Record<string, unknown> = {}) => ({ event: "charge.success", data: { reference: "HMS-1", amount: 1, currency: "USD", ...data } });
+const charge = (data: Record<string, unknown> = {}) => ({
+  event: "charge.success",
+  data: { reference: "HMS-1", amount: 1, currency: "USD", ...data },
+});
 
 describe("paystack webhook handler", () => {
   it("rejects a bad signature before doing any work", async () => {
@@ -45,7 +53,11 @@ describe("paystack webhook handler", () => {
 
   it("returns 404 for an unknown or inactive account and 500 when the secret cannot be resolved", async () => {
     expect((await handlePaystackWebhook(deps({ loadAccount: vi.fn(async () => null) }), request(charge()))).status).toBe(404);
-    const d = deps({ resolveSecret: vi.fn(() => { throw new Error("nope"); }) });
+    const d = deps({
+      resolveSecret: vi.fn(() => {
+        throw new Error("nope");
+      }),
+    });
     expect((await handlePaystackWebhook(d, request(charge()))).status).toBe(500);
     expect(d.confirmPayment).not.toHaveBeenCalled();
   });
@@ -57,7 +69,15 @@ describe("paystack webhook handler", () => {
     expect(d.verifyTransaction).toHaveBeenCalledWith("HMS-1", SECRET);
     expect(d.confirmPayment).toHaveBeenCalledTimes(1);
     const args = (d.confirmPayment as unknown as ReturnType<typeof vi.fn>).mock.calls[0]![0] as Record<string, unknown>;
-    expect(args).toMatchObject({ providerEventId: "charge.success:77", reference: "HMS-1", status: "success", amountMinor: 250000, currency: "NGN", channel: "card", tenantId: TENANT });
+    expect(args).toMatchObject({
+      providerEventId: "charge.success:77",
+      reference: "HMS-1",
+      status: "success",
+      amountMinor: 250000,
+      currency: "NGN",
+      channel: "card",
+      tenantId: TENANT,
+    });
     expect(JSON.stringify(args.payload)).not.toContain("USD");
   });
 
@@ -73,26 +93,55 @@ describe("paystack webhook handler", () => {
     expect(unknown.confirmPayment).not.toHaveBeenCalled();
 
     for (const status of ["failed", "abandoned", "reversed"]) {
-      const d = deps({ verifyTransaction: vi.fn(async (): Promise<VerifyResult> => ({ ok: true, transaction: { id: 1, status, reference: "HMS-1", amountMinor: 1, currency: "NGN", channel: null } })) });
+      const d = deps({
+        verifyTransaction: vi.fn(
+          async (): Promise<VerifyResult> => ({
+            ok: true,
+            transaction: { id: 1, status, reference: "HMS-1", amountMinor: 1, currency: "NGN", channel: null },
+          }),
+        ),
+      });
       const out = await handlePaystackWebhook(d, request(charge()));
       expect(out.status).toBe(200);
       expect(d.confirmPayment).not.toHaveBeenCalled();
     }
-    const mismatch = deps({ verifyTransaction: vi.fn(async (): Promise<VerifyResult> => ({ ok: true, transaction: { id: 1, status: "success", reference: "HMS-OTHER", amountMinor: 1, currency: "NGN", channel: null } })) });
+    const mismatch = deps({
+      verifyTransaction: vi.fn(
+        async (): Promise<VerifyResult> => ({
+          ok: true,
+          transaction: { id: 1, status: "success", reference: "HMS-OTHER", amountMinor: 1, currency: "NGN", channel: null },
+        }),
+      ),
+    });
     await handlePaystackWebhook(mismatch, request(charge()));
     expect(mismatch.confirmPayment).not.toHaveBeenCalled();
   });
 
   it("asks Paystack to retry while the transaction is not final", async () => {
-    const d = deps({ verifyTransaction: vi.fn(async (): Promise<VerifyResult> => ({ ok: true, transaction: { id: 1, status: "pending", reference: "HMS-1", amountMinor: 1, currency: "NGN", channel: null } })) });
+    const d = deps({
+      verifyTransaction: vi.fn(
+        async (): Promise<VerifyResult> => ({
+          ok: true,
+          transaction: { id: 1, status: "pending", reference: "HMS-1", amountMinor: 1, currency: "NGN", channel: null },
+        }),
+      ),
+    });
     expect((await handlePaystackWebhook(d, request(charge()))).status).toBe(503);
     expect(d.confirmPayment).not.toHaveBeenCalled();
   });
 
   it("answers 5xx when verification or the database fails, so Paystack retries", async () => {
-    const verifyDown = deps({ verifyTransaction: vi.fn(async () => { throw new Error("HTTP 500"); }) });
+    const verifyDown = deps({
+      verifyTransaction: vi.fn(async () => {
+        throw new Error("HTTP 500");
+      }),
+    });
     expect((await handlePaystackWebhook(verifyDown, request(charge()))).status).toBe(500);
-    const dbDown = deps({ confirmPayment: vi.fn(async () => { throw new Error("connection reset"); }) });
+    const dbDown = deps({
+      confirmPayment: vi.fn(async () => {
+        throw new Error("connection reset");
+      }),
+    });
     const out = await handlePaystackWebhook(dbDown, request(charge()));
     expect(out).toEqual({ status: 500, body: { error: "processing failed" } });
   });
@@ -107,32 +156,64 @@ describe("paystack webhook handler", () => {
 
   it("maps refund.processed and refund.failed onto the matching processing refund", async () => {
     const d = deps();
-    const ok = await handlePaystackWebhook(d, request({ event: "refund.processed", data: { id: 555, amount: 250000, transaction_reference: "HMS-1" } }));
+    const ok = await handlePaystackWebhook(
+      d,
+      request({ event: "refund.processed", data: { id: 555, amount: 250000, transaction_reference: "HMS-1" } }),
+    );
     expect(ok.status).toBe(200);
     expect(d.findProcessingRefund).toHaveBeenCalledWith(TENANT, "HMS-1", 250000);
-    expect(d.recordRefundResult).toHaveBeenCalledWith(TENANT, expect.objectContaining({ providerEventId: "refund.processed:555", refundId: "refund-1", status: "succeeded", providerRefundId: "555" }));
+    expect(d.recordRefundResult).toHaveBeenCalledWith(
+      TENANT,
+      expect.objectContaining({
+        providerEventId: "refund.processed:555",
+        refundId: "refund-1",
+        status: "succeeded",
+        providerRefundId: "555",
+      }),
+    );
 
     const failed = deps();
-    await handlePaystackWebhook(failed, request({ event: "refund.failed", data: { id: 556, amount: 100, transaction: { reference: "HMS-2" } } }));
+    await handlePaystackWebhook(
+      failed,
+      request({ event: "refund.failed", data: { id: 556, amount: 100, transaction: { reference: "HMS-2" } } }),
+    );
     expect(failed.findProcessingRefund).toHaveBeenCalledWith(TENANT, "HMS-2", 100);
-    expect(failed.recordRefundResult).toHaveBeenCalledWith(TENANT, expect.objectContaining({ status: "failed", failureReason: expect.any(String) }));
+    expect(failed.recordRefundResult).toHaveBeenCalledWith(
+      TENANT,
+      expect.objectContaining({ status: "failed", failureReason: expect.any(String) }),
+    );
   });
 
   it("handles Paystack's real refund payload: amount as a string, refund_reference as the id", async () => {
     const d = deps();
-    const out = await handlePaystackWebhook(d, request({ event: "refund.processed", data: { status: "processed", transaction_reference: "HMS-7", refund_reference: "rf_abc", amount: "250000", currency: "NGN" } }));
+    const out = await handlePaystackWebhook(
+      d,
+      request({
+        event: "refund.processed",
+        data: { status: "processed", transaction_reference: "HMS-7", refund_reference: "rf_abc", amount: "250000", currency: "NGN" },
+      }),
+    );
     expect(out.status).toBe(200);
     expect(d.findProcessingRefund).toHaveBeenCalledWith(TENANT, "HMS-7", 250000);
-    expect(d.recordRefundResult).toHaveBeenCalledWith(TENANT, expect.objectContaining({ providerEventId: "refund.processed:rf_abc", providerRefundId: "rf_abc", status: "succeeded" }));
+    expect(d.recordRefundResult).toHaveBeenCalledWith(
+      TENANT,
+      expect.objectContaining({ providerEventId: "refund.processed:rf_abc", providerRefundId: "rf_abc", status: "succeeded" }),
+    );
     for (const bad of ["25.5", "-1", "abc", "", "1".repeat(20)]) {
-      const r = await handlePaystackWebhook(deps(), request({ event: "refund.processed", data: { transaction_reference: "HMS-7", amount: bad } }));
+      const r = await handlePaystackWebhook(
+        deps(),
+        request({ event: "refund.processed", data: { transaction_reference: "HMS-7", amount: bad } }),
+      );
       expect(r.status).toBe(400);
     }
   });
 
   it("notes refund.needs-attention on the refund instead of failing or completing it", async () => {
     const d = deps();
-    const out = await handlePaystackWebhook(d, request({ event: "refund.needs-attention", data: { id: 3018, transaction_reference: "HMS-7", amount: "250000" } }));
+    const out = await handlePaystackWebhook(
+      d,
+      request({ event: "refund.needs-attention", data: { id: 3018, transaction_reference: "HMS-7", amount: "250000" } }),
+    );
     expect(out).toEqual({ status: 200, body: { received: true, result: "noted_attention" } });
     expect(d.markRefundNeedsDetails).toHaveBeenCalledWith("refund-1", "3018", expect.stringContaining("bank details"));
     expect(d.recordRefundResult).not.toHaveBeenCalled();
@@ -140,7 +221,10 @@ describe("paystack webhook handler", () => {
 
   it("acknowledges refund events that match nothing, and events it does not act on", async () => {
     const none = deps({ findProcessingRefund: vi.fn(async () => null) });
-    const out = await handlePaystackWebhook(none, request({ event: "refund.processed", data: { id: 1, amount: 5, transaction_reference: "HMS-9" } }));
+    const out = await handlePaystackWebhook(
+      none,
+      request({ event: "refund.processed", data: { id: 1, amount: 5, transaction_reference: "HMS-9" } }),
+    );
     expect(out).toEqual({ status: 200, body: { received: true, result: "ignored_no_match" } });
     expect(none.recordRefundResult).not.toHaveBeenCalled();
 

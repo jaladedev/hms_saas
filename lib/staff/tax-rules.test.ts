@@ -2,16 +2,40 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
-  appliesLine, canApplyToExtras, classifyTaxError, describeRate, doubleTaxes, extrasTaxRules, nextSequence, parseRateValue, parseToggle,
-  rateInputValue, ruleState, sortRules, TAX_RULE_COLUMNS, validateTaxRule, validateTaxRuleEdit, type TaxRuleRow,
+  appliesLine,
+  canApplyToExtras,
+  classifyTaxError,
+  describeRate,
+  doubleTaxes,
+  extrasTaxRules,
+  nextSequence,
+  parseRateValue,
+  parseToggle,
+  rateInputValue,
+  ruleState,
+  sortRules,
+  TAX_RULE_COLUMNS,
+  validateTaxRule,
+  validateTaxRuleEdit,
+  type TaxRuleRow,
 } from "./tax-rules";
 
 const A = "11111111-1111-4111-8111-111111111111";
 const P1 = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const P2 = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const rule = (over: Partial<TaxRuleRow>): TaxRuleRow => ({
-  id: A, property_id: P1, name: "VAT", basis: "percent", rate_value: 7.5, sequence: 1, compounds: false,
-  effective_from: "2026-01-01", effective_to: null, status: "active", applies_to_charges: false, ...over,
+  id: A,
+  property_id: P1,
+  name: "VAT",
+  basis: "percent",
+  rate_value: 7.5,
+  sequence: 1,
+  compounds: false,
+  effective_from: "2026-01-01",
+  effective_to: null,
+  status: "active",
+  applies_to_charges: false,
+  ...over,
 });
 const naira = (minor: number) => `₦${(minor / 100).toFixed(2)}`;
 
@@ -76,7 +100,8 @@ describe("parseToggle", () => {
   it("accepts a rule id and on or off, and nothing else", () => {
     expect(parseToggle({ ruleId: A, apply: "on" })).toEqual({ ok: true, ruleId: A, apply: true });
     expect(parseToggle({ ruleId: A, apply: "off" })).toEqual({ ok: true, ruleId: A, apply: false });
-    for (const bad of [{ ruleId: "nope", apply: "on" }, { ruleId: A, apply: "yes" }, { ruleId: A }, {}]) expect(parseToggle(bad)).toEqual({ ok: false });
+    for (const bad of [{ ruleId: "nope", apply: "on" }, { ruleId: A, apply: "yes" }, { ruleId: A }, {}])
+      expect(parseToggle(bad)).toEqual({ ok: false });
   });
 });
 
@@ -84,7 +109,9 @@ describe("classifyTaxError", () => {
   it("separates a permission refusal from a fixed rule and keeps the rest unknown", () => {
     expect(classifyTaxError({ code: "42501" })).toBe("tax_forbidden");
     expect(classifyTaxError({ message: 'new row violates row-level security policy for table "tax_rules"' })).toBe("tax_forbidden");
-    expect(classifyTaxError({ code: "23514", message: 'violates check constraint "tax_rules_charges_percent_only"' })).toBe("tax_not_percent");
+    expect(classifyTaxError({ code: "23514", message: 'violates check constraint "tax_rules_charges_percent_only"' })).toBe(
+      "tax_not_percent",
+    );
     expect(classifyTaxError({ code: "XX000", message: "boom" })).toBe("unknown");
   });
   it("calls any other check failure or unusable value an invalid rule, not a fixed-rule refusal", () => {
@@ -102,7 +129,8 @@ describe("parseRateValue", () => {
     expect(parseRateValue("percent", " 5 % ")).toBe(5);
     expect(parseRateValue("percent", "100")).toBe(100);
     expect(parseRateValue("percent", "12.3456")).toBe(12.3456);
-    for (const bad of ["0", "0.0", "100.01", "101", "-5", "7,5", "7.12345", "abc", "", "7.5.1", "1e2"]) expect(parseRateValue("percent", bad), bad).toBeNull();
+    for (const bad of ["0", "0.0", "100.01", "101", "-5", "7,5", "7.12345", "abc", "", "7.5.1", "1e2"])
+      expect(parseRateValue("percent", bad), bad).toBeNull();
   });
   it("reads a fixed amount in naira into kobo", () => {
     expect(parseRateValue("fixed_per_night", "1,000")).toBe(100000);
@@ -116,16 +144,55 @@ describe("parseRateValue", () => {
 });
 
 describe("validateTaxRule (add)", () => {
-  const form = { propertyId: P1, name: " VAT ", basis: "percent", rate: "7.5", sequence: "", effectiveFrom: "2026-11-01", effectiveTo: "", compounds: "" };
+  const form = {
+    propertyId: P1,
+    name: " VAT ",
+    basis: "percent",
+    rate: "7.5",
+    sequence: "",
+    effectiveFrom: "2026-11-01",
+    effectiveTo: "",
+    compounds: "",
+  };
   it("accepts a percent rule, trims the name, and leaves a blank order for the action to fill", () => {
     expect(validateTaxRule(form)).toEqual({
-      ok: true, value: { propertyId: P1, basis: "percent", name: "VAT", rateValue: 7.5, sequence: null, compounds: false, effectiveFrom: "2026-11-01", effectiveTo: null, status: "active" },
+      ok: true,
+      value: {
+        propertyId: P1,
+        basis: "percent",
+        name: "VAT",
+        rateValue: 7.5,
+        sequence: null,
+        compounds: false,
+        effectiveFrom: "2026-11-01",
+        effectiveTo: null,
+        status: "active",
+      },
     });
   });
   it("stores a fixed amount in kobo and ignores 'on top of' for it", () => {
-    const r = validateTaxRule({ ...form, name: "Tourism levy", basis: "fixed_per_night", rate: "1,000", compounds: "on", sequence: "3", effectiveTo: "2027-03-31" });
+    const r = validateTaxRule({
+      ...form,
+      name: "Tourism levy",
+      basis: "fixed_per_night",
+      rate: "1,000",
+      compounds: "on",
+      sequence: "3",
+      effectiveTo: "2027-03-31",
+    });
     expect(r).toEqual({
-      ok: true, value: { propertyId: P1, basis: "fixed_per_night", name: "Tourism levy", rateValue: 100000, sequence: 3, compounds: false, effectiveFrom: "2026-11-01", effectiveTo: "2027-03-31", status: "active" },
+      ok: true,
+      value: {
+        propertyId: P1,
+        basis: "fixed_per_night",
+        name: "Tourism levy",
+        rateValue: 100000,
+        sequence: 3,
+        compounds: false,
+        effectiveFrom: "2026-11-01",
+        effectiveTo: "2027-03-31",
+        status: "active",
+      },
     });
   });
   it("lets a percent rule be applied on top of the ones before it", () => {
@@ -139,11 +206,25 @@ describe("validateTaxRule (add)", () => {
   it("refuses a bad property id as a bad request and every other bad field as invalid", () => {
     expect(validateTaxRule({ ...form, propertyId: "nope" })).toEqual({ ok: false, code: "bad_request" });
     const invalid = [
-      { name: "" }, { name: "x".repeat(61) }, { basis: "flat" }, { basis: undefined }, { rate: "0" }, { rate: "abc" }, { sequence: "0" }, { sequence: "1000" }, { sequence: "2.5" },
-      { effectiveFrom: "" }, { effectiveFrom: "2026-02-30" }, { effectiveFrom: "26-01-01" }, { effectiveFrom: "0026-01-01" }, { effectiveFrom: "2101-01-01" },
-      { effectiveTo: "2026-10-31" }, { effectiveTo: "soon" },
+      { name: "" },
+      { name: "x".repeat(61) },
+      { basis: "flat" },
+      { basis: undefined },
+      { rate: "0" },
+      { rate: "abc" },
+      { sequence: "0" },
+      { sequence: "1000" },
+      { sequence: "2.5" },
+      { effectiveFrom: "" },
+      { effectiveFrom: "2026-02-30" },
+      { effectiveFrom: "26-01-01" },
+      { effectiveFrom: "0026-01-01" },
+      { effectiveFrom: "2101-01-01" },
+      { effectiveTo: "2026-10-31" },
+      { effectiveTo: "soon" },
     ];
-    for (const bad of invalid) expect(validateTaxRule({ ...form, ...bad }), JSON.stringify(bad)).toEqual({ ok: false, code: "tax_invalid" });
+    for (const bad of invalid)
+      expect(validateTaxRule({ ...form, ...bad }), JSON.stringify(bad)).toEqual({ ok: false, code: "tax_invalid" });
   });
   it("accepts a rule that ends on its first day", () => {
     expect(validateTaxRule({ ...form, effectiveTo: "2026-11-01" }).ok).toBe(true);
@@ -151,13 +232,42 @@ describe("validateTaxRule (add)", () => {
 });
 
 describe("validateTaxRuleEdit", () => {
-  const form = { ruleId: A, name: "VAT", rate: "10", sequence: "2", effectiveFrom: "2026-01-01", effectiveTo: "", status: "active", compounds: "on" };
+  const form = {
+    ruleId: A,
+    name: "VAT",
+    rate: "10",
+    sequence: "2",
+    effectiveFrom: "2026-01-01",
+    effectiveTo: "",
+    status: "active",
+    compounds: "on",
+  };
   it("reads the rate by the stored rule's kind, not by anything in the form", () => {
     expect(validateTaxRuleEdit(form, "percent")).toEqual({
-      ok: true, value: { ruleId: A, name: "VAT", rateValue: 10, sequence: 2, compounds: true, effectiveFrom: "2026-01-01", effectiveTo: null, status: "active" },
+      ok: true,
+      value: {
+        ruleId: A,
+        name: "VAT",
+        rateValue: 10,
+        sequence: 2,
+        compounds: true,
+        effectiveFrom: "2026-01-01",
+        effectiveTo: null,
+        status: "active",
+      },
     });
     expect(validateTaxRuleEdit({ ...form, basis: "percent", rate: "250" }, "fixed_per_night")).toEqual({
-      ok: true, value: { ruleId: A, name: "VAT", rateValue: 25000, sequence: 2, compounds: false, effectiveFrom: "2026-01-01", effectiveTo: null, status: "active" },
+      ok: true,
+      value: {
+        ruleId: A,
+        name: "VAT",
+        rateValue: 25000,
+        sequence: 2,
+        compounds: false,
+        effectiveFrom: "2026-01-01",
+        effectiveTo: null,
+        status: "active",
+      },
     });
   });
   it("switches a rule off with the status field, and anything but 'inactive' means on", () => {
@@ -218,7 +328,9 @@ describe("rateInputValue", () => {
 
 describe("the columns the screen reads", () => {
   it("exist in the migrations, so a renamed column cannot slip past the tests", () => {
-    const sql = ["20261026000005_pricing.sql", "20261026000027_folio_charges.sql"].map((f) => readFileSync(join(process.cwd(), "supabase/migrations", f), "utf8")).join("\n");
+    const sql = ["20261026000005_pricing.sql", "20261026000027_folio_charges.sql"]
+      .map((f) => readFileSync(join(process.cwd(), "supabase/migrations", f), "utf8"))
+      .join("\n");
     const table = /create table tax_rules \(([\s\S]*?)\n\);/.exec(sql)?.[1] ?? "";
     const columns = new Set([...table.matchAll(/^\s{2}(\w+)\s/gm)].map((m) => m[1]));
     columns.add("applies_to_charges");
@@ -227,7 +339,16 @@ describe("the columns the screen reads", () => {
 });
 
 describe("fixed amount once per stay", () => {
-  const form = { propertyId: P1, name: "Fee", basis: "percent", rate: "7.5", sequence: "", effectiveFrom: "2026-11-01", effectiveTo: "", compounds: "" };
+  const form = {
+    propertyId: P1,
+    name: "Fee",
+    basis: "percent",
+    rate: "7.5",
+    sequence: "",
+    effectiveFrom: "2026-11-01",
+    effectiveTo: "",
+    compounds: "",
+  };
   it("is described as a stay amount per room, and cannot be applied to extras", () => {
     expect(describeRate(rule({ basis: "fixed_per_stay", rate_value: 500000 }), naira)).toBe("₦5000.00 a stay, per room");
     expect(canApplyToExtras(rule({ basis: "fixed_per_stay" }))).toBe(false);
@@ -238,7 +359,15 @@ describe("fixed amount once per stay", () => {
     for (const bad of ["0", "-1", "10.999", "abc", ""]) expect(parseRateValue("fixed_per_stay", bad), bad).toBeNull();
   });
   it("is accepted when a rule is added and never as a compounding rule", () => {
-    const r = validateTaxRule({ ...form, name: "Destination fee", basis: "fixed_per_stay", rate: "5,000", compounds: "on", sequence: "4", effectiveFrom: "2027-01-01" });
+    const r = validateTaxRule({
+      ...form,
+      name: "Destination fee",
+      basis: "fixed_per_stay",
+      rate: "5,000",
+      compounds: "on",
+      sequence: "4",
+      effectiveFrom: "2027-01-01",
+    });
     expect(r.ok && r.value.basis).toBe("fixed_per_stay");
     expect(r.ok && r.value.rateValue).toBe(500000);
     expect(r.ok && r.value.compounds).toBe(false);

@@ -17,7 +17,11 @@ export async function setDiscountCap(formData: FormData) {
   if (!v.ok) return back(PAGE, { err: v.code });
 
   const supabase = await staffClient();
-  const { data, error } = await supabase.rpc("set_discount_cap", { p_property_id: v.value.property, p_role_key: v.value.role, p_percent: v.value.percent });
+  const { data, error } = await supabase.rpc("set_discount_cap", {
+    p_property_id: v.value.property,
+    p_role_key: v.value.role,
+    p_percent: v.value.percent,
+  });
   if (error) return back(PAGE, { err: classifyCapError(error.message) });
 
   revalidatePath(PAGE);

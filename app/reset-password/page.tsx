@@ -24,7 +24,11 @@ export default async function ResetPassword({ searchParams }: { searchParams: Pr
         <p className="mt-2 text-sm text-muted">
           Recovery links work once, for a short time, and in the browser where you asked for them. Ask for a new one and open it there.
         </p>
-        <p className="mt-6 text-sm"><Link href="/forgot-password" className="text-primary-strong underline underline-offset-2">Send a new link</Link></p>
+        <p className="mt-6 text-sm">
+          <Link href="/forgot-password" className="text-primary-strong underline underline-offset-2">
+            Send a new link
+          </Link>
+        </p>
       </main>
     );
   }
@@ -33,8 +37,14 @@ export default async function ResetPassword({ searchParams }: { searchParams: Pr
     <main className="mx-auto max-w-sm px-4 py-24">
       <p className="font-display text-xl text-navy-900">HMS</p>
       <h1 className="mt-6 font-display text-3xl">Choose a new password</h1>
-      <p className="mt-2 text-sm text-muted">At least {MIN_PASSWORD_LENGTH} characters. You will be signed out everywhere and asked to sign in again.</p>
-      {error && <p role="alert" className="mt-6 border-l-4 border-critical bg-critical/5 px-4 py-3 text-sm text-critical">{error}</p>}
+      <p className="mt-2 text-sm text-muted">
+        At least {MIN_PASSWORD_LENGTH} characters. You will be signed out everywhere and asked to sign in again.
+      </p>
+      {error && (
+        <p role="alert" className="mt-6 border-l-4 border-critical bg-critical/5 px-4 py-3 text-sm text-critical">
+          {error}
+        </p>
+      )}
       <form action={updatePassword} className="mt-6 space-y-4">
         <PasswordField name="password" label="New password" autoComplete="new-password" />
         <PasswordField name="confirm" label="Type it again" autoComplete="new-password" />

@@ -30,48 +30,83 @@ export default async function Reserve({ searchParams }: Props) {
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8">
-      <a href={`/?${stayQuery(stay)}`} className="text-sm text-primary underline">Back to rooms</a>
+      <a href={`/?${stayQuery(stay)}`} className="text-sm text-primary underline">
+        Back to rooms
+      </a>
       <h1 className="mt-3 font-display text-3xl">Your reservation</h1>
-      {notice ? <p role="alert" className="mt-4 rounded border border-critical/40 bg-white p-3 text-critical">{notice}</p> : null}
+      {notice ? (
+        <p role="alert" className="mt-4 rounded border border-critical/40 bg-white p-3 text-critical">
+          {notice}
+        </p>
+      ) : null}
 
       <section className="mt-6 rounded border border-line bg-white p-4">
         <h2 className="font-display text-xl">{quote.name}</h2>
         <p className="mt-1 text-sm text-muted">{result.data.property_name}</p>
         {quote.photos && quote.photos.length > 0 ? (
-<>
-          <ul aria-label="Photos" className="mt-3 flex gap-2 overflow-x-auto">
-            {quote.photos.map((ph) => (
-              <li key={ph.path} className="shrink-0">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={photoUrl(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "", ph.path)} alt={ph.caption ?? `${quote.name} photo`} loading="lazy" className="h-28 w-40 rounded border border-line object-cover" />
-              </li>
-            ))}
-          </ul>
+          <>
+            <ul aria-label="Photos" className="mt-3 flex gap-2 overflow-x-auto">
+              {quote.photos.map((ph) => (
+                <li key={ph.path} className="shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={photoUrl(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "", ph.path)}
+                    alt={ph.caption ?? `${quote.name} photo`}
+                    loading="lazy"
+                    className="h-28 w-40 rounded border border-line object-cover"
+                  />
+                </li>
+              ))}
+            </ul>
             <p className="mt-1 text-xs text-muted">{photoCountLabel(quote.photos.length)}</p>
-</>
+          </>
         ) : null}
         {quote.description ? <p className="mt-3 text-sm">{quote.description}</p> : null}
         {quote.amenities && quote.amenities.length > 0 ? (
           <ul aria-label="Amenities" className="mt-2 flex flex-wrap gap-1.5">
-            {quote.amenities.map((x) => <li key={x} className="rounded-full border border-line px-2.5 py-0.5 text-xs text-muted">{x}</li>)}
+            {quote.amenities.map((x) => (
+              <li key={x} className="rounded-full border border-line px-2.5 py-0.5 text-xs text-muted">
+                {x}
+              </li>
+            ))}
           </ul>
         ) : null}
         <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
-          <dt className="text-muted">Check in</dt><dd>{formatDate(stay.arrival)}, from {formatTime(result.data.check_in_time)}</dd>
-          <dt className="text-muted">Check out</dt><dd>{formatDate(stay.departure)}, by {formatTime(result.data.check_out_time)}</dd>
-          <dt className="text-muted">Guests per room</dt><dd>{stay.adults} {stay.adults === 1 ? "adult" : "adults"}{stay.children ? `, ${stay.children} ${stay.children === 1 ? "child" : "children"}` : ""}</dd>
-          <dt className="text-muted">Price per room</dt><dd>{formatMoney(quote.total_minor, result.data.currency)} for {result.data.nights} {result.data.nights === 1 ? "night" : "nights"}, taxes included</dd>
+          <dt className="text-muted">Check in</dt>
+          <dd>
+            {formatDate(stay.arrival)}, from {formatTime(result.data.check_in_time)}
+          </dd>
+          <dt className="text-muted">Check out</dt>
+          <dd>
+            {formatDate(stay.departure)}, by {formatTime(result.data.check_out_time)}
+          </dd>
+          <dt className="text-muted">Guests per room</dt>
+          <dd>
+            {stay.adults} {stay.adults === 1 ? "adult" : "adults"}
+            {stay.children ? `, ${stay.children} ${stay.children === 1 ? "child" : "children"}` : ""}
+          </dd>
+          <dt className="text-muted">Price per room</dt>
+          <dd>
+            {formatMoney(quote.total_minor, result.data.currency)} for {result.data.nights} {result.data.nights === 1 ? "night" : "nights"},
+            taxes included
+          </dd>
         </dl>
       </section>
 
       <section aria-labelledby="policy-heading" className="mt-6 rounded border border-line bg-white p-4">
-        <h2 id="policy-heading" className="font-display text-xl">Payment and cancellation</h2>
+        <h2 id="policy-heading" className="font-display text-xl">
+          Payment and cancellation
+        </h2>
         {policy.ok ? (
           <ul className="mt-2 space-y-1 text-sm">
-            {guestSummary(readConfig(policy.data), (m) => formatMoney(m, result.data.currency)).map((line) => <li key={line}>{line}</li>)}
+            {guestSummary(readConfig(policy.data), (m) => formatMoney(m, result.data.currency)).map((line) => (
+              <li key={line}>{line}</li>
+            ))}
           </ul>
         ) : (
-          <p className="mt-2 text-sm text-critical">The payment and cancellation terms could not be loaded. Reload this page before you hold a room.</p>
+          <p className="mt-2 text-sm text-critical">
+            The payment and cancellation terms could not be loaded. Reload this page before you hold a room.
+          </p>
         )}
       </section>
 
@@ -83,23 +118,51 @@ export default async function Reserve({ searchParams }: Props) {
         <input type="hidden" name="type" value={type} />
         <input type="hidden" name="key" value={key} />
         {maxQty > 1 ? (
-          <label className="block text-sm">Number of rooms
+          <label className="block text-sm">
+            Number of rooms
             <select name="quantity" defaultValue="1" className="mt-1 w-full rounded border border-line p-2">
-              {Array.from({ length: maxQty }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}
+              {Array.from({ length: maxQty }, (_, i) => (
+                <option key={i + 1} value={i + 1}>
+                  {i + 1}
+                </option>
+              ))}
             </select>
           </label>
-        ) : <input type="hidden" name="quantity" value="1" />}
-        <label className="block text-sm">Full name
-          <input name="full_name" autoComplete="name" required minLength={2} maxLength={120} className="mt-1 w-full rounded border border-line p-2" />
+        ) : (
+          <input type="hidden" name="quantity" value="1" />
+        )}
+        <label className="block text-sm">
+          Full name
+          <input
+            name="full_name"
+            autoComplete="name"
+            required
+            minLength={2}
+            maxLength={120}
+            className="mt-1 w-full rounded border border-line p-2"
+          />
         </label>
-        <label className="block text-sm">Email (your booking link is shown next and can be sent here)
-          <input type="email" name="email" autoComplete="email" required maxLength={254} className="mt-1 w-full rounded border border-line p-2" />
+        <label className="block text-sm">
+          Email (your booking link is shown next and can be sent here)
+          <input
+            type="email"
+            name="email"
+            autoComplete="email"
+            required
+            maxLength={254}
+            className="mt-1 w-full rounded border border-line p-2"
+          />
         </label>
-        <label className="block text-sm">Phone (optional)
+        <label className="block text-sm">
+          Phone (optional)
           <input type="tel" name="phone" autoComplete="tel" maxLength={32} className="mt-1 w-full rounded border border-line p-2" />
         </label>
-        <p className="text-sm text-muted">We hold your room for a short time while you pay. Nothing is charged until you choose to pay on the next page.</p>
-        <button type="submit" className="w-full rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-strong">Hold my room</button>
+        <p className="text-sm text-muted">
+          We hold your room for a short time while you pay. Nothing is charged until you choose to pay on the next page.
+        </p>
+        <button type="submit" className="w-full rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-strong">
+          Hold my room
+        </button>
       </form>
     </main>
   );

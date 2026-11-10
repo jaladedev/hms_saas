@@ -24,17 +24,26 @@ export default async function RatesPage({ searchParams }: { searchParams: Promis
   const now = new Date();
 
   const manage = new Map<string, boolean>();
-  await Promise.all(properties.map(async (p) => {
-    const { data } = await supabase.rpc("has_permission", { p_property: p.id, p_permission: "rate.manage" });
-    manage.set(p.id, data === true);
-  }));
+  await Promise.all(
+    properties.map(async (p) => {
+      const { data } = await supabase.rpc("has_permission", { p_property: p.id, p_permission: "rate.manage" });
+      manage.set(p.id, data === true);
+    }),
+  );
 
   // Price overrides from today onward, for each property's default plan.
   const planIds = [...plans.values()].map((p) => p.id);
   const earliest = properties.map((p) => todayIn(p.timezone, now)).sort()[0];
-  const rateQ = planIds.length && earliest
-    ? await supabase.from("daily_rates").select("room_type_id, rate_plan_id, business_date, amount_minor").in("rate_plan_id", planIds).gte("business_date", earliest).order("business_date").limit(5000)
-    : { data: [] };
+  const rateQ =
+    planIds.length && earliest
+      ? await supabase
+          .from("daily_rates")
+          .select("room_type_id, rate_plan_id, business_date, amount_minor")
+          .in("rate_plan_id", planIds)
+          .gte("business_date", earliest)
+          .order("business_date")
+          .limit(5000)
+      : { data: [] };
   const rates = (rateQ.data ?? []) as { room_type_id: string; rate_plan_id: string; business_date: string; amount_minor: number }[];
   const many = properties.length > 1;
 
@@ -42,10 +51,13 @@ export default async function RatesPage({ searchParams }: { searchParams: Promis
     <main className="max-w-4xl">
       <PageTitle>Rates</PageTitle>
       <PageIntro>
-        Each room type has a standard nightly price. Set a different price for a date range, such as a holiday week, and bookings for those nights use it. Prices already booked do not change.
+        Each room type has a standard nightly price. Set a different price for a date range, such as a holiday week, and bookings for those
+        nights use it. Prices already booked do not change.
       </PageIntro>
 
-      <div className="mt-6"><Notice search={search} currency="NGN" /></div>
+      <div className="mt-6">
+        <Notice search={search} currency="NGN" />
+      </div>
       {loadError && <ErrorBanner className="mb-6">The rates could not be loaded. Reload the page.</ErrorBanner>}
 
       {properties.map((p) => {
@@ -60,17 +72,24 @@ export default async function RatesPage({ searchParams }: { searchParams: Promis
             {!plan && (
               <div className="mt-3 border-l-4 border-pending bg-pending/5 px-4 py-3 text-sm">
                 <p className="font-medium">No standard rate plan yet.</p>
-                <p className="mt-1 max-w-prose">Every booking is priced from the hotel's standard rate plan, so until one exists no reservation can be made, in person or online.</p>
+                <p className="mt-1 max-w-prose">
+                  Every booking is priced from the hotel's standard rate plan, so until one exists no reservation can be made, in person or
+                  online.
+                </p>
                 {canManage && (
                   <form action={createDefaultPlan} className="mt-3">
                     <input type="hidden" name="propertyId" value={p.id} />
-                    <button type="submit" className={buttonPrimary}>Create the standard rate plan</button>
+                    <button type="submit" className={buttonPrimary}>
+                      Create the standard rate plan
+                    </button>
                   </form>
                 )}
               </div>
             )}
 
-            {myTypes.length === 0 && <p className="mt-3 text-muted">No room types yet. Add them under Settings, then set their rates here.</p>}
+            {myTypes.length === 0 && (
+              <p className="mt-3 text-muted">No room types yet. Add them under Settings, then set their rates here.</p>
+            )}
 
             {myTypes.map((t) => {
               const mine: StoredRate[] = plan ? rates.filter((r) => r.rate_plan_id === plan.id && r.room_type_id === t.id) : [];
@@ -78,16 +97,27 @@ export default async function RatesPage({ searchParams }: { searchParams: Promis
               return (
                 <div key={t.id} className="mt-5 rounded border border-line bg-white p-4">
                   <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-                    <h3 className="text-lg font-semibold">{t.name} <span className="text-sm font-normal text-muted">{t.code}</span></h3>
-                    <p className="tabular-nums">{formatMoney(t.base_rate_minor, t.currency)} <span className="text-sm text-muted">standard</span></p>
+                    <h3 className="text-lg font-semibold">
+                      {t.name} <span className="text-sm font-normal text-muted">{t.code}</span>
+                    </h3>
+                    <p className="tabular-nums">
+                      {formatMoney(t.base_rate_minor, t.currency)} <span className="text-sm text-muted">standard</span>
+                    </p>
                   </div>
 
                   <h4 className="mt-3 text-sm font-medium">Different prices coming up</h4>
-                  {ranges.length === 0 ? <p className="mt-1 text-sm text-muted">None. Every night uses the standard price.</p> : (
+                  {ranges.length === 0 ? (
+                    <p className="mt-1 text-sm text-muted">None. Every night uses the standard price.</p>
+                  ) : (
                     <ul className="mt-2 divide-y divide-line border-y border-line text-sm">
                       {ranges.map((r) => (
                         <li key={r.from} className="flex flex-wrap items-baseline justify-between gap-x-6 py-2">
-                          <span>{r.from === r.to ? formatDate(r.from) : `${formatDate(r.from)} to ${formatDate(r.to)}`}<span className="ml-2 text-muted">{r.nights} {r.nights === 1 ? "night" : "nights"}</span></span>
+                          <span>
+                            {r.from === r.to ? formatDate(r.from) : `${formatDate(r.from)} to ${formatDate(r.to)}`}
+                            <span className="ml-2 text-muted">
+                              {r.nights} {r.nights === 1 ? "night" : "nights"}
+                            </span>
+                          </span>
                           <span className="tabular-nums font-medium">{formatMoney(r.amountMinor, t.currency)}</span>
                         </li>
                       ))}
@@ -104,19 +134,44 @@ export default async function RatesPage({ searchParams }: { searchParams: Promis
                           <p className="text-sm font-medium">Set a price</p>
                           <div className="grid grid-cols-2 gap-2">
                             <div>
-                              <label htmlFor={`sf-${t.id}`} className="block text-xs text-muted">First night</label>
-                              <input id={`sf-${t.id}`} name="from" type="date" required min={today} defaultValue={today} className={inputClass} />
+                              <label htmlFor={`sf-${t.id}`} className="block text-xs text-muted">
+                                First night
+                              </label>
+                              <input
+                                id={`sf-${t.id}`}
+                                name="from"
+                                type="date"
+                                required
+                                min={today}
+                                defaultValue={today}
+                                className={inputClass}
+                              />
                             </div>
                             <div>
-                              <label htmlFor={`st-${t.id}`} className="block text-xs text-muted">Last night</label>
+                              <label htmlFor={`st-${t.id}`} className="block text-xs text-muted">
+                                Last night
+                              </label>
                               <input id={`st-${t.id}`} name="to" type="date" required min={today} className={inputClass} />
                             </div>
                           </div>
                           <div>
-                            <label htmlFor={`sa-${t.id}`} className="block text-xs text-muted">Price a night (₦)</label>
-                            <input id={`sa-${t.id}`} name="amount" inputMode="decimal" required placeholder="60,000" className={`${inputClass} tabular-nums`} />
+                            <label htmlFor={`sa-${t.id}`} className="block text-xs text-muted">
+                              Price a night (₦)
+                            </label>
+                            <input
+                              id={`sa-${t.id}`}
+                              name="amount"
+                              inputMode="decimal"
+                              required
+                              placeholder="60,000"
+                              className={`${inputClass} tabular-nums`}
+                            />
                           </div>
-                          <div><button type="submit" className={buttonPrimary}>Save price</button></div>
+                          <div>
+                            <button type="submit" className={buttonPrimary}>
+                              Save price
+                            </button>
+                          </div>
                         </form>
                         <form action={clearRates} className="grid gap-3">
                           <input type="hidden" name="propertyId" value={p.id} />
@@ -124,15 +179,31 @@ export default async function RatesPage({ searchParams }: { searchParams: Promis
                           <p className="text-sm font-medium">Go back to the standard price</p>
                           <div className="grid grid-cols-2 gap-2">
                             <div>
-                              <label htmlFor={`cf-${t.id}`} className="block text-xs text-muted">First night</label>
-                              <input id={`cf-${t.id}`} name="from" type="date" required min={today} defaultValue={today} className={inputClass} />
+                              <label htmlFor={`cf-${t.id}`} className="block text-xs text-muted">
+                                First night
+                              </label>
+                              <input
+                                id={`cf-${t.id}`}
+                                name="from"
+                                type="date"
+                                required
+                                min={today}
+                                defaultValue={today}
+                                className={inputClass}
+                              />
                             </div>
                             <div>
-                              <label htmlFor={`ct-${t.id}`} className="block text-xs text-muted">Last night</label>
+                              <label htmlFor={`ct-${t.id}`} className="block text-xs text-muted">
+                                Last night
+                              </label>
                               <input id={`ct-${t.id}`} name="to" type="date" required min={today} className={inputClass} />
                             </div>
                           </div>
-                          <div><button type="submit" className={buttonDanger}>Remove different prices</button></div>
+                          <div>
+                            <button type="submit" className={buttonDanger}>
+                              Remove different prices
+                            </button>
+                          </div>
                         </form>
                       </div>
                     </details>

@@ -126,7 +126,8 @@ export async function handlePaystackWebhook(
     if (event === "refund.processed" || event === "refund.failed" || event === "refund.needs-attention") {
       // Payload per Paystack's refund docs: data.transaction_reference, data.refund_reference (null while pending),
       // data.amount as a string, data.currency, data.status.
-      const transaction = typeof data.transaction === "object" && data.transaction !== null ? (data.transaction as Record<string, unknown>) : {};
+      const transaction =
+        typeof data.transaction === "object" && data.transaction !== null ? (data.transaction as Record<string, unknown>) : {};
       const txRef = str(data.transaction_reference) ?? str(transaction.reference);
       const amount = int(data.amount);
       if (!txRef || amount === null) return { status: 400, body: { error: "missing transaction reference or amount" } };
@@ -137,7 +138,11 @@ export async function handlePaystackWebhook(
       }
       if (event === "refund.needs-attention") {
         // data.id is Paystack's own refund id, which the retry endpoint is addressed by (refund_reference is the bank's).
-        await deps.markRefundNeedsDetails(refundId, idLike(data.id), "Paystack needs the customer's bank details to complete this refund (refund.needs-attention)");
+        await deps.markRefundNeedsDetails(
+          refundId,
+          idLike(data.id),
+          "Paystack needs the customer's bank details to complete this refund (refund.needs-attention)",
+        );
         return { status: 200, body: { received: true, result: "noted_attention" } };
       }
       const providerRefundId = idLike(data.refund_reference) ?? idLike(data.id);

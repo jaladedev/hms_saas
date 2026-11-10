@@ -2,13 +2,17 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { errorMessage, OK_MESSAGES, type ErrorCode } from "./refunds";
 import { MAX_NIGHTS } from "./new-reservation";
-import {
-  classifyStayError, guestsPayload, parseStayForm, resultCode, STAY_OK_CODES, STAY_REASON_MAX, stayEditView,
-} from "./stay-edit";
+import { classifyStayError, guestsPayload, parseStayForm, resultCode, STAY_OK_CODES, STAY_REASON_MAX, stayEditView } from "./stay-edit";
 
 const RR1 = "6f1c1c1e-2b7a-4a55-9a43-1d2a8d9a1f10";
 const RR2 = "7a2d2d2f-3c8b-4b66-8b54-2e3b9e0b2a21";
-const good = { arrival: "2026-12-01", departure: "2026-12-04", reason: "  Guest stays longer ", [`adults_${RR1}`]: "2", [`children_${RR1}`]: "0" };
+const good = {
+  arrival: "2026-12-01",
+  departure: "2026-12-04",
+  reason: "  Guest stays longer ",
+  [`adults_${RR1}`]: "2",
+  [`children_${RR1}`]: "0",
+};
 
 describe("stayEditView", () => {
   const base = { reservationStatus: "confirmed", rooms: [{ room_status: "booked" }], canModify: true };
@@ -31,20 +35,44 @@ describe("stayEditView", () => {
 describe("parseStayForm", () => {
   it("reads a good form: dates, trimmed reason and the guests per room", () => {
     expect(parseStayForm(good)).toEqual({
-      ok: true, value: { arrival: "2026-12-01", departure: "2026-12-04", reason: "Guest stays longer", guests: [{ reservationRoomId: RR1, adults: 2, children: 0 }] },
+      ok: true,
+      value: {
+        arrival: "2026-12-01",
+        departure: "2026-12-04",
+        reason: "Guest stays longer",
+        guests: [{ reservationRoomId: RR1, adults: 2, children: 0 }],
+      },
     });
   });
   it("reads every room on a multi-room booking and treats a missing children field as none", () => {
     const v = parseStayForm({ ...good, [`adults_${RR2}`]: "1", [`children_${RR2}`]: "1" });
-    expect(v).toMatchObject({ ok: true, value: { guests: [{ reservationRoomId: RR1, adults: 2, children: 0 }, { reservationRoomId: RR2, adults: 1, children: 1 }] } });
+    expect(v).toMatchObject({
+      ok: true,
+      value: {
+        guests: [
+          { reservationRoomId: RR1, adults: 2, children: 0 },
+          { reservationRoomId: RR2, adults: 1, children: 1 },
+        ],
+      },
+    });
     const { [`children_${RR1}`]: _gone, ...noChildren } = good;
     expect(parseStayForm(noChildren)).toMatchObject({ ok: true, value: { guests: [{ adults: 2, children: 0 }] } });
   });
   it("accepts a form with no guest fields at all (dates only)", () => {
-    expect(parseStayForm({ arrival: "2026-12-01", departure: "2026-12-02", reason: "x" })).toMatchObject({ ok: true, value: { guests: [] } });
+    expect(parseStayForm({ arrival: "2026-12-01", departure: "2026-12-02", reason: "x" })).toMatchObject({
+      ok: true,
+      value: { guests: [] },
+    });
   });
   it("needs two real dates with the departure after the arrival", () => {
-    for (const d of [{ arrival: "" }, { departure: undefined }, { arrival: "2026-02-30" }, { departure: "01/12/2026" }, { departure: "2026-12-01" }, { departure: "2026-11-30" }]) {
+    for (const d of [
+      { arrival: "" },
+      { departure: undefined },
+      { arrival: "2026-02-30" },
+      { departure: "01/12/2026" },
+      { departure: "2026-12-01" },
+      { departure: "2026-11-30" },
+    ]) {
       expect(parseStayForm({ ...good, ...d }), JSON.stringify(d)).toEqual({ ok: false, code: "se_dates" });
     }
   });
@@ -54,7 +82,8 @@ describe("parseStayForm", () => {
     expect(MAX_NIGHTS).toBe(30);
   });
   it("needs a reason of up to 200 characters", () => {
-    for (const reason of ["", "   ", undefined]) expect(parseStayForm({ ...good, reason }), String(reason)).toEqual({ ok: false, code: "se_reason" });
+    for (const reason of ["", "   ", undefined])
+      expect(parseStayForm({ ...good, reason }), String(reason)).toEqual({ ok: false, code: "se_reason" });
     expect(parseStayForm({ ...good, reason: "r".repeat(STAY_REASON_MAX + 1) })).toEqual({ ok: false, code: "se_reason" });
     expect(parseStayForm({ ...good, reason: "r".repeat(STAY_REASON_MAX) }).ok).toBe(true);
   });
@@ -62,14 +91,17 @@ describe("parseStayForm", () => {
     for (const adults of ["0", "-1", "1.5", "two", "", "21", "100"]) {
       expect(parseStayForm({ ...good, [`adults_${RR1}`]: adults }), adults).toEqual({ ok: false, code: "se_capacity" });
     }
-    for (const children of ["-1", "x", "21"]) expect(parseStayForm({ ...good, [`children_${RR1}`]: children }), children).toEqual({ ok: false, code: "se_capacity" });
+    for (const children of ["-1", "x", "21"])
+      expect(parseStayForm({ ...good, [`children_${RR1}`]: children }), children).toEqual({ ok: false, code: "se_capacity" });
     expect(parseStayForm({ ...good, adults_notanid: "1" })).toEqual({ ok: false, code: "se_room" });
   });
   it("ignores a file posted in place of text", () => {
     expect(parseStayForm({ ...good, reason: new File(["x"], "x.txt") })).toEqual({ ok: false, code: "se_reason" });
   });
   it("builds the database payload in its own field names", () => {
-    expect(guestsPayload([{ reservationRoomId: RR1, adults: 2, children: 1 }])).toEqual([{ reservation_room_id: RR1, adults: 2, children: 1 }]);
+    expect(guestsPayload([{ reservationRoomId: RR1, adults: 2, children: 1 }])).toEqual([
+      { reservation_room_id: RR1, adults: 2, children: 1 },
+    ]);
     expect(guestsPayload([])).toEqual([]);
   });
 });
@@ -89,14 +121,25 @@ describe("resultCode", () => {
 describe("classifyStayError", () => {
   it("maps every text migration 033 can raise", () => {
     const cases: [string, ErrorCode][] = [
-      ["NOT_FOUND", "se_not_found"], ["FORBIDDEN", "se_not_found"], ["IDEMPOTENCY_MISMATCH", "se_duplicate"],
+      ["NOT_FOUND", "se_not_found"],
+      ["FORBIDDEN", "se_not_found"],
+      ["IDEMPOTENCY_MISMATCH", "se_duplicate"],
       ["INVALID_STATE: payment started", "se_payment_started"],
-      ["INVALID_STATE: split stay", "se_split"], ["INVALID_STATE: cancelled", "se_not_editable"], ["INVALID_STATE: pending", "se_not_editable"],
-      ["INVALID_STATE: checked_in", "se_not_editable"], ["INVALID_STATE: room", "se_not_editable"],
-      ["CAPACITY_EXCEEDED", "se_capacity"], ["ROOM_UNAVAILABLE", "se_unavailable"], ["RATE_MISSING: no rate", "se_rate"],
-      ["POLICY_VIOLATION: reason", "se_reason"], ["POLICY_VIOLATION: departure must follow arrival", "se_dates"],
-      ["POLICY_VIOLATION: stay too long", "se_too_long"], ["POLICY_VIOLATION: arrival in the past", "se_arrival_past"],
-      ["POLICY_VIOLATION: guests", "se_capacity"], ["POLICY_VIOLATION: room", "se_room"], ["POLICY_VIOLATION: discount", "se_discount"],
+      ["INVALID_STATE: split stay", "se_split"],
+      ["INVALID_STATE: cancelled", "se_not_editable"],
+      ["INVALID_STATE: pending", "se_not_editable"],
+      ["INVALID_STATE: checked_in", "se_not_editable"],
+      ["INVALID_STATE: room", "se_not_editable"],
+      ["CAPACITY_EXCEEDED", "se_capacity"],
+      ["ROOM_UNAVAILABLE", "se_unavailable"],
+      ["RATE_MISSING: no rate", "se_rate"],
+      ["POLICY_VIOLATION: reason", "se_reason"],
+      ["POLICY_VIOLATION: departure must follow arrival", "se_dates"],
+      ["POLICY_VIOLATION: stay too long", "se_too_long"],
+      ["POLICY_VIOLATION: arrival in the past", "se_arrival_past"],
+      ["POLICY_VIOLATION: guests", "se_capacity"],
+      ["POLICY_VIOLATION: room", "se_room"],
+      ["POLICY_VIOLATION: discount", "se_discount"],
     ];
     for (const [message, code] of cases) expect(classifyStayError(message), message).toBe(code);
   });
@@ -115,8 +158,20 @@ describe("classifyStayError", () => {
 
 describe("words for the edit", () => {
   const codes: ErrorCode[] = [
-    "se_dates", "se_too_long", "se_reason", "se_room", "se_capacity", "se_arrival_past", "se_unavailable", "se_rate",
-    "se_payment_started", "se_split", "se_not_editable", "se_discount", "se_not_found", "se_duplicate",
+    "se_dates",
+    "se_too_long",
+    "se_reason",
+    "se_room",
+    "se_capacity",
+    "se_arrival_past",
+    "se_unavailable",
+    "se_rate",
+    "se_payment_started",
+    "se_split",
+    "se_not_editable",
+    "se_discount",
+    "se_not_found",
+    "se_duplicate",
   ];
   it("has a plain sentence for every error code and never echoes raw database text", () => {
     for (const c of codes) {

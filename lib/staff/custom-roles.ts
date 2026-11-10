@@ -4,20 +4,65 @@ export const OWNER_ONLY_PERMISSION = "staff.manage";
 
 /** Every permission a custom role may hold, grouped and worded for a hotel owner. staff.manage is not here on purpose. */
 export const PERMISSION_GROUPS: { title: string; items: { key: string; label: string }[] }[] = [
-  { title: "Rooms", items: [
-    { key: "room.view", label: "See rooms and their status" }, { key: "room.assign", label: "Assign and move guests between rooms" }, { key: "room.block", label: "Block rooms" }] },
-  { title: "Bookings", items: [
-    { key: "reservation.view", label: "See bookings" }, { key: "reservation.create", label: "Create bookings" }, { key: "reservation.modify", label: "Change bookings and answer guest requests" },
-    { key: "reservation.cancel", label: "Cancel bookings" }, { key: "reservation.checkin", label: "Check guests in" }, { key: "reservation.checkout", label: "Check guests out" }] },
-  { title: "Guests", items: [{ key: "guest.view", label: "See guest details" }, { key: "guest.manage", label: "Edit guest details" }] },
-  { title: "Money", items: [
-    { key: "payment.record", label: "Record payments" }, { key: "payment.verify", label: "Verify payments" }, { key: "refund.request", label: "Request refunds" },
-    { key: "refund.approve", label: "Approve refunds" }, { key: "invoice.issue", label: "Issue invoices" }, { key: "invoice.void", label: "Void invoices" }, { key: "folio.charge", label: "Add charges to a guest's bill" },
-    { key: "discount.apply", label: "Give discounts" }, { key: "rate.view", label: "See rates" }, { key: "rate.manage", label: "Change rates" }] },
-  { title: "Reports and records", items: [
-    { key: "report.view", label: "See reports" }, { key: "report.export", label: "Export reports" }, { key: "audit.view", label: "See the audit trail" }] },
-  { title: "Housekeeping and repairs", items: [
-    { key: "housekeeping.view", label: "See cleaning tasks" }, { key: "housekeeping.update", label: "Update cleaning status" }, { key: "housekeeping.assign", label: "Assign cleaning tasks" }, { key: "maintenance.view", label: "See repair requests" }, { key: "maintenance.manage", label: "Manage repairs" }] },
+  {
+    title: "Rooms",
+    items: [
+      { key: "room.view", label: "See rooms and their status" },
+      { key: "room.assign", label: "Assign and move guests between rooms" },
+      { key: "room.block", label: "Block rooms" },
+    ],
+  },
+  {
+    title: "Bookings",
+    items: [
+      { key: "reservation.view", label: "See bookings" },
+      { key: "reservation.create", label: "Create bookings" },
+      { key: "reservation.modify", label: "Change bookings and answer guest requests" },
+      { key: "reservation.cancel", label: "Cancel bookings" },
+      { key: "reservation.checkin", label: "Check guests in" },
+      { key: "reservation.checkout", label: "Check guests out" },
+    ],
+  },
+  {
+    title: "Guests",
+    items: [
+      { key: "guest.view", label: "See guest details" },
+      { key: "guest.manage", label: "Edit guest details" },
+    ],
+  },
+  {
+    title: "Money",
+    items: [
+      { key: "payment.record", label: "Record payments" },
+      { key: "payment.verify", label: "Verify payments" },
+      { key: "refund.request", label: "Request refunds" },
+      { key: "refund.approve", label: "Approve refunds" },
+      { key: "invoice.issue", label: "Issue invoices" },
+      { key: "invoice.void", label: "Void invoices" },
+      { key: "folio.charge", label: "Add charges to a guest's bill" },
+      { key: "discount.apply", label: "Give discounts" },
+      { key: "rate.view", label: "See rates" },
+      { key: "rate.manage", label: "Change rates" },
+    ],
+  },
+  {
+    title: "Reports and records",
+    items: [
+      { key: "report.view", label: "See reports" },
+      { key: "report.export", label: "Export reports" },
+      { key: "audit.view", label: "See the audit trail" },
+    ],
+  },
+  {
+    title: "Housekeeping and repairs",
+    items: [
+      { key: "housekeeping.view", label: "See cleaning tasks" },
+      { key: "housekeeping.update", label: "Update cleaning status" },
+      { key: "housekeeping.assign", label: "Assign cleaning tasks" },
+      { key: "maintenance.view", label: "See repair requests" },
+      { key: "maintenance.manage", label: "Manage repairs" },
+    ],
+  },
   { title: "Hotel settings", items: [{ key: "property.configure", label: "Change hotel settings, policies and taxes" }] },
 ];
 

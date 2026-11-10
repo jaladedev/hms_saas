@@ -13,15 +13,40 @@ const whole = (v: unknown, min: number, max: number): number | null => {
 
 /** "Deluxe Double, Garden View" becomes "deluxe-double-garden-view". Empty when nothing usable is left. */
 export function slugify(name: string): string {
-  return name.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
+  return name
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
 }
 
 export type RoomTypeInput = {
-  propertyId: string; name: string; code: string; slug: string; description: string | null; amenities: string[];
-  maxAdults: number; maxChildren: number; maxOccupancy: number; baseRateMinor: number; isPublic: boolean;
+  propertyId: string;
+  name: string;
+  code: string;
+  slug: string;
+  description: string | null;
+  amenities: string[];
+  maxAdults: number;
+  maxChildren: number;
+  maxOccupancy: number;
+  baseRateMinor: number;
+  isPublic: boolean;
 };
 
-type TypeFields = { name: string; slug: string; description: string | null; amenities: string[]; maxAdults: number; maxChildren: number; maxOccupancy: number; baseRateMinor: number; isPublic: boolean };
+type TypeFields = {
+  name: string;
+  slug: string;
+  description: string | null;
+  amenities: string[];
+  maxAdults: number;
+  maxChildren: number;
+  maxOccupancy: number;
+  baseRateMinor: number;
+  isPublic: boolean;
+};
 
 export const MAX_AMENITIES = 20;
 export const MAX_AMENITY_LENGTH = 40;
@@ -69,7 +94,20 @@ function parseTypeFields(raw: Record<string, unknown>): { ok: true; value: TypeF
   if (description.length > 500) return { ok: false, code: "setup_invalid" };
   const amenities = parseAmenities(raw.amenities);
   if (amenities === null) return { ok: false, code: "setup_invalid" };
-  return { ok: true, value: { name, slug, description: description || null, amenities, maxAdults, maxChildren, maxOccupancy, baseRateMinor, isPublic: raw.isPublic === "on" } };
+  return {
+    ok: true,
+    value: {
+      name,
+      slug,
+      description: description || null,
+      amenities,
+      maxAdults,
+      maxChildren,
+      maxOccupancy,
+      baseRateMinor,
+      isPublic: raw.isPublic === "on",
+    },
+  };
 }
 
 export function validateRoomType(raw: Record<string, unknown>): { ok: true; value: RoomTypeInput } | { ok: false; code: ErrorCode } {

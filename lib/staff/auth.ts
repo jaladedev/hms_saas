@@ -30,13 +30,19 @@ export type SignInErrorCode = "invalid" | "no_access" | "rate" | "unavailable";
 
 export function signInErrorMessage(code: string | undefined): string | null {
   switch (code as SignInErrorCode | undefined) {
-    case undefined: return null;
+    case undefined:
+      return null;
     // Deliberately the same for an unknown email and a wrong password.
-    case "invalid": return "That email and password do not match an account.";
-    case "no_access": return "This account is not active at any hotel. Ask the owner to check your access.";
-    case "rate": return "Too many attempts. Wait a few minutes and try again.";
-    case "unavailable": return "Sign-in is not available right now. Try again in a moment.";
-    default: return "That email and password do not match an account.";
+    case "invalid":
+      return "That email and password do not match an account.";
+    case "no_access":
+      return "This account is not active at any hotel. Ask the owner to check your access.";
+    case "rate":
+      return "Too many attempts. Wait a few minutes and try again.";
+    case "unavailable":
+      return "Sign-in is not available right now. Try again in a moment.";
+    default:
+      return "That email and password do not match an account.";
   }
 }
 
@@ -78,14 +84,22 @@ export type ResetErrorCode = PasswordProblem | "same" | "weak" | "expired" | "un
 
 export function resetErrorMessage(code: string | undefined): string | null {
   switch (code as ResetErrorCode | undefined) {
-    case undefined: return null;
-    case "mismatch": return "The two passwords are not the same.";
-    case "short": return `Use at least ${MIN_PASSWORD_LENGTH} characters.`;
-    case "long": return "That password is too long. Use 72 bytes or fewer (about 72 characters, fewer if it has accents or symbols).";
-    case "same": return "Choose a password you have not used for this account before.";
-    case "weak": return "That password is too easy to guess. Add more characters or a few unrelated words.";
-    case "expired": return "This link has expired or was already used. Ask for a new one.";
-    default: return "Something went wrong, and your password was not changed. Try again in a moment.";
+    case undefined:
+      return null;
+    case "mismatch":
+      return "The two passwords are not the same.";
+    case "short":
+      return `Use at least ${MIN_PASSWORD_LENGTH} characters.`;
+    case "long":
+      return "That password is too long. Use 72 bytes or fewer (about 72 characters, fewer if it has accents or symbols).";
+    case "same":
+      return "Choose a password you have not used for this account before.";
+    case "weak":
+      return "That password is too easy to guess. Add more characters or a few unrelated words.";
+    case "expired":
+      return "This link has expired or was already used. Ask for a new one.";
+    default:
+      return "Something went wrong, and your password was not changed. Try again in a moment.";
   }
 }
 

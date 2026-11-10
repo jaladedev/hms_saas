@@ -5,19 +5,34 @@ import { useFormStatus } from "react-dom";
 import { buttonPrimary, inputClass } from "./ui";
 
 export function PasswordField({
-  name = "password", label = "Password", autoComplete = "current-password",
-}: { name?: string; label?: string; autoComplete?: "current-password" | "new-password" }) {
+  name = "password",
+  label = "Password",
+  autoComplete = "current-password",
+}: {
+  name?: string;
+  label?: string;
+  autoComplete?: "current-password" | "new-password";
+}) {
   const [shown, setShown] = useState(false);
   return (
     <div>
-      <label htmlFor={name} className="block text-sm font-medium">{label}</label>
+      <label htmlFor={name} className="block text-sm font-medium">
+        {label}
+      </label>
       <div className="mt-1 flex gap-2">
         <input
-          id={name} name={name} type={shown ? "text" : "password"} required maxLength={200}
-          autoComplete={autoComplete} className={inputClass}
+          id={name}
+          name={name}
+          type={shown ? "text" : "password"}
+          required
+          maxLength={200}
+          autoComplete={autoComplete}
+          className={inputClass}
         />
         <button
-          type="button" onClick={() => setShown((s) => !s)} aria-pressed={shown}
+          type="button"
+          onClick={() => setShown((s) => !s)}
+          aria-pressed={shown}
           className="shrink-0 rounded border border-line bg-white px-3 text-sm hover:bg-paper focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           {shown ? "Hide" : "Show"}

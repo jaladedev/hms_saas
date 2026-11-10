@@ -2,8 +2,16 @@ import { describe, expect, it } from "vitest";
 import { dayOccupancy, parseRange, presets, toCsv, totals, type ReportDay } from "./reports";
 
 const row = (o: Partial<ReportDay>): ReportDay => ({
-  day: "2026-11-01", rooms_available: 10, rooms_sold: 5, room_revenue_minor: 5_000_000, room_tax_minor: 375_000,
-  extras_minor: 200_000, extras_tax_minor: 15_000, cash_in_minor: 3_000_000, refunds_paid_minor: 500_000, ...o,
+  day: "2026-11-01",
+  rooms_available: 10,
+  rooms_sold: 5,
+  room_revenue_minor: 5_000_000,
+  room_tax_minor: 375_000,
+  extras_minor: 200_000,
+  extras_tax_minor: 15_000,
+  cash_in_minor: 3_000_000,
+  refunds_paid_minor: 500_000,
+  ...o,
 });
 
 describe("parseRange", () => {
@@ -29,7 +37,19 @@ describe("parseRange", () => {
 
 describe("totals", () => {
   it("adds earned and cash separately", () => {
-    const t = totals([row({}), row({ day: "2026-11-02", rooms_sold: 0, room_revenue_minor: 0, room_tax_minor: 0, extras_minor: 0, extras_tax_minor: 0, cash_in_minor: 0, refunds_paid_minor: 100_000 })]);
+    const t = totals([
+      row({}),
+      row({
+        day: "2026-11-02",
+        rooms_sold: 0,
+        room_revenue_minor: 0,
+        room_tax_minor: 0,
+        extras_minor: 0,
+        extras_tax_minor: 0,
+        cash_in_minor: 0,
+        refunds_paid_minor: 100_000,
+      }),
+    ]);
     expect(t.roomNights).toBe(5);
     expect(t.occupancyPercent).toBe(25);
     expect(t.earned).toBe(5_200_000);
@@ -49,7 +69,9 @@ describe("totals", () => {
 describe("toCsv", () => {
   it("writes a header, one line a day and naira with two decimals", () => {
     const csv = toCsv([row({})]);
-    expect(csv.split("\n")[0]).toBe("Date,Rooms available,Rooms sold,Occupancy %,Room revenue,Room tax,Extras,Extras tax,Cash received,Refunds paid");
+    expect(csv.split("\n")[0]).toBe(
+      "Date,Rooms available,Rooms sold,Occupancy %,Room revenue,Room tax,Extras,Extras tax,Cash received,Refunds paid",
+    );
     expect(csv.split("\n")[1]).toBe("2026-11-01,10,5,50,50000.00,3750.00,2000.00,150.00,30000.00,5000.00");
     expect(csv.endsWith("\n")).toBe(true);
   });
@@ -65,6 +87,7 @@ describe("presets", () => {
     expect(p["This month"]).toMatchObject({ from: "2027-01-01", to: "2027-01-03" });
   });
   it("never asks for more than the report allows", () => {
-    for (const x of presets("2026-11-03")) expect(parseRange(x.from, x.to, "2026-11-03")).toMatchObject({ from: x.from, to: x.to, trimmed: false });
+    for (const x of presets("2026-11-03"))
+      expect(parseRange(x.from, x.to, "2026-11-03")).toMatchObject({ from: x.from, to: x.to, trimmed: false });
   });
 });

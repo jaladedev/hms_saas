@@ -15,9 +15,7 @@ export const STAY_REASON_MAX = 200;
 const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export type StayRoom = { room_status: string };
-export type StayEditView =
-  | { kind: "hidden" }
-  | { kind: "editable" };
+export type StayEditView = { kind: "hidden" } | { kind: "editable" };
 
 /**
  * Whether to offer the form. "hidden" for people who may not edit and for bookings that cannot be edited at all (not
@@ -25,9 +23,7 @@ export type StayEditView =
  * invoice is replaced and a surplus is flagged for refund). A provider payment in flight or a discount cannot be seen from
  * here, so the database may still refuse an editable booking.
  */
-export function stayEditView(args: {
-  reservationStatus: string; rooms: StayRoom[]; canModify: boolean;
-}): StayEditView {
+export function stayEditView(args: { reservationStatus: string; rooms: StayRoom[]; canModify: boolean }): StayEditView {
   if (!args.canModify || args.reservationStatus !== "confirmed") return { kind: "hidden" };
   if (args.rooms.length === 0 || args.rooms.some((r) => r.room_status !== "booked")) return { kind: "hidden" };
   return { kind: "editable" };
@@ -72,7 +68,8 @@ export function parseStayForm(raw: Raw): Parsed<StayEdit> {
 }
 
 /** The `p_guests` payload for the database. */
-export const guestsPayload = (g: StayGuests[]) => g.map((x) => ({ reservation_room_id: x.reservationRoomId, adults: x.adults, children: x.children }));
+export const guestsPayload = (g: StayGuests[]) =>
+  g.map((x) => ({ reservation_room_id: x.reservationRoomId, adults: x.adults, children: x.children }));
 
 /** What the database answers: the new dates and total, and how many rooms had to move. */
 export type StayResult = { changed: boolean; rooms_moved?: number; surplus_minor?: number; invoice_replaced?: boolean };

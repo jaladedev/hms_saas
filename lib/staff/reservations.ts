@@ -6,14 +6,28 @@ export type RoomStatus = "booked" | "checked_in" | "checked_out" | "cancelled";
 export const PAGE_SIZE = 25;
 
 export const STATUS_LABEL: Record<string, string> = {
-  pending: "Awaiting payment", confirmed: "Confirmed", checked_in: "In house", checked_out: "Checked out",
-  cancelled: "Cancelled", no_show: "No-show", expired: "Expired",
+  pending: "Awaiting payment",
+  confirmed: "Confirmed",
+  checked_in: "In house",
+  checked_out: "Checked out",
+  cancelled: "Cancelled",
+  no_show: "No-show",
+  expired: "Expired",
 };
 export const PAYMENT_LABEL: Record<string, string> = {
-  unpaid: "Unpaid", partially_paid: "Part paid", paid: "Paid", partially_refunded: "Part refunded", refunded: "Refunded", payment_failed: "Payment failed",
+  unpaid: "Unpaid",
+  partially_paid: "Part paid",
+  paid: "Paid",
+  partially_refunded: "Part refunded",
+  refunded: "Refunded",
+  payment_failed: "Payment failed",
 };
 export const SOURCE_LABEL: Record<string, string> = {
-  website: "Website", walk_in: "Walk-in", phone: "Phone", staff_entry: "Staff entry", partner: "Partner",
+  website: "Website",
+  walk_in: "Walk-in",
+  phone: "Phone",
+  staff_entry: "Staff entry",
+  partner: "Partner",
 };
 
 /** The filter choices shown on the list, in display order. "attention" is not a status; it filters on attention_reason. */
@@ -43,7 +57,11 @@ const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
  */
 export function sanitizeSearch(raw: string | undefined): string {
   if (!raw) return "";
-  return raw.replace(/[^\p{L}\p{N} .@-]/gu, " ").replace(/\s+/g, " ").trim().slice(0, 60);
+  return raw
+    .replace(/[^\p{L}\p{N} .@-]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 60);
 }
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -72,9 +90,13 @@ export function parseFilters(search: Search): ListFilters {
 /** The reservation statuses a status filter stands for (null means no status restriction). */
 export function statusesFor(filter: StatusFilter): ReservationStatus[] | null {
   switch (filter) {
-    case "open": return ["pending", "confirmed", "checked_in"];
-    case "all": case "attention": return null;
-    default: return [filter];
+    case "open":
+      return ["pending", "confirmed", "checked_in"];
+    case "all":
+    case "attention":
+      return null;
+    default:
+      return [filter];
   }
 }
 
@@ -98,8 +120,13 @@ export function listQuery(f: ListFilters, over: Partial<ListFilters> = {}): stri
 
 /** Today's date (YYYY-MM-DD) in a property's own timezone; falls back to UTC for an unknown zone. */
 export function todayIn(timeZone: string, now: Date): string {
-  const fmt = (tz: string) => new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: tz }).format(now);
-  try { return fmt(timeZone); } catch { return fmt("UTC"); }
+  const fmt = (tz: string) =>
+    new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: tz }).format(now);
+  try {
+    return fmt(timeZone);
+  } catch {
+    return fmt("UTC");
+  }
 }
 
 /** Nights between two YYYY-MM-DD dates (departure exclusive). */
@@ -109,7 +136,13 @@ export function nightsBetween(arrival: string, departure: string): number {
   return Number.isNaN(a) || Number.isNaN(d) ? 0 : Math.round((d - a) / 86400000);
 }
 
-export type ResState = { reservation_status: string; arrival_date: string; departure_date: string; total_minor: number; cancellation_charge_minor: number };
+export type ResState = {
+  reservation_status: string;
+  arrival_date: string;
+  departure_date: string;
+  total_minor: number;
+  cancellation_charge_minor: number;
+};
 export type RoomState = { room_status: string };
 export type Viewer = { cancel: boolean; checkin: boolean; checkout: boolean; payment: boolean };
 
@@ -129,9 +162,14 @@ export type DetailActions = {
 export function detailActions(r: ResState, viewer: Viewer, today: string, heldMinor: number | null): DetailActions {
   const st = r.reservation_status;
   const cancellable = st === "pending" || st === "confirmed";
-  const ceiling = st === "cancelled"
-    ? (heldMinor !== null && r.cancellation_charge_minor > heldMinor ? r.cancellation_charge_minor : null)
-    : st === "expired" || st === "no_show" ? null : r.total_minor;
+  const ceiling =
+    st === "cancelled"
+      ? heldMinor !== null && r.cancellation_charge_minor > heldMinor
+        ? r.cancellation_charge_minor
+        : null
+      : st === "expired" || st === "no_show"
+        ? null
+        : r.total_minor;
   const inWindow = today >= r.arrival_date && today < r.departure_date;
   return {
     cancel: viewer.cancel && cancellable,
@@ -153,10 +191,14 @@ export const isPaymentMethod = (v: string): v is (typeof PAYMENT_METHODS)[number
 /** Why a reservation needs a person, in plain words. Unknown codes are shown as given rather than hidden. */
 export function attentionText(code: string): string {
   switch (code) {
-    case "cancellation_charge_unpaid": return "The cancellation charge has not been fully collected yet. Record a payment for the difference, or decide how to handle it.";
-    case "paid_after_cancel": return "The guest paid after this reservation was cancelled. That money should go back to them: request a refund from the settlement page.";
-    case "paid_inventory_lost": return "The guest paid, but the rooms were no longer available. The money needs refunding or the booking re-made by hand.";
-    default: return code.startsWith("payment_") ? "A payment on this reservation needs review." : `Flagged for attention (${code}).`;
+    case "cancellation_charge_unpaid":
+      return "The cancellation charge has not been fully collected yet. Record a payment for the difference, or decide how to handle it.";
+    case "paid_after_cancel":
+      return "The guest paid after this reservation was cancelled. That money should go back to them: request a refund from the settlement page.";
+    case "paid_inventory_lost":
+      return "The guest paid, but the rooms were no longer available. The money needs refunding or the booking re-made by hand.";
+    default:
+      return code.startsWith("payment_") ? "A payment on this reservation needs review." : `Flagged for attention (${code}).`;
   }
 }
 

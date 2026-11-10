@@ -10,8 +10,14 @@ import { addDays } from "./transfer";
 import type { CalendarWindow } from "./room-calendar";
 
 export type AgendaRow = {
-  id: string; property_id: string; booking_reference: string; primary_guest_id: string;
-  reservation_status: string; payment_status: string; arrival_date: string; departure_date: string;
+  id: string;
+  property_id: string;
+  booking_reference: string;
+  primary_guest_id: string;
+  reservation_status: string;
+  payment_status: string;
+  arrival_date: string;
+  departure_date: string;
 };
 
 /** Statuses read from the database for this view. */

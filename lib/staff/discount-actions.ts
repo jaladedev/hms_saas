@@ -25,9 +25,20 @@ export async function setDiscount(formData: FormData) {
   if (!v.ok) return back(page, { err: v.code });
 
   const supabase = await staffClient();
-  const { data, error } = v.value.kind === "amount"
-    ? await supabase.rpc("apply_discount_amount", { p_reservation_id: head.data.reservationId, p_amount_minor: v.value.amountMinor, p_reason: v.value.reason, p_idempotency_key: head.data.idempotencyKey })
-    : await supabase.rpc("apply_discount", { p_reservation_id: head.data.reservationId, p_percent: v.value.percent, p_reason: v.value.reason, p_idempotency_key: head.data.idempotencyKey });
+  const { data, error } =
+    v.value.kind === "amount"
+      ? await supabase.rpc("apply_discount_amount", {
+          p_reservation_id: head.data.reservationId,
+          p_amount_minor: v.value.amountMinor,
+          p_reason: v.value.reason,
+          p_idempotency_key: head.data.idempotencyKey,
+        })
+      : await supabase.rpc("apply_discount", {
+          p_reservation_id: head.data.reservationId,
+          p_percent: v.value.percent,
+          p_reason: v.value.reason,
+          p_idempotency_key: head.data.idempotencyKey,
+        });
   if (error) return back(page, { err: classifyDiscountError(error.message) });
 
   revalidatePath(page);

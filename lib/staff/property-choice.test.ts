@@ -34,7 +34,8 @@ describe("returnPath", () => {
     expect(returnPath("/app")).toBe("/app");
   });
   it("sends anything else to the overview", () => {
-    for (const bad of [null, undefined, "", "https://evil.example", "//evil.example", "/platform", "/app//x", "/app\\x", "/application"]) expect(returnPath(bad)).toBe("/app");
+    for (const bad of [null, undefined, "", "https://evil.example", "//evil.example", "/platform", "/app//x", "/app\\x", "/application"])
+      expect(returnPath(bad)).toBe("/app");
   });
 });
 

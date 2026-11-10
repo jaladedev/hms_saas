@@ -34,7 +34,15 @@ export function moveEffective(start: string, end: string, today: string, dropped
 }
 
 /** The sentence the confirmation shows. `from` is the room the bar sits on, `to` the room it was dropped on. */
-export function moveSummary(p: { label: string; from: string; to: string; effective: string; start: string; end: string; dateText: (iso: string) => string }): string {
+export function moveSummary(p: {
+  label: string;
+  from: string;
+  to: string;
+  effective: string;
+  start: string;
+  end: string;
+  dateText: (iso: string) => string;
+}): string {
   const nights = Math.round((Date.parse(`${p.end}T00:00:00Z`) - Date.parse(`${p.effective}T00:00:00Z`)) / 86_400_000);
   const part = p.effective === p.start ? "the whole of this room's stay" : `the stay from ${p.dateText(p.effective)}`;
   return `Move ${p.label} from room ${p.from} to room ${p.to}: ${part}, ${nights} ${nights === 1 ? "night" : "nights"}, leaving ${p.dateText(p.end)}. Earlier nights stay where they are. If room ${p.to} is taken for any of those nights, nothing changes.`;

@@ -18,8 +18,13 @@ export function parseEarlyCheckinQuote(data: unknown): EarlyCheckinQuote | null 
   const why = WHY.find((w) => w === d.why_not) ?? null;
   const allowed = d.allowed === true && why === null;
   return {
-    allowed, why_not: allowed ? null : why ?? "status", days_early: num(d.days_early), max_days: num(d.max_days),
-    nights_added: num(d.nights_added), added_minor: num(d.added_minor), new_total_minor: typeof d.new_total_minor === "number" ? d.new_total_minor : null,
+    allowed,
+    why_not: allowed ? null : (why ?? "status"),
+    days_early: num(d.days_early),
+    max_days: num(d.max_days),
+    nights_added: num(d.nights_added),
+    added_minor: num(d.added_minor),
+    new_total_minor: typeof d.new_total_minor === "number" ? d.new_total_minor : null,
   };
 }
 
@@ -33,9 +38,13 @@ export function earlyCheckinNote(q: EarlyCheckinQuote, money: (minor: number) =>
 /** Why early check-in is not offered, for the reasons worth telling staff. Null means say nothing (it is simply not early, or not switched on). */
 export function earlyCheckinWhyNot(q: EarlyCheckinQuote): string | null {
   switch (q.why_not) {
-    case "too_early": return `The hotel allows early check-in up to ${q.max_days === 1 ? "1 day" : `${q.max_days} days`} before arrival. This booking is ${q.days_early} days away.`;
-    case "payment_started": return "Early check-in is not possible while the guest has a payment in progress.";
-    case "no_rate": return "Early check-in is not possible: one of the earlier nights has no price set.";
-    default: return null;
+    case "too_early":
+      return `The hotel allows early check-in up to ${q.max_days === 1 ? "1 day" : `${q.max_days} days`} before arrival. This booking is ${q.days_early} days away.`;
+    case "payment_started":
+      return "Early check-in is not possible while the guest has a payment in progress.";
+    case "no_rate":
+      return "Early check-in is not possible: one of the earlier nights has no price set.";
+    default:
+      return null;
   }
 }

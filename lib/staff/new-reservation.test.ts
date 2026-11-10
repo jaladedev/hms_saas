@@ -4,8 +4,22 @@ import { bookFromCalendarHref, MAX_NIGHTS, MAX_ROOMS, parsePrefill, roomsPayload
 
 const P = "11111111-1111-4111-8111-111111111111";
 const T = "22222222-2222-4222-8222-222222222222";
-const base = { propertyId: P, roomTypeId: T, arrival: "2026-11-05", departure: "2026-11-07", adults: "2", children: "1", source: "walk_in", guestName: "  Ade   Bello ", guestEmail: "", guestPhone: "" };
-const bad = (over: Record<string, unknown>) => { const r = validateNewReservation({ ...base, ...over }); return r.ok ? "ok" : r.code; };
+const base = {
+  propertyId: P,
+  roomTypeId: T,
+  arrival: "2026-11-05",
+  departure: "2026-11-07",
+  adults: "2",
+  children: "1",
+  source: "walk_in",
+  guestName: "  Ade   Bello ",
+  guestEmail: "",
+  guestPhone: "",
+};
+const bad = (over: Record<string, unknown>) => {
+  const r = validateNewReservation({ ...base, ...over });
+  return r.ok ? "ok" : r.code;
+};
 
 describe("validateNewReservation", () => {
   it("reads the hold-until-paid box: only a ticked box holds", () => {
@@ -18,10 +32,18 @@ describe("validateNewReservation", () => {
   });
   it("accepts a good form and cleans it", () => {
     const r = validateNewReservation({ ...base, guestEmail: " ADE@Example.com ", guestPhone: "+234 803 000 0000" });
-    expect(r).toEqual({ ok: true, value: {
-      propertyId: P, rooms: [{ roomTypeId: T, requestedRoomId: null, adults: 2, children: 1 }], arrival: "2026-11-05", departure: "2026-11-07", source: "walk_in", holdUntilPaid: false,
-      guest: { name: "Ade Bello", email: "ade@example.com", phone: "+234 803 000 0000" },
-    } });
+    expect(r).toEqual({
+      ok: true,
+      value: {
+        propertyId: P,
+        rooms: [{ roomTypeId: T, requestedRoomId: null, adults: 2, children: 1 }],
+        arrival: "2026-11-05",
+        departure: "2026-11-07",
+        source: "walk_in",
+        holdUntilPaid: false,
+        guest: { name: "Ade Bello", email: "ade@example.com", phone: "+234 803 000 0000" },
+      },
+    });
   });
   it("treats email and phone as optional", () => {
     const r = validateNewReservation(base);
@@ -37,11 +59,11 @@ describe("validateNewReservation", () => {
     expect(bad({ departure: "2026-11-05" })).toBe("dates_invalid");
     expect(bad({ departure: "2026-11-04" })).toBe("dates_invalid");
     expect(bad({ departure: "2026-12-06" })).toBe("too_long_stay");
-    expect(bad({ departure: "2026-12-05" })).toBe("ok");   // exactly 30 nights
+    expect(bad({ departure: "2026-12-05" })).toBe("ok"); // exactly 30 nights
     expect(bad({ adults: "0" })).toBe("capacity");
     expect(bad({ adults: "two" })).toBe("capacity");
     expect(bad({ children: "-1" })).toBe("capacity");
-    expect(bad({ source: "website" })).toBe("bad_request");   // online bookings go through the guest site
+    expect(bad({ source: "website" })).toBe("bad_request"); // online bookings go through the guest site
   });
   it("defaults children to none", () => {
     const r = validateNewReservation({ ...base, children: undefined });
@@ -52,9 +74,20 @@ describe("validateNewReservation", () => {
 describe("several rooms", () => {
   const T2 = "33333333-3333-4333-8333-333333333333";
   it("reads rooms 2 to 5 from the suffixed fields and skips empty slots", () => {
-    const r = validateNewReservation({ ...base, roomTypeId_2: T2, adults_2: "1", roomTypeId_3: "", adults_3: "5", roomTypeId_4: T, adults_4: "3", children_4: "2" });
+    const r = validateNewReservation({
+      ...base,
+      roomTypeId_2: T2,
+      adults_2: "1",
+      roomTypeId_3: "",
+      adults_3: "5",
+      roomTypeId_4: T,
+      adults_4: "3",
+      children_4: "2",
+    });
     expect(r.ok && r.value.rooms).toEqual([
-      { roomTypeId: T, requestedRoomId: null, adults: 2, children: 1 }, { roomTypeId: T2, requestedRoomId: null, adults: 1, children: 0 }, { roomTypeId: T, requestedRoomId: null, adults: 3, children: 2 },
+      { roomTypeId: T, requestedRoomId: null, adults: 2, children: 1 },
+      { roomTypeId: T2, requestedRoomId: null, adults: 1, children: 0 },
+      { roomTypeId: T, requestedRoomId: null, adults: 3, children: 2 },
     ]);
   });
   it("defaults a later room to one adult and no children", () => {
@@ -108,16 +141,22 @@ describe("choosing a physical room", () => {
 describe("roomsPayload", () => {
   it("leaves the rate plan and room choice to the database", () => {
     const r = validateNewReservation(base);
-    expect(r.ok && roomsPayload(r.value)).toEqual([{ room_type_id: T, requested_room_id: null, rate_plan_id: null, adults: 2, children: 1 }]);
+    expect(r.ok && roomsPayload(r.value)).toEqual([
+      { room_type_id: T, requested_room_id: null, rate_plan_id: null, adults: 2, children: 1 },
+    ]);
   });
 });
 
 describe("create-reservation refusals", () => {
   it("are recognised and worded", () => {
     const cases: [string, string][] = [
-      ["ROOM_UNAVAILABLE", "room_unavailable"], ["CAPACITY_EXCEEDED", "capacity"], ["RATE_MISSING: no rate plan", "rate_missing"],
-      ["FORBIDDEN", "forbidden"], ["POLICY_VIOLATION: arrival in the past", "arrival_past"],
-      ["POLICY_VIOLATION: departure must follow arrival", "dates_invalid"], ["NOT_FOUND: room type", "room_type_missing"],
+      ["ROOM_UNAVAILABLE", "room_unavailable"],
+      ["CAPACITY_EXCEEDED", "capacity"],
+      ["RATE_MISSING: no rate plan", "rate_missing"],
+      ["FORBIDDEN", "forbidden"],
+      ["POLICY_VIOLATION: arrival in the past", "arrival_past"],
+      ["POLICY_VIOLATION: departure must follow arrival", "dates_invalid"],
+      ["NOT_FOUND: room type", "room_type_missing"],
     ];
     for (const [msg, code] of cases) {
       expect(classifyRpcError(msg).code, msg).toBe(code);
@@ -136,10 +175,22 @@ describe("bookFromCalendarHref and parsePrefill", () => {
     expect(href(bookFromCalendarHref(R, "2026-12-31"))).toEqual({ room: R, arrival: "2026-12-31", departure: "2027-01-01" });
   });
   it("fills the form from a calendar link", () => {
-    expect(parsePrefill(href(bookFromCalendarHref(R, "2026-11-10")), today, rooms, [P])).toEqual({ propertyId: P, roomTypeId: T, roomId: R, arrival: "2026-11-10", departure: "2026-11-11" });
+    expect(parsePrefill(href(bookFromCalendarHref(R, "2026-11-10")), today, rooms, [P])).toEqual({
+      propertyId: P,
+      roomTypeId: T,
+      roomId: R,
+      arrival: "2026-11-10",
+      departure: "2026-11-11",
+    });
   });
   it("starts empty with today's arrival when nothing is asked", () => {
-    expect(parsePrefill({}, today, rooms, [P])).toEqual({ propertyId: null, roomTypeId: null, roomId: null, arrival: today, departure: null });
+    expect(parsePrefill({}, today, rooms, [P])).toEqual({
+      propertyId: null,
+      roomTypeId: null,
+      roomId: null,
+      arrival: today,
+      departure: null,
+    });
   });
   it("ignores a room that is unknown or at a property the viewer may not book at", () => {
     expect(parsePrefill({ room: "nope" }, today, rooms, [P]).roomId).toBeNull();
@@ -151,7 +202,10 @@ describe("bookFromCalendarHref and parsePrefill", () => {
     expect(parsePrefill({ property: P }, today, rooms, []).propertyId).toBeNull();
   });
   it("moves a past arrival to today and repairs a bad departure", () => {
-    expect(parsePrefill({ arrival: "2026-10-01", departure: "2026-10-03" }, today, rooms, [P])).toMatchObject({ arrival: today, departure: "2026-11-05" });
+    expect(parsePrefill({ arrival: "2026-10-01", departure: "2026-10-03" }, today, rooms, [P])).toMatchObject({
+      arrival: today,
+      departure: "2026-11-05",
+    });
     expect(parsePrefill({ arrival: "2026-11-10", departure: "2026-11-10" }, today, rooms, [P]).departure).toBe("2026-11-11");
     expect(parsePrefill({ arrival: "2026-11-10", departure: "2027-03-01" }, today, rooms, [P]).departure).toBe("2026-11-11");
     expect(parsePrefill({ arrival: "2026-11-10", departure: "garbage" }, today, rooms, [P]).departure).toBe("2026-11-11");
@@ -161,6 +215,10 @@ describe("bookFromCalendarHref and parsePrefill", () => {
     expect(MAX_NIGHTS).toBe(30);
   });
   it("ignores repeated query values", () => {
-    expect(parsePrefill({ room: [R, R], arrival: ["2026-11-10"] }, today, rooms, [P])).toMatchObject({ roomId: null, arrival: today, departure: null });
+    expect(parsePrefill({ room: [R, R], arrival: ["2026-11-10"] }, today, rooms, [P])).toMatchObject({
+      roomId: null,
+      arrival: today,
+      departure: null,
+    });
   });
 });

@@ -1,11 +1,23 @@
 /** Figures and wording for the occupancy report page (migration 040). Pure, so it can be tested. */
 export type OccupancyDay = {
-  date: string; rooms_total: number; rooms_blocked: number; rooms_available: number; rooms_sold: number;
-  room_revenue_minor: number; arrivals: number; departures: number; no_shows: number;
+  date: string;
+  rooms_total: number;
+  rooms_blocked: number;
+  rooms_available: number;
+  rooms_sold: number;
+  room_revenue_minor: number;
+  arrivals: number;
+  departures: number;
+  no_shows: number;
 };
 export type OccupancyReport = {
-  property_id: string; currency: string; timezone: string; from: string; to: string;
-  days: OccupancyDay[]; totals: Omit<OccupancyDay, "date">;
+  property_id: string;
+  currency: string;
+  timezone: string;
+  from: string;
+  to: string;
+  days: OccupancyDay[];
+  totals: Omit<OccupancyDay, "date">;
 };
 type Counts = Pick<OccupancyDay, "rooms_available" | "rooms_sold" | "room_revenue_minor">;
 

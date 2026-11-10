@@ -2,8 +2,14 @@
 
 export type MemberRole = { id: string; role_key: string; role_name: string; property_id: string | null };
 export type Member = {
-  membership_id: string; tenant_id: string; user_id: string; status: string; email: string | null; full_name: string | null;
-  is_self: boolean; roles: MemberRole[];
+  membership_id: string;
+  tenant_id: string;
+  user_id: string;
+  status: string;
+  email: string | null;
+  full_name: string | null;
+  is_self: boolean;
+  roles: MemberRole[];
 };
 
 /** What a role is for, in the owner's words. Unknown (custom) roles just show their name. */
@@ -18,7 +24,7 @@ export const ROLE_HELP: Record<string, string> = {
 };
 
 export const scopeLabel = (propertyId: string | null, names: Map<string, string>) =>
-  propertyId === null ? "all properties" : names.get(propertyId) ?? "one property";
+  propertyId === null ? "all properties" : (names.get(propertyId) ?? "one property");
 
 export type MemberActions = { suspend: boolean; reinstate: boolean; revoke: boolean; addRole: boolean; removeRole: boolean };
 

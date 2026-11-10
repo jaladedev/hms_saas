@@ -10,7 +10,10 @@ describe("payment verification helpers", () => {
   });
   it("drops malformed rows and clamps the count", () => {
     const row = { id: "p1", reservation_id: "r1", amount_minor: 100 };
-    expect(parseQueue({ items: [row, { id: 1 }, null, { ...row, amount_minor: "5" }], unverified: 3 })).toEqual({ items: [row], unverified: 3 });
+    expect(parseQueue({ items: [row, { id: 1 }, null, { ...row, amount_minor: "5" }], unverified: 3 })).toEqual({
+      items: [row],
+      unverified: 3,
+    });
     expect(parseQueue({ items: "no", unverified: -2 })).toEqual({ items: [], unverified: 0 });
     expect(parseQueue(null)).toEqual({ items: [], unverified: 0 });
   });

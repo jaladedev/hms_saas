@@ -5,10 +5,14 @@ const ID = "00000000-0000-4000-8000-0000000000a2";
 
 describe("parseProfileForm", () => {
   it("trims, and turns blanks into null", () => {
-    expect(parseProfileForm({ propertyId: ID, phone: " +234 802 000 0000 ", email: " a@b.co ", intro: "  Hi  " }))
-      .toEqual({ ok: true, value: { propertyId: ID, phone: "+234 802 000 0000", email: "a@b.co", intro: "Hi" } });
-    expect(parseProfileForm({ propertyId: ID, phone: "  ", email: "", intro: undefined }))
-      .toEqual({ ok: true, value: { propertyId: ID, phone: null, email: null, intro: null } });
+    expect(parseProfileForm({ propertyId: ID, phone: " +234 802 000 0000 ", email: " a@b.co ", intro: "  Hi  " })).toEqual({
+      ok: true,
+      value: { propertyId: ID, phone: "+234 802 000 0000", email: "a@b.co", intro: "Hi" },
+    });
+    expect(parseProfileForm({ propertyId: ID, phone: "  ", email: "", intro: undefined })).toEqual({
+      ok: true,
+      value: { propertyId: ID, phone: null, email: null, intro: null },
+    });
   });
   it("refuses a bad property id, phone, email or an intro over 500 characters", () => {
     const bad = (o: Record<string, unknown>) => parseProfileForm({ propertyId: ID, ...o });
@@ -36,14 +40,44 @@ describe("telHref", () => {
 });
 
 describe("parseBasicsForm", () => {
-  const ok = { propertyId: ID, name: " Hotel A ", address: " 5 River Road ", city: " Lagos ", state: " Lagos State ", checkIn: "15:00", checkOut: "11:30" };
+  const ok = {
+    propertyId: ID,
+    name: " Hotel A ",
+    address: " 5 River Road ",
+    city: " Lagos ",
+    state: " Lagos State ",
+    checkIn: "15:00",
+    checkOut: "11:30",
+  };
   it("trims and accepts valid details; a blank address means none", () => {
-    expect(parseBasicsForm(ok)).toEqual({ ok: true, value: { propertyId: ID, name: "Hotel A", address: "5 River Road", city: "Lagos", state: "Lagos State", checkIn: "15:00", checkOut: "11:30" } });
+    expect(parseBasicsForm(ok)).toEqual({
+      ok: true,
+      value: {
+        propertyId: ID,
+        name: "Hotel A",
+        address: "5 River Road",
+        city: "Lagos",
+        state: "Lagos State",
+        checkIn: "15:00",
+        checkOut: "11:30",
+      },
+    });
     expect(parseBasicsForm({ ...ok, address: "  " })).toMatchObject({ ok: true, value: { address: null } });
   });
   it("refuses a missing or oversized name, town or state, a long address, a bad id and bad times", () => {
-    for (const bad of [{ name: " " }, { name: "n".repeat(121) }, { address: "a".repeat(201) }, { city: "" }, { city: "c".repeat(81) }, { state: " " }, { propertyId: "x" },
-      { checkIn: "" }, { checkIn: "24:00" }, { checkOut: "9:30" }, { checkOut: "12:60" }]) {
+    for (const bad of [
+      { name: " " },
+      { name: "n".repeat(121) },
+      { address: "a".repeat(201) },
+      { city: "" },
+      { city: "c".repeat(81) },
+      { state: " " },
+      { propertyId: "x" },
+      { checkIn: "" },
+      { checkIn: "24:00" },
+      { checkOut: "9:30" },
+      { checkOut: "12:60" },
+    ]) {
       expect(parseBasicsForm({ ...ok, ...bad }).ok, JSON.stringify(bad)).toBe(false);
     }
   });

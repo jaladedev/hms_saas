@@ -38,7 +38,8 @@ export default async function EmailsPage({ searchParams }: { searchParams: Promi
             <StatusChip status={e.state === "failed" ? "failed" : "processing"} />
           </div>
           <p className="mt-1 text-sm text-muted">
-            {e.booking_reference}, to {e.to_email}{showProperty && prop ? `, ${prop.name}` : ""}
+            {e.booking_reference}, to {e.to_email}
+            {showProperty && prop ? `, ${prop.name}` : ""}
           </p>
           {e.last_error && <p className="mt-2 max-w-prose break-words text-sm text-critical">{e.last_error}</p>}
           {advice && <p className="mt-1 max-w-prose text-sm">{advice}</p>}
@@ -52,14 +53,20 @@ export default async function EmailsPage({ searchParams }: { searchParams: Promi
           {offer && (
             <form action={resendEmail}>
               <input type="hidden" name="emailId" value={e.id} />
-              <button type="submit" className={buttonPrimary}>Send again</button>
+              <button type="submit" className={buttonPrimary}>
+                Send again
+              </button>
             </form>
           )}
           {e.state === "failed" && holdEnded(e) && (
-            <p className="max-w-xs text-sm text-muted">The room is no longer on hold, so this email would now be wrong. It cannot be resent.</p>
+            <p className="max-w-xs text-sm text-muted">
+              The room is no longer on hold, so this email would now be wrong. It cannot be resent.
+            </p>
           )}
           {e.state === "failed" && !holdEnded(e) && !offer && (
-            <p className="max-w-xs text-sm text-muted">You can see this email but not resend it. Ask someone who can modify reservations.</p>
+            <p className="max-w-xs text-sm text-muted">
+              You can see this email but not resend it. Ask someone who can modify reservations.
+            </p>
           )}
           {e.state === "retrying" && <p className="max-w-xs text-sm text-muted">Retrying by itself. Nothing to do yet.</p>}
         </div>
@@ -71,9 +78,15 @@ export default async function EmailsPage({ searchParams }: { searchParams: Promi
     if (items.length === 0) return null;
     return (
       <section className="mt-10 first:mt-0">
-        <SectionTitle>{title} <span className="text-base text-muted">({items.length})</span></SectionTitle>
+        <SectionTitle>
+          {title} <span className="text-base text-muted">({items.length})</span>
+        </SectionTitle>
         {hint && <p className="mt-1 max-w-prose text-sm text-muted">{hint}</p>}
-        <ul className="mt-2 border-t border-line">{items.map((e) => <Row key={e.id} e={e} />)}</ul>
+        <ul className="mt-2 border-t border-line">
+          {items.map((e) => (
+            <Row key={e.id} e={e} />
+          ))}
+        </ul>
       </section>
     );
   }
@@ -82,7 +95,8 @@ export default async function EmailsPage({ searchParams }: { searchParams: Promi
     <main className="max-w-5xl">
       <PageTitle>Guest emails</PageTitle>
       <PageIntro>
-        Emails to guests that could not be delivered. The system retries a few times by itself; the ones that gave up are listed first, and you can send them again.
+        Emails to guests that could not be delivered. The system retries a few times by itself; the ones that gave up are listed first, and
+        you can send them again.
       </PageIntro>
 
       <div className="mt-6">
@@ -90,14 +104,19 @@ export default async function EmailsPage({ searchParams }: { searchParams: Promi
         {listQ.error && <ErrorBanner className="mb-5">The list could not be loaded. Reload the page.</ErrorBanner>}
         {!mailConfigured && (
           <p className="mb-5 border-l-4 border-pending bg-pending/5 px-4 py-3 text-sm">
-            Email sending is not set up on this server (no mail provider key or sender address), so emails wait in the queue and resending will not deliver anything until it is.
+            Email sending is not set up on this server (no mail provider key or sender address), so emails wait in the queue and resending
+            will not deliver anything until it is.
           </p>
         )}
       </div>
 
       {!listQ.error && rows.length === 0 && <EmptyState>No failed or retrying guest emails.</EmptyState>}
 
-      <Section title="Gave up" hint="Five attempts failed. Check the reason, fix it if it is something on our side, then send again." items={failed} />
+      <Section
+        title="Gave up"
+        hint="Five attempts failed. Check the reason, fix it if it is something on our side, then send again."
+        items={failed}
+      />
       <Section title="Still retrying" items={retrying} />
     </main>
   );

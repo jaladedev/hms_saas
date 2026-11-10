@@ -17,7 +17,13 @@ export async function setActiveProperty(formData: FormData) {
   if (isPropertyId(id)) {
     const { data } = await supabase.from("properties").select("id").eq("id", id).maybeSingle();
     if (data) {
-      (await cookies()).set(ACTIVE_PROPERTY_COOKIE, id, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/app", maxAge: 60 * 60 * 24 * 365 });
+      (await cookies()).set(ACTIVE_PROPERTY_COOKIE, id, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/app",
+        maxAge: 60 * 60 * 24 * 365,
+      });
     }
   }
   redirect(withoutPropertyParam(back));
