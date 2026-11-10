@@ -180,6 +180,10 @@ describe("describeEvent", () => {
     expect(e.summary).toBe("Changed the hotel details");
     expect(e.details).toEqual(["Phone: none \u2192 +234 802 000 0000", `Introduction: ${"x".repeat(80)}\u2026 \u2192 Hi`]);
   });
+  it("shows check-in times without seconds", () => {
+    const e = describeEvent(row({ action: "property.updated", entity_type: "property", entity_id: "pp", metadata: { changed: { check_in_time: { from: "14:00:00", to: "15:30:00" } } } }), lookup(), fmt);
+    expect(e.details).toEqual(["Check-in time: 14:00 \u2192 15:30"]);
+  });
   it("summarises nightly price changes", () => {
     const base = { rate_plan_id: RP, nights: 9, from: "2026-12-20", to: "2026-12-28" };
     const set = describeEvent(row({ action: "rates.set", metadata: { ...base, amount_minor_min: 5000000, amount_minor_max: 6000000 } }), lookup(), fmt);

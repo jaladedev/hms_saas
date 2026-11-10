@@ -280,7 +280,7 @@ export function describeEvent(row: AuditRow, lookup: Lookup, fmt: Format): { sum
   if (row.action === "property.updated") {
     const details = Object.entries(asRecord(m.changed)).map(([k, change]) => {
       const c = asRecord(change);
-      const show = (v: unknown) => (typeof v === "string" && v !== "" ? (k === "intro" && v.length > 80 ? `${v.slice(0, 80)}\u2026` : v) : "none");
+      const show = (v: unknown) => (typeof v === "string" && v.trim() !== "" ? (k === "intro" && v.length > 80 ? `${v.slice(0, 80)}\u2026` : /^\d\d:\d\d:\d\d$/.test(v) ? v.slice(0, 5) : v) : "none");
       return `${fieldLabel(k)}: ${show(c.from)} \u2192 ${show(c.to)}`;
     });
     return { summary: "Changed the hotel details", details };

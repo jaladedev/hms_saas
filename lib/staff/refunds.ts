@@ -254,6 +254,7 @@ export const OK_MESSAGES = {
   photo_added: "Photo added. Guests see it on the hotel's website.",
   photo_removed: "Photo removed.",
   hotel_profile_saved: "Hotel details saved. Guests see them on the hotel's website.",
+  hotel_basics_saved: "Hotel name, address and times saved. Bookings made from now on use the new check-in and check-out times.",
   photo_moved: "Photo order saved.",
   photo_caption_saved: "Caption saved.",
   room_added: "Room added.",

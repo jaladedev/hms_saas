@@ -32,3 +32,24 @@ export function telHref(phone: string | null | undefined): string | null {
   const digits = (phone ?? "").replace(/[^0-9+]/g, "");
   return digits.replace(/\+/g, "").length >= 5 ? `tel:${digits}` : null;
 }
+
+export type BasicsForm = { propertyId: string; name: string; address: string | null; city: string; state: string; checkIn: string; checkOut: string };
+export type BasicsCheck = { ok: true; value: BasicsForm } | { ok: false; code: "setup_invalid" };
+
+const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+/** The hotel's name, address, town, state and check-in and check-out times (migration 089); same limits as the database. */
+export function parseBasicsForm(raw: Record<string, unknown>): BasicsCheck {
+  const propertyId = text(raw.propertyId);
+  const name = text(raw.name), address = text(raw.address), city = text(raw.city), state = text(raw.state);
+  const checkIn = text(raw.checkIn), checkOut = text(raw.checkOut);
+  if (!UUID.test(propertyId)) return { ok: false, code: "setup_invalid" };
+  if (!name || name.length > 120) return { ok: false, code: "setup_invalid" };
+  if (address.length > 200) return { ok: false, code: "setup_invalid" };
+  if (!city || city.length > 80 || !state || state.length > 80) return { ok: false, code: "setup_invalid" };
+  if (!TIME.test(checkIn) || !TIME.test(checkOut)) return { ok: false, code: "setup_invalid" };
+  return { ok: true, value: { propertyId, name, address: address || null, city, state, checkIn, checkOut } };
+}
+
+/** "14:00:00" from the database as "14:00" for a time field. */
+export const timeInput = (t: string | null | undefined): string => (t ?? "").slice(0, 5);

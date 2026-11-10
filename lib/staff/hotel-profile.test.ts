@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseProfileForm, telHref } from "./hotel-profile";
+import { parseBasicsForm, parseProfileForm, telHref, timeInput } from "./hotel-profile";
 
 const ID = "00000000-0000-4000-8000-0000000000a2";
 
@@ -32,5 +32,26 @@ describe("telHref", () => {
   it("gives null when there is nothing to dial", () => {
     expect(telHref(null)).toBeNull();
     expect(telHref("()- ")).toBeNull();
+  });
+});
+
+describe("parseBasicsForm", () => {
+  const ok = { propertyId: ID, name: " Hotel A ", address: " 5 River Road ", city: " Lagos ", state: " Lagos State ", checkIn: "15:00", checkOut: "11:30" };
+  it("trims and accepts valid details; a blank address means none", () => {
+    expect(parseBasicsForm(ok)).toEqual({ ok: true, value: { propertyId: ID, name: "Hotel A", address: "5 River Road", city: "Lagos", state: "Lagos State", checkIn: "15:00", checkOut: "11:30" } });
+    expect(parseBasicsForm({ ...ok, address: "  " })).toMatchObject({ ok: true, value: { address: null } });
+  });
+  it("refuses a missing or oversized name, town or state, a long address, a bad id and bad times", () => {
+    for (const bad of [{ name: " " }, { name: "n".repeat(121) }, { address: "a".repeat(201) }, { city: "" }, { city: "c".repeat(81) }, { state: " " }, { propertyId: "x" },
+      { checkIn: "" }, { checkIn: "24:00" }, { checkOut: "9:30" }, { checkOut: "12:60" }]) {
+      expect(parseBasicsForm({ ...ok, ...bad }).ok, JSON.stringify(bad)).toBe(false);
+    }
+  });
+});
+
+describe("timeInput", () => {
+  it("cuts seconds off", () => {
+    expect(timeInput("14:00:00")).toBe("14:00");
+    expect(timeInput(null)).toBe("");
   });
 });
