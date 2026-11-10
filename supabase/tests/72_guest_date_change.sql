@@ -81,6 +81,10 @@ begin
   select id into inv_new from invoices where reservation_id = res and invoice_status <> 'void';
   if inv_new is null or inv_new = inv_old or (select invoice_status from invoices where id = inv_old) <> 'void' then raise exception 'FAIL invoice replaced'; end if;
   if (select total_minor from invoices where id = inv_new) <> (select total_minor from reservations where id = res) then raise exception 'FAIL invoice total'; end if;
+  -- 085: the money is settled by the staff code (stay_change_reconcile): same void reason, new invoice allocated in full, nothing flagged
+  if (select void_reason from invoices where id = inv_old) <> 'stay change' then raise exception 'FAIL void reason: %', (select void_reason from invoices where id = inv_old); end if;
+  if (select attention_reason from reservations where id = res) is not null then raise exception 'FAIL flagged'; end if;
+  if (select coalesce(sum(amount_minor), 0) from payment_allocations where invoice_id = inv_new) <> (select total_minor from reservations where id = res) then raise exception 'FAIL allocation'; end if;
   if (select payment_status from reservations where id = res) <> 'paid' then raise exception 'FAIL still paid: %', (select payment_status from reservations where id = res); end if;
   q := guest_change_dates_quote(res, t + 32, t + 34);
   if (q ->> 'allowed')::boolean or q ->> 'why_not' <> 'overpaid' then raise exception 'FAIL overpaid: %', q; end if;
