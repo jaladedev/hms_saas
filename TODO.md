@@ -131,7 +131,7 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [x] Payment test matrix, in `supabase/tests/08_provider_payments.sql`: duplicate events, wrong amount, wrong currency, late payment after expiry, failure then a successful retry, a failure or abandonment arriving after success (out of order), success after a failure on the same reference, payment after cancel, another tenant's events
 
 ## Prototype parity
-Checked 2026-11-10 against the screen list in `Hms-Full-Platform.html` (52 screens): about 42 built, 4 partial, 6 not built. Matched by screen name and route, not by layout or fields, so "built" means the screen exists. The prototype is a visual and workflow reference only (see `HANDOFF.md`).
+Checked 2026-11-10 against the screen list in `Hms-Full-Platform.html` (52 screens): 42 built, 5 partial, 5 not built. The screen-by-screen table is `docs/PROTOTYPE_SCREENS.md`. Matched by screen name and route, not by layout or fields, so "built" means the screen exists. The prototype is a visual and workflow reference only (see `HANDOFF.md`).
 - [ ] Payments overview and payment details: a hotel-wide list of payments and a page per payment. `/app/payments` is only the queue of payments to verify, and payments are otherwise seen per reservation
 - [ ] Invoice list: invoices are only reachable from each reservation's folio; no hotel-wide list with filters (status, date, guest)
 - [ ] Profile and preferences: a person's own name, password and display settings

@@ -14,7 +14,7 @@ Stack: Next.js, TypeScript, Tailwind, Supabase (Postgres, Auth, Storage), Paysta
 | DB spec and UI spec | `docs/specs/db-spec.md`, `docs/specs/ui-spec.md` | Original requirements |
 | HMS Spec Review and Implementation Plan | Claude doc: https://claude.ai/artifact/3x6hTNbqRqMtwGR5eDPi4s | Conflicts found in the specs, prototype review, phases, decisions |
 | HMS System Design | Claude doc: https://claude.ai/artifact/KZr9xyNQc36Sxx5qYuLh1H | The build reference: schema, claims SQL, operations, payments, RLS, reporting, delivery plan |
-| Prototype `Hms-Full-Platform.html` | Not in this repo (1.1 MB, compiled React bundle with sample data) | Visual and workflow reference only. Do not extend it; rebuild screens against real data |
+| Prototype `Hms-Full-Platform.html` | Not in this repo (1.1 MB, compiled React bundle with sample data); its 52 screens and where each lives in the app are listed in `docs/PROTOTYPE_SCREENS.md` | Visual and workflow reference only. Do not extend it; rebuild screens against real data |
 
 Where the System Design differs from the original DB spec, the System Design wins. Main differences:
 one shared `room_inventory_claims` table instead of separate allocations, holds and blocks;
