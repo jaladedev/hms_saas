@@ -2959,6 +2959,8 @@ export type Database = {
       }
       move_room_type_photo: { Args: { p_direction: string; p_photo: string }; Returns: number }
       update_hotel_profile: { Args: { p_email: string; p_intro: string; p_phone: string; p_property: string }; Returns: undefined }
+      claim_photo_cleanup: { Args: { p_limit?: number }; Returns: string[] }
+      finish_photo_cleanup: { Args: { p_paths: string[] }; Returns: number }
       lock_room_types: {
         Args: { p_property: string; p_types: string[] }
         Returns: undefined

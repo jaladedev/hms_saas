@@ -759,4 +759,8 @@ HP="$(psql -f "$HERE/88_hotel_profile.sql" 2>&1)" || { echo "$HP"; echo "HOTEL P
 echo "$HP" | grep -E 'PASS' || true
 if echo "$HP" | grep -qE 'FAIL|ERROR'; then echo "$HP"; echo "HOTEL PROFILE TESTS FAILED"; exit 1; fi
 
+PC="$(psql -f "$HERE/89_photo_file_cleanup.sql" 2>&1)" || { echo "$PC"; echo "PHOTO CLEANUP TESTS FAILED"; exit 1; }
+echo "$PC" | grep -E 'PASS' || true
+if echo "$PC" | grep -qE 'FAIL|ERROR'; then echo "$PC"; echo "PHOTO CLEANUP TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

@@ -54,7 +54,12 @@ export async function removeRoomPhoto(formData: FormData) {
   if (error) return back(PAGE, { err: classifyPhotoError(error) });
   // Under row-level security a refused delete matches nothing rather than failing.
   if (!data || data.length === 0) return back(PAGE, { err: "setup_forbidden" });
-  await createServiceClient().storage.from(PHOTO_BUCKET).remove(data.map((r) => r.storage_path));
+  // The deleted row has queued its path for the maintenance job (migration 088); when the file goes now, clear it from the queue.
+  // If this fails the job removes the file and clears the path later, so the person is not told about it.
+  const service = createServiceClient();
+  const paths = data.map((r) => r.storage_path);
+  const { error: rmErr } = await service.storage.from(PHOTO_BUCKET).remove(paths);
+  if (!rmErr) await service.rpc("finish_photo_cleanup", { p_paths: paths });
   refresh();
   return ok(PAGE, "photo_removed");
 }

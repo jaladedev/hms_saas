@@ -51,11 +51,13 @@ describe("maintenance", () => {
       purgeOldData: async () => ({ rate_limit_rows: 1 }),
       sweepNotifications: async () => ({ overdue_raised: 2, purged: 0 }),
       staleRefunds: async () => [{ refund_id: "r1" }],
+      cleanPhotoFiles: async () => ({ claimed: 1, cleared: 1, error: null }),
       log: vi.fn(),
     });
     expect(out.expiredHolds).toEqual({ ok: true, result: 3 });
     expect(out.emails).toEqual({ ok: false, error: "mailer exploded" });
     expect(out.purge).toEqual({ ok: true, result: { rate_limit_rows: 1 } });
+    expect(out.photoFiles).toEqual({ ok: true, result: { claimed: 1, cleared: 1, error: null } });
     expect(out.notifications).toEqual({ ok: true, result: { overdue_raised: 2, purged: 0 } });
     expect(out.staleRefunds).toEqual({ ok: true, result: { count: 1, refunds: [{ refund_id: "r1" }] } });
   });

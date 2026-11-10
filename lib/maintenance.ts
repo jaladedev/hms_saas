@@ -8,6 +8,8 @@ export type MaintenanceDeps = {
   sweepNotifications(): Promise<unknown>;
   /** Refunds stuck in processing (an unknown payout outcome, or a webhook that never came). */
   staleRefunds(): Promise<unknown[]>;
+  /** Removes stored room photo files whose picture was deleted (migration 088). */
+  cleanPhotoFiles(): Promise<unknown>;
   log?(level: "warn", message: string, context?: Record<string, unknown>): void;
 };
 export type StepResult = { ok: true; result: unknown } | { ok: false; error: string };
@@ -25,6 +27,7 @@ export async function runMaintenance(deps: MaintenanceDeps): Promise<Record<stri
     expiredHolds: await step(() => deps.expireLapsedHolds(200)),
     emails: await step(() => deps.drainEmails(25)),
     purge: await step(() => deps.purgeOldData()),
+    photoFiles: await step(() => deps.cleanPhotoFiles()),
     notifications: await step(() => deps.sweepNotifications()),
     staleRefunds: await step(async () => {
       const stale = await deps.staleRefunds();

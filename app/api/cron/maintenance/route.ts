@@ -1,5 +1,7 @@
 import { drainNow } from "@/lib/email/server";
+import { drainPhotoCleanup } from "@/lib/photo-cleanup";
 import { isAuthorizedCron, runMaintenance } from "@/lib/maintenance";
+import { PHOTO_BUCKET } from "@/lib/staff/room-photos";
 import { createServiceClient } from "@/lib/supabase/service";
 
 export const runtime = "nodejs";
@@ -8,7 +10,7 @@ export const dynamic = "force-dynamic";
 /**
  * Housekeeping, meant to be called every few minutes by a scheduler with `Authorization: Bearer $CRON_SECRET`:
  * expires online reservations nobody paid for, sends due emails (the backstop for the quick send after each
- * booking), and purges old rate-limit and email rows.
+ * booking), purges old rate-limit and email rows, and removes stored room photo files whose picture was deleted.
  */
 async function handle(request: Request) {
   if (!isAuthorizedCron(request.headers.get("authorization"), process.env.CRON_SECRET)) {
@@ -33,6 +35,22 @@ async function handle(request: Request) {
       return data;
     },
     log: (level, message, context) => console[level](`[maintenance] ${message}`, context ?? {}),
+    cleanPhotoFiles: () => drainPhotoCleanup({
+      async claim(limit) {
+        const { data, error } = await db.rpc("claim_photo_cleanup", { p_limit: limit });
+        if (error) throw new Error(error.message);
+        return (data ?? []) as string[];
+      },
+      async remove(paths) {
+        const { error } = await db.storage.from(PHOTO_BUCKET).remove(paths);
+        return { error: error ? error.message : null };
+      },
+      async finish(paths) {
+        const { data, error } = await db.rpc("finish_photo_cleanup", { p_paths: paths });
+        if (error) throw new Error(error.message);
+        return (data ?? 0) as number;
+      },
+    }),
     async purgeOldData() {
       const { data, error } = await db.rpc("purge_old_operational_data");
       if (error) throw new Error(error.message);
