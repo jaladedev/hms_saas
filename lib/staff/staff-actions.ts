@@ -6,6 +6,7 @@ import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/service";
 import { back, fail, ok, staffClient } from "./action-helpers";
 import { siteOrigin } from "./auth";
+import { isRoleKey } from "./custom-roles";
 
 /**
  * Staff management actions. Each runs as the signed-in person, so the database decides who may do what
@@ -16,7 +17,7 @@ import { siteOrigin } from "./auth";
 
 const PAGE = "/app/staff";
 const uuid = z.guid();
-const roleKey = z.string().regex(/^[a-z0-9_]{2,40}$/);
+const roleKey = z.string().refine(isRoleKey);
 const property = z.union([uuid, z.literal("")]);
 
 export async function inviteStaff(formData: FormData) {

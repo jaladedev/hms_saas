@@ -261,6 +261,10 @@ SCM="$(psql -f "$HERE/71_stay_change_money.sql" 2>&1)" || { echo "$SCM"; echo "S
 echo "$SCM" | grep -E 'PASS' || true
 if echo "$SCM" | grep -qE 'FAIL|ERROR'; then echo "$SCM"; echo "STAY CHANGE MONEY TESTS FAILED"; exit 1; fi
 
+CR="$(psql -f "$HERE/86_custom_roles.sql" 2>&1)" || { echo "$CR"; echo "CUSTOM ROLE TESTS FAILED"; exit 1; }
+echo "$CR" | grep -E 'PASS' || true
+if echo "$CR" | grep -qE 'FAIL|ERROR'; then echo "$CR"; echo "CUSTOM ROLE TESTS FAILED"; exit 1; fi
+
 echo "--- concurrency: last room race (1 room, 50 clients)"
 cat > "$DATA/race_one.sql" <<'SQL'
 select test_try_claim('last_room', '00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a4', '2027-10-01', '2027-10-03');

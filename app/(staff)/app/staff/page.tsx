@@ -1,4 +1,5 @@
-import { buttonDanger, buttonPrimary, buttonQuiet, inputClass, MemberStatusChip, Notice, ErrorBanner, EmptyState, PageIntro, PageTitle, SectionTitle } from "@/components/staff/ui";
+import Link from "next/link";
+import { buttonDanger, linkClass, buttonPrimary, buttonQuiet, inputClass, MemberStatusChip, Notice, ErrorBanner, EmptyState, PageIntro, PageTitle, SectionTitle } from "@/components/staff/ui";
 import { addStaffRole, inviteStaff, removeStaffRole, setStaffStatus } from "@/lib/staff/staff-actions";
 import { memberActions, memberLabel, ROLE_HELP, scopeLabel, type Member } from "@/lib/staff/staff-rules";
 import { createClient } from "@/lib/supabase/server";
@@ -12,12 +13,12 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
     supabase.rpc("staff_directory"),
     supabase.from("properties").select("id, tenant_id, name").order("name"),
     supabase.from("tenants").select("id, name").order("name"),
-    supabase.from("roles").select("key, name").order("name"),
+    supabase.from("roles").select("key, name, tenant_id").order("name"),
   ]);
   const members = (dirQ.data ?? []) as Member[];
   const properties = (propQ.data ?? []) as { id: string; tenant_id: string; name: string }[];
   const tenants = (tenantQ.data ?? []) as { id: string; name: string }[];
-  const roles = (roleQ.data ?? []) as { key: string; name: string }[];
+  const roles = (roleQ.data ?? []) as { key: string; name: string; tenant_id: string | null }[];
   const propName = new Map(properties.map((p) => [p.id, p.name]));
   const managedTenants = tenants.filter((t) => members.some((m) => m.tenant_id === t.id));
   const manyTenants = managedTenants.length > 1;
@@ -34,11 +35,21 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
     );
   }
 
-  function RoleSelect({ id }: { id: string }) {
+  function RoleSelect({ id, tenantId }: { id: string; tenantId: string }) {
+    const shown = roles.filter((r) => !r.tenant_id || !tenantId || r.tenant_id === tenantId);
+    const builtIn = shown.filter((r) => !r.tenant_id);
+    const custom = shown.filter((r) => r.tenant_id);
+    const label = (r: { key: string; name: string; tenant_id: string | null }) =>
+      `${r.name}${ROLE_HELP[r.key] ? `: ${ROLE_HELP[r.key]}` : ""}${r.tenant_id && !tenantId && manyTenants ? ` (${tenantName.get(r.tenant_id) ?? "custom"})` : ""}`;
     return (
       <select id={id} name="roleKey" required defaultValue="" className={inputClass}>
         <option value="" disabled>Choose a role</option>
-        {roles.map((r) => <option key={r.key} value={r.key}>{r.name}{ROLE_HELP[r.key] ? `: ${ROLE_HELP[r.key]}` : ""}</option>)}
+        {custom.length === 0 ? builtIn.map((r) => <option key={r.key} value={r.key}>{label(r)}</option>) : (
+          <>
+            <optgroup label="Built-in roles">{builtIn.map((r) => <option key={r.key} value={r.key}>{label(r)}</option>)}</optgroup>
+            <optgroup label="Your custom roles">{custom.map((r) => <option key={r.key} value={r.key}>{label(r)}</option>)}</optgroup>
+          </>
+        )}
       </select>
     );
   }
@@ -87,7 +98,7 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
               <form action={addStaffRole} className="mt-3 space-y-3">
                 <input type="hidden" name="tenantId" value={m.tenant_id} />
                 <input type="hidden" name="userId" value={m.user_id} />
-                <div><label htmlFor={`r-${m.membership_id}`} className="block text-sm">Role</label><RoleSelect id={`r-${m.membership_id}`} /></div>
+                <div><label htmlFor={`r-${m.membership_id}`} className="block text-sm">Role</label><RoleSelect id={`r-${m.membership_id}`} tenantId={m.tenant_id} /></div>
                 <div><label htmlFor={`p-${m.membership_id}`} className="block text-sm">Where</label><PropertySelect id={`p-${m.membership_id}`} tenantId={m.tenant_id} /></div>
                 <button type="submit" className={buttonQuiet}>Add role</button>
               </form>
@@ -138,6 +149,7 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
         <SectionTitle id="invite">Add someone</SectionTitle>
         <p className="mt-1 max-w-prose text-sm text-muted">
           New people get an email with a link to choose a password. Someone who already has an account just gets the new access. You can only give roles whose permissions you hold yourself.
+          Need something in between? <Link href="/app/staff/roles" className={linkClass}>Create a custom role</Link>.
         </p>
         <form action={inviteStaff} className="mt-4 grid max-w-2xl gap-4 md:grid-cols-2">
           {manyTenants ? (
@@ -150,7 +162,7 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
             <label htmlFor="inv-email" className="block text-sm font-medium">Email</label>
             <input id="inv-email" name="email" type="email" required maxLength={254} autoCapitalize="none" spellCheck={false} autoComplete="off" className={inputClass} />
           </div>
-          <div><label htmlFor="inv-role" className="block text-sm font-medium">Role</label><RoleSelect id="inv-role" /></div>
+          <div><label htmlFor="inv-role" className="block text-sm font-medium">Role</label><RoleSelect id="inv-role" tenantId={manyTenants ? "" : managedTenants[0]?.id ?? members[0]?.tenant_id ?? ""} /></div>
           <div><label htmlFor="inv-prop" className="block text-sm font-medium">Where</label><PropertySelect id="inv-prop" tenantId={manyTenants ? "" : managedTenants[0]?.id ?? members[0]?.tenant_id ?? ""} /></div>
           <div className="md:col-span-2"><button type="submit" className={buttonPrimary}>Send invitation</button></div>
         </form>

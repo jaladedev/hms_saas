@@ -1943,6 +1943,7 @@ export type Database = {
           is_system: boolean
           key: string
           name: string
+          tenant_id: string | null
         }
         ComputedFields: never
         Insert: {
@@ -1950,12 +1951,14 @@ export type Database = {
           is_system?: boolean
           key: string
           name: string
+          tenant_id?: string | null
         }
         Update: {
           id?: string
           is_system?: boolean
           key?: string
           name?: string
+          tenant_id?: string | null
         }
         Relationships: []
       }
@@ -2853,6 +2856,22 @@ export type Database = {
       }
       guest_update_contact: {
         Args: { p_idempotency_key: string; p_phone: string; p_reservation_id: string }
+        Returns: Json
+      }
+      create_custom_role: {
+        Args: { p_name: string; p_permissions: string[]; p_tenant: string }
+        Returns: Json
+      }
+      custom_roles_list: {
+        Args: { p_tenant: string }
+        Returns: Json
+      }
+      delete_custom_role: {
+        Args: { p_role: string }
+        Returns: Json
+      }
+      update_custom_role: {
+        Args: { p_name: string; p_permissions: string[]; p_role: string }
         Returns: Json
       }
       guest_withdraw_change_request: {

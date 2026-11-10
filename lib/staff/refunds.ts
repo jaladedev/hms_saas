@@ -114,7 +114,7 @@ export type ErrorCode =
   | "overpayment" | "method_invalid" | "not_cancellable"
   | "room_unavailable" | "room_choice" | "capacity" | "rate_missing" | "forbidden" | "arrival_past" | "dates_invalid"
   | "guest_name_required" | "too_long_stay" | "room_type_missing" | "guest_failed"
-  | "request_note" | "block_conflict" | "block_in_house" | "block_past" | "block_invalid" | "room_retired"
+  | "role_name" | "role_name_taken" | "role_permissions" | "role_limit" | "role_in_use" | "request_note" | "block_conflict" | "block_in_house" | "block_past" | "block_invalid" | "room_retired"
   | "invoice_exists" | "invoice_has_payments" | "invoice_void"
   | "transfer_unavailable" | "transfer_past" | "transfer_outside" | "transfer_bad_room"
   | "guest_name" | "guest_email" | "guest_country" | "guest_field"
@@ -169,6 +169,10 @@ export function classifyRpcError(message: string): { code: ErrorCode; refundable
   if (/ROOM_UNAVAILABLE/.test(message)) return { code: "room_unavailable" };
   if (/CAPACITY_EXCEEDED/.test(message)) return { code: "capacity" };
   if (/RATE_MISSING/.test(message)) return { code: "rate_missing" };
+  if (/POLICY_VIOLATION: name taken/.test(message)) return { code: "role_name_taken" };
+  if (/POLICY_VIOLATION: permissions/.test(message)) return { code: "role_permissions" };
+  if (/POLICY_VIOLATION: too many roles/.test(message)) return { code: "role_limit" };
+  if (/INVALID_STATE: in use/.test(message)) return { code: "role_in_use" };
   if (/POLICY_VIOLATION: outcome/.test(message)) return { code: "request_note" };
   if (/FORBIDDEN/.test(message)) return { code: "forbidden" };
   if (/arrival in the past/.test(message)) return { code: "arrival_past" };
@@ -216,6 +220,9 @@ export const OK_MESSAGES = {
   created_hold: "Room held. Record the guest's payment before the hold runs out and the booking is confirmed; if it runs out, the room is released.",
   payment_confirmed: "Payment recorded. The booking is now confirmed and the room is the guest's.",
   housekeeping_set: "Room status updated.",
+  role_created: "Role created. You can now give it to people from the Staff page.",
+  role_updated: "Role saved. The change applies at once to everyone who holds it.",
+  role_deleted: "Role deleted.",
   request_done: "Request marked as dealt with. The guest sees it on their booking page.",
   request_declined: "Request declined. The guest sees your note on their booking page.",
   blocked: "Room blocked for those dates.",
@@ -376,6 +383,11 @@ export function errorMessage(code: string, refundable: number | null, formatMino
     case "email_invalid": return "Enter a valid email address.";
     case "block_conflict": return refundable !== null ? `${refundable} ${refundable === 1 ? "booking is" : "bookings are"} already on that room for those dates, so it was not blocked. Choose "move" or "cancel" under "If bookings are in the way", or move ${refundable === 1 ? "it" : "them"} on the booking first.` : "Bookings are already on that room for those dates, so it was not blocked.";
     case "block_in_house": return "A guest is staying in that room for those dates, so nothing was changed. A guest who has arrived cannot be cancelled: move them on their booking, or choose later dates.";
+    case "role_name": return "Give the role a name of 2 to 60 characters, without < or >.";
+    case "role_name_taken": return "A role with that name already exists, or it is the name of a built-in role. Choose another name.";
+    case "role_permissions": return "Pick at least one permission. A role cannot manage staff, and it cannot both request and approve refunds.";
+    case "role_limit": return "A hotel group can have at most 20 custom roles. Delete one you no longer use first.";
+    case "role_in_use": return "Someone still holds this role. Remove it from them on the Staff page first.";
     case "request_note": return "To decline a request, write a short note for the guest.";
     case "block_past": return "A block cannot start in the past. Choose today or a later date.";
     case "block_invalid": return "Enter a reason and an end date after the start date.";
