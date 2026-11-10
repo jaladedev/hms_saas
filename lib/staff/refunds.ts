@@ -408,6 +408,8 @@ export const OK_MESSAGES = {
   room_added: "Room added.",
   room_status_changed: "Room status updated.",
   guest_updated: "Guest details saved.",
+  guest_created: "Guest added. You can now book them in from Reservations, New reservation.",
+  guest_exists: "A guest with that email already exists, so no second record was made. This is their page.",
   staff_added:
     "Access granted. A new person gets an email to choose a password; someone who already has an account just signs in as usual.",
   staff_role_removed: "Role removed.",

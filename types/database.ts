@@ -2696,6 +2696,17 @@ export type Database = {
         Args: { p_key: string; p_limit: number; p_window_seconds: number }
         Returns: Json
       }
+      create_guest: {
+        Args: {
+          p_address: string
+          p_country_code: string
+          p_email: string
+          p_full_name: string
+          p_phone: string
+          p_property: string
+        }
+        Returns: Json
+      }
       create_hold: {
         Args: {
           p_arrival: string

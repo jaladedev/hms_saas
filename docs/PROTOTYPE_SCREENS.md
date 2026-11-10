@@ -65,7 +65,7 @@ Status: **built**, **partial** (part of the job is done, or only another role ca
 | --- | --- | --- |
 | Guest Directory | built | `/app/guests` |
 | Guest Profile | built | `/app/guests/[id]` |
-| Create / Edit Guest | partial | editing is built on `/app/guests/[id]`; guests are created through bookings, with no standalone create screen |
+| Create / Edit Guest | built | create at `/app/guests/new` (audited `create_guest`, migration 091), edit on `/app/guests/[id]` |
 
 ## Housekeeping
 
@@ -119,4 +119,4 @@ Status: **built**, **partial** (part of the job is done, or only another role ca
 
 ## Totals
 
-52 screens: 45 built, 5 partial, 2 not built.
+52 screens: 46 built, 4 partial, 2 not built.

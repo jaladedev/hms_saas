@@ -771,4 +771,8 @@ HL="$(psql -f "$HERE/91_hotel_logo.sql" 2>&1)" || { echo "$HL"; echo "HOTEL LOGO
 echo "$HL" | grep -E 'PASS' || true
 if echo "$HL" | grep -qE 'FAIL|ERROR'; then echo "$HL"; echo "HOTEL LOGO TESTS FAILED"; exit 1; fi
 
+CG="$(psql -f "$HERE/92_create_guest.sql" 2>&1)" || { echo "$CG"; echo "CREATE GUEST TESTS FAILED"; exit 1; }
+echo "$CG" | grep -E 'PASS' || true
+if echo "$CG" | grep -qE 'FAIL|ERROR'; then echo "$CG"; echo "CREATE GUEST TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

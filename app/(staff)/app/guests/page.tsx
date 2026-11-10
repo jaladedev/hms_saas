@@ -42,8 +42,15 @@ export default async function GuestsPage({ searchParams }: { searchParams: Promi
 
   return (
     <main className="max-w-4xl">
-      <PageTitle>Guests</PageTitle>
-      <PageIntro>Everyone who has booked with the hotel. Search by name, email or phone.</PageIntro>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <PageTitle>Guests</PageTitle>
+          <PageIntro>Everyone who has booked with the hotel. Search by name, email or phone.</PageIntro>
+        </div>
+        <Link href="/app/guests/new" className={buttonPrimary}>
+          Add a guest
+        </Link>
+      </div>
 
       <form method="get" className="mt-6 flex max-w-xl gap-2" role="search">
         <label htmlFor="q" className="sr-only">
