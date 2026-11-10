@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { headerName, placeLine, timesLine } from "./hotel";
+import { headerName, photoCountLabel, placeLine, timesLine } from "./hotel";
 
 describe("placeLine", () => {
   it("joins the parts that are filled in, in order", () => {
@@ -28,5 +28,14 @@ describe("headerName", () => {
   it("falls back to the plain wording when the hotel could not be loaded or has no name", () => {
     expect(headerName(null)).toBe("Book your stay");
     expect(headerName({ name: "  " })).toBe("Book your stay");
+  });
+});
+
+describe("photoCountLabel", () => {
+  it("counts photos and says nothing for none", () => {
+    expect(photoCountLabel(1)).toBe("1 photo");
+    expect(photoCountLabel(5)).toBe("5 photos");
+    expect(photoCountLabel(0)).toBe("");
+    expect(photoCountLabel(Number.NaN)).toBe("");
   });
 });

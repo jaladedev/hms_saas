@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { formatDate, formatMoney, formatTime } from "@/lib/guest-site/format";
 import { messageForCode } from "@/lib/guest-site/errors";
 import { parseStayParams, stayQuery, uuidSchema } from "@/lib/guest-site/params";
+import { photoCountLabel } from "@/lib/guest-site/hotel";
 import { guestPolicy, requestHost, searchAvailability } from "@/lib/guest-site/server";
 import { guestSummary, readConfig } from "@/lib/staff/policies";
 import { photoUrl } from "@/lib/staff/room-photos";
@@ -37,6 +38,7 @@ export default async function Reserve({ searchParams }: Props) {
         <h2 className="font-display text-xl">{quote.name}</h2>
         <p className="mt-1 text-sm text-muted">{result.data.property_name}</p>
         {quote.photos && quote.photos.length > 0 ? (
+<>
           <ul aria-label="Photos" className="mt-3 flex gap-2 overflow-x-auto">
             {quote.photos.map((ph) => (
               <li key={ph.path} className="shrink-0">
@@ -45,6 +47,8 @@ export default async function Reserve({ searchParams }: Props) {
               </li>
             ))}
           </ul>
+            <p className="mt-1 text-xs text-muted">{photoCountLabel(quote.photos.length)}</p>
+</>
         ) : null}
         {quote.description ? <p className="mt-3 text-sm">{quote.description}</p> : null}
         {quote.amenities && quote.amenities.length > 0 ? (

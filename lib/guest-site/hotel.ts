@@ -39,3 +39,9 @@ export function headerName(h: Pick<GuestHotel, "name"> | null): string {
   const name = h?.name?.trim();
   return name ? name : "Book your stay";
 }
+
+/** "1 photo", "4 photos": the count shown under a room type's picture row; nothing when there are none. */
+export function photoCountLabel(n: number): string {
+  if (!Number.isFinite(n) || n < 1) return "";
+  return `${n} ${n === 1 ? "photo" : "photos"}`;
+}

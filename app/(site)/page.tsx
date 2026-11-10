@@ -4,7 +4,7 @@ import { photoUrl } from "@/lib/staff/room-photos";
 import { messageForCode } from "@/lib/guest-site/errors";
 import { parseStayParams, stayQuery } from "@/lib/guest-site/params";
 import { checkGuestLimits } from "@/lib/guest-site/limits";
-import { placeLine, timesLine } from "@/lib/guest-site/hotel";
+import { photoCountLabel, placeLine, timesLine } from "@/lib/guest-site/hotel";
 import { guestHotel, requestHost, searchAvailability } from "@/lib/guest-site/server";
 
 export const dynamic = "force-dynamic";
@@ -79,6 +79,7 @@ export default async function GuestHome({ searchParams }: Props) {
                       <h3 className="font-display text-xl">{t.name}</h3>
                       {t.description ? <p className="mt-1 text-sm text-muted">{t.description}</p> : null}
                       {t.photos && t.photos.length > 0 ? (
+<>
                         <ul aria-label="Photos" className="mt-2 flex gap-2 overflow-x-auto">
                           {t.photos.map((ph) => (
                             <li key={ph.path} className="shrink-0">
@@ -87,6 +88,8 @@ export default async function GuestHome({ searchParams }: Props) {
                             </li>
                           ))}
                         </ul>
+                        <p className="mt-1 text-xs text-muted">{photoCountLabel(t.photos.length)}</p>
+</>
                       ) : null}
                       {t.amenities && t.amenities.length > 0 ? (
                         <ul aria-label="Amenities" className="mt-2 flex flex-wrap gap-1.5">
