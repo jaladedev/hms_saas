@@ -18,8 +18,8 @@ Never paste a key or a password into a chat, an issue or a commit. Keep them in 
 ## 1. Before you start
 
 ```bash
-npm ci && npm run typecheck && npm test && npm run build
-npm run db:test      # needs PostgreSQL 16 server binaries; ends with ALL TESTS PASSED
+npm ci && npm run typecheck && npm run format:check && npm test && npm run build
+npm run db:test      # needs PostgreSQL server binaries (CI uses 17, the version Supabase runs; set PGBIN for another path); ends with ALL TESTS PASSED
 npm run e2e          # ends with E2E PASSED
 ```
 
@@ -36,6 +36,23 @@ Create a new project used for staging only (never reuse it for production; step 
 | Secret key (`sb_secret_...`) | Settings, API Keys | `SUPABASE_SERVICE_ROLE_KEY` (step 8 decides if this is right) |
 | Legacy `service_role` key, if the project still shows one | Settings, API Keys | keep aside as the fallback for step 8 |
 | Project ref and database password | Settings, General and Database | the CLI in step 3 |
+
+Before applying anything, check the plan and the database (record the answers next to this step):
+
+- Supabase's current plan limits for this project: direct and pooled connections, backups and point-in-time recovery,
+  and whether an idle project is paused. Staging can be on a cheaper plan than production, but production needs
+  point-in-time recovery for the backup rehearsal in `TODO.md`, so confirm it is available on the plan you intend to use.
+- In the SQL editor, `show server_version;` should say 17.x, the major version in `supabase/config.toml`, which CI now tests on.
+- Extensions: the migrations create only `btree_gist` (migration 001, used by the room claims exclusion constraint),
+  which Supabase provides. `pg_jsonschema` is not used anywhere in the repository. `pg_cron` and `pg_net` are needed only if you
+  choose to run the maintenance call from the database in step 9. To see what the project offers:
+
+```sql
+select name, default_version, installed_version
+  from pg_available_extensions
+ where name in ('btree_gist', 'pg_cron', 'pg_net')
+ order by 1;
+```
 
 Authentication settings:
 
