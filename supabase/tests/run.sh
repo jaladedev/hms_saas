@@ -779,4 +779,8 @@ PP="$(psql -f "$HERE/93_profile_preferences.sql" 2>&1)" || { echo "$PP"; echo "P
 echo "$PP" | grep -E 'PASS' || true
 if echo "$PP" | grep -qE 'FAIL|ERROR'; then echo "$PP"; echo "PROFILE TESTS FAILED"; exit 1; fi
 
+HT="$(psql -f "$HERE/94_hotel_theme.sql" 2>&1)" || { echo "$HT"; echo "HOTEL THEME TESTS FAILED"; exit 1; }
+echo "$HT" | grep -E 'PASS' || true
+if echo "$HT" | grep -qE 'FAIL|ERROR'; then echo "$HT"; echo "HOTEL THEME TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

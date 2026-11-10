@@ -3,6 +3,8 @@
  * The same rules as the database checks (migration 087), so a mistake is explained on the form instead of being refused later.
  */
 
+import { parseTheme, type ThemeId } from "@/lib/theme";
+
 export const MAX_INTRO = 500;
 
 export type ProfileForm = { propertyId: string; phone: string | null; email: string | null; intro: string | null };
@@ -61,6 +63,20 @@ export function parseBasicsForm(raw: Record<string, unknown>): BasicsCheck {
   if (!city || city.length > 80 || !state || state.length > 80) return { ok: false, code: "setup_invalid" };
   if (!TIME.test(checkIn) || !TIME.test(checkOut)) return { ok: false, code: "setup_invalid" };
   return { ok: true, value: { propertyId, name, address: address || null, city, state, checkIn, checkOut } };
+}
+
+export type ThemeForm = { propertyId: string; theme: ThemeId | null };
+export type ThemeCheck = { ok: true; value: ThemeForm } | { ok: false; code: "setup_invalid" };
+
+/** The hotel's look (migration 093): "standard" (the look the app has always had) or one of the three theme names. */
+export function parseThemeForm(raw: Record<string, unknown>): ThemeCheck {
+  const propertyId = text(raw.propertyId);
+  const choice = text(raw.theme);
+  if (!UUID.test(propertyId)) return { ok: false, code: "setup_invalid" };
+  if (choice === "standard") return { ok: true, value: { propertyId, theme: null } };
+  const theme = parseTheme(choice);
+  if (!theme) return { ok: false, code: "setup_invalid" };
+  return { ok: true, value: { propertyId, theme } };
 }
 
 /** "14:00:00" from the database as "14:00" for a time field. */

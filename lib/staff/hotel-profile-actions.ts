@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { back, ok, staffClient } from "./action-helpers";
-import { parseBasicsForm, parseProfileForm } from "./hotel-profile";
+import { parseBasicsForm, parseProfileForm, parseThemeForm } from "./hotel-profile";
 import { logoPath, PHOTO_BUCKET, validatePhoto } from "./room-photos";
 import { classifySetupError } from "./room-setup";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -93,4 +93,20 @@ export async function removeHotelLogo(formData: FormData) {
   revalidatePath(PAGE);
   revalidatePath("/", "layout");
   return ok(PAGE, "hotel_logo_removed");
+}
+
+/**
+ * Saves the hotel's look (migration 093): the guest website and the staff screens for this hotel follow it. Same permission as
+ * the rest of this page. "Standard" clears the choice.
+ */
+export async function saveHotelTheme(formData: FormData) {
+  const v = parseThemeForm(Object.fromEntries(formData));
+  if (!v.ok) return back(PAGE, { err: v.code });
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("set_hotel_theme", { p_property: v.value.propertyId, p_theme: v.value.theme ?? "" });
+  if (error) return back(PAGE, { err: /NOT_FOUND/.test(error.message) ? "setup_forbidden" : classifySetupError(error) });
+  revalidatePath(PAGE);
+  revalidatePath("/", "layout");
+  revalidatePath("/app", "layout");
+  return ok(PAGE, "hotel_theme_saved");
 }

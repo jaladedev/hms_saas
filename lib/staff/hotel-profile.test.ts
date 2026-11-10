@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseBasicsForm, parseProfileForm, telHref, timeInput } from "./hotel-profile";
+import { parseBasicsForm, parseProfileForm, parseThemeForm, telHref, timeInput } from "./hotel-profile";
 
 const ID = "00000000-0000-4000-8000-0000000000a2";
 
@@ -87,5 +87,21 @@ describe("timeInput", () => {
   it("cuts seconds off", () => {
     expect(timeInput("14:00:00")).toBe("14:00");
     expect(timeInput(null)).toBe("");
+  });
+});
+
+describe("parseThemeForm", () => {
+  const id = "00000000-0000-0000-0000-0000000000a2";
+  it("accepts the three themes and the standard look", () => {
+    expect(parseThemeForm({ propertyId: id, theme: "luxury" })).toEqual({ ok: true, value: { propertyId: id, theme: "luxury" } });
+    expect(parseThemeForm({ propertyId: id, theme: " classic " })).toEqual({ ok: true, value: { propertyId: id, theme: "classic" } });
+    expect(parseThemeForm({ propertyId: id, theme: "standard" })).toEqual({ ok: true, value: { propertyId: id, theme: null } });
+  });
+  it("refuses anything else, and a bad hotel id", () => {
+    for (const theme of ["", "neon", "Luxury", "default", "luxury; drop table properties", undefined, 3]) {
+      expect(parseThemeForm({ propertyId: id, theme })).toEqual({ ok: false, code: "setup_invalid" });
+    }
+    expect(parseThemeForm({ propertyId: "nope", theme: "modern" })).toEqual({ ok: false, code: "setup_invalid" });
+    expect(parseThemeForm({ theme: "modern" })).toEqual({ ok: false, code: "setup_invalid" });
   });
 });

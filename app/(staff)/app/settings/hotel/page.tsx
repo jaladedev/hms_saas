@@ -1,3 +1,4 @@
+import { ThemePicker } from "@/components/staff/theme-picker";
 import { buttonPrimary, buttonQuiet, ErrorBanner, inputClass, Notice, PageIntro, PageTitle } from "@/components/staff/ui";
 import { MAX_INTRO, timeInput } from "@/lib/staff/hotel-profile";
 import { removeHotelLogo, saveHotelBasics, saveHotelProfile, uploadHotelLogo } from "@/lib/staff/hotel-profile-actions";
@@ -16,7 +17,7 @@ export default async function HotelDetailsPage({ searchParams }: { searchParams:
   const supabase = await createClient();
   const propQ = await supabase
     .from("properties")
-    .select("id, name, address, city, state, check_in_time, check_out_time, phone, contact_email, intro, logo_path")
+    .select("id, name, address, city, state, check_in_time, check_out_time, phone, contact_email, intro, logo_path, theme")
     .order("name");
   const properties = (propQ.data ?? []) as {
     id: string;
@@ -30,6 +31,7 @@ export default async function HotelDetailsPage({ searchParams }: { searchParams:
     contact_email: string | null;
     intro: string | null;
     logo_path: string | null;
+    theme: string | null;
   }[];
   const canEdit = new Map<string, boolean>();
   await Promise.all(
@@ -98,6 +100,7 @@ export default async function HotelDetailsPage({ searchParams }: { searchParams:
                   </button>
                 </form>
               </div>
+              <ThemePicker propertyId={p.id} name={p.name} current={p.theme} />
               <form action={saveHotelBasics} className="mt-8 grid gap-4 sm:grid-cols-2">
                 <input type="hidden" name="propertyId" value={p.id} />
                 <div className="sm:col-span-2">

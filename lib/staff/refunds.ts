@@ -414,6 +414,7 @@ export const OK_MESSAGES = {
   hotel_basics_saved: "Hotel name, address and times saved. Bookings made from now on use the new check-in and check-out times.",
   hotel_logo_saved: "Logo saved. Guests see it in the header of your website.",
   hotel_logo_removed: "Logo removed.",
+  hotel_theme_saved: "Look saved. Your website and the staff screens for this hotel now use it.",
   photo_moved: "Photo order saved.",
   photo_caption_saved: "Caption saved.",
   room_added: "Room added.",

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { headerName } from "@/lib/guest-site/hotel";
 import { photoUrl } from "@/lib/staff/room-photos";
 import { guestHotel, requestHost } from "@/lib/guest-site/server";
+import { parseTheme, THEME_WRAPPER_CLASS, themeStyle } from "@/lib/theme";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
   const hotel = await loadHotel();
   return (
-    <div className="min-h-screen">
+    <div className={`min-h-screen ${THEME_WRAPPER_CLASS}`} style={themeStyle(parseTheme(hotel?.theme))}>
       <header className="border-b border-line bg-white">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 py-4">
           <Link href="/" className="font-display text-xl max-md:inline-flex max-md:min-h-11 max-md:items-center">

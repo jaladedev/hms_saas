@@ -24,7 +24,7 @@ Status: **built**, **partial** (part of the job is done, or only another role ca
 | --- | --- | --- |
 | Dashboard Overview | built | `/app` |
 | Notifications | built | `/app/notifications` |
-| Profile & Preferences | partial | `/app/profile`: name, phone, screen spacing (comfortable or compact), a read-only summary of roles and what they allow, change password. The prototype's theme choice (Luxury, Modern, Classic) is not built: it is a hotel-wide look and belongs with the Branding & Theme Editor |
+| Profile & Preferences | built | `/app/profile`: name, phone, screen spacing (comfortable or compact), a read-only summary of roles and what they allow, change password. The prototype's theme choice (Luxury, Modern, Classic) is a hotel-wide look, so it is chosen on Hotel details (`/app/settings/hotel`), not here |
 
 ## Front Desk
 
@@ -104,7 +104,7 @@ Status: **built**, **partial** (part of the job is done, or only another role ca
 | --- | --- | --- |
 | Property Profile | built | `/app/settings/hotel` |
 | Operational Settings | partial | check-in and check-out times are on `/app/settings/hotel`; no single operations screen |
-| Branding & Theme Editor | not built | logo and room photos only |
+| Branding & Theme Editor | built | `/app/settings/hotel`: logo and room photos, and the hotel's look (Standard, Luxury, Modern or Classic; migration 093) for the guest site and the staff screens. Free-form colour editing is not built |
 | Staff Management | built | `/app/staff` |
 | Staff Permissions | built | `/app/staff/roles` (custom roles) |
 | Audit Log | built | `/app/settings/history` (Setup history) |
@@ -119,4 +119,4 @@ Status: **built**, **partial** (part of the job is done, or only another role ca
 
 ## Totals
 
-52 screens: 46 built, 5 partial, 1 not built.
+52 screens: 50 built, 2 partial, 0 not built.
