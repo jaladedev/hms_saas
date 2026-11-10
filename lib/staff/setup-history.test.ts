@@ -53,6 +53,8 @@ describe("filters", () => {
       expect(entities.has(entity!), action).toBe(true);
       expect(["created", "updated", "deleted"]).toContain(verb);
     }
+    expect(sql.includes("audit_config_row('property'")).toBe(true);
+    expect(FILTER_ACTIONS.hotel).toEqual(["property.updated"]);
     for (const literal of ["rates.set", "rates.changed", "rates.cleared", ...FILTER_ACTIONS.staff]) expect(sql.includes(`'${literal}'`), literal).toBe(true);
   });
 });
@@ -171,6 +173,12 @@ describe("describeEvent", () => {
     expect(cap).toEqual({ summary: "Changed a room photo", details: ["Caption: none \u2192 Sea view"] });
     const mv = describeEvent(row({ action: "room_type_photo.updated", entity_type: "room_type_photo", entity_id: "p1", metadata: { changed: { sort_order: { from: 0, to: 1 } } } }), lookup(), fmt);
     expect(mv.details).toEqual(["Moved in the order guests see"]);
+  });
+  it("words a change to the hotel details, shortening a long introduction and showing blanks as none", () => {
+    const long = "x".repeat(100);
+    const e = describeEvent(row({ action: "property.updated", entity_type: "property", entity_id: "pp", metadata: { changed: { phone: { from: null, to: "+234 802 000 0000" }, intro: { from: long, to: "Hi" } } } }), lookup(), fmt);
+    expect(e.summary).toBe("Changed the hotel details");
+    expect(e.details).toEqual(["Phone: none \u2192 +234 802 000 0000", `Introduction: ${"x".repeat(80)}\u2026 \u2192 Hi`]);
   });
   it("summarises nightly price changes", () => {
     const base = { rate_plan_id: RP, nights: 9, from: "2026-12-20", to: "2026-12-28" };

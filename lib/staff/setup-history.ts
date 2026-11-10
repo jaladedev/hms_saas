@@ -33,6 +33,7 @@ export const HISTORY_FILTERS = [
   { value: "policies", label: "Cancellation and payment policies" },
   { value: "staff", label: "Staff access" },
   { value: "discounts", label: "Discount limits" },
+  { value: "hotel", label: "Hotel details" },
 ] as const;
 export type HistoryFilter = (typeof HISTORY_FILTERS)[number]["value"];
 
@@ -44,6 +45,8 @@ export const FILTER_ACTIONS: Record<Exclude<HistoryFilter, "all">, string[]> = {
   policies: ["property_policy.created"],
   staff: ["staff.role_added", "staff.role_removed", "staff.status_changed"],
   discounts: ["discount_cap.set"],
+  // Written by the config audit trigger (migration 047, columns widened in 087); a hotel is only edited, never created or deleted from the app.
+  hotel: ["property.updated"],
 };
 export const actionsFor = (what: HistoryFilter): string[] =>
   what === "all" ? Object.values(FILTER_ACTIONS).flat() : FILTER_ACTIONS[what];
@@ -126,6 +129,8 @@ const LABELS: Record<string, string> = {
   room_number: "Room number", floor: "Floor", room_type_id: "Room type", operational_status: "Service status",
   is_default: "Standard plan", cancellation_policy: "Cancellation policy", payment_policy: "Payment policy",
   basis: "Kind of tax", rate_value: "Rate", sequence: "Order", compounds: "Applied on top of earlier rules",
+  phone: "Phone", contact_email: "Email", intro: "Introduction", address: "Address", city: "Town", state: "State", timezone: "Time zone",
+  check_in_time: "Check-in time", check_out_time: "Check-out time", country_code: "Country",
   effective_from: "First day", effective_to: "Last day", applies_to_charges: "Taxes extras",
 };
 export const fieldLabel = (key: string): string => LABELS[key] ?? key.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
@@ -269,6 +274,16 @@ export function describeEvent(row: AuditRow, lookup: Lookup, fmt: Format): { sum
         : `Set the ${role} discount limit to ${pct(to)}`,
       details: from === null ? [] : [`Was: ${pct(from)}`],
     };
+  }
+
+  // The hotel's own details (name, address, times, and since 087 phone, email and introduction).
+  if (row.action === "property.updated") {
+    const details = Object.entries(asRecord(m.changed)).map(([k, change]) => {
+      const c = asRecord(change);
+      const show = (v: unknown) => (typeof v === "string" && v !== "" ? (k === "intro" && v.length > 80 ? `${v.slice(0, 80)}\u2026` : v) : "none");
+      return `${fieldLabel(k)}: ${show(c.from)} \u2192 ${show(c.to)}`;
+    });
+    return { summary: "Changed the hotel details", details };
   }
 
   // A picture on a room type (migration 080): say which type, and the caption if there is one.
