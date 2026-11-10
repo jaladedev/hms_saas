@@ -253,6 +253,7 @@ export const OK_MESSAGES = {
   room_type_activated: "Room type switched on. It can be booked again.",
   photo_added: "Photo added. Guests see it on the hotel's website.",
   photo_removed: "Photo removed.",
+  hotel_profile_saved: "Hotel details saved. Guests see them on the hotel's website.",
   photo_moved: "Photo order saved.",
   photo_caption_saved: "Caption saved.",
   room_added: "Room added.",

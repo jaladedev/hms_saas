@@ -755,4 +755,8 @@ GE="$(psql -f "$HERE/87_guest_change_emails.sql" 2>&1)" || { echo "$GE"; echo "G
 echo "$GE" | grep -E 'PASS' || true
 if echo "$GE" | grep -qE 'FAIL|ERROR'; then echo "$GE"; echo "GUEST CHANGE EMAIL TESTS FAILED"; exit 1; fi
 
+HP="$(psql -f "$HERE/88_hotel_profile.sql" 2>&1)" || { echo "$HP"; echo "HOTEL PROFILE TESTS FAILED"; exit 1; }
+echo "$HP" | grep -E 'PASS' || true
+if echo "$HP" | grep -qE 'FAIL|ERROR'; then echo "$HP"; echo "HOTEL PROFILE TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

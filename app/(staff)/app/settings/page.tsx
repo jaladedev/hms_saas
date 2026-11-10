@@ -6,6 +6,7 @@ import { PageIntro, PageTitle, SectionTitle } from "@/components/staff/ui";
 export const dynamic = "force-dynamic";
 
 const SECTIONS = [
+  { href: "/app/settings/hotel", title: "Hotel details", text: "The phone, email and short introduction guests see on your website before they search." },
   { href: "/app/settings/rooms", title: "Room types and rooms", text: "The kinds of room you sell, their capacity and standard price, and the rooms themselves." },
   { href: "/app/settings/rates", title: "Rates", text: "Standard rate plan and different nightly prices for holidays and busy weeks." },
   { href: "/app/settings/tax", title: "Tax rules", text: "Which taxes are added to nights, and which of them also apply to extras such as the minibar and laundry." },

@@ -1,4 +1,5 @@
 import { formatMoney } from "@/lib/guest-site/format";
+import { telHref } from "@/lib/staff/hotel-profile";
 import { photoUrl } from "@/lib/staff/room-photos";
 import { messageForCode } from "@/lib/guest-site/errors";
 import { parseStayParams, stayQuery } from "@/lib/guest-site/params";
@@ -32,6 +33,14 @@ export default async function GuestHome({ searchParams }: Props) {
           {hotel.name}{place ? ` · ${place}` : ""}
           <br />
           {timesLine(hotel)}
+        </p>
+      ) : null}
+      {hotel?.intro ? <p className="mt-3 max-w-prose text-sm">{hotel.intro}</p> : null}
+      {hotel && (hotel.phone || hotel.email) ? (
+        <p className="mt-2 text-sm text-muted">
+          {hotel.phone ? (telHref(hotel.phone) ? <a href={telHref(hotel.phone) as string} className="text-primary underline">{hotel.phone}</a> : hotel.phone) : null}
+          {hotel.phone && hotel.email ? " · " : null}
+          {hotel.email ? <a href={`mailto:${hotel.email}`} className="text-primary underline">{hotel.email}</a> : null}
         </p>
       ) : null}
       {notice ? <p role="alert" className="mt-4 rounded border border-critical/40 bg-white p-3 text-critical">{notice}</p> : null}

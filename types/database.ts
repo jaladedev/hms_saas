@@ -1399,11 +1399,14 @@ export type Database = {
           check_out_time: string
           city: string
           code: string
+          contact_email: string | null
           country_code: string
           created_at: string
           currency: string
           id: string
+          intro: string | null
           name: string
+          phone: string | null
           state: string
           status: string
           tenant_id: string
@@ -1417,11 +1420,14 @@ export type Database = {
           check_out_time?: string
           city?: string
           code: string
+          contact_email?: string | null
           country_code?: string
           created_at?: string
           currency?: string
           id?: string
+          intro?: string | null
           name: string
+          phone?: string | null
           state?: string
           status?: string
           tenant_id: string
@@ -1434,11 +1440,14 @@ export type Database = {
           check_out_time?: string
           city?: string
           code?: string
+          contact_email?: string | null
           country_code?: string
           created_at?: string
           currency?: string
           id?: string
+          intro?: string | null
           name?: string
+          phone?: string | null
           state?: string
           status?: string
           tenant_id?: string
@@ -2949,6 +2958,7 @@ export type Database = {
         }[]
       }
       move_room_type_photo: { Args: { p_direction: string; p_photo: string }; Returns: number }
+      update_hotel_profile: { Args: { p_email: string; p_intro: string; p_phone: string; p_property: string }; Returns: undefined }
       lock_room_types: {
         Args: { p_property: string; p_types: string[] }
         Returns: undefined

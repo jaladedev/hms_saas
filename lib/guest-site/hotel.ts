@@ -8,6 +8,9 @@ export type GuestHotel = {
   state: string | null;
   check_in_time: string;
   check_out_time: string;
+  phone?: string | null;   // absent from answers given before migration 087
+  email?: string | null;
+  intro?: string | null;
 };
 
 /** "12 Example Road, Ibadan, Oyo": the parts the hotel has filled in, in order, without repeats or blanks. */
