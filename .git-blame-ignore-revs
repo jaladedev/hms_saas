@@ -2,4 +2,5 @@
 #   git config blame.ignoreRevsFile .git-blame-ignore-revs
 # GitHub reads this file automatically.
 #
-# Prettier, printWidth 140 (format-only commit). Replace this line with its full commit hash after running `npm run format`.
+# Prettier, printWidth 140: format-only changes to existing code (the same commit also added the Prettier config).
+0eb59d5c6923f3920ac5ff195d1e57e2d7f47166
