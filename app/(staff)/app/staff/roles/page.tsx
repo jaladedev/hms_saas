@@ -30,9 +30,21 @@ export default async function CustomRolesPage({ searchParams }: { searchParams: 
   const search = await searchParams;
   const supabase = await createClient();
   const [dirQ, tenantQ] = await Promise.all([supabase.rpc("staff_directory"), supabase.from("tenants").select("id, name").order("name")]);
+  // A failed lookup is not the same as "you own no group": say so, instead of telling an owner to ask an owner.
+  if (dirQ.error || tenantQ.error) {
+    return (
+      <main className="max-w-3xl">
+        <PageTitle>Custom roles</PageTitle>
+        <ErrorBanner className="mt-4">The roles could not be loaded. Reload the page.</ErrorBanner>
+      </main>
+    );
+  }
   const memberTenants = new Set(((dirQ.data ?? []) as { tenant_id: string }[]).map((m) => m.tenant_id));
   const tenants = ((tenantQ.data ?? []) as { id: string; name: string }[]).filter((t) => memberTenants.has(t.id));
-  const lists = await Promise.all(tenants.map(async (t) => ({ tenant: t, roles: parseCustomRoles((await supabase.rpc("custom_roles_list", { p_tenant: t.id })).data) })));
+  const lists = await Promise.all(tenants.map(async (t) => {
+    const q = await supabase.rpc("custom_roles_list", { p_tenant: t.id });
+    return { tenant: t, roles: parseCustomRoles(q.data), failed: Boolean(q.error) };
+  }));
 
   if (tenants.length === 0) {
     return (
@@ -52,10 +64,10 @@ export default async function CustomRolesPage({ searchParams }: { searchParams: 
         Changing a role applies at once to everyone who holds it.
       </PageIntro>
       <div className="mt-6"><Notice search={search} currency="NGN" /></div>
-      {lists.map(({ tenant, roles }) => (
+      {lists.map(({ tenant, roles, failed }) => (
         <section key={tenant.id} className="mt-8" aria-labelledby={`g-${tenant.id}`}>
           {tenants.length > 1 && <SectionTitle id={`g-${tenant.id}`}>{tenant.name}</SectionTitle>}
-          {roles.length === 0 ? <EmptyState className="mt-3">No custom roles yet.</EmptyState> : (
+          {failed ? <ErrorBanner className="mt-3">This group's roles could not be loaded. Reload the page.</ErrorBanner> : roles.length === 0 ? <EmptyState className="mt-3">No custom roles yet.</EmptyState> : (
             <ul className="mt-3 border-t border-line">
               {roles.map((r: CustomRole) => (
                 <li key={r.id} className="border-b border-line py-4">
