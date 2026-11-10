@@ -18,7 +18,9 @@ jobs:
       - run: npm run build
 
   database:
-    runs-on: ubuntu-latest
+    # Pinned: ubuntu-latest moved to 26.04, whose default apt sources have no
+    # postgresql-16, and supabase/tests/run.sh expects /usr/lib/postgresql/16/bin.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Install PostgreSQL 16 server
