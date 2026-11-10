@@ -630,6 +630,108 @@ check("the owner publishes a version in force today with guest changes on", gcPu
 const gcRow = (await (await fetch(`${REST}/property_policies?property_id=eq.${PROPERTY_A}&effective_from=eq.${gcToday}&select=config`, { headers: { authorization: `Bearer ${jwt("service_role")}` } })).json())[0];
 check("it stores guest_changes on and no window key (48 is the default)", gcRow?.config?.guest_changes === "on" && gcRow?.config?.guest_change_hours === undefined, JSON.stringify(gcRow));
 
+// 12c. Custom roles (migration 084): the owner makes a role on /app/staff/roles, gives it to the housekeeper from the Staff page, and the grant,
+// an edit and the removal take effect at once. Hotel B never sees it, and an accountant cannot make one. The role is deleted at the end so
+// section 14 still finds the housekeeper with no reports access.
+const crPage = async (path, cookie) => getPage(path, cookie);
+const formsWith = (html, ...markers) => [...html.matchAll(/<form[\s\S]*?<\/form>/g)].map((m) => m[0]).filter((f) => markers.every((m) => f.includes(m)));
+function roleForm(block, fields, permissions) {
+  const data = formData(block, fields);
+  data.delete("permission");
+  for (const p of permissions) data.append("permission", p);
+  return data;
+}
+const roleRows = async () => (await (await fetch(`${REST}/roles?is_system=eq.false&select=id,key,name,tenant_id`, { headers: { authorization: `Bearer ${jwt("service_role")}` } })).json());
+const svc = { headers: { authorization: `Bearer ${jwt("service_role")}` } };
+const rolePerms = async (id) => {
+  const links = await (await fetch(`${REST}/role_permissions?role_id=eq.${id}&select=permission_id`, svc)).json();
+  const keys = await (await fetch(`${REST}/permissions?id=in.(${links.map((l) => l.permission_id).join(",")})&select=key`, svc)).json();
+  return keys.map((k) => ({ permissions: k }));
+};
+const HK_CR_COOKIE = session("00000000-0000-0000-0000-00000000aa06", "hk@hotel-a.test");
+
+let cr = await staff("/app/staff/roles", null);
+check("the custom roles page sends a signed-out visitor to sign in", cr.status === 307 && (cr.headers.get("location") ?? "").includes("/login"), `status ${cr.status}`);
+let crAcc = await crPage("/app/staff/roles", ACCOUNTANT_COOKIE);
+check("an accountant is told only an owner can create roles, and sees no form", crAcc.status === 200 && sees(crAcc.text, "Only a hotel owner can create roles") && !crAcc.html.includes('name="permission"'), crAcc.text.slice(0, 160));
+let crOwner = await crPage("/app/staff/roles", OWNER_COOKIE);
+check("the owner sees the custom roles page with the new role form and the permission boxes", crOwner.status === 200 && sees(crOwner.text, "Custom roles", "New role", "Record payments", "See reports") && !crOwner.html.includes('value="staff.manage"'), crOwner.text.slice(0, 160));
+const crCreate = formsWith(crOwner.html, 'name="tenantId"', 'name="permission"')[0];
+check("the create form carries a server action", Boolean(crCreate) && /\$ACTION_ID_/.test(crCreate), crCreate?.slice(0, 160));
+
+const crBefore = (await roleRows()).length;
+const crTry = (cookie, fields, perms) => staff("/app/staff/roles", cookie, { method: "POST", body: roleForm(crCreate, fields, perms) });
+const crTenant = TENANT_A;
+res = await crTry(OWNER_COOKIE, { name: "Both refunds" }, ["refund.request", "refund.approve"]);
+check("a role that could request and approve refunds is refused", outcome(res).get("err") === "role_permissions", res.headers.get("location") ?? "");
+res = await crTry(OWNER_COOKIE, { name: "Boss" }, ["staff.manage", "room.view"]);
+check("a role holding staff.manage is refused", outcome(res).get("err") === "role_permissions", res.headers.get("location") ?? "");
+res = await crTry(OWNER_COOKIE, { name: "Nothing" }, []);
+check("a role with no permission is refused", outcome(res).get("err") === "role_permissions", res.headers.get("location") ?? "");
+res = await crTry(OWNER_COOKIE, { name: "x" }, ["room.view"]);
+check("a one-letter name is refused", outcome(res).get("err") === "role_name", res.headers.get("location") ?? "");
+res = await crTry(OWNER_COOKIE, { name: "Hotel owner" }, ["room.view"]);
+check("the name of a built-in role is refused", outcome(res).get("err") === "role_name_taken", res.headers.get("location") ?? "");
+res = await crTry(ACCOUNTANT_COOKIE, { name: "Sneaky" }, ["room.view"]);
+check("an accountant's attempt to create a role changes nothing", outcome(res).get("ok") !== "role_created" && !(await roleRows()).some((r) => r.name === "Sneaky") && (await roleRows()).length === crBefore, res.headers.get("location") ?? "");
+
+res = await crTry(OWNER_COOKIE, { name: "Night auditor" }, ["room.view", "report.view", "payment.verify"]);
+check("the owner creates a role", res.status === 303 && outcome(res).get("ok") === "role_created", `${res.status} ${res.headers.get("location")}`);
+res = await crTry(OWNER_COOKIE, { name: "night AUDITOR" }, ["room.view"]);
+check("the same name in other capitals is refused", outcome(res).get("err") === "role_name_taken", res.headers.get("location") ?? "");
+const crRole = (await roleRows()).find((r) => r.name === "Night auditor");
+check("the role is stored for hotel A with a custom key and its three permissions",
+  Boolean(crRole) && crRole.tenant_id === crTenant && /^custom\.night-auditor\.[0-9a-f]{8}$/.test(crRole.key) && (await rolePerms(crRole.id)).map((p) => p.permissions.key).sort().join() === "payment.verify,report.view,room.view",
+  JSON.stringify(crRole));
+const crAudit = await (await fetch(`${REST}/audit_logs?action=eq.role.created&entity_id=eq.${crRole?.id}&select=actor_user_id,metadata`, { headers: { authorization: `Bearer ${jwt("service_role")}` } })).json();
+check("creating it is audited against the owner", crAudit.length === 1 && crAudit[0].actor_user_id === OWNER_ID, JSON.stringify(crAudit));
+
+crOwner = await crPage("/app/staff/roles", OWNER_COOKIE);
+check("the roles page lists it with its count and that nobody holds it", sees(crOwner.text, "Night auditor", "3 permissions", "nobody holds it yet"), crOwner.text.slice(0, 300));
+const crOwnerB = await crPage("/app/staff/roles", OWNER_B_COOKIE);
+check("hotel B's owner does not see hotel A's role", crOwnerB.status === 200 && !crOwnerB.text.includes("Night auditor"), crOwnerB.text.slice(0, 200));
+let crStaff = await crPage("/app/staff", OWNER_COOKIE);
+check("the Staff page offers it among the custom roles", crStaff.status === 200 && crStaff.html.includes(`value="${crRole.key}"`) && crStaff.html.includes('label="Your custom roles"'), crStaff.text.slice(0, 200));
+const crStaffB = await crPage("/app/staff", OWNER_B_COOKIE);
+check("hotel B's Staff page does not offer it", crStaffB.status === 200 && !crStaffB.html.includes(crRole.key), "");
+
+// grant it to the housekeeper, who before this cannot read reports
+let hkRep = await crPage("/app/reports/occupancy", HK_CR_COOKIE);
+check("before the grant the housekeeper has no report access", sees(hkRep.text, "You do not have permission to see reports."), hkRep.text.slice(0, 120));
+const crAdd = formsWith(crStaff.html, `value="00000000-0000-0000-0000-00000000aa06"`, 'name="roleKey"')[0];
+check("the housekeeper's Add a role form is on the Staff page", Boolean(crAdd), "");
+res = await staff("/app/staff", OWNER_COOKIE, { method: "POST", body: formData(crAdd, { roleKey: crRole.key, propertyId: "" }) });
+check("the owner gives the custom role to the housekeeper", res.status === 303 && outcome(res).get("ok") === "staff_added", `${res.status} ${res.headers.get("location")}`);
+hkRep = await crPage("/app/reports/occupancy", HK_CR_COOKIE);
+check("at once the housekeeper can read the occupancy report", hkRep.status === 200 && sees(hkRep.text, "Occupancy") && doesNotSee(hkRep.text, "You do not have permission"), hkRep.text.slice(0, 160));
+crOwner = await crPage("/app/staff/roles", OWNER_COOKIE);
+check("the roles page now shows one holder", sees(crOwner.text, "held by 1 person"), crOwner.text.slice(0, 300));
+
+// delete is refused while held
+const crDel = formsWith(crOwner.html, `value="${crRole.id}"`).find((f) => !f.includes('name="permission"'));
+res = await staff("/app/staff/roles", OWNER_COOKIE, { method: "POST", body: formData(crDel, {}) });
+check("a role someone holds cannot be deleted", outcome(res).get("err") === "role_in_use" && (await roleRows()).some((r) => r.id === crRole.id), res.headers.get("location") ?? "");
+
+// edit: drop report.view, and the housekeeper loses the report at once
+const crEdit = formsWith(crOwner.html, `value="${crRole.id}"`, 'name="permission"')[0];
+res = await staff("/app/staff/roles", OWNER_COOKIE, { method: "POST", body: roleForm(crEdit, { name: "Night auditor" }, ["room.view", "payment.verify"]) });
+check("the owner edits the role", res.status === 303 && outcome(res).get("ok") === "role_updated", `${res.status} ${res.headers.get("location")}`);
+hkRep = await crPage("/app/reports/occupancy", HK_CR_COOKIE);
+check("the housekeeper loses the report at once", sees(hkRep.text, "You do not have permission to see reports."), hkRep.text.slice(0, 120));
+const crUpd = await (await fetch(`${REST}/audit_logs?action=eq.role.updated&entity_id=eq.${crRole.id}&select=metadata`, { headers: { authorization: `Bearer ${jwt("service_role")}` } })).json();
+check("the edit is audited with the permissions it had before", crUpd.length === 1 && JSON.stringify(crUpd[0].metadata).includes("report.view"), JSON.stringify(crUpd));
+
+// take it back, then delete it
+crStaff = await crPage("/app/staff", OWNER_COOKIE);
+const crMr = await (await fetch(`${REST}/membership_roles?role_id=eq.${crRole.id}&select=id`, { headers: { authorization: `Bearer ${jwt("service_role")}` } })).json();
+const crRemoveForm = formsWith(crStaff.html, `value="${crMr[0]?.id}"`)[0];
+res = await staff("/app/staff", OWNER_COOKIE, { method: "POST", body: formData(crRemoveForm, {}) });
+check("the owner takes the role back from the housekeeper", res.status === 303 && outcome(res).get("ok") !== undefined && (await (await fetch(`${REST}/membership_roles?role_id=eq.${crRole.id}&select=id`, { headers: { authorization: `Bearer ${jwt("service_role")}` } })).json()).length === 0, res.headers.get("location") ?? "");
+crOwner = await crPage("/app/staff/roles", OWNER_COOKIE);
+const crDel2 = formsWith(crOwner.html, `value="${crRole.id}"`).find((f) => !f.includes('name="permission"'));
+res = await staff("/app/staff/roles", OWNER_COOKIE, { method: "POST", body: formData(crDel2, {}) });
+check("the unused role can now be deleted", outcome(res).get("ok") === "role_deleted" && !(await roleRows()).some((r) => r.id === crRole.id), res.headers.get("location") ?? "");
+
 // 13. Cancellation and payment policies: the staff screen, the audit rows, and the text on the reserve page.
 // Versions start in 2090, so no booking made in this run is affected. Policies are never edited, so each save is a new version.
 res = await staff("/app/settings/policies", null);
