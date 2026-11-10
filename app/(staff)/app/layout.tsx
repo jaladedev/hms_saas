@@ -23,6 +23,8 @@ const NAV: { label: string; href?: string }[] = [
   { label: "Maintenance", href: "/app/maintenance" },
   { label: "Payments & Billing" },
   { label: "Payments to verify", href: "/app/payments" },
+  { label: "All payments", href: "/app/payments/all" },
+  { label: "Invoices", href: "/app/invoices" },
   { label: "Refunds", href: "/app/refunds" },
   { label: "Reconcile payments", href: "/app/reconciliation" },
   { label: "Guest emails", href: "/app/emails" },

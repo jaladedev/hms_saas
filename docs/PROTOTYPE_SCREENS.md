@@ -80,10 +80,10 @@ Status: **built**, **partial** (part of the job is done, or only another role ca
 
 | Prototype screen | Status | Where |
 | --- | --- | --- |
-| Payments Overview | not built | `/app/payments` is only the queue of payments to verify |
-| Payment Details | not built | payments are seen per reservation |
+| Payments Overview | built | `/app/payments/all`; the verify queue stays at `/app/payments` |
+| Payment Details | built | `/app/payments/[id]`, read-only; verify, reverse and refund stay where they were |
 | Record Manual Payment | built | on `/app/reservations/[id]` |
-| Invoice List | not built | invoices are only reachable from each reservation |
+| Invoice List | built | `/app/invoices`, booking invoices and invoices for extras; no balance column, PDF or email yet |
 | Invoice Details | built | `/app/reservations/[id]/folio-invoice/[invoiceId]` |
 | Refund Management | built | `/app/refunds` |
 | Reconciliation | built | `/app/reconciliation` |
@@ -119,4 +119,4 @@ Status: **built**, **partial** (part of the job is done, or only another role ca
 
 ## Totals
 
-52 screens: 42 built, 5 partial, 5 not built.
+52 screens: 45 built, 5 partial, 2 not built.

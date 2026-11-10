@@ -57,6 +57,9 @@ export default async function PaymentsToVerifyPage({
         >
           Recently verified
         </Link>
+        <Link href="/app/payments/all" className={tab(false)}>
+          All payments
+        </Link>
       </div>
 
       {queue.items.length === 0 && !queueQ.error && (
