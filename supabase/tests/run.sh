@@ -775,4 +775,8 @@ CG="$(psql -f "$HERE/92_create_guest.sql" 2>&1)" || { echo "$CG"; echo "CREATE G
 echo "$CG" | grep -E 'PASS' || true
 if echo "$CG" | grep -qE 'FAIL|ERROR'; then echo "$CG"; echo "CREATE GUEST TESTS FAILED"; exit 1; fi
 
+PP="$(psql -f "$HERE/93_profile_preferences.sql" 2>&1)" || { echo "$PP"; echo "PROFILE TESTS FAILED"; exit 1; }
+echo "$PP" | grep -E 'PASS' || true
+if echo "$PP" | grep -qE 'FAIL|ERROR'; then echo "$PP"; echo "PROFILE TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

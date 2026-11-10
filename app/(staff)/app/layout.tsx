@@ -6,6 +6,7 @@ import { PropertySwitcher } from "@/components/staff/property-switcher";
 import { rememberedProperty } from "@/lib/staff/active-property";
 import { pickProperty } from "@/lib/staff/property-choice";
 import { badgeText } from "@/lib/staff/notifications";
+import { parseDensity } from "@/lib/staff/profile";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -53,6 +54,10 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   const unreadQ = await supabase.rpc("notification_unread_count");
   const unread = unreadQ.error || typeof unreadQ.data !== "number" ? 0 : unreadQ.data;
 
+  // The person's own spacing preference. A failed read, or a person with no profile row yet, gets the standard spacing.
+  const profileQ = await supabase.from("user_profiles").select("density").maybeSingle();
+  const density = parseDensity((profileQ.data as { density?: string } | null)?.density);
+
   // The header switcher appears only for people who can see more than one open property.
   const propsQ = await supabase.from("properties").select("id, name").eq("status", "active").order("name");
   const switchable = (propsQ.data ?? []) as { id: string; name: string }[];
@@ -97,9 +102,14 @@ export default async function StaffLayout({ children }: { children: React.ReactN
           </nav>
           {switchable.length > 1 && current && <PropertySwitcher properties={switchable} currentId={current.id} />}
           <div className="mt-10 border-t border-white/15 pt-4">
-            <p className="truncate text-white/70" title={data.user.email ?? undefined}>
+            <Link
+              href="/app/profile"
+              className="block truncate text-white/70 underline-offset-2 hover:text-white hover:underline focus-visible:outline-2 focus-visible:outline-white"
+              title={data.user.email ?? undefined}
+            >
               {data.user.email}
-            </p>
+              <span className="sr-only">, your profile</span>
+            </Link>
             <form action={signOut} className="mt-2">
               <button
                 type="submit"
@@ -111,7 +121,9 @@ export default async function StaffLayout({ children }: { children: React.ReactN
           </div>
         </NavMenu>
       </aside>
-      <div className="min-w-0 flex-1 p-4 md:p-6 print:p-0">{children}</div>
+      <div data-density={density} className="min-w-0 flex-1 p-4 md:p-6 print:p-0">
+        {children}
+      </div>
     </div>
   );
 }

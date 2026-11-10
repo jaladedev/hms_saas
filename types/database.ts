@@ -2477,6 +2477,7 @@ export type Database = {
         Row: {
           avatar_path: string | null
           created_at: string
+          density: string
           full_name: string | null
           id: string
           phone: string | null
@@ -2486,6 +2487,7 @@ export type Database = {
         Insert: {
           avatar_path?: string | null
           created_at?: string
+          density?: string
           full_name?: string | null
           id: string
           phone?: string | null
@@ -2494,6 +2496,7 @@ export type Database = {
         Update: {
           avatar_path?: string | null
           created_at?: string
+          density?: string
           full_name?: string | null
           id?: string
           phone?: string | null
@@ -3379,6 +3382,10 @@ export type Database = {
           p_guest: string
           p_phone: string
         }
+        Returns: Json
+      }
+      update_my_profile: {
+        Args: { p_density: string; p_full_name: string; p_phone: string }
         Returns: Json
       }
       update_reservation_stay: {

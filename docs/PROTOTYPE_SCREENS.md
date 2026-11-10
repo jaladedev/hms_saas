@@ -24,7 +24,7 @@ Status: **built**, **partial** (part of the job is done, or only another role ca
 | --- | --- | --- |
 | Dashboard Overview | built | `/app` |
 | Notifications | built | `/app/notifications` |
-| Profile & Preferences | not built | |
+| Profile & Preferences | partial | `/app/profile`: name, phone, screen spacing (comfortable or compact), a read-only summary of roles and what they allow, change password. The prototype's theme choice (Luxury, Modern, Classic) is not built: it is a hotel-wide look and belongs with the Branding & Theme Editor |
 
 ## Front Desk
 
@@ -119,4 +119,4 @@ Status: **built**, **partial** (part of the job is done, or only another role ca
 
 ## Totals
 
-52 screens: 46 built, 4 partial, 2 not built.
+52 screens: 46 built, 5 partial, 1 not built.

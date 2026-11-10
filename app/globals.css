@@ -17,6 +17,12 @@
   --font-display: "Playfair Display", ui-serif, Georgia, serif;
 }
 
+/* Staff display density (Profile & Preferences). Every spacing utility (padding, margin, gap) is a multiple of --spacing, so
+   lowering it on the content area tightens the whole screen at once, and the navigation beside it is left alone. */
+[data-density="compact"] {
+  --spacing: 0.21rem;
+}
+
 body {
   background: var(--color-paper);
   color: var(--color-ink);

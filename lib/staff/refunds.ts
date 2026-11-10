@@ -1,3 +1,4 @@
+import { resetErrorMessage } from "./auth";
 /** Shared types and rules for the staff refund screens. Pure functions only, so they can be tested. */
 
 export type RefundStatus = "requested" | "approved" | "rejected" | "processing" | "succeeded" | "failed";
@@ -170,6 +171,16 @@ export type ErrorCode =
   | "guest_email"
   | "guest_country"
   | "guest_field"
+  | "profile_name"
+  | "profile_phone"
+  | "profile_density"
+  | "wrong_password"
+  | "pw_mismatch"
+  | "pw_short"
+  | "pw_long"
+  | "pw_same"
+  | "pw_weak"
+  | "pw_failed"
   | "role_escalation"
   | "self_change"
   | "last_owner"
@@ -408,6 +419,8 @@ export const OK_MESSAGES = {
   room_added: "Room added.",
   room_status_changed: "Room status updated.",
   guest_updated: "Guest details saved.",
+  profile_saved: "Your details and display setting are saved.",
+  password_changed: "Password changed. Your other sign-ins have been signed out.",
   guest_created: "Guest added. You can now book them in from Reservations, New reservation.",
   guest_exists: "A guest with that email already exists, so no second record was made. This is their page.",
   staff_added:
@@ -608,6 +621,21 @@ export function errorMessage(code: string, refundable: number | null, formatMino
       return "Use the two-letter country code, such as NG, or leave it empty.";
     case "guest_field":
       return "The phone number (40 characters) or address (500) is too long.";
+    case "profile_name":
+      return "A name is required (up to 200 characters).";
+    case "profile_phone":
+      return "The phone number is too long (40 characters at most).";
+    case "profile_density":
+      return "Choose Comfortable or Compact.";
+    case "wrong_password":
+      return "That is not your current password. Your password was not changed.";
+    case "pw_mismatch":
+    case "pw_short":
+    case "pw_long":
+    case "pw_same":
+    case "pw_weak":
+    case "pw_failed":
+      return resetErrorMessage(code.slice(3)) ?? "Your password was not changed.";
     case "role_escalation":
       return "You can only give or take roles whose permissions you hold yourself, for the places you hold them.";
     case "self_change":
