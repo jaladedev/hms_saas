@@ -82,12 +82,25 @@ const invoice = inHouse ? await firstRow("folio_invoices", `reservation_id=eq.${
 check("a guest, a repair and an invoice exist for their pages", !!guest && !!repair && !!invoice, `guest ${!!guest} repair ${!!repair} invoice ${!!invoice}`);
 const reservationId = inHouse?.id ?? null, guestId = guest?.id ?? null, maintenanceId = repair?.id ?? null;
 
+// Amenities on the Standard room type, so the guest search results have tags to draw (flow.mjs leaves none). The earlier list is put
+// back at the end. Set as the signed-in owner, as the staff screen does (not as service_role: the local stub gives service_role no
+// EXECUTE on functions by default, so the room_types CHECK helper refuses it here; the staff screen's own form is flow.mjs's job).
+const AMENITIES = ["Air conditioning", "Wi-Fi", "Breakfast included"];
+const standard = await firstRow("room_types", `property_id=eq.${PROPERTY}&name=eq.Standard`);
+const setAmenities = (list) => rest(`/room_types?id=eq.${standard.id}`, owner, { method: "PATCH", headers: { prefer: "return=minimal" }, body: JSON.stringify({ amenities: list }) });
+const amenitiesBefore = standard?.amenities ?? [];
+if (standard) { const r = await setAmenities(AMENITIES); if (!r.ok) check("seed: amenities on the Standard type", false, `${r.status} ${(await r.text()).slice(0, 160)}`); }
+else check("the Standard room type exists to give amenities to", false);
+const ymd = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
+const searchPath = `/?arrival=${ymd(30)}&departure=${ymd(32)}&adults=2&children=0`;
+
 const staffPages = [
   "/app", "/app/front-desk", "/app/front-desk/calendar", "/app/reservations", "/app/reservations/new", "/app/rooms", "/app/rooms/calendar",
   "/app/housekeeping", "/app/maintenance", "/app/guests", "/app/refunds", "/app/reconciliation", "/app/emails",
   "/app/reports", "/app/reports/occupancy", "/app/reports/channels",
   "/app/settings", "/app/settings/rooms", "/app/settings/rates", "/app/settings/tax", "/app/settings/policies", "/app/settings/history", "/app/staff",
-  ...(reservationId ? [`/app/reservations/${reservationId}`, `/app/reservations/${reservationId}/settlement`] : []),
+  "/app/notifications", "/app/payments", "/app/requests", "/app/settings/discounts", "/app/staff/roles",
+  ...(reservationId ? [`/app/reservations/${reservationId}`, `/app/reservations/${reservationId}/settlement`, `/app/reservations/${reservationId}/documents`] : []),
   ...(guestId ? [`/app/guests/${guestId}`] : []),
   ...(maintenanceId ? [`/app/maintenance/${maintenanceId}`] : []),
   ...(invoice ? [`/app/reservations/${invoice.reservation_id}/folio-invoice/${invoice.id}`] : []),
@@ -137,7 +150,7 @@ const browser = await puppeteer.launch({
   args: ["--disable-gpu", "--disable-dev-shm-usage", ...(process.env.CHROME_ARGS ?? "").split(" ").filter(Boolean)],
 });
 
-async function visit(path, { guest, viewport, as = OWNER, kind = guest ? "guest" : "staff" }) {
+async function visit(path, { guest, viewport, as = OWNER, kind = guest ? "guest" : "staff", shot = null }) {
   // A fresh browser context for every page, so a login cookie set for a staff page is never sent on to a guest page.
   const context = await (browser.createBrowserContext ?? browser.createIncognitoBrowserContext).call(browser);
   const page = await context.newPage();
@@ -187,11 +200,11 @@ async function visit(path, { guest, viewport, as = OWNER, kind = guest ? "guest"
 
   // The page's name without its query, record ids or the guest's private token: for the label and the file name.
   const shortPath = path.replace(/\?.*$/, "").replace(/[0-9a-f]{8}-[0-9a-f-]{27}/g, ":id").replace(/\/booking\/[\w-]+\.[\w-]+/, "/booking/:token");
-  const file = `${SHOTS}/${kind}-${shortPath.replace(/[^a-z0-9]+/gi, "_").replace(/^_|_$/g, "") || "home"}-${viewport.name}.png`;
+  const file = `${SHOTS}/${kind}-${shot ?? (shortPath.replace(/[^a-z0-9]+/gi, "_").replace(/^_|_$/g, "") || "home")}-${viewport.name}.png`;
   await page.screenshot({ path: file, fullPage: true }).catch(() => {});
   await context.close();
 
-  const label = `${kind} ${shortPath} (${viewport.name})`;
+  const label = `${kind} ${shot ?? shortPath} (${viewport.name})`;
   check(`${label} loads cleanly`, status === 200 && problems.length === 0 && !facts.errorPage, `status ${status} ${problems.slice(0, 3).join(" | ")}`);
   check(`${label} stays on the page asked for`, landed === new URL(path, SITE).pathname, `landed on ${landed}`);
   if (viewport.isMobile) {
@@ -208,7 +221,29 @@ for (const viewport of viewports) {
   for (const path of platformPages) await visit(path, { guest: false, viewport, as: PLATFORM_ADMIN, kind: "platform" });
   await visit("/platform", { guest: false, viewport, as: PLATFORM_SUPPORT, kind: "platform-support" });
   for (const path of guestPages) await visit(path, { guest: true, viewport });
+  await visit(searchPath, { guest: true, viewport, shot: "search-results" });
 }
+// The search results as a guest sees them: the Standard type's amenities are drawn as tags, in order, and still fit on a phone.
+async function amenityChecks(viewport) {
+  const context = await (browser.createBrowserContext ?? browser.createIncognitoBrowserContext).call(browser);
+  const page = await context.newPage();
+  await page.setViewport({ width: viewport.width, height: viewport.height, isMobile: viewport.isMobile, hasTouch: viewport.isMobile, deviceScaleFactor: 1 });
+  await page.setExtraHTTPHeaders({ "x-forwarded-host": HOST, "x-forwarded-proto": "http" });
+  await page.goto(`${SITE}${searchPath}`, { waitUntil: "networkidle2", timeout: 45000 });
+  const lists = await page.evaluate((vw) => [...document.querySelectorAll('ul[aria-label="Amenities"]')].map((ul) => ({
+    tags: [...ul.querySelectorAll("li")].map((li) => li.innerText.trim()),
+    fits: [...ul.querySelectorAll("li")].every((li) => li.getBoundingClientRect().right <= vw + 1),
+    // an ancestor that names Standard but not the other type is that type's own card, not the whole result list
+    card: (() => { for (let a = ul.parentElement; a && a !== document.body; a = a.parentElement) { const t = a.innerText ?? ""; if (t.includes("Standard") && !t.includes("Solo Suite")) return true; } return false; })(),
+  })), viewport.width).catch(() => []);
+  const name = `search results amenities (${viewport.name})`;
+  check(`${name}: the Standard type shows its amenities as tags, in order`, lists.length === 1 && JSON.stringify(lists[0].tags) === JSON.stringify(AMENITIES), JSON.stringify(lists));
+  check(`${name}: they sit on the Standard type's card and fit the screen`, lists.length === 1 && lists[0].card && lists[0].fits, JSON.stringify(lists));
+  await context.close();
+}
+for (const viewport of viewports) await amenityChecks(viewport);
+if (standard) await setAmenities(amenitiesBefore);
+
 // The staff menu: a sidebar on a laptop, a Menu button on a phone that opens and closes the same links.
 async function menuChecks(viewport) {
   const context = await (browser.createBrowserContext ?? browser.createIncognitoBrowserContext).call(browser);

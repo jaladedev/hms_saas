@@ -54,6 +54,16 @@ The first four run anywhere Node does, and CI runs them (`.github/workflows/ci.y
 throwaway PostgreSQL cluster, so they need the server binaries (`/usr/lib/postgresql/16/bin`, override with `PGBIN`).
 `e2e` also downloads the PostgREST binary to `/tmp` unless `PGRST_BIN` points at one, and builds the app into `.next-e2e`.
 
+`e2e` can also open every page in a real headless Chrome, at a desktop and a phone width (`e2e/browser.mjs`: no script or console
+errors, no failed requests, no sideways scrolling, finger-sized controls on a phone, a search with amenities, and a screenshot of each page). It is
+optional and skipped unless `CHROME_BIN` points at a Chrome or Chromium. `puppeteer-core` is not a dependency of the repo, so install
+it somewhere else and point `BROWSER_DEPS` at that folder:
+
+```bash
+mkdir /tmp/bd && cd /tmp/bd && npm init -y && npm i puppeteer-core
+CHROME_BIN=/path/to/chrome BROWSER_DEPS=/tmp/bd CHROME_ARGS="--no-sandbox" SHOTS_DIR=/tmp/shots npm run e2e   # --no-sandbox when running as root
+```
+
 ## Database tests
 
 `npm run db:test` starts a throwaway PostgreSQL 16 cluster (binaries in

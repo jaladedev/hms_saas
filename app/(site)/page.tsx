@@ -86,7 +86,7 @@ export default async function GuestHome({ searchParams }: Props) {
                       ) : null}
                       <p className="mt-2 text-sm text-muted">Up to {t.max_occupancy} guests{t.rooms_available <= 3 ? ` · only ${t.rooms_available} left` : ""}</p>
                     </div>
-                    <div className="text-right">
+                    <div className="ml-auto text-right">
                       <p className="text-xl font-medium">{formatMoney(t.total_minor, result.data.currency)}</p>
                       <p className="text-xs text-muted">total, taxes included</p>
                       <a href={`/reserve?${stayQuery(stay)}&type=${t.room_type_id}`}
