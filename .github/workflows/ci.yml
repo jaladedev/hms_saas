@@ -18,14 +18,20 @@ jobs:
       - run: npm run build
 
   database:
-    # Pinned: ubuntu-latest moved to 26.04, whose default apt sources have no
-    # postgresql-16, and supabase/tests/run.sh expects /usr/lib/postgresql/16/bin.
+    # Pinned: ubuntu-latest moved to 26.04, which the PostgreSQL apt repository may not cover yet, and
+    # the install step below needs a release it supports.
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - name: Install PostgreSQL 16 server
+      - name: Install PostgreSQL 17 server
+        # Supabase runs Postgres 17 (supabase/config.toml major_version = 17), so test on the same major.
+        # 17 is not in Ubuntu 24.04's own sources; use the PostgreSQL project's apt repository.
         run: |
           sudo apt-get update
-          sudo apt-get install -y postgresql-16
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-17
       - name: Migrations, security tests, concurrency tests
+        env:
+          PGBIN: /usr/lib/postgresql/17/bin
         run: bash supabase/tests/run.sh
