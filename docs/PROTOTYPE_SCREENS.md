@@ -95,7 +95,7 @@ Status: **built**, **partial** (part of the job is done, or only another role ca
 | Rate Plans | built | `/app/settings/rates` |
 | Rate Calendar | built | `/app/settings/rates` (nightly prices) |
 | Booking & Cancellation | built | `/app/settings/policies` |
-| Payment Settings | partial | check whether a hotel can set the online deposit percent itself |
+| Payment Settings | built | `/app/settings/policies` (full payment or a deposit percent); Paystack accounts are set by the platform admin by design |
 | Paystack Settings | partial | set by the platform admin on `/platform/[tenantId]`; the secret lives in the environment by design |
 
 ## Property & System
