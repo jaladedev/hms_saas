@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classifyPhotoError, MAX_PHOTO_BYTES, photoPath, photoUrl, validatePhoto } from "./room-photos";
+import { classifyPhotoError, logoPath, MAX_PHOTO_BYTES, photoPath, photoUrl, validatePhoto } from "./room-photos";
 
 describe("validatePhoto", () => {
   it("accepts jpeg, png and webp up to 2 MB", () => {
@@ -23,6 +23,9 @@ describe("validatePhoto", () => {
 describe("photoPath and photoUrl", () => {
   it("builds the path the database expects", () => {
     expect(photoPath("t", "p", "r", "i", "jpg")).toBe("t/p/r/i.jpg");
+  });
+  it("builds the logo path the database expects", () => {
+    expect(logoPath("t", "p", "i", "png")).toBe("t/p/logo/i.png");
   });
   it("builds a public address and ignores a trailing slash", () => {
     expect(photoUrl("https://x.supabase.co/", "a/b.jpg")).toBe("https://x.supabase.co/storage/v1/object/public/room-photos/a/b.jpg");

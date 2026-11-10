@@ -3,7 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { back, ok, staffClient } from "./action-helpers";
 import { parseBasicsForm, parseProfileForm } from "./hotel-profile";
+import { logoPath, PHOTO_BUCKET, validatePhoto } from "./room-photos";
 import { classifySetupError } from "./room-setup";
+import { createServiceClient } from "@/lib/supabase/service";
+import { randomUUID } from "node:crypto";
 
 /**
  * Saves the hotel's public profile (migration 087). Runs as the signed-in person; the database function requires
@@ -38,4 +41,46 @@ export async function saveHotelBasics(formData: FormData) {
   revalidatePath(PAGE);
   revalidatePath("/", "layout");
   return ok(PAGE, "hotel_basics_saved");
+}
+
+/**
+ * Sets the hotel's logo (migration 090): checks the file, stores it with the service key, then records its path as the signed-in
+ * person. If the database refuses (no permission), the stored file is removed again. The old logo's file is queued for removal by
+ * the database and deleted by the maintenance job.
+ */
+export async function uploadHotelLogo(formData: FormData) {
+  const id = parseProfileForm({ propertyId: formData.get("propertyId") });
+  if (!id.ok) return back(PAGE, { err: id.code });
+  const file = formData.get("logo");
+  const check = validatePhoto(file instanceof File ? file : null, "");
+  if (!check.ok) return back(PAGE, { err: check.code });
+
+  const supabase = await staffClient();
+  const { data: prop } = await supabase.from("properties").select("tenant_id").eq("id", id.value.propertyId).maybeSingle();
+  if (!prop) return back(PAGE, { err: "setup_forbidden" });
+
+  const path = logoPath(prop.tenant_id, id.value.propertyId, randomUUID(), check.ext);
+  const service = createServiceClient();
+  const { error: upErr } = await service.storage.from(PHOTO_BUCKET).upload(path, await (file as File).arrayBuffer(), { contentType: check.contentType });
+  if (upErr) return back(PAGE, { err: "photo_upload" });
+  const { error } = await supabase.rpc("set_hotel_logo", { p_property: id.value.propertyId, p_path: path });
+  if (error) {
+    await service.storage.from(PHOTO_BUCKET).remove([path]);
+    return back(PAGE, { err: /NOT_FOUND/.test(error.message) ? "setup_forbidden" : classifySetupError(error) });
+  }
+  revalidatePath(PAGE);
+  revalidatePath("/", "layout");
+  return ok(PAGE, "hotel_logo_saved");
+}
+
+/** Removes the hotel's logo; its file is deleted by the maintenance job. */
+export async function removeHotelLogo(formData: FormData) {
+  const id = parseProfileForm({ propertyId: formData.get("propertyId") });
+  if (!id.ok) return back(PAGE, { err: id.code });
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("set_hotel_logo", { p_property: id.value.propertyId, p_path: "" });
+  if (error) return back(PAGE, { err: /NOT_FOUND/.test(error.message) ? "setup_forbidden" : classifySetupError(error) });
+  revalidatePath(PAGE);
+  revalidatePath("/", "layout");
+  return ok(PAGE, "hotel_logo_removed");
 }

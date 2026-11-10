@@ -1,6 +1,7 @@
-import { buttonPrimary, ErrorBanner, inputClass, Notice, PageIntro, PageTitle } from "@/components/staff/ui";
+import { buttonPrimary, buttonQuiet, ErrorBanner, inputClass, Notice, PageIntro, PageTitle } from "@/components/staff/ui";
 import { MAX_INTRO, timeInput } from "@/lib/staff/hotel-profile";
-import { saveHotelBasics, saveHotelProfile } from "@/lib/staff/hotel-profile-actions";
+import { removeHotelLogo, saveHotelBasics, saveHotelProfile, uploadHotelLogo } from "@/lib/staff/hotel-profile-actions";
+import { photoUrl } from "@/lib/staff/room-photos";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -13,14 +14,15 @@ export const dynamic = "force-dynamic";
 export default async function HotelDetailsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const search = await searchParams;
   const supabase = await createClient();
-  const propQ = await supabase.from("properties").select("id, name, address, city, state, check_in_time, check_out_time, phone, contact_email, intro").order("name");
-  const properties = (propQ.data ?? []) as { id: string; name: string; address: string | null; city: string; state: string; check_in_time: string; check_out_time: string; phone: string | null; contact_email: string | null; intro: string | null }[];
+  const propQ = await supabase.from("properties").select("id, name, address, city, state, check_in_time, check_out_time, phone, contact_email, intro, logo_path").order("name");
+  const properties = (propQ.data ?? []) as { id: string; name: string; address: string | null; city: string; state: string; check_in_time: string; check_out_time: string; phone: string | null; contact_email: string | null; intro: string | null; logo_path: string | null }[];
   const canEdit = new Map<string, boolean>();
   await Promise.all(properties.map(async (p) => {
     const { data } = await supabase.rpc("has_permission", { p_property: p.id, p_permission: "property.configure" });
     canEdit.set(p.id, data === true);
   }));
   const many = properties.length > 1;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 
   return (
     <main className="max-w-3xl">
@@ -38,7 +40,29 @@ export default async function HotelDetailsPage({ searchParams }: { searchParams:
           {many && <h2 className="font-display text-2xl">{p.name}</h2>}
           {canEdit.get(p.id) === true ? (
             <>
-            <form action={saveHotelBasics} className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div className="mt-4">
+              <h3 className="text-sm font-medium">Logo</h3>
+              {p.logo_path ? (
+                <div className="mt-2 flex items-center gap-4">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={photoUrl(supabaseUrl, p.logo_path)} alt={`${p.name} logo`} className="h-12 max-w-48 object-contain" />
+                  <form action={removeHotelLogo}>
+                    <input type="hidden" name="propertyId" value={p.id} />
+                    <button type="submit" className={buttonQuiet}>Remove logo</button>
+                  </form>
+                </div>
+              ) : <p className="mt-1 text-sm text-muted">No logo yet. Guests see the hotel name in the header.</p>}
+              <form action={uploadHotelLogo} className="mt-3 flex flex-wrap items-end gap-3">
+                <input type="hidden" name="propertyId" value={p.id} />
+                <div>
+                  <label htmlFor={`bl-${p.id}`} className="block text-sm">{p.logo_path ? "Replace the logo" : "Upload a logo"}</label>
+                  <input id={`bl-${p.id}`} name="logo" type="file" accept="image/jpeg,image/png,image/webp" required className={inputClass} />
+                  <p className="mt-1 text-xs text-muted">JPEG, PNG or WebP, up to 2 MB. A wide logo with a plain background works best.</p>
+                </div>
+                <button type="submit" className={buttonPrimary}>Upload</button>
+              </form>
+            </div>
+            <form action={saveHotelBasics} className="mt-8 grid gap-4 sm:grid-cols-2">
               <input type="hidden" name="propertyId" value={p.id} />
               <div className="sm:col-span-2">
                 <label htmlFor={`bn-${p.id}`} className="block text-sm">Hotel name</label>

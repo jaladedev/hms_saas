@@ -11,6 +11,7 @@ export type GuestHotel = {
   phone?: string | null;   // absent from answers given before migration 087
   email?: string | null;
   intro?: string | null;
+  logo?: string | null;   // storage path in the room-photos bucket (migration 090)
 };
 
 /** "12 Example Road, Ibadan, Oyo": the parts the hotel has filled in, in order, without repeats or blanks. */

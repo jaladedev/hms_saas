@@ -1405,6 +1405,7 @@ export type Database = {
           currency: string
           id: string
           intro: string | null
+          logo_path: string | null
           name: string
           phone: string | null
           state: string
@@ -1426,6 +1427,7 @@ export type Database = {
           currency?: string
           id?: string
           intro?: string | null
+          logo_path?: string | null
           name: string
           phone?: string | null
           state?: string
@@ -1446,6 +1448,7 @@ export type Database = {
           currency?: string
           id?: string
           intro?: string | null
+          logo_path?: string | null
           name?: string
           phone?: string | null
           state?: string
@@ -2962,6 +2965,7 @@ export type Database = {
       claim_photo_cleanup: { Args: { p_limit?: number }; Returns: string[] }
       finish_photo_cleanup: { Args: { p_paths: string[] }; Returns: number }
       update_hotel_basics: { Args: { p_address: string; p_check_in: string; p_check_out: string; p_city: string; p_name: string; p_property: string; p_state: string }; Returns: undefined }
+      set_hotel_logo: { Args: { p_path: string; p_property: string }; Returns: undefined }
       lock_room_types: {
         Args: { p_property: string; p_types: string[] }
         Returns: undefined

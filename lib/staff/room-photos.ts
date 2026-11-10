@@ -29,6 +29,11 @@ export function photoPath(tenantId: string, propertyId: string, roomTypeId: stri
   return `${tenantId}/${propertyId}/${roomTypeId}/${id}.${ext}`;
 }
 
+/** The storage path the database expects for a hotel logo: tenant / property / logo / unique id . extension. */
+export function logoPath(tenantId: string, propertyId: string, id: string, ext: string): string {
+  return `${tenantId}/${propertyId}/logo/${id}.${ext}`;
+}
+
 /** The public address of a stored picture. */
 export function photoUrl(supabaseUrl: string, path: string): string {
   const base = supabaseUrl.replace(/\/+$/, "");

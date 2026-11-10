@@ -180,6 +180,12 @@ describe("describeEvent", () => {
     expect(e.summary).toBe("Changed the hotel details");
     expect(e.details).toEqual(["Phone: none \u2192 +234 802 000 0000", `Introduction: ${"x".repeat(80)}\u2026 \u2192 Hi`]);
   });
+  it("says a logo was added or removed without showing the file path", () => {
+    const add = describeEvent(row({ action: "property.updated", entity_type: "property", entity_id: "pp", metadata: { changed: { logo_path: { from: null, to: "t/p/logo/x.png" } } } }), lookup(), fmt);
+    expect(add.details).toEqual(["Logo: none \u2192 a logo"]);
+    const del = describeEvent(row({ action: "property.updated", entity_type: "property", entity_id: "pp", metadata: { changed: { logo_path: { from: "t/p/logo/x.png", to: null } } } }), lookup(), fmt);
+    expect(del.details).toEqual(["Logo: a logo \u2192 none"]);
+  });
   it("shows check-in times without seconds", () => {
     const e = describeEvent(row({ action: "property.updated", entity_type: "property", entity_id: "pp", metadata: { changed: { check_in_time: { from: "14:00:00", to: "15:30:00" } } } }), lookup(), fmt);
     expect(e.details).toEqual(["Check-in time: 14:00 \u2192 15:30"]);

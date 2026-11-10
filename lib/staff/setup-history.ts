@@ -129,7 +129,7 @@ const LABELS: Record<string, string> = {
   room_number: "Room number", floor: "Floor", room_type_id: "Room type", operational_status: "Service status",
   is_default: "Standard plan", cancellation_policy: "Cancellation policy", payment_policy: "Payment policy",
   basis: "Kind of tax", rate_value: "Rate", sequence: "Order", compounds: "Applied on top of earlier rules",
-  phone: "Phone", contact_email: "Email", intro: "Introduction", address: "Address", city: "Town", state: "State", timezone: "Time zone",
+  logo_path: "Logo", phone: "Phone", contact_email: "Email", intro: "Introduction", address: "Address", city: "Town", state: "State", timezone: "Time zone",
   check_in_time: "Check-in time", check_out_time: "Check-out time", country_code: "Country",
   effective_from: "First day", effective_to: "Last day", applies_to_charges: "Taxes extras",
 };
@@ -280,7 +280,7 @@ export function describeEvent(row: AuditRow, lookup: Lookup, fmt: Format): { sum
   if (row.action === "property.updated") {
     const details = Object.entries(asRecord(m.changed)).map(([k, change]) => {
       const c = asRecord(change);
-      const show = (v: unknown) => (typeof v === "string" && v.trim() !== "" ? (k === "intro" && v.length > 80 ? `${v.slice(0, 80)}\u2026` : /^\d\d:\d\d:\d\d$/.test(v) ? v.slice(0, 5) : v) : "none");
+      const show = (v: unknown) => (k === "logo_path" ? (typeof v === "string" && v !== "" ? "a logo" : "none") : typeof v === "string" && v.trim() !== "" ? (k === "intro" && v.length > 80 ? `${v.slice(0, 80)}\u2026` : /^\d\d:\d\d:\d\d$/.test(v) ? v.slice(0, 5) : v) : "none");
       return `${fieldLabel(k)}: ${show(c.from)} \u2192 ${show(c.to)}`;
     });
     return { summary: "Changed the hotel details", details };
