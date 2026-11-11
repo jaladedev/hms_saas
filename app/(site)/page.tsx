@@ -1,6 +1,7 @@
 import { formatMoney } from "@/lib/guest-site/format";
 import { telHref } from "@/lib/staff/hotel-profile";
 import { photoUrl } from "@/lib/staff/room-photos";
+import { PhotoFrame } from "@/components/ui/photo-frame";
 import { messageForCode } from "@/lib/guest-site/errors";
 import { averageLabel, ratingText, reviewMonth } from "@/lib/guest-site/reviews";
 import { parseStayParams, stayQuery } from "@/lib/guest-site/params";
@@ -244,12 +245,10 @@ export default async function GuestHome({ searchParams }: Props) {
                             <ul aria-label="Photos" className="mt-2 flex gap-2 overflow-x-auto">
                               {t.photos.map((ph) => (
                                 <li key={ph.path} className="shrink-0">
-                                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                                  <img
+                                  <PhotoFrame
                                     src={photoUrl(supa, ph.path)}
                                     alt={ph.caption ?? `${t.name} photo`}
-                                    loading="lazy"
-                                    className="h-28 w-40 rounded border border-line object-cover"
+                                    className="h-28 w-40 rounded border border-line"
                                   />
                                 </li>
                               ))}
@@ -323,13 +322,7 @@ export default async function GuestHome({ searchParams }: Props) {
                 return (
                   <li key={t.room_type_id} className="flex flex-col overflow-hidden rounded-2xl border border-line bg-white">
                     {photo ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={photoUrl(supa, photo.path)}
-                        alt={photo.caption ?? `${t.name}`}
-                        loading="lazy"
-                        className="aspect-[4/3] w-full object-cover"
-                      />
+                      <PhotoFrame src={photoUrl(supa, photo.path)} alt={photo.caption ?? `${t.name}`} className="aspect-[4/3] w-full" />
                     ) : anyPhoto ? (
                       <div aria-hidden="true" className="aspect-[4/3] w-full bg-line/40" />
                     ) : null}

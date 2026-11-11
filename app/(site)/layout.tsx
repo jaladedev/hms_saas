@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SiteNav } from "@/components/site/site-nav";
+import { RouteProgress } from "@/components/ui/route-progress";
 import { headerName, placeLine, timesLine } from "@/lib/guest-site/hotel";
 import { monogram } from "@/lib/guest-site/home";
 import { telHref } from "@/lib/staff/hotel-profile";
@@ -39,7 +41,8 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
         fontBody: hotel?.font_body,
       })}
     >
-      <header className="border-b border-line bg-white">
+      <RouteProgress />
+      <header className="relative border-b border-line bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4">
           <Link href="/" className={`flex items-center gap-3 font-display text-xl ${linkTap}`}>
             {hotel?.logo ? (
@@ -65,19 +68,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
               </>
             )}
           </Link>
-          {hotel ? (
-            <nav aria-label="Hotel" className="hidden items-center gap-8 text-sm tracking-wide md:flex">
-              <Link href="/#rooms" className="hover:text-primary">
-                Rooms
-              </Link>
-              <Link href="/policies" className="hover:text-primary">
-                Policies
-              </Link>
-              <Link href="/contact" className="hover:text-primary">
-                Contact
-              </Link>
-            </nav>
-          ) : null}
+          {hotel ? <SiteNav /> : null}
           <Link
             href="/booking/find"
             className={`shrink-0 rounded-full border border-ink px-4 py-2 text-sm hover:bg-ink hover:text-paper focus-visible:outline-2 focus-visible:outline-primary ${linkTap}`}

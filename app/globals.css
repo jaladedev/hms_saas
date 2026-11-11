@@ -70,3 +70,49 @@ body {
 @page {
   margin: 14mm;
 }
+
+/* Loading states: the bar under an upload button, the bar across the top of the page, and a spinner that waits a moment
+   before it appears so a fast page change does not flash it. Motion is dropped for people who ask for less of it. */
+@keyframes indeterminate {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
+.indeterminate-bar {
+  animation: indeterminate 1.2s ease-in-out infinite;
+}
+@keyframes route-progress {
+  from {
+    width: 4%;
+  }
+  to {
+    width: 88%;
+  }
+}
+.route-progress-run {
+  animation: route-progress 8s cubic-bezier(0.1, 0.6, 0.2, 1) forwards;
+}
+@keyframes pending-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.pending-fade {
+  animation: pending-fade 0.15s 0.12s both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .indeterminate-bar,
+  .route-progress-run,
+  .pending-fade {
+    animation: none;
+  }
+  .route-progress-run {
+    width: 60%;
+  }
+}

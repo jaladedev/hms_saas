@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { classifyPhotoError, logoPath, MAX_PHOTO_BYTES, photoPath, photoUrl, validatePhoto } from "./room-photos";
+import {
+  classifyPhotoError,
+  formatBytes,
+  logoPath,
+  MAX_PHOTO_BYTES,
+  photoPath,
+  photoUrl,
+  pickedPhotoProblem,
+  validatePhoto,
+} from "./room-photos";
+import { isActive } from "@/components/ui/nav-link";
 
 describe("validatePhoto", () => {
   it("accepts jpeg, png and webp up to 2 MB", () => {
@@ -42,5 +52,36 @@ describe("classifyPhotoError", () => {
     expect(classifyPhotoError({ code: "42501", message: "x" })).toBe("setup_forbidden");
     expect(classifyPhotoError({ code: "23514", message: "x" })).toBe("setup_invalid");
     expect(classifyPhotoError({ code: "XX", message: "x" })).toBe("unknown");
+  });
+});
+
+describe("pickedPhotoProblem", () => {
+  it("passes a good picture and agrees with validatePhoto", () => {
+    const f = { type: "image/png", size: 1000 };
+    expect(pickedPhotoProblem(f)).toBeNull();
+    expect(validatePhoto(f, "").ok).toBe(true);
+  });
+  it("names the problem for a wrong type, an empty file and a big one", () => {
+    expect(pickedPhotoProblem({ type: "application/pdf", size: 10 })).toMatch(/not a JPEG/);
+    expect(pickedPhotoProblem({ type: "image/png", size: 0 })).toMatch(/empty/);
+    expect(pickedPhotoProblem({ type: "image/png", size: MAX_PHOTO_BYTES + 1 })).toMatch(/limit is 2\.0 MB/);
+  });
+  it("formats sizes", () => {
+    expect(formatBytes(820 * 1024)).toBe("820 KB");
+    expect(formatBytes(1.5 * 1024 * 1024)).toBe("1.5 MB");
+    expect(formatBytes(10)).toBe("1 KB");
+  });
+});
+
+describe("isActive (navbar current page)", () => {
+  it("matches the page and its children, unless exact", () => {
+    expect(isActive("/app/payments/all", "/app/payments/all")).toBe(true);
+    expect(isActive("/app/guests/123", "/app/guests")).toBe(true);
+    expect(isActive("/app/payments/all", "/app/payments", true)).toBe(false);
+    expect(isActive("/app/payments", "/app/payments", true)).toBe(true);
+  });
+  it("does not light a link for a look-alike path or a #hash link", () => {
+    expect(isActive("/app/guestsbook", "/app/guests")).toBe(false);
+    expect(isActive("/", "/#rooms")).toBe(false);
   });
 });

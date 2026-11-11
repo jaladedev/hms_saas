@@ -4,6 +4,8 @@ import { MAX_FACILITIES, MAX_FACILITY_LENGTH } from "@/lib/staff/hotel-extras";
 import { MAX_INTRO, timeInput } from "@/lib/staff/hotel-profile";
 import { removeHotelLogo, saveHotelBasics, saveHotelExtras, saveHotelProfile, uploadHotelLogo } from "@/lib/staff/hotel-profile-actions";
 import { photoUrl } from "@/lib/staff/room-photos";
+import { PendingButton } from "@/components/ui/pending-button";
+import { PhotoPicker } from "@/components/ui/photo-picker";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -92,21 +94,20 @@ export default async function HotelDetailsPage({ searchParams }: { searchParams:
                     <label htmlFor={`bl-${p.id}`} className="block text-sm">
                       {p.logo_path ? "Replace the logo" : "Upload a logo"}
                     </label>
-                    <input
+                    <PhotoPicker
                       id={`bl-${p.id}`}
                       name="logo"
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
                       required
                       className={inputClass}
+                      previewClassName="h-12 max-w-48 !object-contain"
                     />
                     <p className="mt-1 text-xs text-muted">
                       JPEG, PNG or WebP, up to 2 MB. A wide logo with a plain background works best.
                     </p>
                   </div>
-                  <button type="submit" className={buttonPrimary}>
+                  <PendingButton className={buttonPrimary} pendingLabel="Uploading…" progress>
                     Upload
-                  </button>
+                  </PendingButton>
                 </form>
               </div>
               <ThemePicker

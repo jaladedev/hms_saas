@@ -1,6 +1,7 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { NavMenu } from "@/components/staff/nav-menu";
+import { NavLink } from "@/components/ui/nav-link";
+import { RouteProgress } from "@/components/ui/route-progress";
 import { signOut } from "@/lib/staff/auth-actions";
 import { createClient } from "@/lib/supabase/server";
 
@@ -16,22 +17,36 @@ export default async function PlatformLayout({ children }: { children: React.Rea
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
-      <aside className="shrink-0 bg-navy-900 p-4 text-sm text-white md:w-60">
+      <RouteProgress />
+      <aside className="z-30 shrink-0 bg-navy-900 p-4 text-sm text-white max-md:sticky max-md:top-0 md:sticky md:top-0 md:h-screen md:w-60">
         <NavMenu brand={<div className="font-display text-xl">HMS platform</div>}>
-          <nav className="mt-6 space-y-0 md:space-y-2">
-            <Link href="/platform" className="block py-3 text-white focus-visible:outline-2 focus-visible:outline-white md:py-0">
+          <nav aria-label="Platform" className="mt-4 md:mt-6">
+            <NavLink
+              href="/platform"
+              exact
+              className="block rounded px-2 py-3 text-white hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-white md:py-1.5"
+              activeClassName="bg-white/15 font-medium"
+            >
               Hotels
-            </Link>
-            <Link href="/platform/plans" className="block py-3 text-white focus-visible:outline-2 focus-visible:outline-white md:py-0">
+            </NavLink>
+            <NavLink
+              href="/platform/plans"
+              className="block rounded px-2 py-3 text-white hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-white md:py-1.5"
+              activeClassName="bg-white/15 font-medium"
+            >
               Plans
-            </Link>
+            </NavLink>
             {level.data === "admin" && (
-              <Link href="/platform/new" className="block py-3 text-white focus-visible:outline-2 focus-visible:outline-white md:py-0">
+              <NavLink
+                href="/platform/new"
+                className="block rounded px-2 py-3 text-white hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-white md:py-1.5"
+                activeClassName="bg-white/15 font-medium"
+              >
                 Add a hotel
-              </Link>
+              </NavLink>
             )}
           </nav>
-          <div className="mt-10 border-t border-white/15 pt-4">
+          <div className="mt-6 border-t border-white/15 pb-2 pt-4">
             <p className="truncate text-white/70" title={data.user.email ?? undefined}>
               {data.user.email}
             </p>

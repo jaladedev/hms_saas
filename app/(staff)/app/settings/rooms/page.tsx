@@ -4,6 +4,9 @@ import { ROOM_STATUSES } from "@/lib/staff/room-setup";
 import { compareRoomNumbers } from "@/lib/staff/room-board";
 import { addRoomPhoto, moveRoomPhoto, removeRoomPhoto, setRoomPhotoCaption } from "@/lib/staff/room-photo-actions";
 import { photoUrl } from "@/lib/staff/room-photos";
+import { PendingButton } from "@/components/ui/pending-button";
+import { PhotoFrame } from "@/components/ui/photo-frame";
+import { PhotoPicker } from "@/components/ui/photo-picker";
 import { addRoom, addRoomType, setRoomStatus, setRoomTypeStatus, updateRoomType } from "@/lib/staff/setup-actions";
 import { createClient } from "@/lib/supabase/server";
 
@@ -120,11 +123,10 @@ export default async function RoomSetupPage({ searchParams }: { searchParams: Pr
                           <ul className="flex flex-wrap gap-3">
                             {mineP.map((x, idx) => (
                               <li key={x.id} className="w-40">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
+                                <PhotoFrame
                                   src={photoUrl(supabaseUrl, x.storage_path)}
                                   alt={x.caption ?? `${t.name} photo`}
-                                  className="h-24 w-40 rounded border border-line object-cover"
+                                  className="h-24 w-40 rounded border border-line"
                                 />
                                 {canEdit ? (
                                   <>
@@ -138,34 +140,34 @@ export default async function RoomSetupPage({ searchParams }: { searchParams: Pr
                                         placeholder="Caption"
                                         className={inputClass}
                                       />
-                                      <button type="submit" className={buttonQuiet}>
+                                      <PendingButton className={buttonQuiet} pendingLabel="Saving…">
                                         Save
-                                      </button>
+                                      </PendingButton>
                                     </form>
                                     <div className="flex flex-wrap gap-x-2">
                                       {idx > 0 && (
                                         <form action={moveRoomPhoto}>
                                           <input type="hidden" name="photoId" value={x.id} />
                                           <input type="hidden" name="direction" value="up" />
-                                          <button type="submit" className={buttonQuiet}>
+                                          <PendingButton className={buttonQuiet} pendingLabel="Moving…">
                                             Move earlier
-                                          </button>
+                                          </PendingButton>
                                         </form>
                                       )}
                                       {idx < mineP.length - 1 && (
                                         <form action={moveRoomPhoto}>
                                           <input type="hidden" name="photoId" value={x.id} />
                                           <input type="hidden" name="direction" value="down" />
-                                          <button type="submit" className={buttonQuiet}>
+                                          <PendingButton className={buttonQuiet} pendingLabel="Moving…">
                                             Move later
-                                          </button>
+                                          </PendingButton>
                                         </form>
                                       )}
                                       <form action={removeRoomPhoto}>
                                         <input type="hidden" name="photoId" value={x.id} />
-                                        <button type="submit" className={buttonQuiet}>
+                                        <PendingButton className={buttonQuiet} pendingLabel="Removing…">
                                           Remove
-                                        </button>
+                                        </PendingButton>
                                       </form>
                                     </div>
                                   </>
@@ -187,14 +189,7 @@ export default async function RoomSetupPage({ searchParams }: { searchParams: Pr
                                 <label htmlFor={`ph-${t.id}`} className="block text-sm">
                                   Picture
                                 </label>
-                                <input
-                                  id={`ph-${t.id}`}
-                                  name="photo"
-                                  type="file"
-                                  accept="image/jpeg,image/png,image/webp"
-                                  required
-                                  className={inputClass}
-                                />
+                                <PhotoPicker id={`ph-${t.id}`} name="photo" required className={inputClass} />
                                 <p className="mt-1 text-xs text-muted">JPEG, PNG or WebP, up to 2 MB.</p>
                               </div>
                               <div>
@@ -204,9 +199,9 @@ export default async function RoomSetupPage({ searchParams }: { searchParams: Pr
                                 <input id={`pc-${t.id}`} name="caption" maxLength={100} className={inputClass} />
                               </div>
                               <div className="sm:col-span-2">
-                                <button type="submit" className={buttonPrimary}>
+                                <PendingButton className={buttonPrimary} pendingLabel="Uploading…" progress>
                                   Upload photo
-                                </button>
+                                </PendingButton>
                               </div>
                             </form>
                           </details>
@@ -371,9 +366,9 @@ export default async function RoomSetupPage({ searchParams }: { searchParams: Pr
                                   </option>
                                 ))}
                               </select>
-                              <button type="submit" className={buttonQuiet}>
+                              <PendingButton className={buttonQuiet} pendingLabel="Saving…">
                                 Save
-                              </button>
+                              </PendingButton>
                             </form>
                           ) : (
                             <span className="text-sm text-muted">{ROOM_STATUSES.find((s) => s.value === r.operational_status)?.label}</span>

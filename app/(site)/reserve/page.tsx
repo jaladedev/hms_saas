@@ -6,6 +6,7 @@ import { photoCountLabel } from "@/lib/guest-site/hotel";
 import { guestPolicy, requestHost, searchAvailability } from "@/lib/guest-site/server";
 import { guestSummary, readConfig } from "@/lib/staff/policies";
 import { photoUrl } from "@/lib/staff/room-photos";
+import { PhotoFrame } from "@/components/ui/photo-frame";
 import { reserveAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -48,12 +49,10 @@ export default async function Reserve({ searchParams }: Props) {
             <ul aria-label="Photos" className="mt-3 flex gap-2 overflow-x-auto">
               {quote.photos.map((ph) => (
                 <li key={ph.path} className="shrink-0">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                  <PhotoFrame
                     src={photoUrl(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "", ph.path)}
                     alt={ph.caption ?? `${quote.name} photo`}
-                    loading="lazy"
-                    className="h-28 w-40 rounded border border-line object-cover"
+                    className="h-28 w-40 rounded border border-line"
                   />
                 </li>
               ))}

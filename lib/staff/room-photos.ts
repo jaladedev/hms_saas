@@ -27,6 +27,23 @@ export function validatePhoto(
   return { ok: true, contentType: file.type, ext, caption: caption === "" ? null : caption };
 }
 
+/** "1.4 MB", "820 KB": a file size for people. */
+export function formatBytes(bytes: number): string {
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
+/**
+ * What to tell someone who has just chosen a picture, before anything is sent: null when it is fine, otherwise the reason.
+ * The same rules `validatePhoto` applies on the server, so the browser warns early and the server still decides.
+ */
+export function pickedPhotoProblem(file: { type: string; size: number }): string | null {
+  if (!TYPES[file.type]) return "That file is not a JPEG, PNG or WebP picture.";
+  if (file.size <= 0) return "That file is empty.";
+  if (file.size > MAX_PHOTO_BYTES) return `That picture is ${formatBytes(file.size)}. The limit is ${formatBytes(MAX_PHOTO_BYTES)}.`;
+  return null;
+}
+
 /** The storage path the database check expects: tenant / property / room type / unique id . extension. */
 export function photoPath(tenantId: string, propertyId: string, roomTypeId: string, id: string, ext: string): string {
   return `${tenantId}/${propertyId}/${roomTypeId}/${id}.${ext}`;

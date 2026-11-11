@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { NavMenu } from "@/components/staff/nav-menu";
+import { NavLink } from "@/components/ui/nav-link";
+import { RouteProgress } from "@/components/ui/route-progress";
 import { signOut } from "@/lib/staff/auth-actions";
 import { PropertySwitcher } from "@/components/staff/property-switcher";
 import { rememberedProperty } from "@/lib/staff/active-property";
@@ -12,9 +14,10 @@ import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-// Items without an href are placeholders until their phase lands.
-const NAV: { label: string; href?: string }[] = [
-  { label: "Overview", href: "/app" },
+// Items without an href are group headings. `sub` indents an item under its heading; `exact` stops a link lighting up
+// for the pages beneath it (Overview would otherwise be lit on every screen).
+const NAV: { label: string; href?: string; exact?: boolean; sub?: boolean }[] = [
+  { label: "Overview", href: "/app", exact: true },
   { label: "Notifications", href: "/app/notifications" },
   { label: "Front Desk", href: "/app/front-desk" },
   { label: "Reservations", href: "/app/reservations" },
@@ -24,12 +27,12 @@ const NAV: { label: string; href?: string }[] = [
   { label: "Housekeeping", href: "/app/housekeeping" },
   { label: "Maintenance", href: "/app/maintenance" },
   { label: "Payments & Billing" },
-  { label: "Payments to verify", href: "/app/payments" },
-  { label: "All payments", href: "/app/payments/all" },
-  { label: "Invoices", href: "/app/invoices" },
-  { label: "Refunds", href: "/app/refunds" },
-  { label: "Reconcile payments", href: "/app/reconciliation" },
-  { label: "Guest emails", href: "/app/emails" },
+  { label: "Payments to verify", href: "/app/payments", exact: true, sub: true },
+  { label: "All payments", href: "/app/payments/all", sub: true },
+  { label: "Invoices", href: "/app/invoices", sub: true },
+  { label: "Refunds", href: "/app/refunds", sub: true },
+  { label: "Reconcile payments", href: "/app/reconciliation", sub: true },
+  { label: "Guest emails", href: "/app/emails", sub: true },
   { label: "Reports", href: "/app/reports" },
   { label: "Staff & Permissions", href: "/app/staff" },
   { label: "Settings", href: "/app/settings" },
@@ -86,15 +89,18 @@ export default async function StaffLayout({ children }: { children: React.ReactN
         fontBody: current?.theme_font_body,
       })}
     >
-      <aside className="shrink-0 bg-navy-900 p-4 text-sm text-white md:w-60 print:hidden">
+      <RouteProgress />
+      <aside className="z-30 shrink-0 bg-navy-900 p-4 text-sm text-white max-md:sticky max-md:top-0 md:sticky md:top-0 md:h-screen md:w-60 print:hidden">
         <NavMenu brand={<div className="font-display text-xl">HMS</div>}>
-          <nav className="mt-6 space-y-0 text-white/80 md:space-y-2">
+          <nav aria-label="Main" className="mt-4 text-white/80 md:mt-6">
             {NAV.map((item) =>
               item.href ? (
-                <Link
+                <NavLink
                   key={item.label}
                   href={item.href}
-                  className="block py-3 text-white focus-visible:outline-2 focus-visible:outline-white md:py-0"
+                  exact={item.exact}
+                  className={`block rounded px-2 py-3 text-white hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-white md:py-1.5 ${item.sub ? "md:pl-5" : ""}`}
+                  activeClassName="bg-white/15 font-medium"
                 >
                   {item.label}
                   {item.href === "/app/notifications" && unread > 0 && (
@@ -113,16 +119,16 @@ export default async function StaffLayout({ children }: { children: React.ReactN
                       <span className="sr-only">, {myRepairs} assigned to you</span>
                     </>
                   )}
-                </Link>
+                </NavLink>
               ) : (
-                <div key={item.label} className="py-3 md:py-0">
+                <div key={item.label} className="px-2 pb-1 pt-4 text-xs uppercase tracking-wide text-white/50 md:pt-3">
                   {item.label}
                 </div>
               ),
             )}
           </nav>
           {switchable.length > 1 && current && <PropertySwitcher properties={switchable} currentId={current.id} />}
-          <div className="mt-10 border-t border-white/15 pt-4">
+          <div className="mt-6 border-t border-white/15 pb-2 pt-4">
             <Link
               href="/app/profile"
               className="block truncate text-white/70 underline-offset-2 hover:text-white hover:underline focus-visible:outline-2 focus-visible:outline-white"
