@@ -783,4 +783,8 @@ HT="$(psql -f "$HERE/94_hotel_theme.sql" 2>&1)" || { echo "$HT"; echo "HOTEL THE
 echo "$HT" | grep -E 'PASS' || true
 if echo "$HT" | grep -qE 'FAIL|ERROR'; then echo "$HT"; echo "HOTEL THEME TESTS FAILED"; exit 1; fi
 
+OH="$(psql -f "$HERE/95_ops_health.sql" 2>&1)" || { echo "$OH"; echo "OPS HEALTH TESTS FAILED"; exit 1; }
+echo "$OH" | grep -E 'PASS' || true
+if echo "$OH" | grep -qE 'FAIL|ERROR'; then echo "$OH"; echo "OPS HEALTH TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

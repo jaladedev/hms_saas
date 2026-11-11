@@ -58,6 +58,16 @@ async function handle(request: Request) {
       return data;
     },
   });
+  // Heartbeat for /api/health: a failed step is recorded, and a job that stops running leaves an old row. Never blocks the response.
+  const failed = Object.entries(result)
+    .filter(([, r]) => !r.ok)
+    .map(([k, r]) => `${k}: ${(r as { error: string }).error}`);
+  const { error: hbError } = await db.rpc("record_heartbeat", {
+    p_job: "maintenance",
+    p_ok: failed.length === 0,
+    p_error: failed.join("; ") || null,
+  });
+  if (hbError) console.warn("[maintenance] could not record heartbeat", { message: hbError.message });
   return Response.json(result);
 }
 
