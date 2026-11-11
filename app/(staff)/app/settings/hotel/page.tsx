@@ -1,7 +1,8 @@
 import { ThemePicker } from "@/components/staff/theme-picker";
 import { buttonPrimary, buttonQuiet, ErrorBanner, inputClass, Notice, PageIntro, PageTitle } from "@/components/staff/ui";
+import { MAX_FACILITIES, MAX_FACILITY_LENGTH } from "@/lib/staff/hotel-extras";
 import { MAX_INTRO, timeInput } from "@/lib/staff/hotel-profile";
-import { removeHotelLogo, saveHotelBasics, saveHotelProfile, uploadHotelLogo } from "@/lib/staff/hotel-profile-actions";
+import { removeHotelLogo, saveHotelBasics, saveHotelExtras, saveHotelProfile, uploadHotelLogo } from "@/lib/staff/hotel-profile-actions";
 import { photoUrl } from "@/lib/staff/room-photos";
 import { createClient } from "@/lib/supabase/server";
 
@@ -18,7 +19,7 @@ export default async function HotelDetailsPage({ searchParams }: { searchParams:
   const propQ = await supabase
     .from("properties")
     .select(
-      "id, name, address, city, state, check_in_time, check_out_time, phone, contact_email, intro, logo_path, theme, theme_primary, theme_font_display, theme_font_body",
+      "id, name, address, city, state, check_in_time, check_out_time, phone, contact_email, intro, logo_path, theme, theme_primary, theme_font_display, theme_font_body, facilities, social_instagram, social_facebook",
     )
     .order("name");
   const properties = (propQ.data ?? []) as {
@@ -37,6 +38,9 @@ export default async function HotelDetailsPage({ searchParams }: { searchParams:
     theme_primary: string | null;
     theme_font_display: string | null;
     theme_font_body: string | null;
+    facilities: string[];
+    social_instagram: string | null;
+    social_facebook: string | null;
   }[];
   const canEdit = new Map<string, boolean>();
   await Promise.all(
@@ -53,7 +57,7 @@ export default async function HotelDetailsPage({ searchParams }: { searchParams:
       <PageTitle>Hotel details</PageTitle>
       <PageIntro>
         What guests see on your website before they search: the hotel&rsquo;s name, address and check-in and check-out times, and an
-        optional phone number, email address and short introduction.
+        optional phone number, email address, short introduction, facilities and links to your Instagram and Facebook.
       </PageIntro>
 
       <div className="mt-6">
@@ -213,6 +217,65 @@ export default async function HotelDetailsPage({ searchParams }: { searchParams:
                   </button>
                 </div>
               </form>
+              <form action={saveHotelExtras} className="mt-8 grid gap-4 sm:grid-cols-2">
+                <input type="hidden" name="propertyId" value={p.id} />
+                <div className="sm:col-span-2">
+                  <label htmlFor={`hf-${p.id}`} className="block text-sm">
+                    Hotel facilities
+                  </label>
+                  <textarea
+                    id={`hf-${p.id}`}
+                    name="facilities"
+                    rows={4}
+                    defaultValue={p.facilities.join("\n")}
+                    aria-describedby={`hf-note-${p.id}`}
+                    className={inputClass}
+                  />
+                  <p id={`hf-note-${p.id}`} className="mt-1 text-xs text-muted">
+                    What the hotel as a whole offers, such as Pool, Restaurant, Bar, Gym or Conference room. One per line, up to{" "}
+                    {MAX_FACILITIES}, {MAX_FACILITY_LENGTH} characters each. Room amenities are set on each room type.
+                  </p>
+                </div>
+                <div>
+                  <label htmlFor={`hig-${p.id}`} className="block text-sm">
+                    Instagram
+                  </label>
+                  <input
+                    id={`hig-${p.id}`}
+                    name="instagram"
+                    maxLength={120}
+                    defaultValue={p.social_instagram ?? ""}
+                    placeholder="@yourhotel"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label htmlFor={`hfb-${p.id}`} className="block text-sm">
+                    Facebook
+                  </label>
+                  <input
+                    id={`hfb-${p.id}`}
+                    name="facebook"
+                    maxLength={120}
+                    defaultValue={p.social_facebook ?? ""}
+                    placeholder="yourhotel"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    className={inputClass}
+                  />
+                </div>
+                <p className="text-xs text-muted sm:col-span-2">
+                  Type the name or paste the page address. Only Instagram and Facebook pages are accepted, and they open in a new tab for
+                  guests.
+                </p>
+                <div className="sm:col-span-2">
+                  <button type="submit" className={buttonPrimary}>
+                    Save facilities and links
+                  </button>
+                </div>
+              </form>
             </>
           ) : (
             <dl className="mt-4 grid grid-cols-[8rem_1fr] gap-2 text-sm">
@@ -230,6 +293,12 @@ export default async function HotelDetailsPage({ searchParams }: { searchParams:
               <dd>{p.contact_email ?? "Not set"}</dd>
               <dt className="text-muted">Introduction</dt>
               <dd>{p.intro ?? "Not set"}</dd>
+              <dt className="text-muted">Facilities</dt>
+              <dd>{p.facilities.length > 0 ? p.facilities.join(", ") : "Not set"}</dd>
+              <dt className="text-muted">Instagram</dt>
+              <dd>{p.social_instagram ?? "Not set"}</dd>
+              <dt className="text-muted">Facebook</dt>
+              <dd>{p.social_facebook ?? "Not set"}</dd>
             </dl>
           )}
         </section>

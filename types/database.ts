@@ -1529,6 +1529,9 @@ export type Database = {
           theme_font_body: string | null
           timezone: string
           updated_at: string
+          facilities: string[]
+          social_facebook: string | null
+          social_instagram: string | null
         }
         ComputedFields: never
         Insert: {
@@ -1555,6 +1558,9 @@ export type Database = {
           theme_font_body?: string | null
           timezone?: string
           updated_at?: string
+          facilities?: string[]
+          social_facebook?: string | null
+          social_instagram?: string | null
         }
         Update: {
           address?: string | null
@@ -1580,6 +1586,9 @@ export type Database = {
           theme_font_body?: string | null
           timezone?: string
           updated_at?: string
+          facilities?: string[]
+          social_facebook?: string | null
+          social_instagram?: string | null
         }
         Relationships: [
           {
@@ -3129,6 +3138,7 @@ export type Database = {
       email_booking_invoice: { Args: { p_idempotency_key: string; p_invoice_id: string }; Returns: Json }
       record_heartbeat: { Args: { p_error?: string; p_job: string; p_ok: boolean }; Returns: undefined }
       ops_health: { Args: Record<string, never>; Returns: Json }
+      set_hotel_extras: { Args: { p_facebook: string; p_facilities: string[]; p_instagram: string; p_property: string }; Returns: undefined }
       set_hotel_fonts: { Args: { p_body: string; p_display: string; p_property: string }; Returns: undefined }
       set_hotel_primary_color: { Args: { p_color: string; p_property: string }; Returns: undefined }
       set_hotel_theme: { Args: { p_property: string; p_theme: string }; Returns: undefined }

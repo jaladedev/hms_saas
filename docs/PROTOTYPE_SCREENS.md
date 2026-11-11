@@ -103,7 +103,7 @@ Status: **built**, **partial** (part of the job is done, or only another role ca
 | Prototype screen | Status | Where |
 | --- | --- | --- |
 | Property Profile | built | `/app/settings/hotel` |
-| Operational Settings | partial | check-in and check-out times are on `/app/settings/hotel`; no single operations screen |
+| Operational Settings | built | `/app/settings/hotel` holds the check-in and check-out times, contact details, hotel facilities and Instagram and Facebook links (migration 105) |
 | Guest Homepage | built | `/`: hero, search card, room cards (migration 096), info pills; offers, reviews and experience not built (no data) |
 | Guest Policies / Contact / Privacy | built | `/policies`, `/contact`, `/privacy` (privacy text needs review) |
 | Branding & Theme Editor | built | `/app/settings/hotel`: logo and room photos, and the hotel's look (Standard, Luxury, Modern or Classic; migration 093) for the guest site and the staff screens, plus an optional main colour over it (migration 099; refused if white text on it or links on the page fall below WCAG AA 4.5:1). heading and body fonts over it (migration 100), and a live preview of the choices before saving. Not built: other colours (secondary, accent, background), corner radius, draft versus published |
@@ -124,4 +124,4 @@ Status: **built**, **partial** (part of the job is done, or only another role ca
 
 ## Totals
 
-52 screens: 50 built, 2 partial, 0 not built.
+52 screens: 51 built, 1 partial, 0 not built.

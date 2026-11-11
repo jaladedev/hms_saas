@@ -5,7 +5,7 @@ import { messageForCode } from "@/lib/guest-site/errors";
 import { averageLabel, ratingText, reviewMonth } from "@/lib/guest-site/reviews";
 import { parseStayParams, stayQuery } from "@/lib/guest-site/params";
 import { checkGuestLimits } from "@/lib/guest-site/limits";
-import { photoCountLabel, placeLine, timesLine } from "@/lib/guest-site/hotel";
+import { facilityList, photoCountLabel, placeLine, socialLinks, timesLine } from "@/lib/guest-site/hotel";
 import {
   amenityHighlights,
   capacityLabel,
@@ -90,6 +90,28 @@ export default async function GuestHome({ searchParams }: Props) {
                 </a>
               ) : null}
             </p>
+          ) : null}
+          {hotel && socialLinks(hotel).length > 0 ? (
+            <p className="mt-2 flex flex-wrap gap-x-4 text-sm">
+              {socialLinks(hotel).map((l) => (
+                <a key={l.label} href={l.href} target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                  {l.label}
+                  <span className="sr-only"> (opens in a new tab)</span>
+                </a>
+              ))}
+            </p>
+          ) : null}
+          {hotel && facilityList(hotel).length > 0 ? (
+            <div className="mt-6">
+              <h2 className="text-xs font-medium uppercase tracking-wider text-muted">At the hotel</h2>
+              <ul className="mt-2 flex flex-wrap gap-2">
+                {facilityList(hotel).map((f) => (
+                  <li key={f} className="rounded-full border border-line bg-white px-3 py-1 text-xs">
+                    {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
           ) : null}
           {highlights.length > 0 ? (
             <ul aria-label="Amenities" className="mt-6 flex flex-wrap gap-2">

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { back, ok, staffClient } from "./action-helpers";
 import { parseDecision } from "./guest-reviews";
 import { parseOfferForm } from "./hotel-offers";
+import { parseExtrasForm } from "./hotel-extras";
 import { parseBasicsForm, parseProfileForm, parseThemeForm } from "./hotel-profile";
 import { logoPath, PHOTO_BUCKET, validatePhoto } from "./room-photos";
 import { classifySetupError } from "./room-setup";
@@ -31,6 +32,33 @@ export async function saveHotelProfile(formData: FormData) {
   revalidatePath(PAGE);
   revalidatePath("/");
   return ok(PAGE, "hotel_profile_saved");
+}
+
+/**
+ * Saves the hotel's facilities and its Instagram and Facebook links (migration 105). A typed @name becomes the stored link first.
+ * Same permission as the other hotel forms: the database function requires property.configure and answers NOT_FOUND to anyone else.
+ */
+export async function saveHotelExtras(formData: FormData) {
+  const v = parseExtrasForm(Object.fromEntries(formData));
+  if (!v.ok) return back(PAGE, { err: v.code });
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("set_hotel_extras", {
+    p_property: v.value.propertyId,
+    p_facilities: v.value.facilities,
+    p_instagram: v.value.instagram ?? "",
+    p_facebook: v.value.facebook ?? "",
+  });
+  if (error)
+    return back(PAGE, {
+      err: /NOT_FOUND/.test(error.message)
+        ? "setup_forbidden"
+        : /POLICY_VIOLATION/.test(error.message)
+          ? "setup_invalid"
+          : classifySetupError(error),
+    });
+  revalidatePath(PAGE);
+  revalidatePath("/");
+  return ok(PAGE, "hotel_extras_saved");
 }
 
 /** Saves the hotel's name, address, town, state and check-in and check-out times (migration 089). Same permission as above. */
