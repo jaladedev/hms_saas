@@ -101,6 +101,22 @@ export function searchAvailability(host: string, stay: StayParams) {
 /** The hotel's name, address, town and check-in and check-out times for the host (migration 041). */
 export const guestHotel = cache((host: string) => call<GuestHotel>("guest_hotel", { p_host: host }));
 
+export type HomeRoomType = {
+  room_type_id: string;
+  name: string;
+  description: string | null;
+  amenities: string[];
+  photos: { path: string; caption: string | null }[];
+  max_adults: number;
+  max_children: number;
+  max_occupancy: number;
+  from_rate_minor: number; // tonight's rate on the default plan, before tax
+};
+export type HomeRoomTypes = { currency: string; room_types: HomeRoomType[] };
+
+/** The room types a guest could book at the hotel behind this host, with pictures and a "from" price, for the homepage (migration 096). */
+export const guestRoomTypes = cache((host: string) => call<HomeRoomTypes>("guest_room_types", { p_host: host }));
+
 export type GuestPolicy = {
   currency: string;
   cancellation_rules: unknown;

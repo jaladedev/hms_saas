@@ -104,6 +104,8 @@ Status: **built**, **partial** (part of the job is done, or only another role ca
 | --- | --- | --- |
 | Property Profile | built | `/app/settings/hotel` |
 | Operational Settings | partial | check-in and check-out times are on `/app/settings/hotel`; no single operations screen |
+| Guest Homepage | built | `/`: hero, search card, room cards (migration 096), info pills; offers, reviews and experience not built (no data) |
+| Guest Policies / Contact / Privacy | built | `/policies`, `/contact`, `/privacy` (privacy text needs review) |
 | Branding & Theme Editor | built | `/app/settings/hotel`: logo and room photos, and the hotel's look (Standard, Luxury, Modern or Classic; migration 093) for the guest site and the staff screens. Free-form colour editing is not built |
 | Staff Management | built | `/app/staff` |
 | Staff Permissions | built | `/app/staff/roles` (custom roles) |

@@ -2868,6 +2868,7 @@ export type Database = {
       }
       guest_hotel: { Args: { p_host: string }; Returns: Json }
       guest_policy: { Args: { p_host: string }; Returns: Json }
+      guest_room_types: { Args: { p_host: string }; Returns: Json }
       guest_report: {
         Args: { p_from: string; p_property_id: string; p_to: string }
         Returns: Json

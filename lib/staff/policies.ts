@@ -107,8 +107,8 @@ export function describeCharge(c: CancellationRule["charge"], formatMinor: (mino
   return formatMinor(Math.round(c.value));
 }
 
-/** The sentences a guest would read on the reserve page. */
-export function guestSummary(cfg: PolicyConfig, formatMinor: (minor: number) => string): string[] {
+/** How the guest pays: the sentences about paying online and before check-in. */
+export function guestPaymentLines(cfg: PolicyConfig): string[] {
   const lines: string[] = [];
   lines.push(
     cfg.online_payment.mode === "deposit_percent"
@@ -116,6 +116,12 @@ export function guestSummary(cfg: PolicyConfig, formatMinor: (minor: number) => 
       : "Pay the full amount online to confirm your booking.",
   );
   if (cfg.checkin_payment === "full") lines.push("The booking must be fully paid before check-in.");
+  return lines;
+}
+
+/** What cancelling costs, and whether it can be done online. */
+export function guestCancellationLines(cfg: PolicyConfig, formatMinor: (minor: number) => string): string[] {
+  const lines: string[] = [];
   const rules = cfg.cancellation_rules;
   const widest = rules[0];
   if (!widest) {
@@ -133,6 +139,11 @@ export function guestSummary(cfg: PolicyConfig, formatMinor: (minor: number) => 
   }
   if (cfg.guest_cancellation === "off") lines.push("To cancel, contact the hotel: bookings cannot be cancelled online.");
   return lines;
+}
+
+/** The sentences a guest would read on the reserve page. */
+export function guestSummary(cfg: PolicyConfig, formatMinor: (minor: number) => string): string[] {
+  return [...guestPaymentLines(cfg), ...guestCancellationLines(cfg, formatMinor)];
 }
 
 export type PolicyField = "rules" | "deposit" | "date";

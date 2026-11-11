@@ -791,4 +791,8 @@ EI="$(psql -f "$HERE/96_email_booking_invoice.sql" 2>&1)" || { echo "$EI"; echo 
 echo "$EI" | grep -E 'PASS' || true
 if echo "$EI" | grep -qE 'FAIL|ERROR'; then echo "$EI"; echo "EMAIL BOOKING INVOICE TESTS FAILED"; exit 1; fi
 
+GR="$(psql -f "$HERE/97_guest_room_types.sql" 2>&1)" || { echo "$GR"; echo "GUEST ROOM TYPES TESTS FAILED"; exit 1; }
+echo "$GR" | grep -E 'PASS' || true
+if echo "$GR" | grep -qE 'FAIL|ERROR'; then echo "$GR"; echo "GUEST ROOM TYPES TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"
