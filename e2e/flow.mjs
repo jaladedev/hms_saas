@@ -3039,5 +3039,448 @@ check("the audit trail records the needs-details outcome without the details", r
   );
 }
 
+// -- 15. The payments list and details, the invoice list, adding a guest, the profile screen and the hotel facilities form
+{
+  const plusDays = (iso, n) => new Date(Date.parse(`${iso}T00:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
+  const svc = { headers: { authorization: `Bearer ${jwt("service_role")}` } };
+  const restJson = async (path) => (await fetch(`${REST}${path}`, svc)).json();
+  const homeText = async () => pageText(await (await site("/")).text());
+
+  // payments list
+  res = await staff("/app/payments/all", null);
+  check(
+    "the payments list sends a signed-out visitor to sign in",
+    res.status === 307 && (res.headers.get("location") ?? "").includes("/login"),
+    `status ${res.status}`,
+  );
+  const payRows = await restJson(
+    "/payments?select=id,reservation_id,amount_minor,currency,payment_provider,internal_reference&order=received_at.desc&limit=50",
+  );
+  check("the guest flow left payments to list", Array.isArray(payRows) && payRows.length > 0, JSON.stringify(payRows).slice(0, 200));
+  const pay = payRows[0];
+  const payRes = (await restJson(`/reservations?id=eq.${pay.reservation_id}&select=booking_reference`))[0];
+  const payList = await getPage("/app/payments/all", OWNER_COOKIE);
+  check(
+    "the owner's payments list shows the screen, its filters and a link to a payment",
+    payList.status === 200 &&
+      sees(payList.text, "Payments", "To verify", "All payments", "Reference or guest", "Search") &&
+      payList.html.includes(`/app/payments/${pay.id}`),
+    payList.text.slice(0, 300),
+  );
+  check("it shows the booking reference of that payment", sees(payList.text, payRes.booking_reference), payList.text.slice(0, 300));
+  const byRef = await getPage(`/app/payments/all?q=${encodeURIComponent(payRes.booking_reference)}`, OWNER_COOKIE);
+  check(
+    "searching by booking reference finds the payment",
+    byRef.status === 200 && byRef.html.includes(`/app/payments/${pay.id}`),
+    byRef.text.slice(0, 200),
+  );
+  const byNone = await getPage("/app/payments/all?q=ZZZ-NO-SUCH-THING", OWNER_COOKIE);
+  check(
+    "a search with no match says so and offers to clear",
+    byNone.status === 200 && sees(byNone.text, "No payments match.", "Clear") && !byNone.html.includes(`/app/payments/${pay.id}`),
+  );
+  const bySource = await getPage(
+    `/app/payments/all?source=${pay.payment_provider === "manual" ? "paystack" : "manual"}&q=${encodeURIComponent(payRes.booking_reference)}`,
+    OWNER_COOKIE,
+  );
+  check(
+    "the source filter keeps out a payment taken the other way",
+    bySource.status === 200 && !bySource.html.includes(`/app/payments/${pay.id}`),
+  );
+  const bySourceSame = await getPage(`/app/payments/all?source=${pay.payment_provider}&status=succeeded`, OWNER_COOKIE);
+  check("the source and status filters keep it when they match", bySourceSame.html.includes(`/app/payments/${pay.id}`));
+  const byFuture = await getPage(`/app/payments/all?from=${plusDays(tonight, 400)}`, OWNER_COOKIE);
+  check("a date filter in the future leaves none", byFuture.status === 200 && !byFuture.html.includes(`/app/payments/${pay.id}`));
+  const byBadFilters = await getPage("/app/payments/all?source=bitcoin&status=x&from=2026-02-30&page=-4", OWNER_COOKIE);
+  check(
+    "nonsense filters fall back to the plain list instead of failing",
+    byBadFilters.status === 200 && byBadFilters.html.includes(`/app/payments/${pay.id}`),
+  );
+  const payHk = await getPage("/app/payments/all", HK_COOKIE);
+  check(
+    "housekeeping, who may not see money, gets no payments in the list",
+    payHk.status === 200 && !payHk.html.includes(`/app/payments/${pay.id}`) && doesNotSee(payHk.text, payRes.booking_reference),
+  );
+  const payB = await getPage("/app/payments/all", OWNER_B_COOKIE);
+  check(
+    "hotel B's owner sees none of hotel A's payments",
+    payB.status === 200 && !payB.html.includes(`/app/payments/${pay.id}`) && doesNotSee(payB.text, payRes.booking_reference),
+  );
+
+  // payment details
+  const payOne = await getPage(`/app/payments/${pay.id}`, OWNER_COOKIE);
+  check(
+    "the owner's payment page shows the amount, the booking, its references and where it was applied",
+    payOne.status === 200 &&
+      sees(payOne.text, "All payments", payRes.booking_reference, pay.internal_reference, "Verification", "Applied to"),
+    payOne.text.slice(0, 400),
+  );
+  check("it links to the booking's settlement page", payOne.html.includes(`/app/reservations/${pay.reservation_id}/settlement`));
+  const payOneAcc = await getPage(`/app/payments/${pay.id}`, ACCOUNTANT_COOKIE);
+  check(
+    "the accountant can open it too",
+    payOneAcc.status === 200 && sees(payOneAcc.text, pay.internal_reference),
+    `status ${payOneAcc.status}`,
+  );
+  const payOneHk = await getPage(`/app/payments/${pay.id}`, HK_COOKIE);
+  check(
+    "housekeeping gets not-found for it, not the payment",
+    payOneHk.status === 404 && doesNotSee(payOneHk.text, pay.internal_reference),
+    `status ${payOneHk.status}`,
+  );
+  const payOneB = await getPage(`/app/payments/${pay.id}`, OWNER_B_COOKIE);
+  check(
+    "hotel B's owner gets not-found for it",
+    payOneB.status === 404 && doesNotSee(payOneB.text, pay.internal_reference),
+    `status ${payOneB.status}`,
+  );
+  const payBad = await getPage("/app/payments/not-a-uuid", OWNER_COOKIE);
+  check("a payment address that is not an id is not-found", payBad.status === 404);
+  const payGone = await getPage("/app/payments/00000000-0000-0000-0000-00000000dead", OWNER_COOKIE);
+  check("an id with no payment is not-found", payGone.status === 404);
+
+  // invoice list
+  // A cancelled booking cannot be invoiced, so try live bookings until one accepts an invoice.
+  const liveBookings = await restJson(
+    "/reservations?reservation_status=in.(confirmed,checked_in,checked_out)&select=id&order=created_at.desc&limit=10",
+  );
+  let issuedOk = false;
+  let issuedDetail = JSON.stringify(liveBookings).slice(0, 160);
+  for (const b of Array.isArray(liveBookings) ? liveBookings : []) {
+    const issued = await rpc(
+      "issue_invoice",
+      { p_reservation_id: b.id, p_idempotency_key: "e2e-invoice-list" },
+      jwt("authenticated", JWT_SECRET, OWNER_ID),
+    );
+    issuedDetail = `${issued.status} ${(await issued.text()).slice(0, 160)}`;
+    if (issued.ok) {
+      issuedOk = true;
+      break;
+    }
+  }
+  check("the owner issued an invoice for a live booking, so there is one to list", issuedOk, issuedDetail);
+  const invRows = await restJson("/invoices?select=id,invoice_number,reservation_id,invoice_status&order=issued_at.desc&limit=50");
+  const invList = await getPage("/app/invoices", OWNER_COOKIE);
+  check(
+    "the owner's invoice list shows the screen, both kinds and its filters",
+    invList.status === 200 &&
+      sees(invList.text, "Invoices", "Booking invoices", "Invoices for extras", "Invoice, booking or guest", "Search"),
+    invList.text.slice(0, 300),
+  );
+  if (Array.isArray(invRows) && invRows.length > 0) {
+    const inv = invRows[0];
+    check(
+      "it lists a booking invoice by number, linked to the booking's documents",
+      sees(invList.text, inv.invoice_number) && invList.html.includes(`/app/reservations/${inv.reservation_id}/documents`),
+      invList.text.slice(0, 300),
+    );
+    const invFind = await getPage(`/app/invoices?q=${encodeURIComponent(inv.invoice_number)}`, OWNER_COOKIE);
+    check("searching by invoice number finds it", invFind.status === 200 && sees(invFind.text, inv.invoice_number));
+    const invWrong = await getPage(
+      `/app/invoices?q=${encodeURIComponent(inv.invoice_number)}&status=${inv.invoice_status === "void" ? "paid" : "void"}`,
+      OWNER_COOKIE,
+    );
+    check("a status filter that does not match leaves it out", invWrong.status === 200 && doesNotSee(invWrong.text, inv.invoice_number));
+    const invHk = await getPage("/app/invoices", HK_COOKIE);
+    check("housekeeping sees no invoices", invHk.status === 200 && doesNotSee(invHk.text, inv.invoice_number));
+    const invB = await getPage("/app/invoices", OWNER_B_COOKIE);
+    check("hotel B's owner sees none of hotel A's invoices", invB.status === 200 && doesNotSee(invB.text, inv.invoice_number));
+  } else {
+    check("the guest flow left a booking invoice to list", false, JSON.stringify(invRows).slice(0, 200));
+  }
+  const invExtras = await getPage("/app/invoices?kind=extras&status=paid", OWNER_COOKIE);
+  check(
+    "the extras tab ignores a status extras do not have",
+    invExtras.status === 200 && sees(invExtras.text, "Invoices for extras"),
+    invExtras.text.slice(0, 200),
+  );
+
+  // adding a guest
+  const newGuestOwner = await getPage("/app/guests/new", OWNER_COOKIE);
+  check(
+    "the owner gets the add-a-guest form",
+    newGuestOwner.status === 200 && sees(newGuestOwner.text, "Add a guest", "Full name", "Email", "Add guest"),
+    newGuestOwner.text.slice(0, 300),
+  );
+  const newGuestAcc = await getPage("/app/guests/new", ACCOUNTANT_COOKIE);
+  check(
+    "the accountant, who may not manage guests, gets no form",
+    newGuestAcc.status === 200 && sees(newGuestAcc.text, "Your role cannot add guests.") && !newGuestAcc.html.includes('name="full_name"'),
+  );
+  const guestForm = formWith(newGuestOwner.html, 'name="full_name"');
+  const guestEmail = `e2e.newguest.${Date.now()}@example.com`;
+  const guestsWithEmail = async () =>
+    restJson(`/guests?email=eq.${encodeURIComponent(guestEmail.toLowerCase())}&select=id,full_name,phone,country_code`);
+  res = await send("/app/guests/new", OWNER_COOKIE, guestForm, {
+    full_name: "  Chidi   Eze ",
+    email: ` ${guestEmail.toUpperCase()} `,
+    phone: "+2348000000099",
+    address: "",
+    country_code: "ng",
+  });
+  const madeTo = res.headers.get("location") ?? "";
+  const madeId = /\/app\/guests\/([0-9a-f-]{36})/.exec(madeTo)?.[1];
+  check(
+    "adding a guest takes the owner to the new guest's page with a confirmation",
+    res.status === 303 && Boolean(madeId) && outcome(res).get("ok") === "guest_created",
+    madeTo,
+  );
+  const madeRows = await guestsWithEmail();
+  check(
+    "the guest was stored trimmed, with the email lower-cased and the country upper-cased",
+    madeRows.length === 1 && madeRows[0].full_name === "Chidi Eze" && madeRows[0].country_code === "NG" && madeRows[0].id === madeId,
+    JSON.stringify(madeRows),
+  );
+  const madePage = await getPage(`/app/guests/${madeId}`, OWNER_COOKIE);
+  check("the new guest's page opens and confirms it", madePage.status === 200 && sees(madePage.text, "Chidi Eze"));
+  res = await send("/app/guests/new", OWNER_COOKIE, guestForm, {
+    full_name: "Someone Else",
+    email: guestEmail,
+    phone: "",
+    address: "",
+    country_code: "",
+  });
+  check(
+    "adding the same email again opens the existing guest instead of making a second",
+    res.status === 303 &&
+      (res.headers.get("location") ?? "").includes(`/app/guests/${madeId}`) &&
+      outcome(res).get("ok") === "guest_exists",
+    res.headers.get("location") ?? "",
+  );
+  check(
+    "and there is still one guest with that email, unchanged",
+    (await guestsWithEmail()).length === 1 && (await guestsWithEmail())[0].full_name === "Chidi Eze",
+  );
+  res = await send("/app/guests/new", OWNER_COOKIE, guestForm, {
+    full_name: "Bad Email",
+    email: "not-an-email",
+    phone: "",
+    address: "",
+    country_code: "",
+  });
+  check(
+    "a bad email is explained on the form and nothing is added",
+    res.status === 303 &&
+      outcome(res).get("err") === "guest_email" &&
+      (await restJson(`/guests?full_name=eq.Bad%20Email&select=id`)).length === 0,
+    res.headers.get("location") ?? "",
+  );
+  res = await send("/app/guests/new", OWNER_COOKIE, guestForm, { full_name: "   ", email: "", phone: "", address: "", country_code: "" });
+  check("a blank name is refused", res.status === 303 && outcome(res).get("err") === "guest_name");
+  const accEmail = `e2e.refused.${Date.now()}@example.com`;
+  res = await send("/app/guests/new", ACCOUNTANT_COOKIE, guestForm, {
+    full_name: "Accountant Add",
+    email: accEmail,
+    phone: "",
+    address: "",
+    country_code: "",
+  });
+  check(
+    "posting the add-a-guest action as the accountant is refused and adds nothing",
+    res.status === 303 &&
+      outcome(res).get("ok") === null &&
+      (await restJson(`/guests?email=eq.${encodeURIComponent(accEmail)}&select=id`)).length === 0,
+    res.headers.get("location") ?? "",
+  );
+  res = await send("/app/guests/new", OWNER_B_COOKIE, guestForm, {
+    full_name: "Other Hotel Add",
+    email: accEmail,
+    phone: "",
+    address: "",
+    country_code: "",
+  });
+  check(
+    "posting it as hotel B's owner, for hotel A, is refused too",
+    res.status === 303 &&
+      outcome(res).get("ok") === null &&
+      (await restJson(`/guests?email=eq.${encodeURIComponent(accEmail)}&select=id`)).length === 0,
+    res.headers.get("location") ?? "",
+  );
+  const guestAudit = await restJson(`/audit_logs?action=eq.guest.created&entity_id=eq.${madeId}&select=metadata`);
+  check(
+    "adding the guest is on the audit trail, naming fields and not holding the values",
+    guestAudit.length === 1 && !JSON.stringify(guestAudit).includes("Chidi") && !JSON.stringify(guestAudit).includes("2348000000099"),
+    JSON.stringify(guestAudit),
+  );
+  const guestsList = await getPage("/app/guests", OWNER_COOKIE);
+  check("the guest list has the add-a-guest button", guestsList.status === 200 && guestsList.html.includes('href="/app/guests/new"'));
+
+  // profile and screen spacing
+  const profOwner = await getPage("/app/profile", OWNER_COOKIE);
+  check(
+    "the owner's profile shows the email, the details form, the access summary and the password form",
+    profOwner.status === 200 &&
+      sees(profOwner.text, "My profile", "ada.owner@hotel-a.test", "Your details", "Screen spacing", "Your access", "Change your password"),
+    profOwner.text.slice(0, 400),
+  );
+  check(
+    "it says what role the owner holds, for all hotels",
+    sees(profOwner.text, "Hotel owner, all hotels"),
+    profOwner.text.slice(profOwner.text.indexOf("Your access"), profOwner.text.indexOf("Your access") + 200),
+  );
+  check("the sidebar email links to the profile", profOwner.html.includes('href="/app/profile"'));
+  check("by default the staff screens use the comfortable spacing", profOwner.html.includes('data-density="comfortable"'));
+  const profForm = formWith(profOwner.html, 'name="density"');
+  res = await send("/app/profile", OWNER_COOKIE, profForm, { full_name: "  Ada   Okafor ", phone: "+2348000000001", density: "compact" });
+  check("saving the profile confirms", res.status === 303 && outcome(res).get("ok") === "profile_saved", res.headers.get("location") ?? "");
+  const profRow = (await restJson(`/user_profiles?id=eq.${OWNER_ID}&select=full_name,phone,density`))[0];
+  check(
+    "the details were stored trimmed, with the compact spacing",
+    profRow?.full_name === "Ada Okafor" && profRow?.phone === "+2348000000001" && profRow?.density === "compact",
+    JSON.stringify(profRow),
+  );
+  const afterCompact = await getPage("/app/guests", OWNER_COOKIE);
+  check("every staff page now carries the compact spacing for that person", afterCompact.html.includes('data-density="compact"'));
+  const hkAfter = await getPage("/app/profile", HK_COOKIE);
+  check(
+    "another person's pages keep the comfortable spacing",
+    hkAfter.status === 200 && hkAfter.html.includes('data-density="comfortable"'),
+  );
+  check(
+    "housekeeping's profile shows their own email, not Ada's",
+    sees(hkAfter.text, "hk@hotel-a.test") && doesNotSee(hkAfter.text, "ada.owner@hotel-a.test"),
+  );
+  res = await send("/app/profile", OWNER_COOKIE, profForm, { full_name: "   ", phone: "", density: "comfortable" });
+  check(
+    "a blank name is refused and the spacing stays as it was",
+    res.status === 303 &&
+      outcome(res).get("err") === "profile_name" &&
+      (await restJson(`/user_profiles?id=eq.${OWNER_ID}&select=density`))[0]?.density === "compact",
+  );
+  res = await send("/app/profile", OWNER_COOKIE, profForm, { full_name: "Ada Okafor", phone: "", density: "cosy" });
+  check("an unknown spacing is refused", res.status === 303 && outcome(res).get("err") === "profile_density");
+  const hkRowBefore = (await restJson(`/user_profiles?id=eq.00000000-0000-0000-0000-00000000aa06&select=full_name`))[0];
+  check("nobody else's profile was touched by those saves", hkRowBefore === undefined || hkRowBefore.full_name !== "Ada Okafor");
+  const pwForm = formWith(profOwner.html, 'name="current"');
+  res = await send("/app/profile", OWNER_COOKIE, pwForm, { current: "whatever", password: "short", confirm: "short" });
+  check(
+    "a too-short new password is refused before anything is checked",
+    res.status === 303 && outcome(res).get("err") === "pw_short",
+    res.headers.get("location") ?? "",
+  );
+  res = await send("/app/profile", OWNER_COOKIE, pwForm, {
+    current: "whatever",
+    password: "a-long-enough-one",
+    confirm: "a-different-one",
+  });
+  check("two passwords that differ are refused", res.status === 303 && outcome(res).get("err") === "pw_mismatch");
+  res = await send("/app/profile", OWNER_COOKIE, profForm, { full_name: "Ada Okafor", phone: "", density: "comfortable" });
+  check(
+    "the spacing can be put back",
+    res.status === 303 &&
+      outcome(res).get("ok") === "profile_saved" &&
+      (await restJson(`/user_profiles?id=eq.${OWNER_ID}&select=density`))[0]?.density === "comfortable",
+  );
+
+  // hotel facilities and social links
+  const hotelOwner = await getPage("/app/settings/hotel", OWNER_COOKIE);
+  check(
+    "the owner's hotel details page has the facilities and links form",
+    hotelOwner.status === 200 && sees(hotelOwner.text, "Hotel facilities", "Instagram", "Facebook", "Save facilities and links"),
+    hotelOwner.text.slice(0, 300),
+  );
+  const extrasForm = formWith(hotelOwner.html, 'name="facilities"');
+  const homeBefore = await homeText();
+  check("before anything is set the guest homepage shows no facilities heading", doesNotSee(homeBefore, "At the hotel"));
+  res = await send("/app/settings/hotel", OWNER_COOKIE, extrasForm, {
+    facilities: "Pool\n  Restaurant , Bar\n\nGym\npool",
+    instagram: "@bodijaboutique",
+    facebook: "https://www.facebook.com/bodija.boutique/",
+  });
+  check(
+    "saving facilities and links confirms",
+    res.status === 303 && outcome(res).get("ok") === "hotel_extras_saved",
+    res.headers.get("location") ?? "",
+  );
+  const propRow = (await restJson(`/properties?id=eq.${PROPERTY_A}&select=facilities,social_instagram,social_facebook`))[0];
+  check(
+    "they were stored cleaned: no blanks or repeats, links in their one shape",
+    JSON.stringify(propRow?.facilities) === JSON.stringify(["Pool", "Restaurant", "Bar", "Gym"]) &&
+      propRow?.social_instagram === "https://instagram.com/bodijaboutique" &&
+      propRow?.social_facebook === "https://facebook.com/bodija.boutique",
+    JSON.stringify(propRow),
+  );
+  const homeAfterRes = await site("/");
+  const homeAfterHtml = await homeAfterRes.text();
+  const homeAfter = pageText(homeAfterHtml);
+  check(
+    "the guest homepage lists the facilities under 'At the hotel'",
+    homeAfterRes.status === 200 && sees(homeAfter, "At the hotel", "Pool", "Restaurant", "Bar", "Gym"),
+    homeAfter.slice(0, 400),
+  );
+  check(
+    "it links Instagram and Facebook, in a new tab, without handing over the opener",
+    /<a[^>]*href="https:\/\/instagram\.com\/bodijaboutique"[^>]*rel="noopener noreferrer"/.test(homeAfterHtml) ||
+      /<a[^>]*rel="noopener noreferrer"[^>]*href="https:\/\/instagram\.com\/bodijaboutique"/.test(homeAfterHtml),
+  );
+  check(
+    "and the Facebook link",
+    homeAfterHtml.includes('href="https://facebook.com/bodija.boutique"') && homeAfterHtml.includes('target="_blank"'),
+  );
+  const hotelRead = await getPage("/app/settings/hotel", OWNER_COOKIE);
+  check(
+    "the form is filled in with what was saved",
+    hotelRead.html.includes('value="https://instagram.com/bodijaboutique"') &&
+      hotelRead.html.includes('value="https://facebook.com/bodija.boutique"') &&
+      /Pool\s*Restaurant\s*Bar\s*Gym/.test(hotelRead.html),
+    hotelRead.html.slice(hotelRead.html.indexOf('name="facilities"'), hotelRead.html.indexOf('name="facilities"') + 200),
+  );
+  res = await send("/app/settings/hotel", OWNER_COOKIE, extrasForm, {
+    facilities: "Pool",
+    instagram: "https://evil.com/bodija",
+    facebook: "",
+  });
+  check(
+    "a link to another site is refused and nothing changes",
+    res.status === 303 &&
+      outcome(res).get("err") === "setup_invalid" &&
+      (await restJson(`/properties?id=eq.${PROPERTY_A}&select=social_instagram`))[0]?.social_instagram ===
+        "https://instagram.com/bodijaboutique",
+  );
+  res = await send("/app/settings/hotel", OWNER_COOKIE, extrasForm, { facilities: "x".repeat(41), instagram: "", facebook: "" });
+  check("a facility over 40 characters is refused", res.status === 303 && outcome(res).get("err") === "setup_invalid");
+  res = await send("/app/settings/hotel", OWNER_COOKIE, extrasForm, {
+    facilities: "Pool",
+    instagram: "",
+    facebook: "https://facebook.com/profile.php?id=1",
+  });
+  check("a Facebook profile.php address is refused", res.status === 303 && outcome(res).get("err") === "setup_invalid");
+  res = await send("/app/settings/hotel", ACCOUNTANT_COOKIE, extrasForm, { facilities: "Hacked", instagram: "", facebook: "" });
+  check(
+    "the accountant posting the action is refused and nothing changes",
+    res.status === 303 &&
+      outcome(res).get("err") === "setup_forbidden" &&
+      JSON.stringify((await restJson(`/properties?id=eq.${PROPERTY_A}&select=facilities`))[0]?.facilities).includes("Pool"),
+    res.headers.get("location") ?? "",
+  );
+  res = await send("/app/settings/hotel", OWNER_B_COOKIE, extrasForm, { facilities: "Hacked", instagram: "", facebook: "" });
+  check(
+    "hotel B's owner posting it for hotel A is refused and nothing changes",
+    res.status === 303 &&
+      outcome(res).get("err") === "setup_forbidden" &&
+      !JSON.stringify((await restJson(`/properties?id=eq.${PROPERTY_A}&select=facilities`))[0]?.facilities).includes("Hacked"),
+  );
+  const hotelAcc = await getPage("/app/settings/hotel", ACCOUNTANT_COOKIE);
+  check(
+    "the accountant sees the facilities and links read-only, with no form",
+    hotelAcc.status === 200 &&
+      sees(hotelAcc.text, "Facilities", "Pool, Restaurant, Bar, Gym") &&
+      !hotelAcc.html.includes('name="facilities"'),
+    hotelAcc.text.slice(0, 300),
+  );
+  const extrasAudit = await restJson(
+    `/audit_logs?entity_id=eq.${PROPERTY_A}&action=eq.property.updated&select=metadata&order=created_at.desc&limit=5`,
+  );
+  check(
+    "the change is on the audit trail",
+    JSON.stringify(extrasAudit).includes("social_instagram") && JSON.stringify(extrasAudit).includes("facilities"),
+  );
+  res = await send("/app/settings/hotel", OWNER_COOKIE, extrasForm, { facilities: "", instagram: "", facebook: "" });
+  check(
+    "clearing them all works, and the homepage drops the heading again",
+    res.status === 303 && outcome(res).get("ok") === "hotel_extras_saved" && doesNotSee(await homeText(), "At the hotel"),
+  );
+}
+
 console.log(failures === 0 ? `E2E PASSED (${reference})` : `E2E FAILED: ${failures} check(s)`);
 process.exit(failures === 0 ? 0 : 1);
