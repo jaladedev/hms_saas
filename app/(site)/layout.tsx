@@ -5,7 +5,7 @@ import { monogram } from "@/lib/guest-site/home";
 import { telHref } from "@/lib/staff/hotel-profile";
 import { photoUrl } from "@/lib/staff/room-photos";
 import { guestHotel, requestHost } from "@/lib/guest-site/server";
-import { parseTheme, THEME_WRAPPER_CLASS, themeStyle } from "@/lib/theme";
+import { lookStyle, THEME_WRAPPER_CLASS } from "@/lib/theme";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +30,15 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
   const place = hotel ? placeLine(hotel) : "";
   const year = new Date().getFullYear();
   return (
-    <div className={`flex min-h-screen flex-col ${THEME_WRAPPER_CLASS}`} style={themeStyle(parseTheme(hotel?.theme), hotel?.theme_primary)}>
+    <div
+      className={`flex min-h-screen flex-col ${THEME_WRAPPER_CLASS}`}
+      style={lookStyle({
+        theme: hotel?.theme,
+        primary: hotel?.theme_primary,
+        fontDisplay: hotel?.font_display,
+        fontBody: hotel?.font_body,
+      })}
+    >
       <header className="border-b border-line bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4">
           <Link href="/" className={`flex items-center gap-3 font-display text-xl ${linkTap}`}>

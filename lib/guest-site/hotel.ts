@@ -12,6 +12,8 @@ export type GuestHotel = {
   email?: string | null;
   intro?: string | null;
   logo?: string | null; // storage path in the room-photos bucket (migration 090)
+  font_display?: string | null; // heading font key over the theme (migration 100)
+  font_body?: string | null;
   theme_primary?: string | null; // optional main colour as #rrggbb over the theme (migration 099)
   theme?: string | null; // 'luxury', 'modern' or 'classic'; null is the standard look (migration 093)
 };

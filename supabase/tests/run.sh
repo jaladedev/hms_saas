@@ -807,4 +807,8 @@ PCL="$(psql -f "$HERE/100_hotel_primary_color.sql" 2>&1)" || { echo "$PCL"; echo
 echo "$PCL" | grep -E 'PASS' || true
 if echo "$PCL" | grep -qE 'FAIL|ERROR'; then echo "$PCL"; echo "HOTEL COLOUR TESTS FAILED"; exit 1; fi
 
+HF="$(psql -f "$HERE/101_hotel_fonts.sql" 2>&1)" || { echo "$HF"; echo "HOTEL FONT TESTS FAILED"; exit 1; }
+echo "$HF" | grep -E 'PASS' || true
+if echo "$HF" | grep -qE 'FAIL|ERROR'; then echo "$HF"; echo "HOTEL FONT TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

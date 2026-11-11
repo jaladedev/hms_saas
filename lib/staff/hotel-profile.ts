@@ -3,7 +3,16 @@
  * The same rules as the database checks (migration 087), so a mistake is explained on the form instead of being refused later.
  */
 
-import { normalizeHex, parseTheme, primaryContrast, type ThemeId } from "@/lib/theme";
+import {
+  normalizeHex,
+  parseBodyFont,
+  parseDisplayFont,
+  parseTheme,
+  primaryContrast,
+  type BodyFontId,
+  type DisplayFontId,
+  type ThemeId,
+} from "@/lib/theme";
 
 export const MAX_INTRO = 500;
 
@@ -65,12 +74,20 @@ export function parseBasicsForm(raw: Record<string, unknown>): BasicsCheck {
   return { ok: true, value: { propertyId, name, address: address || null, city, state, checkIn, checkOut } };
 }
 
-export type ThemeForm = { propertyId: string; theme: ThemeId | null; primary: string | null };
-export type ThemeCheck = { ok: true; value: ThemeForm } | { ok: false; code: "setup_invalid" | "theme_color" | "theme_contrast" };
+export type ThemeForm = {
+  propertyId: string;
+  theme: ThemeId | null;
+  primary: string | null;
+  fontDisplay: DisplayFontId | null;
+  fontBody: BodyFontId | null;
+};
+export type ThemeCheck =
+  | { ok: true; value: ThemeForm }
+  | { ok: false; code: "setup_invalid" | "theme_color" | "theme_contrast" | "theme_font" };
 
 /**
  * The hotel's look (migrations 093 and 099): "standard" (the look the app has always had) or one of the three theme names,
- * and an optional main colour (#rrggbb, blank for the theme's own). A colour white text cannot be read on is refused.
+ * an optional main colour (#rrggbb) and optional heading and body fonts (migration 100); blank means the theme's own. A colour white text cannot be read on is refused.
  */
 export function parseThemeForm(raw: Record<string, unknown>): ThemeCheck {
   const propertyId = text(raw.propertyId);
@@ -82,7 +99,12 @@ export function parseThemeForm(raw: Record<string, unknown>): ThemeCheck {
   const primary = colorRaw ? normalizeHex(colorRaw) : null;
   if (colorRaw && !primary) return { ok: false, code: "theme_color" };
   if (primary && primaryContrast(primary, theme).some((l) => !l.pass)) return { ok: false, code: "theme_contrast" };
-  return { ok: true, value: { propertyId, theme, primary } };
+  const displayRaw = text(raw.fontDisplay);
+  const bodyRaw = text(raw.fontBody);
+  const fontDisplay = displayRaw ? parseDisplayFont(displayRaw) : null;
+  const fontBody = bodyRaw ? parseBodyFont(bodyRaw) : null;
+  if ((displayRaw && !fontDisplay) || (bodyRaw && !fontBody)) return { ok: false, code: "theme_font" };
+  return { ok: true, value: { propertyId, theme, primary, fontDisplay, fontBody } };
 }
 
 /** "14:00:00" from the database as "14:00" for a time field. */

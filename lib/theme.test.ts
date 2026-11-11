@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  BODY_FONTS,
+  DISPLAY_FONTS,
+  lookStyle,
+  parseBodyFont,
+  parseDisplayFont,
+  previewStyle,
+  STANDARD_STYLE,
   contrastRatio,
   darken,
   normalizeHex,
@@ -125,5 +132,39 @@ describe("main colour", () => {
     expect(themeStyle(null, null)).toBeUndefined();
     expect(themeStyle(null, "teal")).toBeUndefined();
     expect((themeStyle("modern", "teal") as Record<string, string>)["--color-primary"]).toBe(THEMES.modern.colors.primary);
+  });
+});
+
+describe("fonts", () => {
+  it("parse only the listed keys", () => {
+    expect(parseDisplayFont("outfit")).toBe("outfit");
+    expect(parseBodyFont("source-serif")).toBe("source-serif");
+    for (const bad of ["inter", "Outfit", "comic-sans", "", null, 3]) expect(parseDisplayFont(bad)).toBeNull();
+    for (const bad of ["sora", "Inter", "", null]) expect(parseBodyFont(bad)).toBeNull();
+    expect(DISPLAY_FONTS.length).toBe(4);
+    expect(BODY_FONTS.length).toBe(2);
+  });
+  it("lookStyle is empty for the standard look and ignores unknown values", () => {
+    expect(lookStyle({})).toBeUndefined();
+    expect(lookStyle({ theme: "neon", primary: "teal", fontDisplay: "x", fontBody: "y" })).toBeUndefined();
+  });
+  it("lookStyle sets fonts alone, and over a theme", () => {
+    const alone = lookStyle({ fontDisplay: "outfit" }) as Record<string, string>;
+    expect(alone["--font-display"]).toContain("Outfit");
+    expect(alone["--font-sans"]).toBeUndefined();
+    const over = lookStyle({ theme: "luxury", fontDisplay: "sora", fontBody: "source-serif" }) as Record<string, string>;
+    expect(over["--font-display"]).toContain("Sora");
+    expect(over["--font-sans"]).toContain("Source Serif 4");
+    expect(over["--color-paper"]).toBe(THEMES.luxury.colors.paper);
+    const own = lookStyle({ theme: "luxury" }) as Record<string, string>;
+    expect(own["--font-display"]).toContain("Playfair");
+  });
+  it("previewStyle always sets every token, so it never shows the hotel's saved look", () => {
+    const std = previewStyle({}) as Record<string, string>;
+    for (const k of Object.keys(STANDARD_STYLE)) expect(std[k], k).toBeTruthy();
+    const mixed = previewStyle({ theme: "classic", primary: "#7c2d12", fontBody: "inter" }) as Record<string, string>;
+    expect(mixed["--color-primary"]).toBe("#7c2d12");
+    expect(mixed["--color-paper"]).toBe(THEMES.classic.colors.paper);
+    expect(mixed["--font-sans"]).toContain("Inter");
   });
 });

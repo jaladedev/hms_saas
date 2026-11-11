@@ -145,6 +145,71 @@ export function primaryContrast(primary: string, id: ThemeId | null): ContrastLi
   ];
 }
 
+// ---- fonts -----------------------------------------------------------------------------------------------------------
+
+export const DISPLAY_FONTS = [
+  { value: "playfair", label: "Playfair Display", stack: '"Playfair Display", ui-serif, Georgia, serif' },
+  { value: "sora", label: "Sora", stack: '"Sora", ui-sans-serif, system-ui, sans-serif' },
+  { value: "lora", label: "Lora", stack: '"Lora", ui-serif, Georgia, serif' },
+  { value: "outfit", label: "Outfit", stack: '"Outfit", ui-sans-serif, system-ui, sans-serif' },
+] as const;
+export const BODY_FONTS = [
+  { value: "inter", label: "Inter", stack: '"Inter", ui-sans-serif, system-ui, sans-serif' },
+  { value: "source-serif", label: "Source Serif 4", stack: '"Source Serif 4", ui-serif, Georgia, serif' },
+] as const;
+export type DisplayFontId = (typeof DISPLAY_FONTS)[number]["value"];
+export type BodyFontId = (typeof BODY_FONTS)[number]["value"];
+
+/** A stored font key, or null for anything else (the theme's own font). Unknown values never reach a style attribute. */
+export function parseDisplayFont(v: unknown): DisplayFontId | null {
+  return DISPLAY_FONTS.find((f) => f.value === v)?.value ?? null;
+}
+export function parseBodyFont(v: unknown): BodyFontId | null {
+  return BODY_FONTS.find((f) => f.value === v)?.value ?? null;
+}
+
+export type Look = {
+  theme?: string | null;
+  primary?: string | null;
+  fontDisplay?: string | null;
+  fontBody?: string | null;
+};
+
+/**
+ * The inline style for a whole look: the theme, the optional main colour and the optional fonts over it. Undefined when nothing
+ * is overridden (the standard look). Anything that is not a known value is ignored.
+ */
+export function lookStyle(look: Look): CSSProperties | undefined {
+  const display = DISPLAY_FONTS.find((f) => f.value === look.fontDisplay);
+  const body = BODY_FONTS.find((f) => f.value === look.fontBody);
+  const base = themeStyle(parseTheme(look.theme), look.primary);
+  if (!display && !body) return base;
+  return {
+    ...base,
+    ...(display ? { "--font-display": display.stack } : {}),
+    ...(body ? { "--font-sans": body.stack } : {}),
+  } as CSSProperties;
+}
+
+/** The standard look's design tokens as an inline style: the values in app/globals.css, so a preview can show Standard exactly. */
+export const STANDARD_STYLE = {
+  "--color-primary": "#0f766e",
+  "--color-primary-strong": "#115e59",
+  "--color-paper": STANDARD_PAPER,
+  "--color-ink": "#1b2430",
+  "--color-muted": "#5b6573",
+  "--color-line": "#e4e0d8",
+  "--color-navy-900": "#0f1b2d",
+  "--color-navy-800": "#17263c",
+  "--font-sans": '"Inter", ui-sans-serif, system-ui, sans-serif',
+  "--font-display": '"Playfair Display", ui-serif, Georgia, serif',
+} as CSSProperties;
+
+/** A look as a complete style for the editor's preview: every token is set, so it shows the look and not the hotel's saved one. */
+export function previewStyle(look: Look): CSSProperties {
+  return { ...STANDARD_STYLE, ...lookStyle(look) };
+}
+
 /**
  * Token overrides for a theme, and an optional main colour over it, as an inline style; undefined for the standard look with no
  * colour (no override at all). A colour that is not #rrggbb is ignored.

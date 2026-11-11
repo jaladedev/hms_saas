@@ -209,6 +209,7 @@ export type ErrorCode =
   | "setup_invalid"
   | "theme_color"
   | "theme_contrast"
+  | "theme_font"
   | "setup_duplicate_code"
   | "setup_duplicate_name"
   | "setup_duplicate_room"
@@ -578,6 +579,8 @@ export function errorMessage(code: string, refundable: number | null, formatMino
       return "The new policy must start after the one saved last. Choose a later date.";
     case "theme_color":
       return "Enter the colour as six hex digits, such as #0f766e, or leave it blank to use the look's own colour.";
+    case "theme_font":
+      return "Choose a heading font and a body font from the lists, or leave them as the look's own.";
     case "theme_contrast":
       return "White text cannot be read clearly on that colour (buttons) or it is too light for links. Choose a darker colour.";
     case "setup_invalid":

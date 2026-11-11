@@ -7,7 +7,7 @@ import { rememberedProperty } from "@/lib/staff/active-property";
 import { pickProperty } from "@/lib/staff/property-choice";
 import { badgeText } from "@/lib/staff/notifications";
 import { parseDensity } from "@/lib/staff/profile";
-import { parseTheme, THEME_WRAPPER_CLASS, themeStyle } from "@/lib/theme";
+import { lookStyle, THEME_WRAPPER_CLASS } from "@/lib/theme";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -61,15 +61,30 @@ export default async function StaffLayout({ children }: { children: React.ReactN
 
   // The header switcher appears only for people who can see more than one open property. The hotel being worked in also
   // decides the look (its chosen theme, or the standard look when it has not chosen one or the read fails).
-  const propsQ = await supabase.from("properties").select("id, name, theme, theme_primary").eq("status", "active").order("name");
-  const switchable = (propsQ.data ?? []) as { id: string; name: string; theme: string | null; theme_primary: string | null }[];
+  const propsQ = await supabase
+    .from("properties")
+    .select("id, name, theme, theme_primary, theme_font_display, theme_font_body")
+    .eq("status", "active")
+    .order("name");
+  const switchable = (propsQ.data ?? []) as {
+    id: string;
+    name: string;
+    theme: string | null;
+    theme_primary: string | null;
+    theme_font_display: string | null;
+    theme_font_body: string | null;
+  }[];
   const current = pickProperty(switchable, undefined, await rememberedProperty());
-  const theme = parseTheme(current?.theme);
 
   return (
     <div
       className={`flex min-h-screen flex-col md:flex-row print:block print:min-h-0 print:bg-white ${THEME_WRAPPER_CLASS}`}
-      style={themeStyle(theme, current?.theme_primary)}
+      style={lookStyle({
+        theme: current?.theme,
+        primary: current?.theme_primary,
+        fontDisplay: current?.theme_font_display,
+        fontBody: current?.theme_font_body,
+      })}
     >
       <aside className="shrink-0 bg-navy-900 p-4 text-sm text-white md:w-60 print:hidden">
         <NavMenu brand={<div className="font-display text-xl">HMS</div>}>

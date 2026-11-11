@@ -107,7 +107,14 @@ export async function saveHotelTheme(formData: FormData) {
   const colored = themed.error
     ? themed
     : await supabase.rpc("set_hotel_primary_color", { p_property: v.value.propertyId, p_color: v.value.primary ?? "" });
-  const error = colored.error;
+  const fonted = colored.error
+    ? colored
+    : await supabase.rpc("set_hotel_fonts", {
+        p_property: v.value.propertyId,
+        p_display: v.value.fontDisplay ?? "",
+        p_body: v.value.fontBody ?? "",
+      });
+  const error = fonted.error;
   if (error) return back(PAGE, { err: /NOT_FOUND/.test(error.message) ? "setup_forbidden" : classifySetupError(error) });
   revalidatePath(PAGE);
   revalidatePath("/", "layout");
