@@ -1,5 +1,5 @@
 import { readConfig, describeWindow } from "@/lib/staff/policies";
-import { formatMoney } from "./format";
+import { formatDate, formatMoney } from "./format";
 import type { HomeRoomType } from "./server";
 
 /** Pure helpers for the guest homepage, kept apart from the page so they can be tested. */
@@ -56,4 +56,10 @@ export function onlyChosenType<T extends { room_type_id: string }>(types: T[], c
   if (!chosen) return types;
   const hit = types.filter((t) => t.room_type_id === chosen);
   return hit.length > 0 ? hit : types;
+}
+
+/** "Until 30 Nov 2026" for an offer that ends, null for one that does not (or has a bad date). */
+export function offerUntilLabel(validTo: string | null | undefined): string | null {
+  if (typeof validTo !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(validTo)) return null;
+  return `Until ${formatDate(validTo)}`;
 }

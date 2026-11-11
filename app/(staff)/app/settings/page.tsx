@@ -12,6 +12,11 @@ const SECTIONS = [
     text: "The phone, email and short introduction guests see on your website before they search.",
   },
   {
+    href: "/app/settings/offers",
+    title: "Offers",
+    text: "Short promotions shown on your website's homepage, such as a weekend package. A message only; it does not change prices.",
+  },
+  {
     href: "/app/settings/rooms",
     title: "Room types and rooms",
     text: "The kinds of room you sell, their capacity and standard price, and the rooms themselves.",

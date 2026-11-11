@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { amenityHighlights, capacityLabel, freeCancellationBadge, fromPriceLabel, monogram, onlyChosenType } from "./home";
+import { amenityHighlights, capacityLabel, freeCancellationBadge, fromPriceLabel, monogram, offerUntilLabel, onlyChosenType } from "./home";
 
 describe("fromPriceLabel", () => {
   it("formats the nightly price, and gives nothing for a missing or non-positive one", () => {
@@ -64,5 +64,12 @@ describe("onlyChosenType", () => {
     expect(onlyChosenType(types, undefined)).toEqual(types);
     expect(onlyChosenType(types, "")).toEqual(types);
     expect(onlyChosenType(types, "zzz")).toEqual(types);
+  });
+});
+
+describe("offerUntilLabel", () => {
+  it("words an end date, and is null for none or a bad value", () => {
+    expect(offerUntilLabel("2026-11-30")).toMatch(/^Until .*2026/);
+    for (const bad of [null, undefined, "", "soon", "2026-11-30T00:00:00Z"]) expect(offerUntilLabel(bad)).toBeNull();
   });
 });

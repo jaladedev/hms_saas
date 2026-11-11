@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { back, ok, staffClient } from "./action-helpers";
+import { parseOfferForm } from "./hotel-offers";
 import { parseBasicsForm, parseProfileForm, parseThemeForm } from "./hotel-profile";
 import { logoPath, PHOTO_BUCKET, validatePhoto } from "./room-photos";
 import { classifySetupError } from "./room-setup";
@@ -120,4 +121,51 @@ export async function saveHotelTheme(formData: FormData) {
   revalidatePath("/", "layout");
   revalidatePath("/app", "layout");
   return ok(PAGE, "hotel_theme_saved");
+}
+
+const OFFERS_PAGE = "/app/settings/offers";
+
+function offerError(
+  message: string,
+  code?: string,
+): "setup_forbidden" | "offer_invalid" | "offer_dates" | "offer_limit" | ReturnType<typeof classifySetupError> {
+  if (/NOT_FOUND/.test(message)) return "setup_forbidden";
+  if (/POLICY_VIOLATION: dates/.test(message)) return "offer_dates";
+  if (/POLICY_VIOLATION: limit/.test(message)) return "offer_limit";
+  if (/POLICY_VIOLATION: (title|text|badge)/.test(message)) return "offer_invalid";
+  return classifySetupError({ message, code });
+}
+
+/** Creates or edits an offer for the guest homepage (migration 102). The database requires property.configure at that hotel. */
+export async function saveHotelOffer(formData: FormData) {
+  const v = parseOfferForm(Object.fromEntries(formData));
+  if (!v.ok) return back(OFFERS_PAGE, { err: v.code });
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("save_hotel_offer", {
+    p_property: v.value.propertyId,
+    p_offer: v.value.offerId as string,
+    p_title: v.value.title,
+    p_body: v.value.body,
+    p_badge: v.value.badge,
+    p_valid_from: (v.value.validFrom || null) as string,
+    p_valid_to: (v.value.validTo || null) as string,
+    p_active: v.value.active,
+    p_sort: v.value.sort,
+  });
+  if (error) return back(OFFERS_PAGE, { err: offerError(error.message, error.code) });
+  revalidatePath(OFFERS_PAGE);
+  revalidatePath("/");
+  return ok(OFFERS_PAGE, "offer_saved");
+}
+
+/** Deletes an offer. */
+export async function deleteHotelOffer(formData: FormData) {
+  const id = String(formData.get("offerId") ?? "");
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return back(OFFERS_PAGE, { err: "offer_invalid" });
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("delete_hotel_offer", { p_offer: id });
+  if (error) return back(OFFERS_PAGE, { err: offerError(error.message, error.code) });
+  revalidatePath(OFFERS_PAGE);
+  revalidatePath("/");
+  return ok(OFFERS_PAGE, "offer_deleted");
 }

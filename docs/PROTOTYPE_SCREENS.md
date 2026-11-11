@@ -116,6 +116,7 @@ Status: **built**, **partial** (part of the job is done, or only another role ca
 
 - Guest booking site: `/`, `/reserve`, `/booking/[token]` and its cancel and change pages, `/booking/find`
 - Payments to verify (`/app/payments`), guest requests (`/app/requests`), guest emails (`/app/emails`)
+- Offers for the homepage (`/app/settings/offers`, migration 102)
 - Discounts (`/app/settings/discounts`) and tax rules (`/app/settings/tax`)
 - Platform administration: `/platform`, `/platform/new`, `/platform/[tenantId]`
 

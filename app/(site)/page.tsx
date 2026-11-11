@@ -5,8 +5,15 @@ import { messageForCode } from "@/lib/guest-site/errors";
 import { parseStayParams, stayQuery } from "@/lib/guest-site/params";
 import { checkGuestLimits } from "@/lib/guest-site/limits";
 import { photoCountLabel, placeLine, timesLine } from "@/lib/guest-site/hotel";
-import { amenityHighlights, capacityLabel, freeCancellationBadge, fromPriceLabel, onlyChosenType } from "@/lib/guest-site/home";
-import { guestHotel, guestPolicy, guestRoomTypes, requestHost, searchAvailability } from "@/lib/guest-site/server";
+import {
+  amenityHighlights,
+  capacityLabel,
+  freeCancellationBadge,
+  fromPriceLabel,
+  offerUntilLabel,
+  onlyChosenType,
+} from "@/lib/guest-site/home";
+import { guestHotel, guestOffers, guestPolicy, guestRoomTypes, requestHost, searchAvailability } from "@/lib/guest-site/server";
 
 export const dynamic = "force-dynamic";
 
@@ -20,11 +27,12 @@ export default async function GuestHome({ searchParams }: Props) {
   const stay = parseStayParams(raw);
   const limited = stay ? !(await checkGuestLimits({ ip: ["search"] })).allowed : false;
   const host = await requestHost();
-  const [result, hotelResult, typesResult, policyResult] = await Promise.all([
+  const [result, hotelResult, typesResult, policyResult, offersResult] = await Promise.all([
     stay && !limited ? searchAvailability(host, stay) : null,
     guestHotel(host),
     guestRoomTypes(host),
     guestPolicy(host),
+    guestOffers(host),
   ]);
   const hotel = hotelResult.ok ? hotelResult.data : null;
   const types = typesResult.ok ? typesResult.data.room_types : [];
@@ -36,6 +44,7 @@ export default async function GuestHome({ searchParams }: Props) {
   const supa = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
   const highlights = amenityHighlights(types, 6);
   const cancelBadge = policyResult.ok ? freeCancellationBadge(policyResult.data) : null;
+  const offers = offersResult.ok ? offersResult.data.offers : [];
   const searching = Boolean(stay && result?.ok);
   const anyPhoto = types.some((t) => t.photos.length > 0); // no empty grey blocks when the hotel has not added pictures yet
 
@@ -242,6 +251,29 @@ export default async function GuestHome({ searchParams }: Props) {
                 ))}
               </ul>
             )}
+          </section>
+        ) : null}
+
+        {!searching && offers.length > 0 ? (
+          <section aria-labelledby="offers-title" className="pt-6">
+            <h2 id="offers-title" className="font-display text-3xl">
+              Offers
+            </h2>
+            <ul className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {offers.map((o, i) => {
+                const until = offerUntilLabel(o.valid_to);
+                return (
+                  <li key={i} className="flex flex-col gap-2 rounded-2xl border border-line bg-white p-5">
+                    {o.badge ? (
+                      <span className="w-fit rounded-full bg-primary px-3 py-0.5 text-xs font-medium text-white">{o.badge}</span>
+                    ) : null}
+                    <h3 className="font-display text-xl">{o.title}</h3>
+                    {o.body ? <p className="text-sm text-muted">{o.body}</p> : null}
+                    {until ? <p className="mt-auto pt-2 text-xs text-muted">{until}</p> : null}
+                  </li>
+                );
+              })}
+            </ul>
           </section>
         ) : null}
 

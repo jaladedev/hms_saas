@@ -726,6 +726,60 @@ export type Database = {
           },
         ]
       }
+      hotel_offers: {
+        Row: {
+          badge: string | null
+          body: string
+          created_at: string
+          id: string
+          is_active: boolean
+          property_id: string
+          sort_order: number
+          tenant_id: string
+          title: string
+          updated_at: string
+          valid_from: string | null
+          valid_to: string | null
+        }
+        ComputedFields: never
+        Insert: {
+          badge?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          property_id: string
+          sort_order?: number
+          tenant_id: string
+          title: string
+          updated_at?: string
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Update: {
+          badge?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          property_id?: string
+          sort_order?: number
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hotel_offers_tenant_id_property_id_fkey"
+            columns: ["tenant_id", "property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
       idempotency_keys: {
         Row: {
           created_at: string
@@ -2993,6 +3047,22 @@ export type Database = {
       finish_photo_cleanup: { Args: { p_paths: string[] }; Returns: number }
       update_hotel_basics: { Args: { p_address: string; p_check_in: string; p_check_out: string; p_city: string; p_name: string; p_property: string; p_state: string }; Returns: undefined }
       set_hotel_logo: { Args: { p_path: string; p_property: string }; Returns: undefined }
+      save_hotel_offer: {
+        Args: {
+          p_active: boolean
+          p_badge: string
+          p_body: string
+          p_offer: string
+          p_property: string
+          p_sort?: number
+          p_title: string
+          p_valid_from: string
+          p_valid_to: string
+        }
+        Returns: Json
+      }
+      delete_hotel_offer: { Args: { p_offer: string }; Returns: undefined }
+      guest_offers: { Args: { p_host: string }; Returns: Json }
       email_booking_invoice: { Args: { p_idempotency_key: string; p_invoice_id: string }; Returns: Json }
       record_heartbeat: { Args: { p_error?: string; p_job: string; p_ok: boolean }; Returns: undefined }
       ops_health: { Args: Record<string, never>; Returns: Json }

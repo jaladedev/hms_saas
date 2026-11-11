@@ -210,6 +210,9 @@ export type ErrorCode =
   | "theme_color"
   | "theme_contrast"
   | "theme_font"
+  | "offer_invalid"
+  | "offer_dates"
+  | "offer_limit"
   | "setup_duplicate_code"
   | "setup_duplicate_name"
   | "setup_duplicate_room"
@@ -417,6 +420,8 @@ export const OK_MESSAGES = {
   hotel_basics_saved: "Hotel name, address and times saved. Bookings made from now on use the new check-in and check-out times.",
   hotel_logo_saved: "Logo saved. Guests see it in the header of your website.",
   hotel_logo_removed: "Logo removed.",
+  offer_saved: "Offer saved. Guests see it on the homepage while it is switched on and inside its dates.",
+  offer_deleted: "Offer deleted.",
   hotel_theme_saved: "Look saved. Your website and the staff screens for this hotel now use it.",
   photo_moved: "Photo order saved.",
   photo_caption_saved: "Caption saved.",
@@ -579,6 +584,12 @@ export function errorMessage(code: string, refundable: number | null, formatMino
       return "The new policy must start after the one saved last. Choose a later date.";
     case "theme_color":
       return "Enter the colour as six hex digits, such as #0f766e, or leave it blank to use the look's own colour.";
+    case "offer_invalid":
+      return "Check the offer. It needs a title (up to 80 characters); the text can be up to 300 and the badge up to 24.";
+    case "offer_dates":
+      return "Check the dates. Leave them empty for no limit, or enter real dates with the end on or after the start.";
+    case "offer_limit":
+      return "A hotel can have up to 12 offers. Delete one you no longer need first.";
     case "theme_font":
       return "Choose a heading font and a body font from the lists, or leave them as the look's own.";
     case "theme_contrast":

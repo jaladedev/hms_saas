@@ -117,6 +117,11 @@ export type HomeRoomTypes = { currency: string; room_types: HomeRoomType[] };
 /** The room types a guest could book at the hotel behind this host, with pictures and a "from" price, for the homepage (migration 096). */
 export const guestRoomTypes = cache((host: string) => call<HomeRoomTypes>("guest_room_types", { p_host: host }));
 
+export type HomeOffer = { title: string; body: string; badge: string | null; valid_to: string | null };
+
+/** The hotel's live offers for the homepage (migration 102): active, inside their dates, at most six. */
+export const guestOffers = cache((host: string) => call<{ offers: HomeOffer[] }>("guest_offers", { p_host: host }));
+
 export type GuestPolicy = {
   currency: string;
   cancellation_rules: unknown;

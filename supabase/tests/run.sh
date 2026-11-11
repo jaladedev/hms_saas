@@ -811,4 +811,8 @@ HF="$(psql -f "$HERE/101_hotel_fonts.sql" 2>&1)" || { echo "$HF"; echo "HOTEL FO
 echo "$HF" | grep -E 'PASS' || true
 if echo "$HF" | grep -qE 'FAIL|ERROR'; then echo "$HF"; echo "HOTEL FONT TESTS FAILED"; exit 1; fi
 
+HO="$(psql -f "$HERE/102_hotel_offers.sql" 2>&1)" || { echo "$HO"; echo "HOTEL OFFERS TESTS FAILED"; exit 1; }
+echo "$HO" | grep -E 'PASS' || true
+if echo "$HO" | grep -qE 'FAIL|ERROR'; then echo "$HO"; echo "HOTEL OFFERS TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"
