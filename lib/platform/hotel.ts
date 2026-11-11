@@ -148,6 +148,10 @@ export type PlatformCode =
   | "invite_failed"
   | "owner_active"
   | "plan"
+  | "plan_details"
+  | "invoice_details"
+  | "invoice_exists"
+  | "invoice_state"
   | "subscription_status"
   | "feature_key"
   | "bad_request"
@@ -161,6 +165,8 @@ export function classifyPlatformError(err: { code?: string; message?: string } |
   if (/^NOT_FOUND/.test(m)) return "not_found";
   if (/^CONFLICT: slug/.test(m)) return "slug_taken";
   if (/^CONFLICT: host/.test(m)) return "host_taken";
+  if (/^CONFLICT: invoice period/.test(m)) return "invoice_exists";
+  if (/^CONFLICT: invoice state/.test(m)) return "invoice_state";
   const v = /^POLICY_VIOLATION: (.+)$/.exec(m)?.[1]?.trim();
   switch (v) {
     case "slug":
@@ -177,7 +183,21 @@ export function classifyPlatformError(err: { code?: string; message?: string } |
     case "payment mode":
       return "payment_mode";
     case "plan":
+    case "plan code":
       return "plan";
+    case "invoice period":
+    case "invoice due":
+    case "invoice note":
+    case "invoice amount":
+    case "invoice reference":
+    case "invoice reason":
+      return "invoice_details";
+    case "plan name":
+    case "plan description":
+    case "plan price":
+    case "plan active":
+    case "plan features":
+      return "plan_details";
     case "subscription status":
       return "subscription_status";
     case "feature key":
@@ -212,6 +232,12 @@ export const ERROR_MESSAGES: Record<PlatformCode, string> = {
   status: "That is not a valid status.",
   owner_active: "That owner has already accepted their invitation.",
   plan: "The plan code must be 2 to 40 lowercase letters, digits, hyphens or underscores, such as starter.",
+  plan_details:
+    "Check the plan: a name of 2 to 60 characters, a description up to 300, a price of zero or more, and feature keys made of lowercase letters, digits, dots or underscores.",
+  invoice_details:
+    "Check the invoice: the period must end after it starts (and be under 400 days), the amount must be above zero (or the group needs a plan with a decided price), paying needs a reference, and voiding needs a reason of at least 3 characters.",
+  invoice_exists: "That period already has an invoice. Void it first if it has to be raised again.",
+  invoice_state: "A paid invoice cannot be voided, and a void one cannot be paid.",
   subscription_status: "Choose trial, active, past due or cancelled.",
   feature_key: "The feature key must be 2 to 60 characters: lowercase letters, digits, dots or underscores, starting with a letter.",
   invite_failed: "The owner's invitation could not be sent. Nothing was set up. Try again in a moment.",
@@ -228,6 +254,11 @@ export type PlatformOk =
   | "provider"
   | "invite_resent"
   | "plan_set"
+  | "plan_saved"
+  | "plan_applied"
+  | "invoice_raised"
+  | "invoice_paid"
+  | "invoice_voided"
   | "feature_set"
   | "unchanged";
 export const OK_MESSAGES: Record<PlatformOk, string> = {
@@ -239,6 +270,11 @@ export const OK_MESSAGES: Record<PlatformOk, string> = {
   provider: "Payment account status changed.",
   invite_resent: "Invitation sent again.",
   plan_set: "Plan saved.",
+  plan_saved: "Plan saved in the catalog.",
+  invoice_raised: "Invoice raised.",
+  invoice_paid: "Invoice marked paid.",
+  invoice_voided: "Invoice voided.",
+  plan_applied: "Plan applied: the group's plan and its feature flags now follow it.",
   feature_set: "Feature flag saved.",
   unchanged: "Nothing changed: it was already like that.",
 };
@@ -251,4 +287,17 @@ export function shortDate(iso: string | null | undefined): string {
   if (!iso) return "never";
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? "unknown" : d.toISOString().slice(0, 10);
+}
+
+/** "35,000" or "35000.50" typed in naira to whole kobo; null for anything that is not a plain amount of zero or more. */
+export function parseNairaToKobo(value: string): number | null {
+  const v = value.trim().replace(/[,\s]/g, "").replace(/^₦/, "");
+  if (!/^\d{1,9}(\.\d{1,2})?$/.test(v)) return null;
+  return Math.round(Number(v) * 100);
+}
+
+/** "NGN 35,000" style label for a monthly price; a placeholder price is marked so nobody reads it as decided. */
+export function planPriceLabel(minor: number, currency: string, placeholder: boolean): string {
+  const amount = new Intl.NumberFormat("en-NG", { style: "currency", currency }).format(minor / 100);
+  return `${amount} a month${placeholder ? " (placeholder)" : ""}`;
 }

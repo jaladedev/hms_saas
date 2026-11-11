@@ -22,7 +22,7 @@ Not reviewed: the application code's own logging, and whether a given screen sho
 | Housekeeping, maintenance | functions (018, 023, 026) | `housekeeping.task_*`, `room.housekeeping_set`, `maintenance.*` |
 | Guests | `update_guest` (020) | `guest.updated` (names the fields, not their values) |
 | Guest emails | `resend_email` | `email.resend_requested` |
-| Platform configuration (new, 047) | triggers (`audit_config_row`) | `tenant`, `property`, `tenant_domain`, `payment_provider_account`, `tenant_subscription`, `tenant_feature_entitlement`, `platform_admin`: `.created / updated / deleted` |
+| Platform configuration (new, 047) | triggers (`audit_config_row`) | `tenant`, `property`, `tenant_domain`, `payment_provider_account`, `tenant_subscription`, `tenant_feature_entitlement`, `plan` (097), `platform_invoice` (098), `platform_admin`: `.created / updated / deleted` |
 
 ## Gaps found and closed (047)
 

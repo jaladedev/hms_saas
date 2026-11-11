@@ -6,6 +6,8 @@ import {
   normalizeHost,
   normalizeSecretReference,
   OK_MESSAGES,
+  parseNairaToKobo,
+  planPriceLabel,
   shortDate,
   slugFromName,
   validateNewHotel,
@@ -114,6 +116,8 @@ describe("classifyPlatformError", () => {
     expect(c("NOT_FOUND: property")).toBe("property");
     expect(c("CONFLICT: slug")).toBe("slug_taken");
     expect(c("CONFLICT: host")).toBe("host_taken");
+    expect(c("CONFLICT: invoice period")).toBe("invoice_exists");
+    expect(c("CONFLICT: invoice state")).toBe("invoice_state");
     for (const [m, k] of [
       ["name", "name"],
       ["slug", "slug"],
@@ -127,6 +131,18 @@ describe("classifyPlatformError", () => {
       ["payment mode", "payment_mode"],
       ["verified", "bad_request"],
       ["plan", "plan"],
+      ["plan code", "plan"],
+      ["invoice period", "invoice_details"],
+      ["invoice due", "invoice_details"],
+      ["invoice note", "invoice_details"],
+      ["invoice amount", "invoice_details"],
+      ["invoice reference", "invoice_details"],
+      ["invoice reason", "invoice_details"],
+      ["plan name", "plan_details"],
+      ["plan description", "plan_details"],
+      ["plan price", "plan_details"],
+      ["plan active", "plan_details"],
+      ["plan features", "plan_details"],
       ["subscription status", "subscription_status"],
       ["feature key", "feature_key"],
       ["enabled", "bad_request"],
@@ -163,5 +179,18 @@ describe("shortDate", () => {
     expect(shortDate("2026-11-05T12:43:11.568988+01:00")).toBe("2026-11-05");
     expect(shortDate(null)).toBe("never");
     expect(shortDate("garbage")).toBe("unknown");
+  });
+});
+
+describe("plan prices", () => {
+  it("turns an amount typed in naira into whole kobo, and refuses anything else", () => {
+    expect(parseNairaToKobo("35,000")).toBe(3500000);
+    expect(parseNairaToKobo(" ₦15000.50 ")).toBe(1500050);
+    expect(parseNairaToKobo("0")).toBe(0);
+    for (const bad of ["", "-1", "1.234", "abc", "1e5", "1,000,000,000,000"]) expect(parseNairaToKobo(bad)).toBeNull();
+  });
+  it("marks a placeholder price so nobody reads it as decided", () => {
+    expect(planPriceLabel(3500000, "NGN", false)).toMatch(/35,000\.00 a month$/);
+    expect(planPriceLabel(3500000, "NGN", true)).toMatch(/a month \(placeholder\)$/);
   });
 });

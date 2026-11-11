@@ -795,4 +795,12 @@ GR="$(psql -f "$HERE/97_guest_room_types.sql" 2>&1)" || { echo "$GR"; echo "GUES
 echo "$GR" | grep -E 'PASS' || true
 if echo "$GR" | grep -qE 'FAIL|ERROR'; then echo "$GR"; echo "GUEST ROOM TYPES TESTS FAILED"; exit 1; fi
 
+PC="$(psql -f "$HERE/98_plan_catalog.sql" 2>&1)" || { echo "$PC"; echo "PLAN CATALOG TESTS FAILED"; exit 1; }
+echo "$PC" | grep -E 'PASS' || true
+if echo "$PC" | grep -qE 'FAIL|ERROR'; then echo "$PC"; echo "PLAN CATALOG TESTS FAILED"; exit 1; fi
+
+PI="$(psql -f "$HERE/99_platform_invoices.sql" 2>&1)" || { echo "$PI"; echo "PLATFORM INVOICE TESTS FAILED"; exit 1; }
+echo "$PI" | grep -E 'PASS' || true
+if echo "$PI" | grep -qE 'FAIL|ERROR'; then echo "$PI"; echo "PLATFORM INVOICE TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

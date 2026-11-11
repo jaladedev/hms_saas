@@ -22,6 +22,9 @@ export default async function PlatformLayout({ children }: { children: React.Rea
             <Link href="/platform" className="block py-3 text-white focus-visible:outline-2 focus-visible:outline-white md:py-0">
               Hotels
             </Link>
+            <Link href="/platform/plans" className="block py-3 text-white focus-visible:outline-2 focus-visible:outline-white md:py-0">
+              Plans
+            </Link>
             {level.data === "admin" && (
               <Link href="/platform/new" className="block py-3 text-white focus-visible:outline-2 focus-visible:outline-white md:py-0">
                 Add a hotel

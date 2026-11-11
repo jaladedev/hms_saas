@@ -33,7 +33,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ["e2e/**", "**/*.config.*", "vitest.config.mts"],
+    files: ["e2e/**", "scripts/**", "**/*.config.*", "vitest.config.mts"],
     languageOptions: { globals: globals.node },
   },
   {

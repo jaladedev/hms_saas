@@ -15,6 +15,10 @@ import {
 import { PlatformNotice } from "@/components/platform-notice";
 import {
   addDomain,
+  applyPlan,
+  markInvoicePaid,
+  raiseInvoice,
+  voidInvoice,
   resendOwnerInvite,
   setDomainVerified,
   setEntitlement,
@@ -23,6 +27,7 @@ import {
   setTenantStatus,
 } from "@/lib/platform/actions";
 import { shortDate } from "@/lib/platform/hotel";
+import { formatMoney } from "@/lib/guest-site/format";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -46,6 +51,22 @@ type Detail = {
   entitlements: { feature_key: string; enabled: boolean }[];
 };
 
+type Invoice = {
+  id: string;
+  number: string;
+  plan_code: string | null;
+  period_start: string;
+  period_end: string;
+  amount_minor: number;
+  currency: string;
+  status: "open" | "paid" | "void";
+  due_date: string | null;
+  note: string | null;
+  paid_at: string | null;
+  payment_ref: string | null;
+  void_reason: string | null;
+};
+
 export default async function HotelDetail({
   params,
   searchParams,
@@ -57,10 +78,14 @@ export default async function HotelDetail({
   if (!z.guid().safeParse(tenantId).success) notFound();
   const search = await searchParams;
   const supabase = await createClient();
-  const [{ data, error }, level] = await Promise.all([
+  const [{ data, error }, level, planList, invoiceList] = await Promise.all([
     supabase.rpc("platform_tenant_detail", { p_tenant: tenantId }),
     supabase.rpc("platform_level"),
+    supabase.rpc("platform_list_plans"),
+    supabase.rpc("platform_list_invoices", { p_tenant: tenantId }),
   ]);
+  const invoices = (invoiceList.data ?? []) as unknown as Invoice[];
+  const plans = ((planList.data ?? []) as unknown as { code: string; name: string; active: boolean }[]).filter((p) => p.active);
   if (error || !data) notFound();
   const d = data as unknown as Detail;
   const admin = level.data === "admin";
@@ -259,6 +284,30 @@ export default async function HotelDetail({
             ? `${d.subscription.plan_code} (${d.subscription.status})${d.subscription.trial_ends_at ? `, trial ends ${shortDate(d.subscription.trial_ends_at)}` : ""}${d.subscription.current_period_end ? `, period ends ${shortDate(d.subscription.current_period_end)}` : ""}`
             : "No plan set."}
         </p>
+        {admin && plans.length > 0 && (
+          <form action={applyPlan} className="mt-3 flex flex-wrap items-end gap-3">
+            <input type="hidden" name="tenantId" value={t.id} />
+            <div>
+              <label htmlFor="applyplan" className="block text-sm">
+                Put this group on a plan
+              </label>
+              <select id="applyplan" name="plan" defaultValue={d.subscription?.plan_code ?? ""} className={inputClass}>
+                {plans.map((p) => (
+                  <option key={p.code} value={p.code}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button type="submit" className={buttonQuiet}>
+              Apply plan
+            </button>
+            <p className="basis-full text-sm text-muted">
+              Sets the plan code and turns the seven enforced flags on or off to match the plan. Use the form below to change only the
+              status or dates.
+            </p>
+          </form>
+        )}
         {admin && (
           <form action={setSubscription} className="mt-3 flex flex-wrap items-end gap-3">
             <input type="hidden" name="tenantId" value={t.id} />
@@ -340,6 +389,110 @@ export default async function HotelDetail({
             </div>
             <button type="submit" className={buttonQuiet}>
               Add and turn on
+            </button>
+          </form>
+        )}
+      </section>
+
+      <section aria-labelledby="bill">
+        <SectionTitle id="bill">Billing</SectionTitle>
+        <p className="mt-2 max-w-prose text-sm text-muted">
+          Invoices to this group, raised and settled by hand: nothing is charged automatically. Mark one paid with the reference you saw (a
+          bank transfer, for example). A paid invoice cannot be voided. Leave the amount empty to take the plan price, once that price is
+          decided.
+        </p>
+        {invoices.length === 0 ? (
+          <EmptyState className="mt-3">No invoices.</EmptyState>
+        ) : (
+          <ul className="mt-3 border-t border-line">
+            {invoices.map((i) => (
+              <li key={i.id} className="flex flex-wrap items-center gap-3 border-b border-line py-2 text-sm">
+                <span className="font-medium">{i.number}</span>
+                <span>{formatMoney(i.amount_minor, i.currency)}</span>
+                <span className="text-muted">
+                  {i.period_start} to {i.period_end}
+                  {i.plan_code ? ` · ${i.plan_code}` : ""}
+                  {i.due_date && i.status === "open" ? ` · due ${i.due_date}` : ""} ·{" "}
+                  {i.status === "paid"
+                    ? `paid ${shortDate(i.paid_at)} (${i.payment_ref})`
+                    : i.status === "void"
+                      ? `void: ${i.void_reason}`
+                      : "open"}
+                  {i.note ? ` · ${i.note}` : ""}
+                </span>
+                {admin && i.status === "open" && (
+                  <div className="ml-auto flex flex-wrap items-center gap-2">
+                    <form action={markInvoicePaid} className="flex items-center gap-2">
+                      <input type="hidden" name="tenantId" value={t.id} />
+                      <input type="hidden" name="invoiceId" value={i.id} />
+                      <label htmlFor={`ref-${i.id}`} className="sr-only">
+                        Payment reference
+                      </label>
+                      <input id={`ref-${i.id}`} name="reference" required maxLength={120} placeholder="Reference" className={inputClass} />
+                      <button type="submit" className={buttonPrimary}>
+                        Mark paid
+                      </button>
+                    </form>
+                    <form action={voidInvoice} className="flex items-center gap-2">
+                      <input type="hidden" name="tenantId" value={t.id} />
+                      <input type="hidden" name="invoiceId" value={i.id} />
+                      <label htmlFor={`void-${i.id}`} className="sr-only">
+                        Reason for voiding
+                      </label>
+                      <input
+                        id={`void-${i.id}`}
+                        name="reason"
+                        required
+                        minLength={3}
+                        maxLength={500}
+                        placeholder="Reason"
+                        className={inputClass}
+                      />
+                      <button type="submit" className={buttonQuiet}>
+                        Void
+                      </button>
+                    </form>
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+        {admin && (
+          <form action={raiseInvoice} className="mt-4 flex flex-wrap items-end gap-3">
+            <input type="hidden" name="tenantId" value={t.id} />
+            <div>
+              <label htmlFor="istart" className="block text-sm">
+                Period starts
+              </label>
+              <input id="istart" name="start" type="date" required className={inputClass} />
+            </div>
+            <div>
+              <label htmlFor="iend" className="block text-sm">
+                Period ends
+              </label>
+              <input id="iend" name="end" type="date" required className={inputClass} />
+            </div>
+            <div>
+              <label htmlFor="iamount" className="block text-sm">
+                Amount (naira)
+              </label>
+              <input id="iamount" name="amount" inputMode="decimal" placeholder="Plan price" className={inputClass} />
+            </div>
+            <div>
+              <label htmlFor="idue" className="block text-sm">
+                Due
+              </label>
+              <input id="idue" name="due" type="date" className={inputClass} />
+            </div>
+            <div>
+              <label htmlFor="inote" className="block text-sm">
+                Note
+              </label>
+              <input id="inote" name="note" maxLength={300} className={inputClass} />
+            </div>
+            <button type="submit" className={buttonQuiet}>
+              Raise invoice
             </button>
           </form>
         )}

@@ -3102,6 +3102,19 @@ export type Database = {
         Args: { p_tenant: string; p_user: string }
         Returns: Json
       }
+      platform_list_invoices: { Args: { p_tenant: string }; Returns: Json }
+      platform_mark_invoice_paid: { Args: { p_invoice: string; p_reference: string }; Returns: Json }
+      platform_raise_invoice: {
+        Args: { p_amount_minor: number; p_due_date: string; p_note: string; p_period_end: string; p_period_start: string; p_tenant: string }
+        Returns: Json
+      }
+      platform_void_invoice: { Args: { p_invoice: string; p_reason: string }; Returns: Json }
+      platform_apply_plan: { Args: { p_code: string; p_tenant: string }; Returns: Json }
+      platform_list_plans: { Args: Record<PropertyKey, never>; Returns: Json }
+      platform_save_plan: {
+        Args: { p_active: boolean; p_code: string; p_description: string; p_features: string[]; p_name: string; p_price_minor: number }
+        Returns: Json
+      }
       platform_set_entitlement: {
         Args: { p_enabled: boolean; p_feature_key: string; p_tenant: string }
         Returns: Json

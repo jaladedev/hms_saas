@@ -7,7 +7,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { siteOrigin } from "@/lib/staff/auth";
-import { classifyPlatformError, normalizeHost, validateNewHotel, type PlatformCode, type PlatformOk } from "./hotel";
+import { classifyPlatformError, normalizeHost, parseNairaToKobo, validateNewHotel, type PlatformCode, type PlatformOk } from "./hotel";
 
 /**
  * Platform administration actions. Each runs as the signed-in platform admin, so the database (migration 050) decides what
@@ -218,4 +218,101 @@ export async function resendOwnerInvite(formData: FormData) {
   if (logged.error) return fail(page, classifyPlatformError(logged.error));
   revalidatePath(page);
   return done(page, "invite_resent");
+}
+
+const PLANS = "/platform/plans";
+
+/** Creates or edits a plan in the catalog (migration 097). The price is typed in naira and sent as kobo. */
+export async function savePlan(formData: FormData) {
+  const p = z
+    .object({
+      code: z.string().max(60),
+      name: z.string().max(120),
+      description: z.string().max(600),
+      price: z.string().max(20),
+      features: z.string().max(2000),
+      active: z.enum(["true", "false"]),
+    })
+    .safeParse(Object.fromEntries(formData));
+  if (!p.success) return fail(PLANS, "bad_request");
+  const price = parseNairaToKobo(p.data.price);
+  if (price === null) return fail(PLANS, "plan_details");
+  const supabase = await adminClient(PLANS);
+  const { data, error } = await supabase.rpc("platform_save_plan", {
+    p_code: p.data.code,
+    p_name: p.data.name,
+    p_description: p.data.description,
+    p_price_minor: price,
+    p_features: p.data.features.split(/[\s,]+/).filter(Boolean),
+    p_active: p.data.active === "true",
+  });
+  if (error) return fail(PLANS, classifyPlatformError(error));
+  revalidatePath(PLANS);
+  return done(PLANS, (data as { changed?: boolean } | null)?.changed === false ? "unchanged" : "plan_saved");
+}
+
+/** Puts a hotel group on a catalog plan: sets its plan code and the enforced feature flags to what the plan includes. */
+export async function applyPlan(formData: FormData) {
+  const p = z.object({ tenantId: uuid, plan: z.string().max(60) }).safeParse(Object.fromEntries(formData));
+  if (!p.success) return fail(LIST, "bad_request");
+  const page = `/platform/${p.data.tenantId}`;
+  const supabase = await adminClient(page);
+  const { data, error } = await supabase.rpc("platform_apply_plan", { p_tenant: p.data.tenantId, p_code: p.data.plan });
+  if (error) return fail(page, classifyPlatformError(error));
+  revalidatePath(page);
+  return done(page, (data as { changed?: boolean } | null)?.changed === false ? "unchanged" : "plan_applied");
+}
+
+const day = z.iso.date();
+
+/** Raises an invoice to a hotel group (migration 098). An empty amount takes the group's plan price when that price is decided. */
+export async function raiseInvoice(formData: FormData) {
+  const p = z
+    .object({
+      tenantId: uuid,
+      start: day,
+      end: day,
+      amount: z.string().max(20),
+      due: z.union([z.literal(""), day]),
+      note: z.string().max(300),
+    })
+    .safeParse(Object.fromEntries(formData));
+  if (!p.success) return fail(LIST, "bad_request");
+  const page = `/platform/${p.data.tenantId}`;
+  const amount = p.data.amount.trim() === "" ? null : parseNairaToKobo(p.data.amount);
+  if (p.data.amount.trim() !== "" && amount === null) return fail(page, "invoice_details");
+  const supabase = await adminClient(page);
+  const { error } = await supabase.rpc("platform_raise_invoice", {
+    p_tenant: p.data.tenantId,
+    p_period_start: p.data.start,
+    p_period_end: p.data.end,
+    p_amount_minor: amount as number,
+    p_due_date: (p.data.due || null) as string,
+    p_note: p.data.note,
+  });
+  if (error) return fail(page, classifyPlatformError(error));
+  revalidatePath(page);
+  return done(page, "invoice_raised");
+}
+
+export async function markInvoicePaid(formData: FormData) {
+  const p = z.object({ tenantId: uuid, invoiceId: uuid, reference: z.string().max(200) }).safeParse(Object.fromEntries(formData));
+  if (!p.success) return fail(LIST, "bad_request");
+  const page = `/platform/${p.data.tenantId}`;
+  const supabase = await adminClient(page);
+  const { data, error } = await supabase.rpc("platform_mark_invoice_paid", { p_invoice: p.data.invoiceId, p_reference: p.data.reference });
+  if (error) return fail(page, classifyPlatformError(error));
+  revalidatePath(page);
+  return done(page, (data as { changed?: boolean } | null)?.changed === false ? "unchanged" : "invoice_paid");
+}
+
+export async function voidInvoice(formData: FormData) {
+  const p = z.object({ tenantId: uuid, invoiceId: uuid, reason: z.string().max(600) }).safeParse(Object.fromEntries(formData));
+  if (!p.success) return fail(LIST, "bad_request");
+  const page = `/platform/${p.data.tenantId}`;
+  const supabase = await adminClient(page);
+  const { data, error } = await supabase.rpc("platform_void_invoice", { p_invoice: p.data.invoiceId, p_reason: p.data.reason });
+  if (error) return fail(page, classifyPlatformError(error));
+  revalidatePath(page);
+  return done(page, (data as { changed?: boolean } | null)?.changed === false ? "unchanged" : "invoice_voided");
 }
