@@ -190,6 +190,29 @@ export function isOverdue(inv: { invoice_status: string; due_at: string | null }
   return !Number.isNaN(t) && t < now.getTime();
 }
 
+/**
+ * What is still owed on a booking invoice: its total less the money held on the booking (succeeded payments minus succeeded refunds,
+ * the same figure the database uses to set the invoice's status, `reservation_money_held`). A void invoice owes nothing. Never negative:
+ * money held above the total is shown as nothing owed, not as a credit.
+ */
+export function invoiceBalanceMinor(invoiceStatus: string, totalMinor: number, heldMinor: number): number {
+  if (invoiceStatus === "void") return 0;
+  return Math.max(totalMinor - Math.max(heldMinor, 0), 0);
+}
+
+/** Money held per booking from payment and refund rows (rows of other statuses are ignored). */
+export function moneyHeldByReservation(
+  payments: { reservation_id: string; amount_minor: number; payment_status: string }[],
+  refunds: { reservation_id: string; amount_minor: number; refund_status: string }[],
+): Map<string, number> {
+  const held = new Map<string, number>();
+  for (const p of payments)
+    if (p.payment_status === "succeeded") held.set(p.reservation_id, (held.get(p.reservation_id) ?? 0) + p.amount_minor);
+  for (const r of refunds)
+    if (r.refund_status === "succeeded") held.set(r.reservation_id, (held.get(r.reservation_id) ?? 0) - r.amount_minor);
+  return held;
+}
+
 // ---- Dates ------------------------------------------------------------------------------------------------------------
 
 /** Minutes a zone is ahead of UTC at a moment (60 for Africa/Lagos). Zero for an unknown zone. */

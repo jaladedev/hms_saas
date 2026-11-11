@@ -83,7 +83,7 @@ Status: **built**, **partial** (part of the job is done, or only another role ca
 | Payments Overview | built | `/app/payments/all`; the verify queue stays at `/app/payments` |
 | Payment Details | built | `/app/payments/[id]`, read-only; verify, reverse and refund stay where they were |
 | Record Manual Payment | built | on `/app/reservations/[id]` |
-| Invoice List | built | `/app/invoices`, booking invoices and invoices for extras; no balance column, PDF or email yet |
+| Invoice List | built | `/app/invoices`, booking invoices and invoices for extras; booking invoices show what is still owing; no PDF or email from the list yet |
 | Invoice Details | built | `/app/reservations/[id]/folio-invoice/[invoiceId]` |
 | Refund Management | built | `/app/refunds` |
 | Reconciliation | built | `/app/reconciliation` |

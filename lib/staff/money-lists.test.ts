@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   filterZone,
+  invoiceBalanceMinor,
   invoiceFiltersActive,
   invoiceQuery,
   invoiceStatusLabel,
   isOverdue,
+  moneyHeldByReservation,
   parseInvoiceFilters,
   parsePaymentFilters,
   paymentFiltersActive,
@@ -135,5 +137,35 @@ describe("hotel-day bounds", () => {
     expect(filterZone(["Africa/Lagos", "Africa/Lagos"])).toEqual({ zone: "Africa/Lagos", mixed: false });
     expect(filterZone(["Africa/Lagos", "Europe/London"])).toEqual({ zone: "UTC", mixed: true });
     expect(filterZone([])).toEqual({ zone: "UTC", mixed: false });
+  });
+});
+
+describe("invoice balance", () => {
+  it("is the total less the money held, never below zero", () => {
+    expect(invoiceBalanceMinor("issued", 100_00, 0)).toBe(100_00);
+    expect(invoiceBalanceMinor("partially_paid", 100_00, 40_00)).toBe(60_00);
+    expect(invoiceBalanceMinor("paid", 100_00, 100_00)).toBe(0);
+    expect(invoiceBalanceMinor("paid", 100_00, 130_00)).toBe(0);
+    expect(invoiceBalanceMinor("issued", 100_00, -5_00)).toBe(100_00);
+  });
+  it("a void invoice owes nothing", () => {
+    expect(invoiceBalanceMinor("void", 100_00, 0)).toBe(0);
+  });
+  it("counts succeeded payments less succeeded refunds, per booking", () => {
+    const held = moneyHeldByReservation(
+      [
+        { reservation_id: "a", amount_minor: 50_00, payment_status: "succeeded" },
+        { reservation_id: "a", amount_minor: 20_00, payment_status: "succeeded" },
+        { reservation_id: "a", amount_minor: 99_00, payment_status: "reversed" },
+        { reservation_id: "b", amount_minor: 10_00, payment_status: "succeeded" },
+      ],
+      [
+        { reservation_id: "a", amount_minor: 15_00, refund_status: "succeeded" },
+        { reservation_id: "a", amount_minor: 30_00, refund_status: "processing" },
+      ],
+    );
+    expect(held.get("a")).toBe(55_00);
+    expect(held.get("b")).toBe(10_00);
+    expect(held.get("c")).toBeUndefined();
   });
 });

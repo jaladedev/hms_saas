@@ -6,10 +6,12 @@ import {
   filterZone,
   INVOICE_KIND_FILTERS,
   INVOICE_STATUS_FILTERS,
+  invoiceBalanceMinor,
   invoiceFiltersActive,
   invoiceQuery,
   invoiceStatusLabel,
   isOverdue,
+  moneyHeldByReservation,
   MONEY_PAGE_SIZE,
   parseInvoiceFilters,
   startOfDayIso,
@@ -90,6 +92,23 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
   const guestIds = [...new Set([...reservations.values()].map((r) => r.primary_guest_id))];
   const guestQ = guestIds.length ? await supabase.from("guests").select("id, full_name").in("id", guestIds) : { data: [] };
   const guests = new Map(((guestQ.data ?? []) as { id: string; full_name: string }[]).map((g) => [g.id, g.full_name]));
+
+  // What is still owed, for booking invoices only (an invoice for extras is settled on the folio). Payment and refund rows are read
+  // under the viewer's own permissions, so a role that cannot see them gets no balance rather than a wrong one.
+  const bookingIds = f.kind === "extras" ? [] : resIds;
+  const [payQ, refQ] = bookingIds.length
+    ? await Promise.all([
+        supabase.from("payments").select("reservation_id, amount_minor, payment_status").in("reservation_id", bookingIds),
+        supabase.from("refunds").select("reservation_id, amount_minor, refund_status").in("reservation_id", bookingIds),
+      ])
+    : [null, null];
+  const canSeeBalance = f.kind !== "extras" && !!payQ && !payQ.error && !!refQ && !refQ.error;
+  const held = canSeeBalance
+    ? moneyHeldByReservation(
+        (payQ!.data ?? []) as { reservation_id: string; amount_minor: number; payment_status: string }[],
+        (refQ!.data ?? []) as { reservation_id: string; amount_minor: number; refund_status: string }[],
+      )
+    : new Map<string, number>();
 
   const total = count ?? 0;
   const pages = Math.max(Math.ceil(total / MONEY_PAGE_SIZE), 1);
@@ -200,7 +219,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
                 <li key={r.id} className="border-b border-line">
                   <Link
                     href={linkFor(r)}
-                    className="grid gap-x-8 gap-y-2 py-4 hover:bg-white focus-visible:outline-2 focus-visible:outline-primary md:grid-cols-[minmax(0,1fr)_12rem_9rem]"
+                    className="grid gap-x-8 gap-y-2 py-4 hover:bg-white focus-visible:outline-2 focus-visible:outline-primary md:grid-cols-[minmax(0,1fr)_12rem_9rem_9rem]"
                   >
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -227,6 +246,21 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
                       className={`font-semibold tabular-nums md:text-right ${r.invoice_status === "void" ? "text-muted line-through" : ""}`}
                     >
                       {formatMoney(r.total_minor, r.currency)}
+                    </p>
+                    <p className="text-sm tabular-nums md:text-right">
+                      {canSeeBalance
+                        ? (() => {
+                            const owed = invoiceBalanceMinor(r.invoice_status, r.total_minor, held.get(r.reservation_id) ?? 0);
+                            return owed > 0 ? (
+                              <>
+                                <span className="font-medium">{formatMoney(owed, r.currency)}</span>
+                                <span className="block text-xs text-muted">owing</span>
+                              </>
+                            ) : (
+                              <span className="text-muted">{r.invoice_status === "void" ? "Void" : "Settled"}</span>
+                            );
+                          })()
+                        : null}
                     </p>
                   </Link>
                 </li>
