@@ -17,6 +17,11 @@ const SECTIONS = [
     text: "Short promotions shown on your website's homepage, such as a weekend package. A message only; it does not change prices.",
   },
   {
+    href: "/app/settings/reviews",
+    title: "Guest reviews",
+    text: "Reviews guests wrote after their stay. Approve the ones you want on your website.",
+  },
+  {
     href: "/app/settings/rooms",
     title: "Room types and rooms",
     text: "The kinds of room you sell, their capacity and standard price, and the rooms themselves.",

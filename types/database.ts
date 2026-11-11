@@ -726,6 +726,64 @@ export type Database = {
           },
         ]
       }
+      guest_reviews: {
+        Row: {
+          author: string
+          comment: string
+          created_at: string
+          id: string
+          moderated_at: string | null
+          moderated_by: string | null
+          property_id: string
+          rating: number
+          reservation_id: string
+          status: string
+          tenant_id: string
+        }
+        ComputedFields: never
+        Insert: {
+          author: string
+          comment?: string
+          created_at?: string
+          id?: string
+          moderated_at?: string | null
+          moderated_by?: string | null
+          property_id: string
+          rating: number
+          reservation_id: string
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          author?: string
+          comment?: string
+          created_at?: string
+          id?: string
+          moderated_at?: string | null
+          moderated_by?: string | null
+          property_id?: string
+          rating?: number
+          reservation_id?: string
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_reviews_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: true
+            referencedRelation: "reservations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_reviews_tenant_id_property_id_fkey"
+            columns: ["tenant_id", "property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
       hotel_offers: {
         Row: {
           badge: string | null
@@ -3062,6 +3120,10 @@ export type Database = {
         Returns: Json
       }
       delete_hotel_offer: { Args: { p_offer: string }; Returns: undefined }
+      guest_review_state: { Args: { p_reservation_id: string }; Returns: Json }
+      submit_guest_review: { Args: { p_comment: string; p_rating: number; p_reservation_id: string }; Returns: Json }
+      moderate_guest_review: { Args: { p_decision: string; p_review: string }; Returns: Json }
+      guest_reviews_public: { Args: { p_host: string }; Returns: Json }
       hotel_billing: { Args: { p_property: string }; Returns: Json }
       guest_offers: { Args: { p_host: string }; Returns: Json }
       email_booking_invoice: { Args: { p_idempotency_key: string; p_invoice_id: string }; Returns: Json }

@@ -81,6 +81,13 @@ const RULES: Array<[RegExp, GuestError]> = [
     },
   ],
   [/POLICY_VIOLATION: request/, { code: "change_request", message: "Please add a short message so the hotel knows what you need." }],
+  [
+    /INVALID_STATE: not stayed/,
+    { code: "review_not_stayed", message: "You can write a review after your stay, once you have checked out." },
+  ],
+  [/CONFLICT: reviewed/, { code: "review_done", message: "You have already sent a review for this stay. Thank you." }],
+  [/POLICY_VIOLATION: rating/, { code: "review_rating", message: "Please choose a rating from 1 to 5 stars." }],
+  [/POLICY_VIOLATION: comment/, { code: "review_comment", message: "Please keep your comment to 1000 characters or fewer." }],
   [/NOT_FOUND: (host|property)/, { code: "not_configured", message: "Online booking is not available on this site yet." }],
   [/NOT_FOUND: room type/, { code: "not_bookable", message: "That room type is not available to book online." }],
 ];

@@ -122,6 +122,23 @@ export type HomeOffer = { title: string; body: string; badge: string | null; val
 /** The hotel's live offers for the homepage (migration 102): active, inside their dates, at most six. */
 export const guestOffers = cache((host: string) => call<{ offers: HomeOffer[] }>("guest_offers", { p_host: host }));
 
+export type ReviewState = { can_review: boolean; review: { rating: number; comment: string; status: string } | null };
+export type PublicReview = { rating: number; comment: string; author: string; month: string };
+export type PublicReviews = { average: number | null; count: number; reviews: PublicReview[] };
+
+/** Whether this booking can be reviewed, and its review if there is one (migration 104). */
+export function reviewState(reservationId: string) {
+  return call<ReviewState>("guest_review_state", { p_reservation_id: reservationId });
+}
+
+/** Stores a guest's review as pending; the hotel approves it before it shows (migration 104). */
+export function submitReview(reservationId: string, rating: number, comment: string) {
+  return call<{ review_id: string }>("submit_guest_review", { p_reservation_id: reservationId, p_rating: rating, p_comment: comment });
+}
+
+/** The hotel's approved reviews for the homepage: average, count and the newest six (migration 104). */
+export const guestReviews = cache((host: string) => call<PublicReviews>("guest_reviews_public", { p_host: host }));
+
 export type GuestPolicy = {
   currency: string;
   cancellation_rules: unknown;

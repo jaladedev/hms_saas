@@ -211,6 +211,7 @@ export type ErrorCode =
   | "theme_contrast"
   | "theme_font"
   | "offer_invalid"
+  | "review_invalid"
   | "offer_dates"
   | "offer_limit"
   | "setup_duplicate_code"
@@ -420,6 +421,8 @@ export const OK_MESSAGES = {
   hotel_basics_saved: "Hotel name, address and times saved. Bookings made from now on use the new check-in and check-out times.",
   hotel_logo_saved: "Logo saved. Guests see it in the header of your website.",
   hotel_logo_removed: "Logo removed.",
+  review_approved: "Review approved. It now shows on your website.",
+  review_rejected: "Review rejected. It is not shown on your website.",
   offer_saved: "Offer saved. Guests see it on the homepage while it is switched on and inside its dates.",
   offer_deleted: "Offer deleted.",
   hotel_theme_saved: "Look saved. Your website and the staff screens for this hotel now use it.",
@@ -584,6 +587,8 @@ export function errorMessage(code: string, refundable: number | null, formatMino
       return "The new policy must start after the one saved last. Choose a later date.";
     case "theme_color":
       return "Enter the colour as six hex digits, such as #0f766e, or leave it blank to use the look's own colour.";
+    case "review_invalid":
+      return "That review could not be updated. Reload the page and try again.";
     case "offer_invalid":
       return "Check the offer. It needs a title (up to 80 characters); the text can be up to 300 and the badge up to 24.";
     case "offer_dates":

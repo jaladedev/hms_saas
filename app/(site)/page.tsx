@@ -2,6 +2,7 @@ import { formatMoney } from "@/lib/guest-site/format";
 import { telHref } from "@/lib/staff/hotel-profile";
 import { photoUrl } from "@/lib/staff/room-photos";
 import { messageForCode } from "@/lib/guest-site/errors";
+import { averageLabel, ratingText, reviewMonth } from "@/lib/guest-site/reviews";
 import { parseStayParams, stayQuery } from "@/lib/guest-site/params";
 import { checkGuestLimits } from "@/lib/guest-site/limits";
 import { photoCountLabel, placeLine, timesLine } from "@/lib/guest-site/hotel";
@@ -13,7 +14,15 @@ import {
   offerUntilLabel,
   onlyChosenType,
 } from "@/lib/guest-site/home";
-import { guestHotel, guestOffers, guestPolicy, guestRoomTypes, requestHost, searchAvailability } from "@/lib/guest-site/server";
+import {
+  guestHotel,
+  guestOffers,
+  guestPolicy,
+  guestReviews,
+  guestRoomTypes,
+  requestHost,
+  searchAvailability,
+} from "@/lib/guest-site/server";
 
 export const dynamic = "force-dynamic";
 
@@ -27,12 +36,13 @@ export default async function GuestHome({ searchParams }: Props) {
   const stay = parseStayParams(raw);
   const limited = stay ? !(await checkGuestLimits({ ip: ["search"] })).allowed : false;
   const host = await requestHost();
-  const [result, hotelResult, typesResult, policyResult, offersResult] = await Promise.all([
+  const [result, hotelResult, typesResult, policyResult, offersResult, reviewsResult] = await Promise.all([
     stay && !limited ? searchAvailability(host, stay) : null,
     guestHotel(host),
     guestRoomTypes(host),
     guestPolicy(host),
     guestOffers(host),
+    guestReviews(host),
   ]);
   const hotel = hotelResult.ok ? hotelResult.data : null;
   const types = typesResult.ok ? typesResult.data.room_types : [];
@@ -45,6 +55,8 @@ export default async function GuestHome({ searchParams }: Props) {
   const highlights = amenityHighlights(types, 6);
   const cancelBadge = policyResult.ok ? freeCancellationBadge(policyResult.data) : null;
   const offers = offersResult.ok ? offersResult.data.offers : [];
+  const reviews = reviewsResult.ok ? reviewsResult.data : null;
+  const summary = reviews ? averageLabel(reviews.average, reviews.count) : null;
   const searching = Boolean(stay && result?.ok);
   const anyPhoto = types.some((t) => t.photos.length > 0); // no empty grey blocks when the hotel has not added pictures yet
 
@@ -299,6 +311,33 @@ export default async function GuestHome({ searchParams }: Props) {
                     ) : anyPhoto ? (
                       <div aria-hidden="true" className="aspect-[4/3] w-full bg-line/40" />
                     ) : null}
+
+                    {!searching && reviews && reviews.reviews.length > 0 ? (
+                      <section aria-labelledby="reviews-title" className="pt-6">
+                        <h2 id="reviews-title" className="font-display text-3xl">
+                          Guest reviews
+                        </h2>
+                        {summary ? <p className="mt-1 text-sm text-muted">{summary}</p> : null}
+                        <ul className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                          {reviews.reviews.map((r, i) => (
+                            <li key={i} className="flex flex-col gap-2 rounded-2xl border border-line bg-white p-5">
+                              <p aria-label={ratingText(r.rating)} className="text-lg tracking-wide text-primary">
+                                <span aria-hidden="true">
+                                  {"★".repeat(r.rating)}
+                                  {"☆".repeat(5 - r.rating)}
+                                </span>
+                              </p>
+                              {r.comment ? <p className="whitespace-pre-line text-sm">{r.comment}</p> : null}
+                              <p className="mt-auto pt-2 text-xs text-muted">
+                                {r.author}
+                                {reviewMonth(r.month) ? `, ${reviewMonth(r.month)}` : ""}
+                              </p>
+                            </li>
+                          ))}
+                        </ul>
+                      </section>
+                    ) : null}
+
                     <div className="flex flex-1 flex-col p-5">
                       <h3 className="font-display text-2xl">{t.name}</h3>
                       {price ? <p className="mt-1 font-medium text-primary-strong">{price}</p> : null}

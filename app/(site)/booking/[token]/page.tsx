@@ -6,7 +6,7 @@ import { formatDate, formatMoney, formatTime } from "@/lib/guest-site/format";
 import { messageForCode } from "@/lib/guest-site/errors";
 import { secondsRemaining } from "@/lib/guest-site/hold";
 import { notAllowedText } from "@/lib/guest-site/cancel";
-import { bookingStatus, cancelPreview, changeOptions, verifiedBookingId } from "@/lib/guest-site/server";
+import { bookingStatus, cancelPreview, changeOptions, reviewState, verifiedBookingId } from "@/lib/guest-site/server";
 import { payAction } from "./actions";
 import { showsAmountDue } from "@/lib/guest-site/booking-summary";
 
@@ -35,6 +35,7 @@ export default async function BookingPage({ params, searchParams }: Props) {
   const notice = typeof raw.error === "string" ? messageForCode(raw.error) : null;
   const cancel = b.status === "confirmed" ? await cancelPreview(reservationId) : null;
   const change = b.status === "confirmed" ? await changeOptions(reservationId) : null;
+  const review = b.status === "checked_out" ? await reviewState(reservationId) : null;
   const key = crypto.randomUUID();
 
   return (
@@ -137,6 +138,18 @@ export default async function BookingPage({ params, searchParams }: Props) {
             </button>
           </form>
         </section>
+      ) : null}
+      {raw.reviewed === "1" ? (
+        <p role="status" className="mt-4 rounded border border-line bg-white p-3 text-sm">
+          Thank you for your review. The hotel will look at it before it is shown on its website.
+        </p>
+      ) : null}
+      {review?.ok && (review.data.can_review || review.data.review) ? (
+        <p className="mt-6 text-sm">
+          <a href={`/booking/${token}/review`} className="underline underline-offset-2">
+            {review.data.review ? "See your review" : "Review your stay"}
+          </a>
+        </p>
       ) : null}
       {change?.ok && change.data.allowed ? (
         <p className="mt-6 text-sm">

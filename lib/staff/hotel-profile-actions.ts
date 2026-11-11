@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { back, ok, staffClient } from "./action-helpers";
+import { parseDecision } from "./guest-reviews";
 import { parseOfferForm } from "./hotel-offers";
 import { parseBasicsForm, parseProfileForm, parseThemeForm } from "./hotel-profile";
 import { logoPath, PHOTO_BUCKET, validatePhoto } from "./room-photos";
@@ -168,4 +169,19 @@ export async function deleteHotelOffer(formData: FormData) {
   revalidatePath(OFFERS_PAGE);
   revalidatePath("/");
   return ok(OFFERS_PAGE, "offer_deleted");
+}
+
+const REVIEWS_PAGE = "/app/settings/reviews";
+
+/** Approves or rejects a guest review (migration 104). The database requires property.configure at that hotel. */
+export async function moderateGuestReview(formData: FormData) {
+  const id = String(formData.get("reviewId") ?? "");
+  const decision = parseDecision(formData.get("decision"));
+  if (!/^[0-9a-f-]{36}$/i.test(id) || !decision) return back(REVIEWS_PAGE, { err: "review_invalid" });
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("moderate_guest_review", { p_review: id, p_decision: decision });
+  if (error) return back(REVIEWS_PAGE, { err: /NOT_FOUND/.test(error.message) ? "setup_forbidden" : classifySetupError(error) });
+  revalidatePath(REVIEWS_PAGE);
+  revalidatePath("/");
+  return ok(REVIEWS_PAGE, decision === "approved" ? "review_approved" : "review_rejected");
 }
