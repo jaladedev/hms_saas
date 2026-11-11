@@ -53,6 +53,14 @@ describe("crumbsFor", () => {
     expect(crumbsFor("/app/settings/rooms").map((c) => c.label)).toEqual(["Overview", "Settings", "Room types and rooms"]);
     expect(crumbsFor("/app/rooms").map((c) => c.label)).toEqual(["Overview", "Room Management"]);
   });
+  it("names a single room's page, and keeps the room calendar its own name", () => {
+    expect(crumbsFor("/app/rooms/3f0c9a52-1111-4222-8333-444455556666").map((c) => c.label)).toEqual([
+      "Overview",
+      "Room Management",
+      "Room details",
+    ]);
+    expect(crumbsFor("/app/rooms/calendar").map((c) => c.label)).toEqual(["Overview", "Room Management", "Calendar"]);
+  });
   it("names an id page for what it is", () => {
     const c = crumbsFor("/app/reservations/3f0c9a52-1111-4222-8333-444455556666/documents");
     expect(c.map((x) => x.label)).toEqual(["Overview", "Reservations", "Reservation", "Documents"]);

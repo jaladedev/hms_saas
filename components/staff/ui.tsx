@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { errorMessage, OK_MESSAGES, type OkCode } from "@/lib/staff/refunds";
 import { formatMoney } from "@/lib/guest-site/format";
 import { PAYMENT_LABEL, STATUS_LABEL } from "@/lib/staff/reservations";
@@ -138,10 +139,20 @@ export function PageIntro({ children }: { children: React.ReactNode }) {
 export const cardClass = "rounded border border-line bg-white p-3";
 
 /** The top line of a room card: the room number on the left, a chip or a small grey note (floor, hotel) on the right. */
-export function RoomCardHeader({ roomNumber, children }: { roomNumber: string; children?: React.ReactNode }) {
+export function RoomCardHeader({ roomNumber, href, children }: { roomNumber: string; href?: string; children?: React.ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-2">
-      <span className="text-lg font-semibold">{roomNumber}</span>
+      {href ? (
+        <Link
+          href={href}
+          className="text-lg font-semibold underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-primary"
+        >
+          {roomNumber}
+          <span className="sr-only">, room details</span>
+        </Link>
+      ) : (
+        <span className="text-lg font-semibold">{roomNumber}</span>
+      )}
       {children}
     </div>
   );

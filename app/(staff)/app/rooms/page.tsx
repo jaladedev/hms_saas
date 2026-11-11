@@ -202,7 +202,7 @@ export default async function RoomBoardPage({ searchParams }: { searchParams: Pr
               const nextRes = v.next?.reservation_room_id ? resOfRr.get(v.next.reservation_room_id) : undefined;
               return (
                 <li key={v.room.id} className={cardClass}>
-                  <RoomCardHeader roomNumber={v.room.room_number}>
+                  <RoomCardHeader roomNumber={v.room.room_number} href={`/app/rooms/${v.room.id}`}>
                     <span className={`rounded px-2 py-0.5 text-xs font-medium ${CHIP[v.state]}`}>{STATE_LABEL[v.state]}</span>
                   </RoomCardHeader>
                   <p className="mt-1 text-xs text-muted">

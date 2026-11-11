@@ -51,6 +51,7 @@ const PATH_LABEL: Record<string, string> = {
 
 /** A page that takes an id after these words is named for what the id is. */
 const ID_LABEL: Record<string, string> = {
+  rooms: "Room details",
   guests: "Guest",
   reservations: "Reservation",
   maintenance: "Repair",
