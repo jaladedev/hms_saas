@@ -19,7 +19,25 @@ export default async function PlatformLayout({ children }: { children: React.Rea
     <div className="flex min-h-screen flex-col md:flex-row">
       <RouteProgress />
       <aside className="z-30 shrink-0 bg-navy-900 p-4 text-sm text-white max-md:sticky max-md:top-0 md:sticky md:top-0 md:h-screen md:w-60">
-        <NavMenu brand={<div className="font-display text-xl">HMS platform</div>}>
+        <NavMenu
+          footer={
+            <>
+              <p className="truncate text-white/70" title={data.user.email ?? undefined}>
+                {data.user.email}
+              </p>
+              <p className="text-white/70">{level.data === "admin" ? "Platform admin" : "Platform support (read only)"}</p>
+              <form action={signOut} className="mt-2">
+                <button
+                  type="submit"
+                  className="text-white underline underline-offset-2 hover:text-white/80 focus-visible:outline-2 focus-visible:outline-white"
+                >
+                  Sign out
+                </button>
+              </form>
+            </>
+          }
+          brand={<div className="font-display text-xl">HMS platform</div>}
+        >
           <nav aria-label="Platform" className="mt-4 md:mt-6">
             <NavLink
               href="/platform"
@@ -46,20 +64,6 @@ export default async function PlatformLayout({ children }: { children: React.Rea
               </NavLink>
             )}
           </nav>
-          <div className="mt-6 border-t border-white/15 pb-2 pt-4">
-            <p className="truncate text-white/70" title={data.user.email ?? undefined}>
-              {data.user.email}
-            </p>
-            <p className="text-white/70">{level.data === "admin" ? "Platform admin" : "Platform support (read only)"}</p>
-            <form action={signOut} className="mt-2">
-              <button
-                type="submit"
-                className="text-white underline underline-offset-2 hover:text-white/80 focus-visible:outline-2 focus-visible:outline-white"
-              >
-                Sign out
-              </button>
-            </form>
-          </div>
         </NavMenu>
       </aside>
       <div className="min-w-0 flex-1 p-4 md:p-6">{children}</div>

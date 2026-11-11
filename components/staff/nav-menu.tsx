@@ -7,14 +7,15 @@ import { useEffect, useState, type ReactNode } from "react";
  * Wraps the staff sidebar's contents so it works on a phone.
  *
  * From the `md` breakpoint (768px) up the brand and the whole menu are shown, as a sidebar that stays in view and scrolls
- * on its own when the menu is longer than the screen. Below it the sidebar is a bar that stays at the top of the page
+ * on its own when the menu is longer than the screen. The `footer` (profile and sign out) is pinned to the bottom of the
+ * sidebar and the open phone menu, outside the part that scrolls. Below it the sidebar is a bar that stays at the top of the page
  * with a Menu button, and the links stay out of the way until that is pressed. The open menu scrolls inside the screen
  * rather than pushing the page down. Escape closes it.
  *
  * The menu closes by itself when the person goes to another page: it remembers the page it was opened on, and is open
  * only while that is still the current page (so there is no effect to reset it).
  */
-export function NavMenu({ brand, children }: { brand: ReactNode; children: ReactNode }) {
+export function NavMenu({ brand, children, footer }: { brand: ReactNode; children: ReactNode; footer?: ReactNode }) {
   const here = usePathname() ?? "";
   const [openOn, setOpenOn] = useState<string | null>(null);
   const open = openOn !== null && openOn === here;
@@ -55,9 +56,10 @@ export function NavMenu({ brand, children }: { brand: ReactNode; children: React
       </div>
       <div
         id="staff-menu"
-        className={`${open ? "block max-md:max-h-[calc(100dvh-4.5rem)] max-md:overflow-y-auto" : "hidden"} md:block md:min-h-0 md:flex-1 md:overflow-y-auto`}
+        className={`${open ? "flex max-md:max-h-[calc(100dvh-4.5rem)]" : "hidden"} flex-col md:flex md:min-h-0 md:flex-1`}
       >
-        {children}
+        <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
+        {footer ? <div className="shrink-0 border-t border-white/15 pb-2 pt-4">{footer}</div> : null}
       </div>
     </div>
   );

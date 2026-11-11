@@ -91,7 +91,29 @@ export default async function StaffLayout({ children }: { children: React.ReactN
     >
       <RouteProgress />
       <aside className="z-30 shrink-0 bg-navy-900 p-4 text-sm text-white max-md:sticky max-md:top-0 md:sticky md:top-0 md:h-screen md:w-60 print:hidden">
-        <NavMenu brand={<div className="font-display text-xl">HMS</div>}>
+        <NavMenu
+          footer={
+            <>
+              <Link
+                href="/app/profile"
+                className="block truncate text-white/70 underline-offset-2 hover:text-white hover:underline focus-visible:outline-2 focus-visible:outline-white"
+                title={data.user.email ?? undefined}
+              >
+                {data.user.email}
+                <span className="sr-only">, your profile</span>
+              </Link>
+              <form action={signOut} className="mt-2">
+                <button
+                  type="submit"
+                  className="text-white underline underline-offset-2 hover:text-white/80 focus-visible:outline-2 focus-visible:outline-white"
+                >
+                  Sign out
+                </button>
+              </form>
+            </>
+          }
+          brand={<div className="font-display text-xl">HMS</div>}
+        >
           <nav aria-label="Main" className="mt-4 text-white/80 md:mt-6">
             {NAV.map((item) =>
               item.href ? (
@@ -128,24 +150,6 @@ export default async function StaffLayout({ children }: { children: React.ReactN
             )}
           </nav>
           {switchable.length > 1 && current && <PropertySwitcher properties={switchable} currentId={current.id} />}
-          <div className="mt-6 border-t border-white/15 pb-2 pt-4">
-            <Link
-              href="/app/profile"
-              className="block truncate text-white/70 underline-offset-2 hover:text-white hover:underline focus-visible:outline-2 focus-visible:outline-white"
-              title={data.user.email ?? undefined}
-            >
-              {data.user.email}
-              <span className="sr-only">, your profile</span>
-            </Link>
-            <form action={signOut} className="mt-2">
-              <button
-                type="submit"
-                className="text-white underline underline-offset-2 hover:text-white/80 focus-visible:outline-2 focus-visible:outline-white"
-              >
-                Sign out
-              </button>
-            </form>
-          </div>
         </NavMenu>
       </aside>
       <div data-density={density} className="min-w-0 flex-1 p-4 md:p-6 print:p-0">

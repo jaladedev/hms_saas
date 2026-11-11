@@ -112,7 +112,7 @@ describe("NavMenu: the staff sidebar on a phone", () => {
     const out = html(createElement(NavMenu, { brand: createElement("b", null, "HMS"), children: createElement("nav", null, "links") }));
     expect(out).toContain('<button type="button" aria-expanded="false" aria-controls="staff-menu"');
     expect(out).toContain("md:hidden");
-    expect(out).toMatch(/<div id="staff-menu" class="hidden md:block [^"]*"><nav>links<\/nav><\/div>/);
+    expect(out).toMatch(/<div id="staff-menu" class="hidden [^"]*"><div class="[^"]*"><nav>links<\/nav><\/div><\/div>/);
     expect(out.indexOf("<b>HMS</b>")).toBeLessThan(out.indexOf("<button"));
   });
 });
