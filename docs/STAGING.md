@@ -241,6 +241,7 @@ The check that counts is the app itself: on the staging site, search, reserve an
 `confirm_payment` run with the key in `SUPABASE_SERVICE_ROLE_KEY`.
 
 - Works: record "sb_secret works" in HANDOFF and remove the warning there.
+- **Result so far (2026-11-11, project `hms`):** 8a returned `[]`; 8b returned 401 "permission denied for function search_availability"; 8c returned 200 with a real room type, nights, rates and tax. The key is accepted for `search_availability`. The reserve-and-pay run in step 10 is still needed to prove `create_hold` and `confirm_payment`.
 - Refused (the site shows an error, Postgres logs show `is_system_caller` false or a permission error): switch
   `SUPABASE_SERVICE_ROLE_KEY` to the legacy `service_role` key, repeat, and check Supabase's current guidance on how
   long legacy keys stay available. Or change `is_system_caller()` to match what the project really sends. That is a
