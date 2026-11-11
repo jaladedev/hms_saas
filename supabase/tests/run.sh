@@ -815,4 +815,8 @@ HO="$(psql -f "$HERE/102_hotel_offers.sql" 2>&1)" || { echo "$HO"; echo "HOTEL O
 echo "$HO" | grep -E 'PASS' || true
 if echo "$HO" | grep -qE 'FAIL|ERROR'; then echo "$HO"; echo "HOTEL OFFERS TESTS FAILED"; exit 1; fi
 
+HB="$(psql -f "$HERE/103_hotel_billing.sql" 2>&1)" || { echo "$HB"; echo "HOTEL BILLING TESTS FAILED"; exit 1; }
+echo "$HB" | grep -E 'PASS' || true
+if echo "$HB" | grep -qE 'FAIL|ERROR'; then echo "$HB"; echo "HOTEL BILLING TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

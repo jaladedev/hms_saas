@@ -37,6 +37,11 @@ const SECTIONS = [
     title: "Discount limits",
     text: "How large a discount each role may give on a booking. The owner sets these.",
   },
+  {
+    href: "/app/settings/billing",
+    title: "Billing",
+    text: "Your plan and the invoices from the platform. For the owner and general manager.",
+  },
   { href: "/app/staff", title: "Staff and permissions", text: "Who can sign in and what each person may do." },
   {
     href: "/app/settings/history",

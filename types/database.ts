@@ -3062,6 +3062,7 @@ export type Database = {
         Returns: Json
       }
       delete_hotel_offer: { Args: { p_offer: string }; Returns: undefined }
+      hotel_billing: { Args: { p_property: string }; Returns: Json }
       guest_offers: { Args: { p_host: string }; Returns: Json }
       email_booking_invoice: { Args: { p_idempotency_key: string; p_invoice_id: string }; Returns: Json }
       record_heartbeat: { Args: { p_error?: string; p_job: string; p_ok: boolean }; Returns: undefined }
