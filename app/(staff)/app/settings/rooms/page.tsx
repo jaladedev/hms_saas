@@ -4,6 +4,7 @@ import { ROOM_STATUSES } from "@/lib/staff/room-setup";
 import { compareRoomNumbers } from "@/lib/staff/room-board";
 import { addRoomPhoto, moveRoomPhoto, removeRoomPhoto, setRoomPhotoCaption } from "@/lib/staff/room-photo-actions";
 import { photoUrl } from "@/lib/staff/room-photos";
+import { AmenityPicker } from "@/components/staff/amenity-picker";
 import { PendingButton } from "@/components/ui/pending-button";
 import { PhotoFrame } from "@/components/ui/photo-frame";
 import { PhotoPicker } from "@/components/ui/photo-picker";
@@ -298,21 +299,8 @@ export default async function RoomSetupPage({ searchParams }: { searchParams: Pr
                             />
                           </div>
                           <div className="sm:col-span-2">
-                            <label htmlFor={`ea2-${t.id}`} className="block text-sm">
-                              Amenities (optional)
-                            </label>
-                            <textarea
-                              id={`ea2-${t.id}`}
-                              name="amenities"
-                              maxLength={800}
-                              rows={2}
-                              defaultValue={t.amenities.join(", ")}
-                              className={inputClass}
-                            />
-                            <p className="mt-1 text-xs text-muted">
-                              Separate with commas, for example: Air conditioning, Wi-Fi, Breakfast included. Up to 20, each up to 40
-                              characters. Guests see these when they search.
-                            </p>
+                            <p className="block text-sm">Amenities (optional)</p>
+                            <AmenityPicker id={`ea2-${t.id}`} initial={t.amenities} />
                           </div>
                           <div className="flex items-center gap-2 sm:col-span-2">
                             <input id={`ep-${t.id}`} name="isPublic" type="checkbox" defaultChecked={t.is_public} className="h-4 w-4" />
@@ -478,20 +466,8 @@ export default async function RoomSetupPage({ searchParams }: { searchParams: Pr
                     <textarea id={`d-${p.id}`} name="description" maxLength={500} rows={2} className={inputClass} />
                   </div>
                   <div className="sm:col-span-2">
-                    <label htmlFor={`am-${p.id}`} className="block text-sm">
-                      Amenities (optional)
-                    </label>
-                    <textarea
-                      id={`am-${p.id}`}
-                      name="amenities"
-                      maxLength={800}
-                      rows={2}
-                      placeholder="Air conditioning, Wi-Fi, Breakfast included"
-                      className={inputClass}
-                    />
-                    <p className="mt-1 text-xs text-muted">
-                      Separate with commas. Up to 20, each up to 40 characters. Guests see these when they search.
-                    </p>
+                    <p className="block text-sm">Amenities (optional)</p>
+                    <AmenityPicker id={`am-${p.id}`} />
                   </div>
                   <div className="flex items-center gap-2 sm:col-span-2">
                     <input id={`p-${p.id}`} name="isPublic" type="checkbox" defaultChecked className="h-4 w-4" />

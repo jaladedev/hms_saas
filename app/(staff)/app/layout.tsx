@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Breadcrumbs } from "@/components/staff/breadcrumbs";
 import { NavMenu } from "@/components/staff/nav-menu";
 import { NavLink } from "@/components/ui/nav-link";
 import { RouteProgress } from "@/components/ui/route-progress";
@@ -153,6 +154,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
         </NavMenu>
       </aside>
       <div data-density={density} className="min-w-0 flex-1 p-4 md:p-6 print:p-0">
+        <Breadcrumbs />
         {children}
       </div>
     </div>
