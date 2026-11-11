@@ -12,6 +12,7 @@
     "db:types:local": "npx supabase gen types typescript --local --schema public > types/database.ts",
     "test": "vitest run",
     "e2e": "bash e2e/run.sh",
+    "paystack:check": "node scripts/check-paystack-banks.mjs",
     "lint": "npm run lint --prefix tools/lint",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
