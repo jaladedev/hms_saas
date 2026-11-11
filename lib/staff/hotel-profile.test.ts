@@ -93,9 +93,18 @@ describe("timeInput", () => {
 describe("parseThemeForm", () => {
   const id = "00000000-0000-0000-0000-0000000000a2";
   it("accepts the three themes and the standard look", () => {
-    expect(parseThemeForm({ propertyId: id, theme: "luxury" })).toEqual({ ok: true, value: { propertyId: id, theme: "luxury" } });
-    expect(parseThemeForm({ propertyId: id, theme: " classic " })).toEqual({ ok: true, value: { propertyId: id, theme: "classic" } });
-    expect(parseThemeForm({ propertyId: id, theme: "standard" })).toEqual({ ok: true, value: { propertyId: id, theme: null } });
+    expect(parseThemeForm({ propertyId: id, theme: "luxury" })).toEqual({
+      ok: true,
+      value: { propertyId: id, theme: "luxury", primary: null },
+    });
+    expect(parseThemeForm({ propertyId: id, theme: " classic " })).toEqual({
+      ok: true,
+      value: { propertyId: id, theme: "classic", primary: null },
+    });
+    expect(parseThemeForm({ propertyId: id, theme: "standard" })).toEqual({
+      ok: true,
+      value: { propertyId: id, theme: null, primary: null },
+    });
   });
   it("refuses anything else, and a bad hotel id", () => {
     for (const theme of ["", "neon", "Luxury", "default", "luxury; drop table properties", undefined, 3]) {
@@ -103,5 +112,25 @@ describe("parseThemeForm", () => {
     }
     expect(parseThemeForm({ propertyId: "nope", theme: "modern" })).toEqual({ ok: false, code: "setup_invalid" });
     expect(parseThemeForm({ theme: "modern" })).toEqual({ ok: false, code: "setup_invalid" });
+  });
+});
+
+describe("parseThemeForm main colour", () => {
+  const id = "00000000-0000-0000-0000-0000000000a2";
+  it("accepts a readable colour, normalised, with or without a theme", () => {
+    expect(parseThemeForm({ propertyId: id, theme: "modern", primary: " #7C2D12 " })).toEqual({
+      ok: true,
+      value: { propertyId: id, theme: "modern", primary: "#7c2d12" },
+    });
+    expect(parseThemeForm({ propertyId: id, theme: "standard", primary: "#7c2d12" })).toEqual({
+      ok: true,
+      value: { propertyId: id, theme: null, primary: "#7c2d12" },
+    });
+  });
+  it("treats a blank colour as none, refuses a malformed one, and refuses one white text cannot be read on", () => {
+    expect(parseThemeForm({ propertyId: id, theme: "luxury", primary: "  " })).toMatchObject({ ok: true, value: { primary: null } });
+    expect(parseThemeForm({ propertyId: id, theme: "luxury", primary: "teal" })).toEqual({ ok: false, code: "theme_color" });
+    expect(parseThemeForm({ propertyId: id, theme: "luxury", primary: "#fff" })).toEqual({ ok: false, code: "theme_color" });
+    expect(parseThemeForm({ propertyId: id, theme: "luxury", primary: "#ffff00" })).toEqual({ ok: false, code: "theme_contrast" });
   });
 });

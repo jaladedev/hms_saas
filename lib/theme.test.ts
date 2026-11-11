@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { contrastRatio, parseTheme, STANDARD_SWATCH, THEME_IDS, THEMES, themeStyle } from "./theme";
+import {
+  contrastRatio,
+  darken,
+  normalizeHex,
+  parseTheme,
+  primaryContrast,
+  strongShade,
+  STANDARD_SWATCH,
+  THEME_IDS,
+  THEMES,
+  themeStyle,
+} from "./theme";
 
 const WHITE = "#ffffff";
 // The status colours every theme keeps (app/globals.css).
@@ -87,5 +98,32 @@ describe("contrast", () => {
 
   it("keeps the sidebar's lighter tone dark enough for white text", () => {
     for (const t of Object.values(THEMES)) expect(contrastRatio(WHITE, t.colors.sidebarDeep)).toBeGreaterThanOrEqual(AA);
+  });
+});
+
+describe("main colour", () => {
+  it("normalizeHex keeps only six-digit hex colours, lower case", () => {
+    expect(normalizeHex(" #0F766E ")).toBe("#0f766e");
+    for (const bad of ["#fff", "0f766e", "red", "", null, 3]) expect(normalizeHex(bad)).toBeNull();
+  });
+  it("strongShade reads on the page colour and never lightens", () => {
+    for (const c of ["#0f766e", "#2563eb", "#c6a96b"])
+      for (const paper of ["#faf8f4", "#f0fdf5"]) expect(contrastRatio(strongShade(c, paper), paper)).toBeGreaterThanOrEqual(AA);
+    expect(darken("#336699", 0)).toBe("#336699");
+  });
+  it("primaryContrast fails a pale colour and passes a deep one", () => {
+    expect(primaryContrast("#ffff00", null).some((l) => !l.pass)).toBe(true);
+    expect(primaryContrast("#7c2d12", "classic" as never).every((l) => l.pass)).toBe(true);
+  });
+  it("themeStyle lays the colour over a theme, and works on the standard look", () => {
+    const over = themeStyle("luxury", "#7c2d12") as Record<string, string>;
+    expect(over["--color-primary"]).toBe("#7c2d12");
+    expect(over["--color-paper"]).toBe(THEMES.luxury.colors.paper);
+    const alone = themeStyle(null, "#7c2d12") as Record<string, string>;
+    expect(alone["--color-primary"]).toBe("#7c2d12");
+    expect(alone["--color-paper"]).toBeUndefined();
+    expect(themeStyle(null, null)).toBeUndefined();
+    expect(themeStyle(null, "teal")).toBeUndefined();
+    expect((themeStyle("modern", "teal") as Record<string, string>)["--color-primary"]).toBe(THEMES.modern.colors.primary);
   });
 });

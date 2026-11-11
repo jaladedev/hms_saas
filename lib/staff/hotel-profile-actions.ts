@@ -103,7 +103,11 @@ export async function saveHotelTheme(formData: FormData) {
   const v = parseThemeForm(Object.fromEntries(formData));
   if (!v.ok) return back(PAGE, { err: v.code });
   const supabase = await staffClient();
-  const { error } = await supabase.rpc("set_hotel_theme", { p_property: v.value.propertyId, p_theme: v.value.theme ?? "" });
+  const themed = await supabase.rpc("set_hotel_theme", { p_property: v.value.propertyId, p_theme: v.value.theme ?? "" });
+  const colored = themed.error
+    ? themed
+    : await supabase.rpc("set_hotel_primary_color", { p_property: v.value.propertyId, p_color: v.value.primary ?? "" });
+  const error = colored.error;
   if (error) return back(PAGE, { err: /NOT_FOUND/.test(error.message) ? "setup_forbidden" : classifySetupError(error) });
   revalidatePath(PAGE);
   revalidatePath("/", "layout");

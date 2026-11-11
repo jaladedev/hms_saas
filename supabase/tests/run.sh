@@ -803,4 +803,8 @@ PI="$(psql -f "$HERE/99_platform_invoices.sql" 2>&1)" || { echo "$PI"; echo "PLA
 echo "$PI" | grep -E 'PASS' || true
 if echo "$PI" | grep -qE 'FAIL|ERROR'; then echo "$PI"; echo "PLATFORM INVOICE TESTS FAILED"; exit 1; fi
 
+PCL="$(psql -f "$HERE/100_hotel_primary_color.sql" 2>&1)" || { echo "$PCL"; echo "HOTEL COLOUR TESTS FAILED"; exit 1; }
+echo "$PCL" | grep -E 'PASS' || true
+if echo "$PCL" | grep -qE 'FAIL|ERROR'; then echo "$PCL"; echo "HOTEL COLOUR TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

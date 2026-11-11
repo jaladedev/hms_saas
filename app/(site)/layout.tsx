@@ -30,7 +30,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
   const place = hotel ? placeLine(hotel) : "";
   const year = new Date().getFullYear();
   return (
-    <div className={`flex min-h-screen flex-col ${THEME_WRAPPER_CLASS}`} style={themeStyle(parseTheme(hotel?.theme))}>
+    <div className={`flex min-h-screen flex-col ${THEME_WRAPPER_CLASS}`} style={themeStyle(parseTheme(hotel?.theme), hotel?.theme_primary)}>
       <header className="border-b border-line bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4">
           <Link href="/" className={`flex items-center gap-3 font-display text-xl ${linkTap}`}>

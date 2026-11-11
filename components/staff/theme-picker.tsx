@@ -1,6 +1,6 @@
-import { buttonPrimary } from "@/components/staff/ui";
 import { saveHotelTheme } from "@/lib/staff/hotel-profile-actions";
-import { parseTheme, STANDARD_SWATCH, THEMES, THEME_IDS } from "@/lib/theme";
+import { buttonPrimary, inputClass } from "@/components/staff/ui";
+import { normalizeHex, parseTheme, primaryContrast, STANDARD_SWATCH, THEMES, THEME_IDS } from "@/lib/theme";
 
 type Choice = {
   value: string;
@@ -44,9 +44,21 @@ const CHOICES: Choice[] = [
  * lib/theme.ts, never from the form), so the choice can be seen before it is saved. The radios are real, so the keyboard and
  * screen readers work with no script.
  */
-export function ThemePicker({ propertyId, name, current }: { propertyId: string; name: string; current: string | null }) {
+export function ThemePicker({
+  propertyId,
+  name,
+  current,
+  primary,
+}: {
+  propertyId: string;
+  name: string;
+  current: string | null;
+  primary?: string | null;
+}) {
   const selected = parseTheme(current) ?? "standard";
   const group = `theme-${propertyId}`;
+  const color = normalizeHex(primary);
+  const contrast = color ? primaryContrast(color, parseTheme(current)) : [];
   return (
     <form action={saveHotelTheme} className="mt-8">
       <input type="hidden" name="propertyId" value={propertyId} />
@@ -90,6 +102,36 @@ export function ThemePicker({ propertyId, name, current }: { propertyId: string;
           ))}
         </div>
       </fieldset>
+      <div className="mt-4">
+        <label htmlFor={`${group}-primary`} className="text-sm font-medium">
+          Main colour (optional)
+        </label>
+        <p className="mt-1 max-w-prose text-sm text-muted">
+          Replaces the look&rsquo;s own button and link colour. Enter six hex digits such as #0f766e, or leave it blank. It is refused if
+          white text cannot be read on it (WCAG AA, 4.5 to 1).
+        </p>
+        <div className="mt-2 flex items-center gap-3">
+          {color && <span aria-hidden="true" className="h-8 w-8 rounded border border-line" style={{ background: color }} />}
+          <input
+            id={`${group}-primary`}
+            name="primary"
+            defaultValue={color ?? ""}
+            placeholder="#0f766e"
+            maxLength={7}
+            pattern="#[0-9a-fA-F]{6}"
+            className={`${inputClass} w-32 font-mono`}
+          />
+        </div>
+        {contrast.length > 0 && (
+          <ul className="mt-2 text-xs text-muted">
+            {contrast.map((l) => (
+              <li key={l.label}>
+                {l.label}: {l.ratio}:1 {l.pass ? "(passes)" : "(too low)"}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
       <button type="submit" className={`${buttonPrimary} mt-3`}>
         Save look
       </button>

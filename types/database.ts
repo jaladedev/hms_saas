@@ -1412,6 +1412,7 @@ export type Database = {
           status: string
           tenant_id: string
           theme: string | null
+          theme_primary: string | null
           timezone: string
           updated_at: string
         }
@@ -1435,6 +1436,7 @@ export type Database = {
           status?: string
           tenant_id: string
           theme?: string | null
+          theme_primary?: string | null
           timezone?: string
           updated_at?: string
         }
@@ -1457,6 +1459,7 @@ export type Database = {
           status?: string
           tenant_id?: string
           theme?: string | null
+          theme_primary?: string | null
           timezone?: string
           updated_at?: string
         }
@@ -2987,6 +2990,7 @@ export type Database = {
       email_booking_invoice: { Args: { p_idempotency_key: string; p_invoice_id: string }; Returns: Json }
       record_heartbeat: { Args: { p_error?: string; p_job: string; p_ok: boolean }; Returns: undefined }
       ops_health: { Args: Record<string, never>; Returns: Json }
+      set_hotel_primary_color: { Args: { p_color: string; p_property: string }; Returns: undefined }
       set_hotel_theme: { Args: { p_property: string; p_theme: string }; Returns: undefined }
       lock_room_types: {
         Args: { p_property: string; p_types: string[] }

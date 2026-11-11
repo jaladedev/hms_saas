@@ -93,9 +93,68 @@ export function parseTheme(value: unknown): ThemeId | null {
 /** The standard look's colours, for showing it beside the others in the picker. Mirrors app/globals.css. */
 export const STANDARD_SWATCH = { primary: "#0f766e", paper: "#faf8f4", ink: "#1b2430", sidebar: "#0f1b2d" } as const;
 
-/** Token overrides for a theme as an inline style, or undefined for the standard look (no override at all). */
-export function themeStyle(id: ThemeId | null): CSSProperties | undefined {
-  if (!id) return undefined;
+/** The page colour of the standard look (app/globals.css), for contrast checks when no theme is chosen. */
+export const STANDARD_PAPER = "#faf8f4";
+/** WCAG AA for normal-size text. */
+export const AA = 4.5;
+
+/** "#0F766E" or " #0f766e " as "#0f766e"; anything that is not a six-digit hex colour is null. */
+export function normalizeHex(v: unknown): string | null {
+  if (typeof v !== "string") return null;
+  const s = v.trim().toLowerCase();
+  return /^#[0-9a-f]{6}$/.test(s) ? s : null;
+}
+
+/** The colour mixed with black by `amount` (0 to 1). */
+export function darken(hex: string, amount: number): string {
+  const k = Math.min(1, Math.max(0, amount));
+  const h = hex.replace("#", "");
+  return (
+    "#" +
+    [0, 2, 4]
+      .map((i) =>
+        Math.round(parseInt(h.slice(i, i + 2), 16) * (1 - k))
+          .toString(16)
+          .padStart(2, "0"),
+      )
+      .join("")
+  );
+}
+
+/** The darker shade of a main colour used for links and hover: the lightest darkening that still reads on the page colour. */
+export function strongShade(primary: string, paper: string): string {
+  for (let k = 0.15; k <= 0.8; k += 0.05) {
+    const c = darken(primary, k);
+    if (contrastRatio(c, paper) >= AA) return c;
+  }
+  return darken(primary, 0.8);
+}
+
+export type ContrastLine = { label: string; ratio: number; pass: boolean };
+
+/** The colour pairs a main colour is used in: white text on buttons, and links on the page. Both must reach AA for it to be saved. */
+export function primaryContrast(primary: string, id: ThemeId | null): ContrastLine[] {
+  const paper = id ? THEMES[id].colors.paper : STANDARD_PAPER;
+  const line = (label: string, ratio: number): ContrastLine => {
+    const r = Math.round(ratio * 100) / 100;
+    return { label, ratio: r, pass: r >= AA };
+  };
+  return [
+    line("White text on buttons", contrastRatio("#ffffff", primary)),
+    line("Links on the page background", contrastRatio(strongShade(primary, paper), paper)),
+  ];
+}
+
+/**
+ * Token overrides for a theme, and an optional main colour over it, as an inline style; undefined for the standard look with no
+ * colour (no override at all). A colour that is not #rrggbb is ignored.
+ */
+export function themeStyle(id: ThemeId | null, primary?: string | null): CSSProperties | undefined {
+  const custom = normalizeHex(primary);
+  if (!id && !custom) return undefined;
+  const paper = id ? THEMES[id].colors.paper : STANDARD_PAPER;
+  const own: Record<string, string> = custom ? { "--color-primary": custom, "--color-primary-strong": strongShade(custom, paper) } : {};
+  if (!id) return own as CSSProperties;
   const t = THEMES[id];
   return {
     "--color-primary": t.colors.primary,
@@ -108,6 +167,7 @@ export function themeStyle(id: ThemeId | null): CSSProperties | undefined {
     "--color-navy-800": t.colors.sidebarDeep,
     "--font-sans": t.fonts.body,
     "--font-display": t.fonts.display,
+    ...own,
   } as CSSProperties;
 }
 

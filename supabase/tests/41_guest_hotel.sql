@@ -11,11 +11,11 @@ do $$ declare r jsonb; p properties%rowtype; begin
      or (r ->> 'check_in_time')::time <> p.check_in_time or (r ->> 'check_out_time')::time <> p.check_out_time then
     raise exception 'FAIL guest hotel %', r;
   end if;
-  if (select count(*) from jsonb_object_keys(r)) <> 11
-     or not (r ?& array['name','address','city','state','check_in_time','check_out_time','phone','email','intro','logo','theme']) then
+  if (select count(*) from jsonb_object_keys(r)) <> 12
+     or not (r ?& array['name','address','city','state','check_in_time','check_out_time','phone','email','intro','logo','theme','theme_primary']) then
     raise exception 'FAIL guest hotel keys %', r;
   end if;
-  raise notice 'PASS guest_hotel returns the eleven facts a visitor may see and nothing else';
+  raise notice 'PASS guest_hotel returns the twelve facts a visitor may see and nothing else';
 end $$;
 
 -- 2. A blank address is reported as missing, a real one is returned trimmed of nothing but emptiness

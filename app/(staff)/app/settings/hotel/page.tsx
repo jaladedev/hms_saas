@@ -17,7 +17,7 @@ export default async function HotelDetailsPage({ searchParams }: { searchParams:
   const supabase = await createClient();
   const propQ = await supabase
     .from("properties")
-    .select("id, name, address, city, state, check_in_time, check_out_time, phone, contact_email, intro, logo_path, theme")
+    .select("id, name, address, city, state, check_in_time, check_out_time, phone, contact_email, intro, logo_path, theme, theme_primary")
     .order("name");
   const properties = (propQ.data ?? []) as {
     id: string;
@@ -32,6 +32,7 @@ export default async function HotelDetailsPage({ searchParams }: { searchParams:
     intro: string | null;
     logo_path: string | null;
     theme: string | null;
+    theme_primary: string | null;
   }[];
   const canEdit = new Map<string, boolean>();
   await Promise.all(
@@ -100,7 +101,7 @@ export default async function HotelDetailsPage({ searchParams }: { searchParams:
                   </button>
                 </form>
               </div>
-              <ThemePicker propertyId={p.id} name={p.name} current={p.theme} />
+              <ThemePicker propertyId={p.id} name={p.name} current={p.theme} primary={p.theme_primary} />
               <form action={saveHotelBasics} className="mt-8 grid gap-4 sm:grid-cols-2">
                 <input type="hidden" name="propertyId" value={p.id} />
                 <div className="sm:col-span-2">
