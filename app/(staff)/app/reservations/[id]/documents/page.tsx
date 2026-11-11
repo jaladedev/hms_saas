@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { PrintButton } from "@/components/staff/print-button";
-import { linkClass, PageTitle } from "@/components/staff/ui";
+import { buttonQuiet, linkClass, Notice, PageTitle } from "@/components/staff/ui";
+import { emailBookingInvoice } from "@/lib/staff/folio-actions";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import {
   availableDocs,
@@ -343,6 +344,23 @@ export default async function DocumentsPage({
     return (
       <main className="max-w-3xl">
         {header}
+        <div className="mt-4 print:hidden">
+          <Notice search={search} currency={res.currency} />
+          {!isVoid &&
+            (guest && !guest.email ? (
+              <p className="text-xs text-muted">The guest has no email address on file, so this invoice cannot be emailed.</p>
+            ) : (
+              <form action={emailBookingInvoice}>
+                <input type="hidden" name="reservationId" value={id} />
+                <input type="hidden" name="invoiceId" value={invoice.id} />
+                <input type="hidden" name="idempotencyKey" value={crypto.randomUUID()} />
+                <button type="submit" className={buttonQuiet}>
+                  Email to guest
+                </button>
+                {guest?.email && <span className="ml-2 text-xs text-muted">{guest.email}</span>}
+              </form>
+            ))}
+        </div>
         <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
           <div>
             <PageTitle>Invoice {invoice.invoice_number}</PageTitle>

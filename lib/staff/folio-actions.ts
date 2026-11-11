@@ -133,6 +133,31 @@ export async function emailFolioInvoice(formData: FormData) {
   return finish(ids.data.reservationId, error, "fo_emailed");
 }
 
+/**
+ * Emails a booking invoice to the booking's guest (migration 095), from the Documents page. Same queue and background send as the
+ * invoice for extras. Results come back on the Documents page, worded by the same codes.
+ */
+export async function emailBookingInvoice(formData: FormData) {
+  const ids = z.object({ reservationId: uuid, invoiceId: uuid, idempotencyKey: key }).safeParse(Object.fromEntries(formData));
+  if (!ids.success) return back(LIST, { err: "bad_request" });
+  const path = `/app/reservations/${ids.data.reservationId}/documents`;
+
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("email_booking_invoice", {
+    p_invoice_id: ids.data.invoiceId,
+    p_idempotency_key: ids.data.idempotencyKey,
+  });
+  if (error) {
+    const c = classifyFolioError(error.message);
+    return back(path, { doc: "invoice", err: c.code });
+  }
+  after(() => {
+    drainNow(5).catch(() => {});
+  });
+  revalidatePath(path);
+  return back(path, { doc: "invoice", ok: "fo_emailed" });
+}
+
 /** Withdraws an invoice for extras, with a reason, and frees its extras to be invoiced again. No money moves. */
 export async function voidFolioInvoice(formData: FormData) {
   const raw = Object.fromEntries(formData);

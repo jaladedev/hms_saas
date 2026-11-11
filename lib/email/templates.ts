@@ -11,7 +11,8 @@ export type EmailKind =
   | "folio_invoice"
   | "early_checkout_credit"
   | "stay_changed"
-  | "change_request_answered";
+  | "change_request_answered"
+  | "booking_invoice";
 export type RenderedEmail = { subject: string; text: string; html: string };
 
 export function escapeHtml(value: string): string {
@@ -224,6 +225,38 @@ export function renderEmail(input: {
       }
       if (sum !== null) lines.push(`Total: ${formatMoney(sum, currency)}${tax > 0 ? `, of which tax ${formatMoney(tax, currency)}` : ""}.`);
       lines.push("Money you have paid for extras is not shown on this invoice. If anything looks wrong, please speak to the hotel.");
+      break;
+    }
+    case "booking_invoice": {
+      const number = typeof input.payload?.invoice_number === "string" ? input.payload.invoice_number : "";
+      const currency = typeof input.payload?.currency === "string" ? input.payload.currency : b.currency;
+      const amount = (k: string): number | null => {
+        const v = input.payload?.[k];
+        return typeof v === "number" && Number.isFinite(v) ? v : null;
+      };
+      const sum = amount("total_minor");
+      const tax = amount("tax_minor") ?? 0;
+      const discount = amount("discount_minor") ?? 0;
+      const owing = amount("balance_minor");
+      subject = number ? `Invoice ${number} from ${b.property_name}` : `Your invoice from ${b.property_name}`;
+      heading = "Your invoice";
+      button = "View your booking";
+      lines.push(`Here is your invoice${number ? ` ${number}` : ""} for your stay at ${b.property_name} (${stay}).`);
+      for (const l of invoiceLinesFrom(input.payload)) {
+        const when = l.date ? `${formatDate(l.date)}: ` : "";
+        lines.push(
+          `${when}${l.description}, ${l.quantity} x ${formatMoney(l.unit, currency)} = ${formatMoney(l.total, currency)}${l.tax > 0 ? ` (tax ${formatMoney(l.tax, currency)} included)` : ""}`,
+        );
+      }
+      if (discount > 0) lines.push(`Discount: ${formatMoney(discount, currency)}.`);
+      if (sum !== null) lines.push(`Total: ${formatMoney(sum, currency)}${tax > 0 ? `, of which tax ${formatMoney(tax, currency)}` : ""}.`);
+      if (owing !== null)
+        lines.push(
+          owing > 0
+            ? `Still to pay at the time of this email: ${formatMoney(owing, currency)}.`
+            : "Nothing is owing on this invoice at the time of this email.",
+        );
+      lines.push("If anything looks wrong, please speak to the hotel.");
       break;
     }
     case "booking_link":

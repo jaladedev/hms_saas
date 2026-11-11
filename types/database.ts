@@ -2983,6 +2983,7 @@ export type Database = {
       finish_photo_cleanup: { Args: { p_paths: string[] }; Returns: number }
       update_hotel_basics: { Args: { p_address: string; p_check_in: string; p_check_out: string; p_city: string; p_name: string; p_property: string; p_state: string }; Returns: undefined }
       set_hotel_logo: { Args: { p_path: string; p_property: string }; Returns: undefined }
+      email_booking_invoice: { Args: { p_idempotency_key: string; p_invoice_id: string }; Returns: Json }
       record_heartbeat: { Args: { p_error?: string; p_job: string; p_ok: boolean }; Returns: undefined }
       ops_health: { Args: Record<string, never>; Returns: Json }
       set_hotel_theme: { Args: { p_property: string; p_theme: string }; Returns: undefined }

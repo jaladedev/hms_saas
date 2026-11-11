@@ -188,6 +188,37 @@ describe("email templates", () => {
     expect(e.text).toContain("Money you have paid for extras is not shown");
     expect(e.html).toContain("Your invoice for extras");
   });
+  it("booking_invoice: number, lines, discount, total, and what is still owing", () => {
+    const payload = {
+      invoice_number: "INV-HTL-2026-000020",
+      currency: "NGN",
+      discount_minor: 500000,
+      total_minor: 4500000,
+      tax_minor: 300000,
+      balance_minor: 2500000,
+      lines: [
+        {
+          service_date: "2026-11-02",
+          description: "Deluxe <b>Room</b>",
+          quantity: 1,
+          unit_amount_minor: 4700000,
+          tax_minor: 300000,
+          line_total_minor: 5000000,
+        },
+      ],
+    };
+    const e = renderEmail({ kind: "booking_invoice", booking, link: LINK, payload });
+    expect(e.subject).toBe("Invoice INV-HTL-2026-000020 from " + booking.property_name);
+    expect(e.text).toMatch(/Deluxe <b>Room<\/b>, 1 x \S*47,000\.00 = \S*50,000\.00 \(tax \S*3,000\.00 included\)/);
+    expect(e.text).toMatch(/Discount: \S*5,000\.00\./);
+    expect(e.text).toMatch(/Total: \S*45,000\.00, of which tax \S*3,000\.00\./);
+    expect(e.text).toMatch(/Still to pay at the time of this email: \S*25,000\.00\./);
+    expect(e.html).not.toContain("<b>Room</b>");
+    const settled = renderEmail({ kind: "booking_invoice", booking, link: LINK, payload: { ...payload, balance_minor: 0 } });
+    expect(settled.text).toContain("Nothing is owing");
+    const bare = renderEmail({ kind: "booking_invoice", booking, link: LINK });
+    expect(bare.subject).toBe("Your invoice from " + booking.property_name);
+  });
   it("folio_invoice: a payload with no or bad lines still renders, and nothing in a line is trusted as HTML", () => {
     const bare = renderEmail({ kind: "folio_invoice", booking, link: LINK });
     expect(bare.subject).toBe("Invoice for extras at " + booking.property_name);

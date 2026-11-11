@@ -787,4 +787,8 @@ OH="$(psql -f "$HERE/95_ops_health.sql" 2>&1)" || { echo "$OH"; echo "OPS HEALTH
 echo "$OH" | grep -E 'PASS' || true
 if echo "$OH" | grep -qE 'FAIL|ERROR'; then echo "$OH"; echo "OPS HEALTH TESTS FAILED"; exit 1; fi
 
+EI="$(psql -f "$HERE/96_email_booking_invoice.sql" 2>&1)" || { echo "$EI"; echo "EMAIL BOOKING INVOICE TESTS FAILED"; exit 1; }
+echo "$EI" | grep -E 'PASS' || true
+if echo "$EI" | grep -qE 'FAIL|ERROR'; then echo "$EI"; echo "EMAIL BOOKING INVOICE TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"
