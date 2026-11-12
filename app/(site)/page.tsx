@@ -20,6 +20,7 @@ import {
 import {
   guestHotel,
   guestOffers,
+  guestPlaces,
   guestPolicy,
   guestReviews,
   guestRoomTypes,
@@ -40,12 +41,13 @@ export default async function GuestHome({ searchParams }: Props) {
   const stay = parseStayParams(raw);
   const limited = stay ? !(await checkGuestLimits({ ip: ["search"] })).allowed : false;
   const host = await requestHost();
-  const [result, hotelResult, typesResult, policyResult, offersResult, reviewsResult] = await Promise.all([
+  const [result, hotelResult, typesResult, policyResult, offersResult, placesResult, reviewsResult] = await Promise.all([
     stay && !limited ? searchAvailability(host, stay) : null,
     guestHotel(host),
     guestRoomTypes(host),
     guestPolicy(host),
     guestOffers(host),
+    guestPlaces(host),
     guestReviews(host),
   ]);
   const hotel = hotelResult.ok ? hotelResult.data : null;
@@ -67,6 +69,7 @@ export default async function GuestHome({ searchParams }: Props) {
   const highlights = amenityHighlights(types, 6);
   const cancelBadge = policyResult.ok ? freeCancellationBadge(policyResult.data) : null;
   const offers = offersResult.ok ? offersResult.data.offers : [];
+  const places = placesResult.ok ? placesResult.data.places : [];
   const reviews = reviewsResult.ok ? reviewsResult.data : null;
   const summary = reviews ? averageLabel(reviews.average, reviews.count) : null;
   const searching = Boolean(stay && result?.ok);
@@ -389,6 +392,22 @@ export default async function GuestHome({ searchParams }: Props) {
                   </li>
                 );
               })}
+            </ul>
+          </section>
+        ) : null}
+
+        {!searching && places.length > 0 ? (
+          <section aria-labelledby="places-title" className="pt-6">
+            <h2 id="places-title" className="font-display text-3xl">
+              Near the hotel
+            </h2>
+            <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {places.map((pl, i) => (
+                <li key={i} className="rounded-2xl border border-line bg-white p-4">
+                  <h3 className="text-sm font-semibold">{pl.name}</h3>
+                  {pl.body ? <p className="mt-1 text-xs text-muted">{pl.body}</p> : null}
+                </li>
+              ))}
             </ul>
           </section>
         ) : null}

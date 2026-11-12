@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { back, ok, staffClient } from "./action-helpers";
 import { parseDecision } from "./guest-reviews";
 import { parseOfferForm } from "./hotel-offers";
+import { parsePlaceForm } from "./hotel-places";
 import { parseExtrasForm } from "./hotel-extras";
 import { parseBasicsForm, parseProfileForm, parseThemeForm } from "./hotel-profile";
 import { logoPath, PHOTO_BUCKET, validatePhoto } from "./room-photos";
@@ -200,6 +201,49 @@ export async function deleteHotelOffer(formData: FormData) {
   revalidatePath(OFFERS_PAGE);
   revalidatePath("/");
   return ok(OFFERS_PAGE, "offer_deleted");
+}
+
+const PLACES_PAGE = "/app/settings/places";
+
+function placeError(
+  message: string,
+  code?: string,
+): "setup_forbidden" | "place_invalid" | "place_limit" | ReturnType<typeof classifySetupError> {
+  if (/NOT_FOUND/.test(message)) return "setup_forbidden";
+  if (/POLICY_VIOLATION: limit/.test(message)) return "place_limit";
+  if (/POLICY_VIOLATION: (name|text)/.test(message)) return "place_invalid";
+  return classifySetupError({ message, code });
+}
+
+/** Creates or edits a "near the hotel" place for the guest homepage (migration 119). The database requires property.configure there. */
+export async function saveHotelPlace(formData: FormData) {
+  const v = parsePlaceForm(Object.fromEntries(formData));
+  if (!v.ok) return back(PLACES_PAGE, { err: v.code });
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("save_hotel_place", {
+    p_property: v.value.propertyId,
+    p_place: v.value.placeId as string,
+    p_name: v.value.name,
+    p_body: v.value.body,
+    p_active: v.value.active,
+    p_sort: v.value.sort,
+  });
+  if (error) return back(PLACES_PAGE, { err: placeError(error.message, error.code) });
+  revalidatePath(PLACES_PAGE);
+  revalidatePath("/");
+  return ok(PLACES_PAGE, "place_saved");
+}
+
+/** Deletes a place. */
+export async function deleteHotelPlace(formData: FormData) {
+  const id = String(formData.get("placeId") ?? "");
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return back(PLACES_PAGE, { err: "place_invalid" });
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("delete_hotel_place", { p_place: id });
+  if (error) return back(PLACES_PAGE, { err: placeError(error.message, error.code) });
+  revalidatePath(PLACES_PAGE);
+  revalidatePath("/");
+  return ok(PLACES_PAGE, "place_deleted");
 }
 
 const REVIEWS_PAGE = "/app/settings/reviews";

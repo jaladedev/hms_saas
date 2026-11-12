@@ -215,6 +215,8 @@ export type ErrorCode =
   | "review_invalid"
   | "offer_dates"
   | "offer_limit"
+  | "place_invalid"
+  | "place_limit"
   | "invoice_pay_unavailable"
   | "invoice_pay_failed"
   | "invoice_pay_closed"
@@ -431,6 +433,8 @@ export const OK_MESSAGES = {
   review_rejected: "Review rejected. It is not shown on your website.",
   offer_saved: "Offer saved. Guests see it on the homepage while it is switched on and inside its dates.",
   offer_deleted: "Offer deleted.",
+  place_saved: "Place saved. Guests see it on the homepage while it is switched on.",
+  place_deleted: "Place deleted.",
   invoice_paid: "Payment received. The invoice is marked paid. Thank you.",
   invoice_pay_pending: "We have not received the payment yet. If you paid, it will show here shortly; otherwise try again.",
   hotel_theme_saved: "Look saved. Your website and the staff screens for this hotel now use it.",
@@ -609,6 +613,10 @@ export function errorMessage(code: string, refundable: number | null, formatMino
       return "That invoice is no longer open.";
     case "invoice_pay_review":
       return "A payment came in that does not match the invoice. Nothing was marked paid; the platform will contact you. Keep your payment receipt.";
+    case "place_invalid":
+      return "Check the place. It needs a name (up to 60 characters); the text can be up to 140.";
+    case "place_limit":
+      return "A hotel can list up to 8 places. Delete one you no longer need first.";
     case "offer_limit":
       return "A hotel can have up to 12 offers. Delete one you no longer need first.";
     case "theme_radius":

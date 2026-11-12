@@ -879,4 +879,8 @@ IOP="$(psql -f "$HERE/117_invoice_online_payment.sql" 2>&1)" || { echo "$IOP"; e
 echo "$IOP" | grep -E 'PASS' || true
 if echo "$IOP" | grep -qE 'FAIL|ERROR'; then echo "$IOP"; echo "INVOICE ONLINE PAYMENT TESTS FAILED"; exit 1; fi
 
+HPL="$(psql -f "$HERE/119_hotel_places.sql" 2>&1)" || { echo "$HPL"; echo "HOTEL PLACES TESTS FAILED"; exit 1; }
+echo "$HPL" | grep -E 'PASS' || true
+if echo "$HPL" | grep -qE 'FAIL|ERROR'; then echo "$HPL"; echo "HOTEL PLACES TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

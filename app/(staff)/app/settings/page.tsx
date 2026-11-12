@@ -48,6 +48,11 @@ const SECTIONS = [
     text: "Your plan and the invoices from the platform. For the owner and general manager.",
   },
   {
+    href: "/app/settings/places",
+    title: "Near the hotel",
+    text: "Places guests might visit, such as a hall, gardens or a landmark, shown on your website's homepage. Up to 8.",
+  },
+  {
     href: "/app/settings/platform-access",
     title: "Platform access",
     text: "When someone from the platform opened your setup, who approved the time and how long it lasted. For the owner and general manager.",

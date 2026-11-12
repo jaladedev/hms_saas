@@ -838,6 +838,51 @@ export type Database = {
           },
         ]
       }
+      hotel_places: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          property_id: string
+          sort_order: number
+          tenant_id: string
+          updated_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          body?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          property_id: string
+          sort_order?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          property_id?: string
+          sort_order?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hotel_places_tenant_id_property_id_fkey"
+            columns: ["tenant_id", "property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
       idempotency_keys: {
         Row: {
           created_at: string
@@ -3150,6 +3195,12 @@ export type Database = {
       hotel_start_invoice_payment: { Args: { p_invoice: string; p_property: string }; Returns: Json }
       settle_invoice_payment: { Args: { p_amount_minor: number; p_currency: string; p_reference: string; p_status: string }; Returns: Json }
       platform_open_invoices: { Args: Record<string, never>; Returns: Json }
+      save_hotel_place: {
+        Args: { p_active: boolean; p_body: string; p_name: string; p_place: string; p_property: string; p_sort?: number }
+        Returns: Json
+      }
+      delete_hotel_place: { Args: { p_place: string }; Returns: undefined }
+      guest_places: { Args: { p_host: string }; Returns: Json }
       hotel_platform_access: { Args: { p_property: string }; Returns: Json }
       guest_offers: { Args: { p_host: string }; Returns: Json }
       email_booking_invoice: { Args: { p_idempotency_key: string; p_invoice_id: string }; Returns: Json }

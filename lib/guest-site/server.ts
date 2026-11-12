@@ -143,6 +143,11 @@ export type HomeOffer = { title: string; body: string; badge: string | null; val
 /** The hotel's live offers for the homepage (migration 102): active, inside their dates, at most six. */
 export const guestOffers = cache((host: string) => call<{ offers: HomeOffer[] }>("guest_offers", { p_host: host }));
 
+export type HomePlace = { name: string; body: string };
+
+/** The places near the hotel that it lists on the homepage (migration 119), switched-on ones in the hotel's order. */
+export const guestPlaces = cache((host: string) => call<{ places: HomePlace[] }>("guest_places", { p_host: host }));
+
 export type ReviewState = { can_review: boolean; review: { rating: number; comment: string; status: string } | null };
 export type PublicReview = { rating: number; comment: string; author: string; month: string };
 export type PublicReviews = { average: number | null; count: number; reviews: PublicReview[] };
