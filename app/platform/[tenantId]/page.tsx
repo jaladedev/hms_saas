@@ -27,6 +27,7 @@ import {
   setTenantStatus,
 } from "@/lib/platform/actions";
 import { shortDate } from "@/lib/platform/hotel";
+import { readReadiness, summarize, type Check } from "@/lib/platform/readiness";
 import { formatMoney } from "@/lib/guest-site/format";
 import { createClient } from "@/lib/supabase/server";
 
@@ -78,12 +79,15 @@ export default async function HotelDetail({
   if (!z.guid().safeParse(tenantId).success) notFound();
   const search = await searchParams;
   const supabase = await createClient();
-  const [{ data, error }, level, planList, invoiceList] = await Promise.all([
+  const [{ data, error }, level, planList, invoiceList, readinessData] = await Promise.all([
     supabase.rpc("platform_tenant_detail", { p_tenant: tenantId }),
     supabase.rpc("platform_level"),
     supabase.rpc("platform_list_plans"),
     supabase.rpc("platform_list_invoices", { p_tenant: tenantId }),
+    supabase.rpc("platform_hotel_readiness", { p_tenant: tenantId }),
   ]);
+  const readiness = readReadiness(readinessData.data);
+  const ready = readiness ? summarize(readiness) : null;
   const invoices = (invoiceList.data ?? []) as unknown as Invoice[];
   const plans = ((planList.data ?? []) as unknown as { code: string; name: string; active: boolean }[]).filter((p) => p.active);
   if (error || !data) notFound();
@@ -106,6 +110,26 @@ export default async function HotelDetail({
         </p>
       </div>
       <PlatformNotice search={search} />
+
+      <section aria-labelledby="ready">
+        <SectionTitle id="ready">Can guests book?</SectionTitle>
+        {ready ? (
+          <>
+            <p className="mt-2 max-w-prose text-sm text-muted">
+              {ready.blockers === 0
+                ? "Nothing stops a guest booking on the website. Items marked advice are worth a look but do not stop one."
+                : `${ready.blockers} ${ready.blockers === 1 ? "thing stops" : "things stop"} a guest booking on the website.`}{" "}
+              Counts and settings only; no guest, reservation or payment is shown here.
+            </p>
+            <ReadinessList title="Hotel group" checks={ready.group} />
+            {ready.properties.map((p) => (
+              <ReadinessList key={p.id} title={p.name} checks={p.checks} />
+            ))}
+          </>
+        ) : (
+          <p className="mt-2 text-sm text-muted">The check could not be loaded. Reload the page.</p>
+        )}
+      </section>
 
       <section aria-labelledby="props">
         <SectionTitle id="props">Properties</SectionTitle>
@@ -530,5 +554,24 @@ export default async function HotelDetail({
         </section>
       )}
     </main>
+  );
+}
+
+function ReadinessList({ title, checks }: { title: string; checks: Check[] }) {
+  return (
+    <div className="mt-4">
+      <h3 className="text-sm font-medium">{title}</h3>
+      <ul className="mt-1">
+        {checks.map((c) => (
+          <li key={c.key} className="flex flex-wrap items-baseline gap-x-3 border-b border-line py-2 text-sm">
+            <span className={c.ok ? "text-ink" : c.blocker ? "font-medium text-critical" : "font-medium text-pending"}>
+              {c.ok ? "OK" : c.blocker ? "Stops bookings" : "Advice"}
+            </span>
+            <span className="font-medium">{c.label}</span>
+            <span className="text-muted">{c.detail}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

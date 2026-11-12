@@ -839,4 +839,8 @@ PEO="$(psql -f "$HERE/108_platform_entitlements_overview.sql" 2>&1)" || { echo "
 echo "$PEO" | grep -E 'PASS' || true
 if echo "$PEO" | grep -qE 'FAIL|ERROR'; then echo "$PEO"; echo "PLATFORM ENTITLEMENTS TESTS FAILED"; exit 1; fi
 
+PHR="$(psql -f "$HERE/109_platform_hotel_readiness.sql" 2>&1)" || { echo "$PHR"; echo "PLATFORM READINESS TESTS FAILED"; exit 1; }
+echo "$PHR" | grep -E 'PASS' || true
+if echo "$PHR" | grep -qE 'FAIL|ERROR'; then echo "$PHR"; echo "PLATFORM READINESS TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

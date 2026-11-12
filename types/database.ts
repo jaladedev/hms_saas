@@ -3247,6 +3247,7 @@ export type Database = {
       }
       platform_level: { Args: Record<PropertyKey, never>; Returns: string }
       platform_entitlements_overview: { Args: Record<PropertyKey, never>; Returns: Json }
+      platform_hotel_readiness: { Args: { p_tenant: string }; Returns: Json }
       platform_list_tenants: { Args: Record<PropertyKey, never>; Returns: Json }
       platform_require: { Args: { p_min: string }; Returns: string }
       platform_set_domain_verified: {
