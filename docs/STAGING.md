@@ -281,6 +281,18 @@ Using the Paystack test card from Paystack's documentation:
 - Leave one hold unpaid and wait past the hold time. After the next cron run it shows as expired and the room is free again.
 - Replay the same webhook from the Paystack dashboard: nothing changes and nothing is paid twice.
 
+**A hotel paying a platform invoice online (migration 117).** Needs `PLATFORM_PAYSTACK_SECRET_KEY` (a TEST key) in the environment and the
+platform Paystack account's webhook set to `https://<staging-host>/api/webhooks/platform-paystack`. Without the key the route answers 404 and
+the "Pay online" button does not appear, which is itself worth checking once.
+
+- As a platform admin, raise an open invoice for the staging hotel (`/platform/<hotel group>`); it also shows on `/platform/invoices`.
+- Signed in as that hotel's owner, open Settings, Billing: the invoice shows "Pay online". Pay it with the test card. Back on the page the
+  invoice is paid, and it leaves `/platform/invoices`.
+- Replay the webhook from the Paystack dashboard: nothing changes and the invoice is not paid twice.
+- A login without `property.configure` (front desk) sees no button and cannot start a payment.
+- An admin voids an open invoice, then the hotel pays it anyway from a page opened earlier: the invoice stays void, the attempt is marked
+  paid and the app logs it (the money was taken, so a person has to decide what to do with it). Look for that log line.
+
 Also try the bank-details path on a refund once in TEST mode. That path is still unchecked against Paystack's real
 responses (see TODO).
 
