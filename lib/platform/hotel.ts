@@ -301,3 +301,53 @@ export function planPriceLabel(minor: number, currency: string, placeholder: boo
   const amount = new Intl.NumberFormat("en-NG", { style: "currency", currency }).format(minor / 100);
   return `${amount} a month${placeholder ? " (placeholder)" : ""}`;
 }
+
+// ---- finding hotels, and the entitlements grid -----------------------------------------------------------------------------------
+
+export type HotelListRow = {
+  id: string;
+  name: string;
+  slug: string;
+  status: string;
+  plan_code: string | null;
+  subscription_status: string | null;
+};
+
+/** Hotels whose name, slug or plan code contains every word typed (any case), optionally only one status. Blank means all. */
+export function filterHotels<T extends HotelListRow>(rows: T[], q: string | undefined, status?: string): T[] {
+  const words = (q ?? "").toLowerCase().split(/\s+/).filter(Boolean);
+  return rows.filter((r) => {
+    if (status && r.status !== status) return false;
+    const hay = `${r.name} ${r.slug} ${r.plan_code ?? ""} ${r.subscription_status ?? ""}`.toLowerCase();
+    return words.every((w) => hay.includes(w));
+  });
+}
+
+export type EntitlementOverview = {
+  enforced: string[];
+  hotels: (HotelListRow & { entitlements: { feature_key: string; enabled: boolean }[] })[];
+};
+
+/** "on" or "off" is a row an admin set; "default-on" an enforced flag with no row (works); "unset" any other key with no row. */
+export type FlagCell = "on" | "off" | "default-on" | "unset";
+
+export function flagCell(entitlements: { feature_key: string; enabled: boolean }[], key: string, enforced: string[]): FlagCell {
+  const row = entitlements.find((e) => e.feature_key === key);
+  if (row) return row.enabled ? "on" : "off";
+  return enforced.includes(key) ? "default-on" : "unset";
+}
+
+/** The columns of the grid: the enforced flags first (in the platform's order), then any other key some hotel has, sorted. */
+export function gridKeys(o: EntitlementOverview): string[] {
+  const extra = new Set<string>();
+  for (const h of o.hotels) for (const e of h.entitlements) if (!o.enforced.includes(e.feature_key)) extra.add(e.feature_key);
+  return [...o.enforced, ...[...extra].sort()];
+}
+
+/** Reads the overview defensively: anything that is not the expected shape becomes an empty overview. */
+export function readOverview(raw: unknown): EntitlementOverview {
+  const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const enforced = Array.isArray(o.enforced) ? o.enforced.filter((k): k is string => typeof k === "string") : [];
+  const hotels = Array.isArray(o.hotels) ? (o.hotels as EntitlementOverview["hotels"]) : [];
+  return { enforced, hotels: hotels.map((h) => ({ ...h, entitlements: Array.isArray(h.entitlements) ? h.entitlements : [] })) };
+}

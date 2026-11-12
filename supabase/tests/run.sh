@@ -835,4 +835,8 @@ GQ="$(psql -f "$HERE/107_guest_requests.sql" 2>&1)" || { echo "$GQ"; echo "GUEST
 echo "$GQ" | grep -E 'PASS' || true
 if echo "$GQ" | grep -qE 'FAIL|ERROR'; then echo "$GQ"; echo "GUEST REQUEST TESTS FAILED"; exit 1; fi
 
+PEO="$(psql -f "$HERE/108_platform_entitlements_overview.sql" 2>&1)" || { echo "$PEO"; echo "PLATFORM ENTITLEMENTS TESTS FAILED"; exit 1; }
+echo "$PEO" | grep -E 'PASS' || true
+if echo "$PEO" | grep -qE 'FAIL|ERROR'; then echo "$PEO"; echo "PLATFORM ENTITLEMENTS TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

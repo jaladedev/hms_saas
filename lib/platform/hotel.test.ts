@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   classifyPlatformError,
+  filterHotels,
+  flagCell,
+  gridKeys,
+  readOverview,
   ERROR_MESSAGES,
   FIELD_MESSAGES,
   normalizeHost,
@@ -192,5 +196,71 @@ describe("plan prices", () => {
   it("marks a placeholder price so nobody reads it as decided", () => {
     expect(planPriceLabel(3500000, "NGN", false)).toMatch(/35,000\.00 a month$/);
     expect(planPriceLabel(3500000, "NGN", true)).toMatch(/a month \(placeholder\)$/);
+  });
+});
+
+const hotels = [
+  { id: "1", name: "Bodija Boutique", slug: "bodija", status: "active", plan_code: "pro", subscription_status: "active" },
+  { id: "2", name: "Lagos Retreat", slug: "lagos-retreat", status: "suspended", plan_code: null, subscription_status: null },
+  { id: "3", name: "Ibadan Grand", slug: "ibadan-grand", status: "active", plan_code: "standard", subscription_status: "trial" },
+];
+
+describe("filterHotels", () => {
+  it("returns everything for a blank search", () => {
+    expect(filterHotels(hotels, undefined)).toHaveLength(3);
+    expect(filterHotels(hotels, "   ")).toHaveLength(3);
+  });
+  it("matches name, slug, plan and subscription status in any case, all words together", () => {
+    expect(filterHotels(hotels, "BODIJA").map((h) => h.id)).toEqual(["1"]);
+    expect(filterHotels(hotels, "retreat").map((h) => h.id)).toEqual(["2"]);
+    expect(filterHotels(hotels, "standard trial").map((h) => h.id)).toEqual(["3"]);
+    expect(filterHotels(hotels, "grand pro")).toEqual([]);
+    expect(filterHotels(hotels, "nothing here")).toEqual([]);
+  });
+  it("narrows by status, with or without words", () => {
+    expect(filterHotels(hotels, "", "suspended").map((h) => h.id)).toEqual(["2"]);
+    expect(filterHotels(hotels, "grand", "active").map((h) => h.id)).toEqual(["3"]);
+    expect(filterHotels(hotels, "lagos", "active")).toEqual([]);
+  });
+});
+
+describe("entitlement grid", () => {
+  const enforced = ["reports.export", "discounts"];
+  it("shows a set row as on or off, an enforced flag without a row as default on, any other key as not set", () => {
+    const e = [
+      { feature_key: "discounts", enabled: false },
+      { feature_key: "api.access", enabled: true },
+    ];
+    expect(flagCell(e, "discounts", enforced)).toBe("off");
+    expect(flagCell(e, "api.access", enforced)).toBe("on");
+    expect(flagCell(e, "reports.export", enforced)).toBe("default-on");
+    expect(flagCell(e, "branding", enforced)).toBe("unset");
+  });
+  it("lists the enforced flags first, then every other key any hotel has, sorted and once", () => {
+    const o = readOverview({
+      enforced,
+      hotels: [
+        {
+          ...hotels[0],
+          entitlements: [
+            { feature_key: "zeta", enabled: true },
+            { feature_key: "api.access", enabled: true },
+          ],
+        },
+        {
+          ...hotels[1],
+          entitlements: [
+            { feature_key: "api.access", enabled: false },
+            { feature_key: "discounts", enabled: false },
+          ],
+        },
+      ],
+    });
+    expect(gridKeys(o)).toEqual(["reports.export", "discounts", "api.access", "zeta"]);
+  });
+  it("reads a malformed overview as an empty one", () => {
+    for (const bad of [null, undefined, 5, "x", [], { hotels: "x", enforced: 3 }])
+      expect(readOverview(bad)).toEqual({ enforced: [], hotels: [] });
+    expect(readOverview({ enforced: ["a", 2], hotels: [{ id: "1", entitlements: null }] }).hotels[0]?.entitlements).toEqual([]);
   });
 });

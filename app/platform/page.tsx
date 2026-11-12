@@ -1,7 +1,17 @@
 import Link from "next/link";
-import { EmptyState, ErrorBanner, headRow, linkClass, PageIntro, PageTitle, thRowHead } from "@/components/staff/ui";
+import {
+  buttonPrimary,
+  EmptyState,
+  ErrorBanner,
+  headRow,
+  inputClass,
+  linkClass,
+  PageIntro,
+  PageTitle,
+  thRowHead,
+} from "@/components/staff/ui";
 import { PlatformNotice } from "@/components/platform-notice";
-import { shortDate } from "@/lib/platform/hotel";
+import { filterHotels, shortDate } from "@/lib/platform/hotel";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +34,11 @@ export default async function Hotels({ searchParams }: { searchParams: Promise<R
   const search = await searchParams;
   const supabase = await createClient();
   const [{ data, error }, level] = await Promise.all([supabase.rpc("platform_list_tenants"), supabase.rpc("platform_level")]);
-  const rows = (Array.isArray(data) ? data : []) as Row[];
+  const all = (Array.isArray(data) ? data : []) as Row[];
+  const q = typeof search.q === "string" ? search.q.trim().slice(0, 80) : "";
+  const status = typeof search.status === "string" ? search.status : "";
+  const rows = filterHotels(all, q, status);
+  const statuses = [...new Set(all.map((r) => r.status))].sort();
 
   return (
     <main className="max-w-5xl">
@@ -41,8 +55,49 @@ export default async function Hotels({ searchParams }: { searchParams: Promise<R
           </Link>
         </p>
       )}
+      {all.length > 0 && (
+        <form method="get" role="search" className="mb-4 flex flex-wrap items-end gap-3">
+          <div>
+            <label htmlFor="hq" className="block text-sm">
+              Find a hotel
+            </label>
+            <input
+              id="hq"
+              name="q"
+              type="search"
+              defaultValue={q}
+              maxLength={80}
+              placeholder="Name, short name or plan"
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label htmlFor="hs" className="block text-sm">
+              Status
+            </label>
+            <select id="hs" name="status" defaultValue={status} className={inputClass}>
+              <option value="">Any</option>
+              {statuses.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button type="submit" className={buttonPrimary}>
+            Search
+          </button>
+          {(q || status) && (
+            <Link href="/platform" className={linkClass}>
+              Clear
+            </Link>
+          )}
+        </form>
+      )}
       {rows.length === 0 ? (
-        <EmptyState>{error ? "Nothing could be confirmed." : "No hotels yet."}</EmptyState>
+        <EmptyState>
+          {error ? "Nothing could be confirmed." : all.length > 0 ? "No hotel matches that search." : "No hotels yet."}
+        </EmptyState>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
