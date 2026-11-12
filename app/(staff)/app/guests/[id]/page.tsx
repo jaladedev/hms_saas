@@ -5,6 +5,7 @@ import { buttonPrimary, inputClass, Notice, linkClass, PageTitle, SectionTitle }
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { updateGuest } from "@/lib/staff/guest-actions";
 import { createClient } from "@/lib/supabase/server";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 
@@ -131,9 +132,9 @@ export default async function GuestPage({
               />
             </div>
             <div className="md:col-span-2">
-              <button type="submit" className={buttonPrimary}>
+              <PendingButton className={buttonPrimary} pendingLabel="Saving…">
                 Save details
-              </button>
+              </PendingButton>
               <p className="mt-2 max-w-prose text-xs text-muted">
                 An email change applies to future bookings and messages. Emails already queued still go to the address they were queued
                 with.

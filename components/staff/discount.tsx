@@ -2,6 +2,7 @@ import { buttonPrimary, inputClass } from "@/components/staff/ui";
 import { minorToInput } from "@/lib/staff/money-input";
 import { blockedText, DISCOUNT_REASON_MAX, type DiscountView } from "@/lib/staff/discount";
 import { setDiscount } from "@/lib/staff/discount-actions";
+import { PendingButton } from "@/components/ui/pending-button";
 
 /**
  * "Discount" under the Money figures of a confirmed booking (migration 058). Offered only while nothing is paid and no
@@ -67,9 +68,9 @@ export function Discount({ reservationId, view }: { reservationId: string; view:
           Replaces any discount already given. The tax lines stay as they are; the discount comes off the total.
         </p>
         <div>
-          <button type="submit" className={buttonPrimary}>
+          <PendingButton className={buttonPrimary} pendingLabel="Saving…">
             Save discount
-          </button>
+          </PendingButton>
         </div>
       </form>
     </details>

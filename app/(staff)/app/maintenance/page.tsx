@@ -28,6 +28,7 @@ import { claimRequest, resolveRequest, startRequest } from "@/lib/staff/maintena
 import type { BoardRoom } from "@/lib/staff/room-board";
 import { compareRoomNumbers } from "@/lib/staff/room-board";
 import { createClient } from "@/lib/supabase/server";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 
@@ -137,17 +138,17 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
             {a.claim && (
               <form action={claimRequest}>
                 <input type="hidden" name="requestId" value={r.id} />
-                <button type="submit" className={buttonQuiet}>
+                <PendingButton className={buttonQuiet} pendingLabel="Saving…">
                   Take it
-                </button>
+                </PendingButton>
               </form>
             )}
             {a.start && (
               <form action={startRequest}>
                 <input type="hidden" name="requestId" value={r.id} />
-                <button type="submit" className={buttonQuiet}>
+                <PendingButton className={buttonQuiet} pendingLabel="Starting…">
                   Start
-                </button>
+                </PendingButton>
               </form>
             )}
             {a.resolve && (
@@ -160,9 +161,9 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
                   aria-label={`What was done for ${r.title}`}
                   className={`${inputClass} w-44`}
                 />
-                <button type="submit" className={buttonPrimary}>
+                <PendingButton className={buttonPrimary} pendingLabel="Saving…">
                   Fixed
-                </button>
+                </PendingButton>
               </form>
             )}
           </div>
@@ -234,9 +235,9 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
               </option>
             ))}
           </select>
-          <button type="submit" className={buttonQuiet}>
+          <PendingButton className={buttonQuiet} pendingLabel="Saving…">
             Show
-          </button>
+          </PendingButton>
         </form>
       )}
 

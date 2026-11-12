@@ -1,6 +1,7 @@
 import { buttonQuiet, inputClass } from "@/components/staff/ui";
 import { GUEST_LINK_REASON_MAX } from "@/lib/staff/guest-link";
 import { resetGuestLinks } from "@/lib/staff/guest-link-actions";
+import { PendingButton } from "@/components/ui/pending-button";
 
 /**
  * "Reset the guest's links" on a booking (migration 066): for a link that went to the wrong person. Every link sent so far
@@ -24,9 +25,9 @@ export function GuestLinkReset({ reservationId }: { reservationId: string }) {
           <textarea id="guest-link-reason" name="reason" required maxLength={GUEST_LINK_REASON_MAX} rows={2} className={inputClass} />
         </div>
         <div>
-          <button type="submit" className={buttonQuiet}>
+          <PendingButton className={buttonQuiet} pendingLabel="Resetting…">
             Reset links
-          </button>
+          </PendingButton>
         </div>
       </form>
     </details>

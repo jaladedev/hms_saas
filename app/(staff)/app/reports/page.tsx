@@ -8,6 +8,7 @@ import { todayIn } from "@/lib/staff/reservations";
 import { createClient } from "@/lib/supabase/server";
 import { rememberedProperty } from "@/lib/staff/active-property";
 import { pickProperty } from "@/lib/staff/property-choice";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 
@@ -95,9 +96,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           To
           <input type="date" name="to" defaultValue={range.to} className={`${inputClass} mt-1 block`} />
         </label>
-        <button type="submit" className={buttonPrimary}>
+        <PendingButton className={buttonPrimary} pendingLabel="Saving…">
           Show
-        </button>
+        </PendingButton>
         <PrintButton />
       </form>
       {range.trimmed && (

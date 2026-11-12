@@ -17,6 +17,7 @@ import {
   type Lookup,
 } from "@/lib/staff/setup-history";
 import { createClient } from "@/lib/supabase/server";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 
@@ -142,9 +143,9 @@ export default async function SetupHistoryPage({ searchParams }: { searchParams:
             ))}
           </select>
         </div>
-        <button type="submit" className={buttonPrimary}>
+        <PendingButton className={buttonPrimary} pendingLabel="Saving…">
           Show
-        </button>
+        </PendingButton>
       </form>
 
       {property && many && (f.what === "all" || f.what === "staff") && (

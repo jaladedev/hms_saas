@@ -80,9 +80,9 @@ export default async function HotelDetailsPage({ searchParams }: { searchParams:
                     <img src={photoUrl(supabaseUrl, p.logo_path)} alt={`${p.name} logo`} className="h-12 max-w-48 object-contain" />
                     <form action={removeHotelLogo}>
                       <input type="hidden" name="propertyId" value={p.id} />
-                      <button type="submit" className={buttonQuiet}>
+                      <PendingButton className={buttonQuiet} pendingLabel="Removing…">
                         Remove logo
-                      </button>
+                      </PendingButton>
                     </form>
                   </div>
                 ) : (
@@ -171,9 +171,9 @@ export default async function HotelDetailsPage({ searchParams }: { searchParams:
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <button type="submit" className={buttonPrimary}>
+                  <PendingButton className={buttonPrimary} pendingLabel="Saving…">
                     Save name, address and times
-                  </button>
+                  </PendingButton>
                 </div>
               </form>
               <form action={saveHotelProfile} className="mt-8 grid gap-4 sm:grid-cols-2">
@@ -213,9 +213,9 @@ export default async function HotelDetailsPage({ searchParams }: { searchParams:
                   <p className="mt-1 text-xs text-muted">Up to {MAX_INTRO} characters. Shown under the hotel name on the booking page.</p>
                 </div>
                 <div className="sm:col-span-2">
-                  <button type="submit" className={buttonPrimary}>
+                  <PendingButton className={buttonPrimary} pendingLabel="Saving…">
                     Save contact details
-                  </button>
+                  </PendingButton>
                 </div>
               </form>
               <form action={saveHotelExtras} className="mt-8 grid gap-4 sm:grid-cols-2">
@@ -272,9 +272,9 @@ export default async function HotelDetailsPage({ searchParams }: { searchParams:
                   guests.
                 </p>
                 <div className="sm:col-span-2">
-                  <button type="submit" className={buttonPrimary}>
+                  <PendingButton className={buttonPrimary} pendingLabel="Saving…">
                     Save facilities and links
-                  </button>
+                  </PendingButton>
                 </div>
               </form>
             </>

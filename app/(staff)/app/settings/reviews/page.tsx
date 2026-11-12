@@ -2,6 +2,7 @@ import { buttonPrimary, buttonQuiet, EmptyState, ErrorBanner, Notice, PageIntro,
 import { pendingCount, sortReviews, type ReviewRow } from "@/lib/staff/guest-reviews";
 import { moderateGuestReview } from "@/lib/staff/hotel-profile-actions";
 import { createClient } from "@/lib/supabase/server";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 
@@ -84,18 +85,18 @@ export default async function ReviewsPage({ searchParams }: { searchParams: Prom
                         <form action={moderateGuestReview}>
                           <input type="hidden" name="reviewId" value={r.id} />
                           <input type="hidden" name="decision" value="approved" />
-                          <button type="submit" className={buttonPrimary}>
+                          <PendingButton className={buttonPrimary} pendingLabel="Approving…">
                             Approve
-                          </button>
+                          </PendingButton>
                         </form>
                       )}
                       {r.status !== "rejected" && (
                         <form action={moderateGuestReview}>
                           <input type="hidden" name="reviewId" value={r.id} />
                           <input type="hidden" name="decision" value="rejected" />
-                          <button type="submit" className={buttonQuiet}>
+                          <PendingButton className={buttonQuiet} pendingLabel="Rejecting…">
                             Reject
-                          </button>
+                          </PendingButton>
                         </form>
                       )}
                     </div>

@@ -19,6 +19,7 @@ import {
 } from "@/lib/guest-site/server";
 import { payAction } from "./actions";
 import { showsAmountDue } from "@/lib/guest-site/booking-summary";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 // A booking link is a credential: keep it out of search engines and out of Referer headers.
@@ -157,9 +158,12 @@ export default async function BookingPage({ params, searchParams }: Props) {
           <form action={payAction} className="mt-4">
             <input type="hidden" name="token" value={token} />
             <input type="hidden" name="key" value={key} />
-            <button type="submit" className="w-full rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-strong">
+            <PendingButton
+              className="w-full rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-strong"
+              pendingLabel="Paying…"
+            >
               Pay now
-            </button>
+            </PendingButton>
           </form>
         </section>
       ) : null}
@@ -195,9 +199,12 @@ export default async function BookingPage({ params, searchParams }: Props) {
           <form action={payAction}>
             <input type="hidden" name="token" value={token} />
             <input type="hidden" name="key" value={key} />
-            <button type="submit" className="w-full rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-strong">
+            <PendingButton
+              className="w-full rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-strong"
+              pendingLabel="Paying…"
+            >
               Pay the balance of {formatMoney(b.outstanding_minor, b.currency)}
-            </button>
+            </PendingButton>
           </form>
         </section>
       ) : null}

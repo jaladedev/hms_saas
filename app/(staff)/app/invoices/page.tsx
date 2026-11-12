@@ -18,6 +18,7 @@ import {
   startOfNextDayIso,
 } from "@/lib/staff/money-lists";
 import { createClient } from "@/lib/supabase/server";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 
@@ -176,9 +177,9 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
           <input id="to" name="to" type="date" defaultValue={f.to ?? ""} className={inputClass} />
         </div>
         <div className="flex gap-2">
-          <button type="submit" className={buttonPrimary}>
+          <PendingButton className={buttonPrimary} pendingLabel="Searching…">
             Search
-          </button>
+          </PendingButton>
           {invoiceFiltersActive(f) && (
             <Link href="/app/invoices" className={buttonQuiet}>
               Clear

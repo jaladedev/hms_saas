@@ -7,6 +7,7 @@ import { addTicketNote, setTicketStatus } from "@/lib/platform/actions";
 import { shortDate } from "@/lib/platform/hotel";
 import { MAX_NOTE, PRIORITY_LABEL, readTicketDetail, STATUS_LABEL, TICKET_STATUSES } from "@/lib/platform/tickets";
 import { createClient } from "@/lib/supabase/server";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 
@@ -90,9 +91,9 @@ export default async function Ticket({
               Notes are kept as written and cannot be edited or removed. No guest details, payment data or secrets.
             </p>
             <div>
-              <button type="submit" className={buttonPrimary}>
+              <PendingButton className={buttonPrimary} pendingLabel="Adding…">
                 Add note
-              </button>
+              </PendingButton>
             </div>
           </form>
         )}

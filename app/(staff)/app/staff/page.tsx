@@ -16,6 +16,7 @@ import {
 import { addStaffRole, inviteStaff, removeStaffRole, setStaffStatus } from "@/lib/staff/staff-actions";
 import { memberActions, memberLabel, ROLE_HELP, scopeLabel, type Member } from "@/lib/staff/staff-rules";
 import { createClient } from "@/lib/supabase/server";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 
@@ -125,12 +126,12 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
                   {act.removeRole && (
                     <form action={removeStaffRole}>
                       <input type="hidden" name="membershipRoleId" value={r.id} />
-                      <button
-                        type="submit"
+                      <PendingButton
                         className="text-sm text-critical underline underline-offset-2 hover:no-underline focus-visible:outline-2 focus-visible:outline-critical"
+                        pendingLabel="Removing…"
                       >
                         Remove
-                      </button>
+                      </PendingButton>
                     </form>
                   )}
                 </li>
@@ -158,9 +159,9 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
                   </label>
                   <PropertySelect id={`p-${m.membership_id}`} tenantId={m.tenant_id} />
                 </div>
-                <button type="submit" className={buttonQuiet}>
+                <PendingButton className={buttonQuiet} pendingLabel="Adding…">
                   Add role
-                </button>
+                </PendingButton>
               </form>
             </details>
           )}
@@ -169,18 +170,18 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
               <form action={setStaffStatus}>
                 <input type="hidden" name="membershipId" value={m.membership_id} />
                 <input type="hidden" name="status" value="suspended" />
-                <button type="submit" className={buttonQuiet}>
+                <PendingButton className={buttonQuiet} pendingLabel="Suspending…">
                   Suspend
-                </button>
+                </PendingButton>
               </form>
             )}
             {act.reinstate && (
               <form action={setStaffStatus}>
                 <input type="hidden" name="membershipId" value={m.membership_id} />
                 <input type="hidden" name="status" value="active" />
-                <button type="submit" className={buttonPrimary}>
+                <PendingButton className={buttonPrimary} pendingLabel="Restoring…">
                   Restore access
-                </button>
+                </PendingButton>
               </form>
             )}
           </div>
@@ -193,9 +194,9 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
                 <p className="max-w-xs text-xs text-muted">
                   Ends their access and clears all their roles. It cannot be undone; to bring them back, add them again.
                 </p>
-                <button type="submit" className={buttonDanger}>
+                <PendingButton className={buttonDanger} pendingLabel="Removing…">
                   Remove {memberLabel(m)}
-                </button>
+                </PendingButton>
               </form>
             </details>
           )}
@@ -273,9 +274,9 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
             <PropertySelect id="inv-prop" tenantId={manyTenants ? "" : (managedTenants[0]?.id ?? members[0]?.tenant_id ?? "")} />
           </div>
           <div className="md:col-span-2">
-            <button type="submit" className={buttonPrimary}>
+            <PendingButton className={buttonPrimary} pendingLabel="Sending…">
               Send invitation
-            </button>
+            </PendingButton>
           </div>
         </form>
       </section>

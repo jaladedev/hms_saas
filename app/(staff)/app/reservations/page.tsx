@@ -22,6 +22,7 @@ import {
   statusesFor,
 } from "@/lib/staff/reservations";
 import { createClient } from "@/lib/supabase/server";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 
@@ -158,9 +159,9 @@ export default async function ReservationsPage({ searchParams }: { searchParams:
           <input id="to" name="to" type="date" defaultValue={f.to ?? ""} className={inputClass} />
         </div>
         <div className="flex gap-2">
-          <button type="submit" className={buttonPrimary}>
+          <PendingButton className={buttonPrimary} pendingLabel="Searching…">
             Search
-          </button>
+          </PendingButton>
           {filtered && (
             <Link href="/app/reservations" className={buttonQuiet}>
               Clear

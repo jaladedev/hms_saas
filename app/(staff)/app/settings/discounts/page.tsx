@@ -10,6 +10,7 @@ import {
 } from "@/lib/staff/discount-caps";
 import { setDiscountCap } from "@/lib/staff/discount-cap-actions";
 import { createClient } from "@/lib/supabase/server";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 
@@ -102,9 +103,9 @@ export default async function DiscountLimitsPage({
                             className={`${inputClass} w-28`}
                           />
                         </div>
-                        <button type="submit" className={buttonPrimary}>
+                        <PendingButton className={buttonPrimary} pendingLabel="Saving…">
                           Save
-                        </button>
+                        </PendingButton>
                         {c.source === "override" && (
                           <button type="submit" name="reset" value="1" formNoValidate className={buttonQuiet}>
                             Use the standard limit

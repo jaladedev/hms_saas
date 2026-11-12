@@ -1,6 +1,7 @@
 import { buttonPrimary, inputClass } from "@/components/staff/ui";
 import { editStay } from "@/lib/staff/stay-actions";
 import { STAY_REASON_MAX } from "@/lib/staff/stay-edit";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export type StayEditRoom = { id: string; label: string; adults: number; children: number; maxAdults: number; maxChildren: number };
 
@@ -101,9 +102,9 @@ export function StayEdit({
           type. If any room cannot be held, nothing is changed. This works only while nothing has been paid and no invoice is issued.
         </p>
         <div>
-          <button type="submit" className={buttonPrimary}>
+          <PendingButton className={buttonPrimary} pendingLabel="Saving…">
             Save changes
-          </button>
+          </PendingButton>
         </div>
       </form>
     </details>

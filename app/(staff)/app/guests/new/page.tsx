@@ -4,6 +4,7 @@ import { rememberedProperty } from "@/lib/staff/active-property";
 import { createGuest } from "@/lib/staff/guest-actions";
 import { pickProperty } from "@/lib/staff/property-choice";
 import { createClient } from "@/lib/supabase/server";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 
@@ -79,9 +80,9 @@ export default async function NewGuestPage({ searchParams }: { searchParams: Pro
             />
           </div>
           <div className="md:col-span-2">
-            <button type="submit" className={buttonPrimary}>
+            <PendingButton className={buttonPrimary} pendingLabel="Adding…">
               Add guest
-            </button>
+            </PendingButton>
             <p className="mt-2 max-w-prose text-xs text-muted">
               Only the name is required. If a guest with the same email already exists, you are taken to that guest instead of making a
               second record.

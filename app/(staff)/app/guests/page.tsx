@@ -4,6 +4,7 @@ import { formatDate } from "@/lib/guest-site/format";
 import { searchPattern, stayLine, summariseStays, type StayRow } from "@/lib/staff/guests";
 import { todayIn } from "@/lib/staff/reservations";
 import { createClient } from "@/lib/supabase/server";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 const PAGE_SIZE = 50;
@@ -57,9 +58,9 @@ export default async function GuestsPage({ searchParams }: { searchParams: Promi
           Search guests
         </label>
         <input id="q" name="q" defaultValue={q} placeholder="Name, email or phone" autoComplete="off" className={inputClass} />
-        <button type="submit" className={buttonPrimary}>
+        <PendingButton className={buttonPrimary} pendingLabel="Searching…">
           Search
-        </button>
+        </PendingButton>
       </form>
 
       {guestQ.error && <ErrorBanner className="mt-6">The guest list could not be loaded. Reload the page.</ErrorBanner>}

@@ -15,6 +15,7 @@ import {
 import { PERMISSION_GROUPS, parseCustomRoles, roleSummary, type CustomRole } from "@/lib/staff/custom-roles";
 import { createRole, deleteRole, updateRole } from "@/lib/staff/role-actions";
 import { createClient } from "@/lib/supabase/server";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 
@@ -116,9 +117,9 @@ export default async function CustomRolesPage({ searchParams }: { searchParams: 
                         />
                       </div>
                       <PermissionBoxes chosen={r.permissions} />
-                      <button type="submit" className={buttonQuiet}>
+                      <PendingButton className={buttonQuiet} pendingLabel="Saving…">
                         Save changes
-                      </button>
+                      </PendingButton>
                     </form>
                     <form action={deleteRole} className="mt-3">
                       <input type="hidden" name="roleId" value={r.id} />
@@ -147,9 +148,9 @@ export default async function CustomRolesPage({ searchParams }: { searchParams: 
                 <input id={`new-${tenant.id}`} name="name" required minLength={2} maxLength={60} className={inputClass} />
               </div>
               <PermissionBoxes chosen={[]} />
-              <button type="submit" className={buttonPrimary}>
+              <PendingButton className={buttonPrimary} pendingLabel="Creating…">
                 Create role
-              </button>
+              </PendingButton>
             </form>
           </details>
         </section>

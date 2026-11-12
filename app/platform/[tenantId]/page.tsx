@@ -30,6 +30,7 @@ import { shortDate } from "@/lib/platform/hotel";
 import { readReadiness, summarize, type Check } from "@/lib/platform/readiness";
 import { formatMoney } from "@/lib/guest-site/format";
 import { createClient } from "@/lib/supabase/server";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 
@@ -192,9 +193,9 @@ export default async function HotelDetail({
                   <form action={resendOwnerInvite} className="ml-auto">
                     <input type="hidden" name="tenantId" value={t.id} />
                     <input type="hidden" name="userId" value={o.user_id} />
-                    <button type="submit" className={buttonQuiet}>
+                    <PendingButton className={buttonQuiet} pendingLabel="Sending…">
                       Send invitation again
-                    </button>
+                    </PendingButton>
                   </form>
                 )}
               </li>
@@ -221,9 +222,9 @@ export default async function HotelDetail({
                     <input type="hidden" name="tenantId" value={t.id} />
                     <input type="hidden" name="domainId" value={x.id} />
                     <input type="hidden" name="verified" value={x.verified_at ? "false" : "true"} />
-                    <button type="submit" className={x.verified_at ? buttonQuiet : buttonPrimary}>
+                    <PendingButton className={x.verified_at ? buttonQuiet : buttonPrimary} pendingLabel="Working…">
                       {x.verified_at ? "Mark not verified" : "Mark verified"}
-                    </button>
+                    </PendingButton>
                   </form>
                 )}
               </li>
@@ -252,9 +253,9 @@ export default async function HotelDetail({
                 ))}
               </select>
             </div>
-            <button type="submit" className={buttonQuiet}>
+            <PendingButton className={buttonQuiet} pendingLabel="Adding…">
               Add address
-            </button>
+            </PendingButton>
           </form>
         )}
       </section>
@@ -285,9 +286,9 @@ export default async function HotelDetail({
                       <option value="active">Active</option>
                       <option value="disabled">Disabled</option>
                     </select>
-                    <button type="submit" className={buttonQuiet}>
+                    <PendingButton className={buttonQuiet} pendingLabel="Saving…">
                       Save
-                    </button>
+                    </PendingButton>
                   </form>
                 )}
               </li>
@@ -331,9 +332,9 @@ export default async function HotelDetail({
                 ))}
               </select>
             </div>
-            <button type="submit" className={buttonQuiet}>
+            <PendingButton className={buttonQuiet} pendingLabel="Applying…">
               Apply plan
-            </button>
+            </PendingButton>
             <p className="basis-full text-sm text-muted">
               Sets the plan code and turns the eleven enforced flags on or off to match the plan. Use the form below to change only the
               status or dates.
@@ -384,9 +385,9 @@ export default async function HotelDetail({
                 className={inputClass}
               />
             </div>
-            <button type="submit" className={buttonQuiet}>
+            <PendingButton className={buttonQuiet} pendingLabel="Saving…">
               Save plan
-            </button>
+            </PendingButton>
           </form>
         )}
         {d.entitlements.length > 0 && (
@@ -400,9 +401,9 @@ export default async function HotelDetail({
                     <input type="hidden" name="tenantId" value={t.id} />
                     <input type="hidden" name="key" value={f.feature_key} />
                     <input type="hidden" name="enabled" value={f.enabled ? "false" : "true"} />
-                    <button type="submit" className={buttonQuiet}>
+                    <PendingButton className={buttonQuiet} pendingLabel="Working…">
                       {f.enabled ? "Turn off" : "Turn on"}
-                    </button>
+                    </PendingButton>
                   </form>
                 )}
               </li>
@@ -419,9 +420,9 @@ export default async function HotelDetail({
               </label>
               <input id="fkey" name="key" required maxLength={60} className={inputClass} />
             </div>
-            <button type="submit" className={buttonQuiet}>
+            <PendingButton className={buttonQuiet} pendingLabel="Adding…">
               Add and turn on
-            </button>
+            </PendingButton>
           </form>
         )}
       </section>
@@ -461,9 +462,9 @@ export default async function HotelDetail({
                         Payment reference
                       </label>
                       <input id={`ref-${i.id}`} name="reference" required maxLength={120} placeholder="Reference" className={inputClass} />
-                      <button type="submit" className={buttonPrimary}>
+                      <PendingButton className={buttonPrimary} pendingLabel="Saving…">
                         Mark paid
-                      </button>
+                      </PendingButton>
                     </form>
                     <form action={voidInvoice} className="flex items-center gap-2">
                       <input type="hidden" name="tenantId" value={t.id} />
@@ -480,9 +481,9 @@ export default async function HotelDetail({
                         placeholder="Reason"
                         className={inputClass}
                       />
-                      <button type="submit" className={buttonQuiet}>
+                      <PendingButton className={buttonQuiet} pendingLabel="Voiding…">
                         Void
-                      </button>
+                      </PendingButton>
                     </form>
                   </div>
                 )}
@@ -523,9 +524,9 @@ export default async function HotelDetail({
               </label>
               <input id="inote" name="note" maxLength={300} className={inputClass} />
             </div>
-            <button type="submit" className={buttonQuiet}>
+            <PendingButton className={buttonQuiet} pendingLabel="Raising…">
               Raise invoice
-            </button>
+            </PendingButton>
           </form>
         )}
       </section>
@@ -555,9 +556,9 @@ export default async function HotelDetail({
               </label>
               <input id="reason" name="reason" required minLength={3} maxLength={500} className={inputClass} />
             </div>
-            <button type="submit" className={buttonQuiet}>
+            <PendingButton className={buttonQuiet} pendingLabel="Changing…">
               Change status
-            </button>
+            </PendingButton>
           </form>
         </section>
       )}

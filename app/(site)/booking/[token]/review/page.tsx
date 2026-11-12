@@ -5,6 +5,7 @@ import { formatDate } from "@/lib/guest-site/format";
 import { MAX_REVIEW_COMMENT, ratingText } from "@/lib/guest-site/reviews";
 import { bookingStatus, reviewState, verifiedBookingId } from "@/lib/guest-site/server";
 import { reviewAction } from "./actions";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Review your stay", robots: { index: false, follow: false }, referrer: "no-referrer" };
@@ -84,9 +85,12 @@ export default async function ReviewPage({ params, searchParams }: Props) {
             The hotel checks reviews before they appear on its website. Only your first name and the first letter of your last name are
             shown.
           </p>
-          <button type="submit" className="mt-4 rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-strong">
+          <PendingButton
+            className="mt-4 rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-strong"
+            pendingLabel="Sending…"
+          >
             Send review
-          </button>
+          </PendingButton>
         </form>
       ) : (
         <p className="mt-6 text-sm text-muted">You can write a review after your stay, once you have checked out.</p>

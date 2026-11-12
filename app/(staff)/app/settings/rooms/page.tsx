@@ -309,18 +309,18 @@ export default async function RoomSetupPage({ searchParams }: { searchParams: Pr
                             </label>
                           </div>
                           <div className="sm:col-span-2">
-                            <button type="submit" className={buttonPrimary}>
+                            <PendingButton className={buttonPrimary} pendingLabel="Saving…">
                               Save changes
-                            </button>
+                            </PendingButton>
                           </div>
                         </form>
                       </details>
                       <form action={setRoomTypeStatus}>
                         <input type="hidden" name="roomTypeId" value={t.id} />
                         <input type="hidden" name="status" value={t.status === "active" ? "inactive" : "active"} />
-                        <button type="submit" className={buttonQuiet}>
+                        <PendingButton className={buttonQuiet} pendingLabel="Working…">
                           {t.status === "active" ? "Switch off" : "Switch on"}
-                        </button>
+                        </PendingButton>
                       </form>
                     </div>
                   )}
@@ -381,9 +381,9 @@ export default async function RoomSetupPage({ searchParams }: { searchParams: Pr
                         </label>
                         <input id={`fl-${t.id}`} name="floor" inputMode="numeric" className={`${inputClass} w-24`} />
                       </div>
-                      <button type="submit" className={buttonQuiet}>
+                      <PendingButton className={buttonQuiet} pendingLabel="Adding…">
                         Add room
-                      </button>
+                      </PendingButton>
                     </form>
                   )}
                 </div>
@@ -476,9 +476,9 @@ export default async function RoomSetupPage({ searchParams }: { searchParams: Pr
                     </label>
                   </div>
                   <div className="sm:col-span-2">
-                    <button type="submit" className={buttonPrimary}>
+                    <PendingButton className={buttonPrimary} pendingLabel="Adding…">
                       Add room type
-                    </button>
+                    </PendingButton>
                   </div>
                 </form>
               </details>

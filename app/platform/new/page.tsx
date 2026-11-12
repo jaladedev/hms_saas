@@ -4,6 +4,7 @@ import { buttonPrimary, inputClass, linkClass, PageIntro, PageTitle, SectionTitl
 import { PlatformNotice } from "@/components/platform-notice";
 import { createHotel } from "@/lib/platform/actions";
 import { createClient } from "@/lib/supabase/server";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 
@@ -102,9 +103,9 @@ export default async function NewHotel({ searchParams }: { searchParams: Promise
             </select>
           </Field>
         </section>
-        <button type="submit" className={buttonPrimary}>
+        <PendingButton className={buttonPrimary} pendingLabel="Creating…">
           Create hotel
-        </button>
+        </PendingButton>
       </form>
     </main>
   );

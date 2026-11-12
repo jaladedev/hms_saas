@@ -13,6 +13,7 @@ import {
 import { PlatformNotice } from "@/components/platform-notice";
 import { filterHotels, shortDate } from "@/lib/platform/hotel";
 import { createClient } from "@/lib/supabase/server";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 
@@ -84,9 +85,9 @@ export default async function Hotels({ searchParams }: { searchParams: Promise<R
               ))}
             </select>
           </div>
-          <button type="submit" className={buttonPrimary}>
+          <PendingButton className={buttonPrimary} pendingLabel="Searching…">
             Search
-          </button>
+          </PendingButton>
           {(q || status) && (
             <Link href="/platform" className={linkClass}>
               Clear

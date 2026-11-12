@@ -17,6 +17,7 @@ import {
   type TaxRuleRow,
 } from "@/lib/staff/tax-rules";
 import { createClient } from "@/lib/supabase/server";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 
@@ -121,9 +122,9 @@ export default async function TaxRulesPage({ searchParams }: { searchParams: Pro
                         <form action={setExtrasTax}>
                           <input type="hidden" name="ruleId" value={r.id} />
                           <input type="hidden" name="apply" value={r.applies_to_charges ? "off" : "on"} />
-                          <button type="submit" className={r.applies_to_charges ? buttonQuiet : buttonPrimary}>
+                          <PendingButton className={r.applies_to_charges ? buttonQuiet : buttonPrimary} pendingLabel="Working…">
                             {r.applies_to_charges ? "Stop taxing extras" : "Tax extras with this rule"}
-                          </button>
+                          </PendingButton>
                         </form>
                       )}
                       {manage && (
@@ -237,9 +238,9 @@ export default async function TaxRulesPage({ searchParams }: { searchParams: Pro
                               new rule that starts on that day.
                             </p>
                             <div className="sm:col-span-2">
-                              <button type="submit" className={buttonPrimary}>
+                              <PendingButton className={buttonPrimary} pendingLabel="Saving…">
                                 Save changes
-                              </button>
+                              </PendingButton>
                             </div>
                           </form>
                         </details>
@@ -327,9 +328,9 @@ export default async function TaxRulesPage({ searchParams }: { searchParams: Pro
                     A new rule is added to every night priced from its first day. Extras stay untaxed until you switch that on for the rule.
                   </p>
                   <div className="sm:col-span-2">
-                    <button type="submit" className={buttonPrimary}>
+                    <PendingButton className={buttonPrimary} pendingLabel="Adding…">
                       Add tax rule
-                    </button>
+                    </PendingButton>
                   </div>
                 </form>
               </details>

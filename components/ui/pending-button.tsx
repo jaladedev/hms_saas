@@ -22,25 +22,40 @@ export function PendingButton({
   progress?: boolean;
 }) {
   const { pending } = useFormStatus();
+  const button = (
+    <button
+      type="submit"
+      disabled={pending}
+      aria-disabled={pending}
+      className={`${className ?? ""} inline-flex items-center justify-center gap-2`}
+    >
+      {pending ? <Spinner /> : null}
+      {pending ? pendingLabel : children}
+    </button>
+  );
+  const status = (
+    <span role="status" aria-live="polite" className="sr-only">
+      {pending ? pendingLabel : ""}
+    </span>
+  );
+  // Without the progress bar there is no wrapper, so the button sits in its form exactly where a plain button did.
+  if (!progress) {
+    return (
+      <>
+        {button}
+        {status}
+      </>
+    );
+  }
   return (
     <span className="inline-flex flex-col gap-1.5">
-      <button
-        type="submit"
-        disabled={pending}
-        aria-disabled={pending}
-        className={`${className ?? ""} inline-flex items-center justify-center gap-2`}
-      >
-        {pending ? <Spinner /> : null}
-        {pending ? pendingLabel : children}
-      </button>
-      {progress && pending ? (
+      {button}
+      {pending ? (
         <span role="progressbar" aria-label={pendingLabel} className="block h-1 w-full overflow-hidden rounded bg-line">
           <span className="indeterminate-bar block h-full w-1/3 rounded bg-primary" />
         </span>
       ) : null}
-      <span role="status" aria-live="polite" className="sr-only">
-        {pending ? pendingLabel : ""}
-      </span>
+      {status}
     </span>
   );
 }

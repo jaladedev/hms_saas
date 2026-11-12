@@ -36,6 +36,7 @@ import {
 } from "@/lib/staff/folio-invoice";
 import { formatDateTime } from "@/lib/staff/format";
 import { PAYMENT_METHODS } from "@/lib/staff/reservations";
+import { PendingButton } from "@/components/ui/pending-button";
 
 type Search = Record<string, string | string[] | undefined>;
 
@@ -145,9 +146,9 @@ export function FolioSection({
                     />
                     <p className="text-xs text-muted">A charge cannot be edited. Void it, then add it again with the right details.</p>
                     <div>
-                      <button type="submit" className={buttonDanger}>
+                      <PendingButton className={buttonDanger} pendingLabel="Voiding…">
                         Void charge
-                      </button>
+                      </PendingButton>
                     </div>
                   </form>
                 </details>
@@ -237,9 +238,9 @@ export function FolioSection({
                         <input type="hidden" name="reservationId" value={reservationId} />
                         <input type="hidden" name="invoiceId" value={i.id} />
                         <input type="hidden" name="idempotencyKey" value={crypto.randomUUID()} />
-                        <button type="submit" className={buttonQuiet}>
+                        <PendingButton className={buttonQuiet} pendingLabel="Sending…">
                           Email to guest
-                        </button>
+                        </PendingButton>
                         {guestEmail && <span className="ml-2 text-xs text-muted">{guestEmail}</span>}
                       </form>
                     ) : (
@@ -267,9 +268,9 @@ export function FolioSection({
                           stay on the folio.
                         </p>
                         <div>
-                          <button type="submit" className={buttonDanger}>
+                          <PendingButton className={buttonDanger} pendingLabel="Voiding…">
                             Void invoice
-                          </button>
+                          </PendingButton>
                         </div>
                       </form>
                     </details>
@@ -287,9 +288,9 @@ export function FolioSection({
                 {money(inv.uninvoicedTotalMinor)} in all, as one invoice. It cannot be edited afterwards.
               </p>
               <div>
-                <button type="submit" className={buttonPrimary}>
+                <PendingButton className={buttonPrimary} pendingLabel="Issuing…">
                   Issue invoice for extras
-                </button>
+                </PendingButton>
               </div>
             </form>
           )}
@@ -359,9 +360,9 @@ export function FolioSection({
                         guest.
                       </p>
                       <div>
-                        <button type="submit" className={buttonDanger}>
+                        <PendingButton className={buttonDanger} pendingLabel="Reversing…">
                           Reverse payment
-                        </button>
+                        </PendingButton>
                       </div>
                     </form>
                   </details>
@@ -485,9 +486,9 @@ export function FolioSection({
               Tax, if the hotel charges it on extras, is added when you save. A charge cannot be edited afterwards, only voided.
             </p>
             <div>
-              <button type="submit" className={buttonPrimary}>
+              <PendingButton className={buttonPrimary} pendingLabel="Adding…">
                 Add charge
-              </button>
+              </PendingButton>
             </div>
           </form>
         </details>
@@ -541,9 +542,9 @@ export function FolioSection({
               <input id="folio-pay-note" name="note" maxLength={FOLIO_LIMITS.noteMax} className={inputClass} />
             </div>
             <div>
-              <button type="submit" className={buttonPrimary}>
+              <PendingButton className={buttonPrimary} pendingLabel="Recording…">
                 Record payment
-              </button>
+              </PendingButton>
             </div>
           </form>
         </details>

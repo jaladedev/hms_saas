@@ -18,6 +18,7 @@ import { decideRefund, recordManualPayout } from "@/lib/staff/refund-actions";
 import { formatAge, formatDateTime } from "@/lib/staff/format";
 import { availableAction, groupQueue, minutesSince, type RefundRow } from "@/lib/staff/refunds";
 import { createClient } from "@/lib/supabase/server";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 
@@ -156,9 +157,9 @@ export default async function RefundsPage({ searchParams }: { searchParams: Prom
                 <input type="hidden" name="refundId" value={r.id} />
                 <input type="hidden" name="decision" value="approve" />
                 <input type="hidden" name="idempotencyKey" value={crypto.randomUUID()} />
-                <button type="submit" className={buttonPrimary}>
+                <PendingButton className={buttonPrimary} pendingLabel="Approving…">
                   Approve {money}
-                </button>
+                </PendingButton>
               </form>
               <details className="group">
                 <summary className={`${buttonDanger} inline-block cursor-pointer list-none`}>Reject</summary>
@@ -170,9 +171,9 @@ export default async function RefundsPage({ searchParams }: { searchParams: Prom
                     Why is it being rejected?
                   </label>
                   <textarea id={`note-${r.id}`} name="note" required maxLength={500} rows={2} className={inputClass} />
-                  <button type="submit" className={buttonDanger}>
+                  <PendingButton className={buttonDanger} pendingLabel="Rejecting…">
                     Reject refund
-                  </button>
+                  </PendingButton>
                 </form>
               </details>
             </>
@@ -189,9 +190,9 @@ export default async function RefundsPage({ searchParams }: { searchParams: Prom
                 Transfer or receipt number (optional)
               </label>
               <input id={`ref-${r.id}`} name="payoutReference" maxLength={200} className={inputClass} />
-              <button type="submit" className={buttonPrimary}>
+              <PendingButton className={buttonPrimary} pendingLabel="Working…">
                 I have paid out {money}
-              </button>
+              </PendingButton>
             </form>
           )}
           {action.kind === "provider_payout" && <PayoutButton refundId={r.id} amountLabel={money} />}

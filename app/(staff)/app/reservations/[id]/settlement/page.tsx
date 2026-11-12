@@ -18,6 +18,7 @@ import { minorToInput } from "@/lib/staff/money-input";
 import { requestRefund } from "@/lib/staff/refund-actions";
 import { refundableMinor, type RefundRow } from "@/lib/staff/refunds";
 import { createClient } from "@/lib/supabase/server";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 
@@ -334,9 +335,9 @@ export default async function SettlementPage({
                               <textarea id={`why-${p.id}`} name="reason" required maxLength={500} rows={2} className={inputClass} />
                             </div>
                             <div>
-                              <button type="submit" className={buttonPrimary}>
+                              <PendingButton className={buttonPrimary} pendingLabel="Sending…">
                                 Request refund
-                              </button>
+                              </PendingButton>
                             </div>
                             <p className="text-xs text-muted">Someone else with approval rights must approve it before any money moves.</p>
                           </form>

@@ -8,6 +8,7 @@ import { guestSummary, readConfig } from "@/lib/staff/policies";
 import { photoUrl } from "@/lib/staff/room-photos";
 import { PhotoFrame } from "@/components/ui/photo-frame";
 import { reserveAction } from "./actions";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 
@@ -174,9 +175,12 @@ export default async function Reserve({ searchParams }: Props) {
         <p className="text-sm text-muted">
           We hold your room for a short time while you pay. Nothing is charged until you choose to pay on the next page.
         </p>
-        <button type="submit" className="w-full rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-strong">
+        <PendingButton
+          className="w-full rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-strong"
+          pendingLabel="Working…"
+        >
           Hold my room
-        </button>
+        </PendingButton>
       </form>
     </main>
   );

@@ -25,6 +25,7 @@ import {
   isTicketStatus,
 } from "@/lib/platform/tickets";
 import { createClient } from "@/lib/supabase/server";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 
@@ -84,9 +85,9 @@ export default async function Tickets({ searchParams }: { searchParams: Promise<
             ))}
           </select>
         </div>
-        <button type="submit" className={buttonPrimary}>
+        <PendingButton className={buttonPrimary} pendingLabel="Filtering…">
           Filter
-        </button>
+        </PendingButton>
         {(hotel || status) && (
           <Link href="/platform/tickets" className={linkClass}>
             Clear
@@ -185,9 +186,9 @@ export default async function Tickets({ searchParams }: { searchParams: Promise<
               </select>
             </div>
             <div>
-              <button type="submit" className={buttonPrimary}>
+              <PendingButton className={buttonPrimary} pendingLabel="Opening…">
                 Open ticket
-              </button>
+              </PendingButton>
             </div>
           </form>
         </section>

@@ -5,6 +5,7 @@ import { formatDateTime } from "@/lib/staff/format";
 import { verifyPayment } from "@/lib/staff/payment-verification-actions";
 import { daysWaiting, methodLabel, parseQueue, parseVerificationView, waitingText } from "@/lib/staff/payment-verification";
 import { createClient } from "@/lib/supabase/server";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 
@@ -112,9 +113,9 @@ export default async function PaymentsToVerifyPage({
                       className="mt-1 block w-full rounded border border-line px-2 py-1.5"
                     />
                   </label>
-                  <button type="submit" className={buttonPrimary}>
+                  <PendingButton className={buttonPrimary} pendingLabel="Saving…">
                     Mark verified
-                  </button>
+                  </PendingButton>
                 </form>
               )}
             </li>

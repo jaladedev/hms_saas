@@ -14,6 +14,7 @@ import { minorToInput } from "@/lib/staff/money-input";
 import { publishPolicy } from "@/lib/staff/policy-actions";
 import { todayIn } from "@/lib/staff/reservations";
 import { createClient } from "@/lib/supabase/server";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 
@@ -302,9 +303,9 @@ export default async function PoliciesPage({ searchParams }: { searchParams: Pro
                   </p>
                 </div>
 
-                <button type="submit" className={buttonPrimary}>
+                <PendingButton className={buttonPrimary} pendingLabel="Publishing…">
                   Publish version {nextVersion}
-                </button>
+                </PendingButton>
               </form>
             ) : (
               <p className="mt-6 text-sm text-muted">

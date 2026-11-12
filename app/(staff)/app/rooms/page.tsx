@@ -38,6 +38,7 @@ import {
 import { blockRoom, releaseBlock, setHousekeeping } from "@/lib/staff/room-actions";
 import { todayIn } from "@/lib/staff/reservations";
 import { createClient } from "@/lib/supabase/server";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 
@@ -338,17 +339,17 @@ export default async function RoomBoardPage({ searchParams }: { searchParams: Pr
                               </option>
                             ))}
                           </select>
-                          <button type="submit" className={buttonQuiet}>
+                          <PendingButton className={buttonQuiet} pendingLabel="Saving…">
                             Save
-                          </button>
+                          </PendingButton>
                         </form>
                       )}
                       {can.get(v.room.property_id)?.block && v.state === "blocked" && v.current && (
                         <form action={releaseBlock} className="mt-3">
                           <input type="hidden" name="blockId" value={v.current.id} />
-                          <button type="submit" className={buttonDanger}>
+                          <PendingButton className={buttonDanger} pendingLabel="Removing…">
                             Remove this block
-                          </button>
+                          </PendingButton>
                         </form>
                       )}
                       {can.get(v.room.property_id)?.block && (
@@ -393,9 +394,9 @@ export default async function RoomBoardPage({ searchParams }: { searchParams: Pr
                             )}
                           </select>
                           <div>
-                            <button type="submit" className={buttonPrimary}>
+                            <PendingButton className={buttonPrimary} pendingLabel="Blocking…">
                               Block room
-                            </button>
+                            </PendingButton>
                           </div>
                         </form>
                       )}

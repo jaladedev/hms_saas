@@ -5,6 +5,7 @@ import { messageForCode } from "@/lib/guest-site/errors";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { bookingStatus, changeOptions, datesQuote, verifiedBookingId } from "@/lib/guest-site/server";
 import { changeDatesAction, checkDatesAction, requestChangeAction, updateContactAction, withdrawChangeAction } from "./actions";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Change your booking", robots: { index: false, follow: false }, referrer: "no-referrer" };
@@ -79,9 +80,12 @@ export default async function ChangePage({ params, searchParams }: Props) {
               </label>
               <input id="phone" name="phone" type="tel" required maxLength={30} defaultValue={o.phone ?? ""} className={field} />
               <div>
-                <button type="submit" className="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-strong">
+                <PendingButton
+                  className="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-strong"
+                  pendingLabel="Saving…"
+                >
                   Save phone number
-                </button>
+                </PendingButton>
               </div>
             </form>
           </section>
@@ -123,9 +127,9 @@ export default async function ChangePage({ params, searchParams }: Props) {
                   />
                 </div>
                 <div className="col-span-2">
-                  <button type="submit" className="rounded border border-line px-4 py-2 font-medium hover:bg-ink/5">
+                  <PendingButton className="rounded border border-line px-4 py-2 font-medium hover:bg-ink/5" pendingLabel="Checking…">
                     Check these dates
-                  </button>
+                  </PendingButton>
                 </div>
               </form>
               {quote?.ok && wantArrival && wantDeparture ? (
@@ -140,9 +144,12 @@ export default async function ChangePage({ params, searchParams }: Props) {
                       These dates are free: {formatDate(wantArrival)} to {formatDate(wantDeparture)}.{" "}
                       {datesSummary(quote.data, (m) => formatMoney(m, quote.data.currency))}
                     </p>
-                    <button type="submit" className="mt-3 rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-strong">
+                    <PendingButton
+                      className="mt-3 rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-strong"
+                      pendingLabel="Changing…"
+                    >
                       Change my dates
-                    </button>
+                    </PendingButton>
                   </form>
                 ) : (
                   <p role="status" className="mt-4 rounded border border-line p-3 text-sm">
@@ -162,9 +169,9 @@ export default async function ChangePage({ params, searchParams }: Props) {
                 <form action={withdrawChangeAction} className="mt-3">
                   <input type="hidden" name="token" value={token} />
                   <input type="hidden" name="key" value={key} />
-                  <button type="submit" className="text-sm underline underline-offset-2">
+                  <PendingButton className="text-sm underline underline-offset-2" pendingLabel="Withdrawing…">
                     Withdraw this request
-                  </button>
+                  </PendingButton>
                 </form>
               </div>
             ) : (
@@ -212,9 +219,12 @@ export default async function ChangePage({ params, searchParams }: Props) {
                     <textarea id="message" name="message" rows={3} maxLength={500} className={field} />
                   </div>
                   <div>
-                    <button type="submit" className="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-strong">
+                    <PendingButton
+                      className="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-strong"
+                      pendingLabel="Sending…"
+                    >
                       Send request
-                    </button>
+                    </PendingButton>
                   </div>
                 </form>
               </>

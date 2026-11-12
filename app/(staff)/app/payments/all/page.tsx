@@ -24,6 +24,7 @@ import {
   verificationLabel,
 } from "@/lib/staff/money-lists";
 import { createClient } from "@/lib/supabase/server";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 
@@ -208,9 +209,9 @@ export default async function AllPaymentsPage({ searchParams }: { searchParams: 
           <input id="to" name="to" type="date" defaultValue={f.to ?? ""} className={inputClass} />
         </div>
         <div className="flex gap-2">
-          <button type="submit" className={buttonPrimary}>
+          <PendingButton className={buttonPrimary} pendingLabel="Searching…">
             Search
-          </button>
+          </PendingButton>
           {paymentFiltersActive(f) && (
             <Link href="/app/payments/all" className={buttonQuiet}>
               Clear

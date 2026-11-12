@@ -10,6 +10,7 @@ import { todayIn } from "@/lib/staff/reservations";
 import { createClient } from "@/lib/supabase/server";
 import { rememberedProperty } from "@/lib/staff/active-property";
 import { pickProperty } from "@/lib/staff/property-choice";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 
@@ -150,9 +151,9 @@ export default async function RoomCalendarPage({ searchParams }: { searchParams:
             ))}
           </select>
         </div>
-        <button type="submit" className={buttonPrimary}>
+        <PendingButton className={buttonPrimary} pendingLabel="Saving…">
           Show
-        </button>
+        </PendingButton>
       </form>
       <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
         <Link href={qs({ from: shiftStart(w, -1) })} className={linkClass}>

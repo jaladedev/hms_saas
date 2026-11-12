@@ -5,6 +5,7 @@ import { messageForCode } from "@/lib/guest-site/errors";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { bookingStatus, cancelPreview, verifiedBookingId } from "@/lib/guest-site/server";
 import { cancelAction } from "./actions";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Cancel your booking", robots: { index: false, follow: false }, referrer: "no-referrer" };
@@ -58,9 +59,9 @@ export default async function CancelPage({ params, searchParams }: Props) {
             <input type="hidden" name="token" value={token} />
             <input type="hidden" name="key" value={key} />
             <input type="hidden" name="charge" value={String(p.charge_minor)} />
-            <button type="submit" className="rounded bg-critical px-4 py-2 font-medium text-white">
+            <PendingButton className="rounded bg-critical px-4 py-2 font-medium text-white" pendingLabel="Cancelling…">
               Cancel this booking
-            </button>
+            </PendingButton>
             <a href={back} className="text-sm underline underline-offset-2">
               Keep my booking
             </a>

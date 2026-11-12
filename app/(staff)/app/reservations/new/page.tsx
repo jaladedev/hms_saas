@@ -6,6 +6,7 @@ import { todayIn } from "@/lib/staff/reservations";
 import { createClient } from "@/lib/supabase/server";
 import { rememberedProperty } from "@/lib/staff/active-property";
 import { pickProperty } from "@/lib/staff/property-choice";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 
@@ -273,9 +274,9 @@ export default async function NewReservationPage({
           </label>
 
           <div>
-            <button type="submit" className={buttonPrimary}>
+            <PendingButton className={buttonPrimary} pendingLabel="Creating…">
               Create reservation
-            </button>
+            </PendingButton>
           </div>
         </form>
       )}

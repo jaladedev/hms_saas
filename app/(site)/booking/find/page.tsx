@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { messageForCode } from "@/lib/guest-site/errors";
 import { requestLinkAction } from "./actions";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Find my booking", robots: { index: false, follow: false } };
@@ -48,9 +49,12 @@ export default async function FindBooking({ searchParams }: Props) {
             className="mt-1 w-full rounded border border-line p-2"
           />
         </label>
-        <button type="submit" className="w-full rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-strong">
+        <PendingButton
+          className="w-full rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-strong"
+          pendingLabel="Working…"
+        >
           Email me a new link
-        </button>
+        </PendingButton>
       </form>
     </main>
   );

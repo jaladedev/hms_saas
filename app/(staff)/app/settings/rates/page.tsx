@@ -4,6 +4,7 @@ import { createDefaultPlan, clearRates, setRates } from "@/lib/staff/rate-action
 import { groupRanges, type StoredRate } from "@/lib/staff/rates";
 import { todayIn } from "@/lib/staff/reservations";
 import { createClient } from "@/lib/supabase/server";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 
@@ -79,9 +80,9 @@ export default async function RatesPage({ searchParams }: { searchParams: Promis
                 {canManage && (
                   <form action={createDefaultPlan} className="mt-3">
                     <input type="hidden" name="propertyId" value={p.id} />
-                    <button type="submit" className={buttonPrimary}>
+                    <PendingButton className={buttonPrimary} pendingLabel="Creating…">
                       Create the standard rate plan
-                    </button>
+                    </PendingButton>
                   </form>
                 )}
               </div>
@@ -168,9 +169,9 @@ export default async function RatesPage({ searchParams }: { searchParams: Promis
                             />
                           </div>
                           <div>
-                            <button type="submit" className={buttonPrimary}>
+                            <PendingButton className={buttonPrimary} pendingLabel="Saving…">
                               Save price
-                            </button>
+                            </PendingButton>
                           </div>
                         </form>
                         <form action={clearRates} className="grid gap-3">
@@ -200,9 +201,9 @@ export default async function RatesPage({ searchParams }: { searchParams: Promis
                             </div>
                           </div>
                           <div>
-                            <button type="submit" className={buttonDanger}>
+                            <PendingButton className={buttonDanger} pendingLabel="Removing…">
                               Remove different prices
-                            </button>
+                            </PendingButton>
                           </div>
                         </form>
                       </div>

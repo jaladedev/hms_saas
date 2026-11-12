@@ -3,6 +3,7 @@ import { MIN_PASSWORD_LENGTH } from "@/lib/staff/auth";
 import { DENSITIES, describeRoles, groupPermissions, parseDensity, type RoleGrant } from "@/lib/staff/profile";
 import { changePassword, saveProfile } from "@/lib/staff/profile-actions";
 import { createClient } from "@/lib/supabase/server";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 
@@ -125,9 +126,9 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
             <p className="mt-2 text-xs text-muted">This affects only how the pages look to you. It changes nothing you can see or do.</p>
           </fieldset>
           <div className="md:col-span-2">
-            <button type="submit" className={buttonPrimary}>
+            <PendingButton className={buttonPrimary} pendingLabel="Saving…">
               Save
-            </button>
+            </PendingButton>
           </div>
         </form>
       </section>
@@ -205,9 +206,9 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
             <input id="confirm" name="confirm" type="password" required autoComplete="new-password" className={inputClass} />
           </div>
           <div>
-            <button type="submit" className={buttonPrimary}>
+            <PendingButton className={buttonPrimary} pendingLabel="Changing…">
               Change password
-            </button>
+            </PendingButton>
             <p className="mt-2 max-w-prose text-xs text-muted">
               Anywhere else you are signed in will be signed out. This browser stays signed in.
             </p>

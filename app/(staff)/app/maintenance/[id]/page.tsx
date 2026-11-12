@@ -25,6 +25,7 @@ import {
 } from "@/lib/staff/maintenance-actions";
 import { todayIn } from "@/lib/staff/reservations";
 import { createClient } from "@/lib/supabase/server";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 
@@ -225,9 +226,9 @@ export default async function MaintenanceRequestPage({
                   </option>
                 ))}
               </select>
-              <button type="submit" className={buttonQuiet}>
+              <PendingButton className={buttonQuiet} pendingLabel="Saving…">
                 Save link
-              </button>
+              </PendingButton>
             </form>
           )}
         </section>
@@ -240,17 +241,17 @@ export default async function MaintenanceRequestPage({
             {a.claim && (
               <form action={claimRequest}>
                 {hidden()}
-                <button type="submit" className={buttonQuiet}>
+                <PendingButton className={buttonQuiet} pendingLabel="Saving…">
                   Take it
-                </button>
+                </PendingButton>
               </form>
             )}
             {a.start && (
               <form action={startRequest}>
                 {hidden()}
-                <button type="submit" className={buttonQuiet}>
+                <PendingButton className={buttonQuiet} pendingLabel="Starting…">
                   Start
-                </button>
+                </PendingButton>
               </form>
             )}
           </div>
@@ -262,9 +263,9 @@ export default async function MaintenanceRequestPage({
               </label>
               <textarea id="note" name="note" maxLength={1000} rows={3} className={inputClass} />
               <div>
-                <button type="submit" className={buttonPrimary}>
+                <PendingButton className={buttonPrimary} pendingLabel="Saving…">
                   Mark as fixed
-                </button>
+                </PendingButton>
               </div>
             </form>
           )}
@@ -288,9 +289,9 @@ export default async function MaintenanceRequestPage({
                   </option>
                 ))}
               </select>
-              <button type="submit" className={buttonQuiet}>
+              <PendingButton className={buttonQuiet} pendingLabel="Assigning…">
                 Assign
-              </button>
+              </PendingButton>
             </form>
           )}
           {a.priority && (
@@ -306,9 +307,9 @@ export default async function MaintenanceRequestPage({
                   </option>
                 ))}
               </select>
-              <button type="submit" className={buttonQuiet}>
+              <PendingButton className={buttonQuiet} pendingLabel="Changing…">
                 Change
-              </button>
+              </PendingButton>
             </form>
           )}
           {a.cancel && (
@@ -324,9 +325,9 @@ export default async function MaintenanceRequestPage({
                   aria-label="Reason for cancelling"
                   className={`${inputClass} w-56`}
                 />
-                <button type="submit" className={buttonDanger}>
+                <PendingButton className={buttonDanger} pendingLabel="Cancelling…">
                   Cancel request
-                </button>
+                </PendingButton>
               </form>
             </details>
           )}

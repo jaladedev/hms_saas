@@ -2,6 +2,7 @@ import { buttonPrimary, buttonQuiet, ErrorBanner, inputClass, Notice, PageIntro,
 import { MAX_BADGE, MAX_BODY, MAX_OFFERS, MAX_TITLE, offerWindow } from "@/lib/staff/hotel-offers";
 import { deleteHotelOffer, saveHotelOffer } from "@/lib/staff/hotel-profile-actions";
 import { createClient } from "@/lib/supabase/server";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 
@@ -61,9 +62,9 @@ export default async function OffersPage({ searchParams }: { searchParams: Promi
                   <OfferForm propertyId={p.id} offer={o} />
                   <form action={deleteHotelOffer} className="mt-2">
                     <input type="hidden" name="offerId" value={o.id} />
-                    <button type="submit" className={buttonQuiet}>
+                    <PendingButton className={buttonQuiet} pendingLabel="Deleting…">
                       Delete this offer
-                    </button>
+                    </PendingButton>
                   </form>
                 </li>
               ))}
@@ -132,9 +133,9 @@ function OfferForm({ propertyId, offer }: { propertyId: string; offer: Offer | n
         {offer && <span className="text-xs text-muted">(showing: {offerWindow(offer.valid_from, offer.valid_to)})</span>}
       </label>
       <div className="sm:col-span-2">
-        <button type="submit" className={buttonPrimary}>
+        <PendingButton className={buttonPrimary} pendingLabel="Working…">
           {offer ? "Save offer" : "Add offer"}
-        </button>
+        </PendingButton>
       </div>
     </form>
   );

@@ -14,6 +14,7 @@ import {
   type NotificationSeverity,
 } from "@/lib/staff/notifications";
 import { createClient } from "@/lib/supabase/server";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 
@@ -83,9 +84,9 @@ export default async function NotificationsPage({
         {inbox.unread.total > 0 && (
           <form action={markAllNotificationsRead} className="ml-auto">
             <input type="hidden" name="category" value={category ?? ""} />
-            <button type="submit" className={buttonQuiet}>
+            <PendingButton className={buttonQuiet} pendingLabel="Saving…">
               Mark {category ? CATEGORY_LABEL[category].toLowerCase() : "all"} read
-            </button>
+            </PendingButton>
           </form>
         )}
       </div>
@@ -126,17 +127,17 @@ export default async function NotificationsPage({
                       <form action={markNotificationRead}>
                         <input type="hidden" name="id" value={i.id} />
                         <input type="hidden" name="next" value={link} />
-                        <button type="submit" className={buttonPrimary}>
+                        <PendingButton className={buttonPrimary} pendingLabel="Opening…">
                           Open
-                        </button>
+                        </PendingButton>
                       </form>
                     )}
                     {!i.read && (
                       <form action={markNotificationRead}>
                         <input type="hidden" name="id" value={i.id} />
-                        <button type="submit" className={buttonQuiet}>
+                        <PendingButton className={buttonQuiet} pendingLabel="Saving…">
                           Mark read
-                        </button>
+                        </PendingButton>
                       </form>
                     )}
                   </div>

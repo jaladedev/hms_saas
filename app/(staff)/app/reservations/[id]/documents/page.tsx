@@ -18,6 +18,7 @@ import {
 import { formatDateTime } from "@/lib/staff/format";
 import { nightsBetween } from "@/lib/staff/reservations";
 import { createClient } from "@/lib/supabase/server";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 
@@ -354,9 +355,9 @@ export default async function DocumentsPage({
                 <input type="hidden" name="reservationId" value={id} />
                 <input type="hidden" name="invoiceId" value={invoice.id} />
                 <input type="hidden" name="idempotencyKey" value={crypto.randomUUID()} />
-                <button type="submit" className={buttonQuiet}>
+                <PendingButton className={buttonQuiet} pendingLabel="Sending…">
                   Email to guest
-                </button>
+                </PendingButton>
                 {guest?.email && <span className="ml-2 text-xs text-muted">{guest.email}</span>}
               </form>
             ))}

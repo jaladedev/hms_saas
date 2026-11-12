@@ -1,6 +1,7 @@
 import { buttonPrimary, cardClass, inputClass } from "@/components/staff/ui";
 import { PRIORITY_LABEL, REQUEST_PRIORITIES, STATUS_LABEL } from "@/lib/staff/maintenance";
 import { reportRequest } from "@/lib/staff/maintenance-actions";
+import { PendingButton } from "@/components/ui/pending-button";
 
 const PRIORITY_CHIP: Record<string, string> = {
   urgent: "bg-critical/10 text-critical",
@@ -149,9 +150,9 @@ export function ReportForm({
         </>
       )}
       <div className="sm:col-span-2">
-        <button type="submit" className={buttonPrimary}>
+        <PendingButton className={buttonPrimary} pendingLabel="Sending…">
           Report fault
-        </button>
+        </PendingButton>
       </div>
     </form>
   );

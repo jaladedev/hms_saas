@@ -27,6 +27,7 @@ import { decideAccess, endAccess, requestAccess } from "@/lib/platform/actions";
 import { shortDate } from "@/lib/platform/hotel";
 import { readTickets } from "@/lib/platform/tickets";
 import { createClient } from "@/lib/supabase/server";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 
@@ -162,9 +163,9 @@ export default async function AccessRequests({ searchParams }: { searchParams: P
             </select>
           </div>
           <div className="sm:col-span-2">
-            <button type="submit" className={buttonPrimary}>
+            <PendingButton className={buttonPrimary} pendingLabel="Sending…">
               Send request
-            </button>
+            </PendingButton>
           </div>
         </form>
       </section>
@@ -219,9 +220,9 @@ export default async function AccessRequests({ searchParams }: { searchParams: P
                           {(r.status === "pending" && r.mine) || r.status === "approved" ? (
                             <form action={endAccess}>
                               <input type="hidden" name="requestId" value={r.id} />
-                              <button type="submit" className={linkClass}>
+                              <PendingButton className={linkClass} pendingLabel="Working…">
                                 {r.status === "pending" ? "Withdraw" : admin && !r.mine ? "Revoke" : "End now"}
-                              </button>
+                              </PendingButton>
                             </form>
                           ) : null}
                         </div>

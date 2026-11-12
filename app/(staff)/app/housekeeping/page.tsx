@@ -31,6 +31,7 @@ import {
 import { todayIn } from "@/lib/staff/reservations";
 import type { BoardClaim, BoardRoom } from "@/lib/staff/room-board";
 import { createClient } from "@/lib/supabase/server";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 
@@ -175,17 +176,17 @@ export default async function HousekeepingPage({ searchParams }: { searchParams:
             {a.claim && (
               <form action={claimTask}>
                 <input type="hidden" name="taskId" value={t.id} />
-                <button type="submit" className={buttonQuiet}>
+                <PendingButton className={buttonQuiet} pendingLabel="Saving…">
                   Take it
-                </button>
+                </PendingButton>
               </form>
             )}
             {a.start && (
               <form action={startTask}>
                 <input type="hidden" name="taskId" value={t.id} />
-                <button type="submit" className={buttonQuiet}>
+                <PendingButton className={buttonQuiet} pendingLabel="Starting…">
                   Start
-                </button>
+                </PendingButton>
               </form>
             )}
             {a.complete && (
@@ -198,9 +199,9 @@ export default async function HousekeepingPage({ searchParams }: { searchParams:
                   aria-label={`Note for room ${room?.room_number ?? ""}`}
                   className={`${inputClass} w-40`}
                 />
-                <button type="submit" className={buttonPrimary}>
+                <PendingButton className={buttonPrimary} pendingLabel="Working…">
                   Done
-                </button>
+                </PendingButton>
               </form>
             )}
           </div>
@@ -222,9 +223,9 @@ export default async function HousekeepingPage({ searchParams }: { searchParams:
                 </option>
               ))}
             </select>
-            <button type="submit" className={buttonQuiet}>
+            <PendingButton className={buttonQuiet} pendingLabel="Assigning…">
               Assign
-            </button>
+            </PendingButton>
           </form>
         )}
 
@@ -241,9 +242,9 @@ export default async function HousekeepingPage({ searchParams }: { searchParams:
                 aria-label="Reason for cancelling"
                 className={`${inputClass} w-40`}
               />
-              <button type="submit" className={buttonDanger}>
+              <PendingButton className={buttonDanger} pendingLabel="Cancelling…">
                 Cancel task
-              </button>
+              </PendingButton>
             </form>
           </details>
         )}
@@ -302,9 +303,9 @@ export default async function HousekeepingPage({ searchParams }: { searchParams:
               </option>
             ))}
           </select>
-          <button type="submit" className={buttonQuiet}>
+          <PendingButton className={buttonQuiet} pendingLabel="Saving…">
             Show
-          </button>
+          </PendingButton>
         </form>
       )}
 
@@ -335,9 +336,9 @@ export default async function HousekeepingPage({ searchParams }: { searchParams:
                     <input type="hidden" name="roomId" value={r.id} />
                     <input type="hidden" name="taskType" value="cleaning" />
                     <input type="hidden" name="priority" value={activity.get(r.id)?.arrivesToday ? "high" : "normal"} />
-                    <button type="submit" className={buttonQuiet}>
+                    <PendingButton className={buttonQuiet} pendingLabel="Creating…">
                       Create cleaning task
-                    </button>
+                    </PendingButton>
                   </form>
                 </li>
               ))}
@@ -419,9 +420,9 @@ export default async function HousekeepingPage({ searchParams }: { searchParams:
                 <input name="notes" maxLength={500} className={inputClass} />
               </label>
               <div className="sm:col-span-2">
-                <button type="submit" className={buttonPrimary}>
+                <PendingButton className={buttonPrimary} pendingLabel="Adding…">
                   Add task
-                </button>
+                </PendingButton>
               </div>
             </form>
             <p className="mt-2 max-w-prose text-xs text-muted">

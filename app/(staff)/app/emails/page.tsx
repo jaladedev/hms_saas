@@ -4,6 +4,7 @@ import { resendEmail } from "@/lib/staff/email-actions";
 import { canOfferResend, errorAdvice, holdEnded, kindLabel, splitEmails, type FailedEmail } from "@/lib/staff/emails";
 import { formatDateTime } from "@/lib/staff/format";
 import { createClient } from "@/lib/supabase/server";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 
@@ -53,9 +54,9 @@ export default async function EmailsPage({ searchParams }: { searchParams: Promi
           {offer && (
             <form action={resendEmail}>
               <input type="hidden" name="emailId" value={e.id} />
-              <button type="submit" className={buttonPrimary}>
+              <PendingButton className={buttonPrimary} pendingLabel="Sending…">
                 Send again
-              </button>
+              </PendingButton>
             </form>
           )}
           {e.state === "failed" && holdEnded(e) && (

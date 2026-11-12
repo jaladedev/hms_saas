@@ -63,6 +63,7 @@ import {
 import { canChangeType, otherTypes, typeChangeWindow, type TypeOption } from "@/lib/staff/room-type-change";
 import { candidateRooms, canTransfer, transferWindow, type CandidateRoom, type ClaimSpan } from "@/lib/staff/transfer";
 import { createClient } from "@/lib/supabase/server";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 
@@ -534,9 +535,9 @@ export default async function ReservationPage({
                       <form action={checkInRoom} className="space-y-2">
                         <input type="hidden" name="reservationId" value={res.id} />
                         <input type="hidden" name="reservationRoomId" value={rr.id} />
-                        <button type="submit" className={buttonPrimary}>
+                        <PendingButton className={buttonPrimary} pendingLabel="Checking…">
                           Check in
-                        </button>
+                        </PendingButton>
                         <details>
                           <summary className="cursor-pointer text-sm text-muted">Room not ready, or payment incomplete?</summary>
                           <label htmlFor={`ov-${rr.id}`} className="mt-2 block text-sm">
@@ -571,9 +572,9 @@ export default async function ReservationPage({
                               within your limit)
                             </label>
                           )}
-                          <button type="submit" className={buttonPrimary}>
+                          <PendingButton className={buttonPrimary} pendingLabel="Checking…">
                             Check in early
-                          </button>
+                          </PendingButton>
                         </form>
                       );
                     })()}
@@ -633,9 +634,9 @@ export default async function ReservationPage({
                               </label>
                               <textarea id={`why-${rr.id}`} name="reason" required maxLength={500} rows={2} className={inputClass} />
                             </div>
-                            <button type="submit" className={buttonQuiet}>
+                            <PendingButton className={buttonQuiet} pendingLabel="Moving…">
                               Move guest
-                            </button>
+                            </PendingButton>
                             <p className="max-w-xs text-xs text-muted">
                               Same room type only, so the price stays the same. The stay from that date to {formatDate(res.departure_date)}{" "}
                               moves; earlier nights stay in the current room. If the new room is taken, nothing changes.
@@ -693,9 +694,9 @@ export default async function ReservationPage({
                               </label>
                               <textarea id={`tywhy-${rr.id}`} name="reason" required maxLength={200} rows={2} className={inputClass} />
                             </div>
-                            <button type="submit" className={buttonQuiet}>
+                            <PendingButton className={buttonQuiet} pendingLabel="Changing…">
                               Change room type
-                            </button>
+                            </PendingButton>
                             <p className="max-w-xs text-xs text-muted">
                               The nights from that date to {formatDate(res.departure_date)} are priced at the new type&rsquo;s rate; earlier
                               nights keep their price. A free room of the new type is chosen for you. An invoice already issued is replaced.
@@ -710,9 +711,9 @@ export default async function ReservationPage({
                       <form action={checkOutRoom} className="space-y-2">
                         <input type="hidden" name="reservationId" value={res.id} />
                         <input type="hidden" name="reservationRoomId" value={rr.id} />
-                        <button type="submit" className={buttonQuiet}>
+                        <PendingButton className={buttonQuiet} pendingLabel="Checking…">
                           Check out
-                        </button>
+                        </PendingButton>
                         {today < res.departure_date && (
                           <p className="max-w-xs text-xs text-muted">
                             {(earlyQuotes.get(rr.id) &&
@@ -836,9 +837,9 @@ export default async function ReservationPage({
                 <input id="pay-note" name="note" maxLength={500} className={inputClass} />
               </div>
               <div>
-                <button type="submit" className={buttonPrimary}>
+                <PendingButton className={buttonPrimary} pendingLabel="Recording…">
                   Record payment
-                </button>
+                </PendingButton>
               </div>
             </form>
           </details>
@@ -894,9 +895,9 @@ export default async function ReservationPage({
                           An invoice with payments recorded against it cannot be voided until the money has been refunded.
                         </p>
                         <div>
-                          <button type="submit" className={buttonDanger}>
+                          <PendingButton className={buttonDanger} pendingLabel="Voiding…">
                             Void invoice
-                          </button>
+                          </PendingButton>
                         </div>
                       </form>
                     </details>
@@ -909,9 +910,9 @@ export default async function ReservationPage({
             <form action={issueInvoice} className="mt-3">
               <input type="hidden" name="reservationId" value={res.id} />
               <input type="hidden" name="idempotencyKey" value={crypto.randomUUID()} />
-              <button type="submit" className={buttonQuiet}>
+              <PendingButton className={buttonQuiet} pendingLabel="Issuing…">
                 Issue invoice
-              </button>
+              </PendingButton>
               <p className="mt-1 text-xs text-muted">
                 Copies the nights and tax into a numbered invoice. Payments already received are applied to it.
               </p>
@@ -944,9 +945,9 @@ export default async function ReservationPage({
                 refund, which a second person must approve. This cannot be undone.
               </p>
               <div>
-                <button type="submit" className={buttonDanger}>
+                <PendingButton className={buttonDanger} pendingLabel="Saving…">
                   Mark as no-show
-                </button>
+                </PendingButton>
               </div>
             </form>
           </details>
@@ -972,9 +973,9 @@ export default async function ReservationPage({
                 queued for refund, which a second person must approve. This cannot be undone.
               </p>
               <div>
-                <button type="submit" className={buttonDanger}>
+                <PendingButton className={buttonDanger} pendingLabel="Cancelling…">
                   Cancel reservation
-                </button>
+                </PendingButton>
               </div>
             </form>
           </details>

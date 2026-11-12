@@ -26,6 +26,7 @@ import {
   requestHost,
   searchAvailability,
 } from "@/lib/guest-site/server";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 
@@ -201,12 +202,12 @@ export default async function GuestHome({ searchParams }: Props) {
                 </select>
               </label>
             ) : null}
-            <button
-              type="submit"
+            <PendingButton
               className="col-span-2 rounded-full bg-primary px-4 py-3 font-medium text-white hover:bg-primary-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              pendingLabel="Checking…"
             >
               Check availability
-            </button>
+            </PendingButton>
             <p className="col-span-2 text-center text-xs text-muted">Prices in {currency}. Taxes are shown before you pay.</p>
           </form>
         ) : null}
@@ -281,9 +282,12 @@ export default async function GuestHome({ searchParams }: Props) {
                     </select>
                   </label>
                 ) : null}
-                <button type="submit" className="min-h-11 rounded-full border border-ink px-5 hover:bg-ink hover:text-paper">
+                <PendingButton
+                  className="min-h-11 rounded-full border border-ink px-5 hover:bg-ink hover:text-paper"
+                  pendingLabel="Applying…"
+                >
                   Apply
-                </button>
+                </PendingButton>
               </form>
             ) : null}
             {shown.length === 0 ? (

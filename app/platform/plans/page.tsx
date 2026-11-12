@@ -4,6 +4,7 @@ import { PlatformNotice } from "@/components/platform-notice";
 import { savePlan } from "@/lib/platform/actions";
 import { planPriceLabel } from "@/lib/platform/hotel";
 import { createClient } from "@/lib/supabase/server";
+import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
 
@@ -122,9 +123,9 @@ function PlanForm({ plan, admin }: { plan?: Plan; admin: boolean }) {
       </div>
       {admin && (
         <div className="md:col-span-2">
-          <button type="submit" className={plan ? buttonQuiet : buttonPrimary}>
+          <PendingButton className={plan ? buttonQuiet : buttonPrimary} pendingLabel="Working…">
             {plan ? "Save plan" : "Add plan"}
-          </button>
+          </PendingButton>
         </div>
       )}
     </form>
