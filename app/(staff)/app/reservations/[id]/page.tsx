@@ -89,6 +89,7 @@ type Reservation = {
   cancelled_at: string | null;
   no_show_at: string | null;
   attention_reason: string | null;
+  guest_note: string | null;
   created_at: string;
 };
 type ResRoom = {
@@ -135,7 +136,7 @@ export default async function ReservationPage({
   const { data: resRow } = await supabase
     .from("reservations")
     .select(
-      "id, property_id, booking_reference, primary_guest_id, source, reservation_status, payment_status, arrival_date, departure_date, currency, subtotal_minor, tax_minor, discount_minor, discount_percent, discount_amount_minor, discount_reason, total_minor, cancellation_charge_minor, cancel_reason, cancelled_at, no_show_at, attention_reason, created_at, policy_snapshot",
+      "id, property_id, booking_reference, primary_guest_id, source, reservation_status, payment_status, arrival_date, departure_date, currency, subtotal_minor, tax_minor, discount_minor, discount_percent, discount_amount_minor, discount_reason, total_minor, cancellation_charge_minor, cancel_reason, cancelled_at, no_show_at, attention_reason, guest_note, created_at, policy_snapshot",
     )
     .eq("id", id)
     .maybeSingle();
@@ -173,7 +174,7 @@ export default async function ReservationPage({
       .select("id, room_type_id, room_status, adults, children, checked_in_at, checked_out_at")
       .eq("reservation_id", id)
       .order("created_at"),
-    supabase.from("guests").select("full_name, email, phone").eq("id", res.primary_guest_id).maybeSingle(),
+    supabase.from("guests").select("full_name, email, phone, address").eq("id", res.primary_guest_id).maybeSingle(),
     supabase.from("properties").select("name, timezone").eq("id", res.property_id).maybeSingle(),
     supabase.rpc("reservation_settlement", { p_reservation_id: id }),
     can("reservation.cancel"),
@@ -267,7 +268,7 @@ export default async function ReservationPage({
   const typeNames = new Map(typeRows.map((t) => [t.id, t.name]));
   const physical = new Map(((physicalQ.data ?? []) as Room[]).map((r) => [r.id, r]));
 
-  const guest = guestQ.data as { full_name: string; email: string | null; phone: string | null } | null;
+  const guest = guestQ.data as { full_name: string; email: string | null; phone: string | null; address: string | null } | null;
   const tz = (propQ.data as { timezone?: string } | null)?.timezone ?? "UTC";
   const propertyName = (propQ.data as { name?: string } | null)?.name;
   const settlement = (settleQ.error ? null : (settleQ.data ?? null)) as Settlement | null;
@@ -449,6 +450,18 @@ export default async function ReservationPage({
             <>
               <dt className="text-muted">Phone</dt>
               <dd>{guest.phone}</dd>
+            </>
+          )}
+          {guest?.address && (
+            <>
+              <dt className="text-muted">Address</dt>
+              <dd>{guest.address}</dd>
+            </>
+          )}
+          {res.guest_note && (
+            <>
+              <dt className="text-muted">Guest requests</dt>
+              <dd className="whitespace-pre-line">{res.guest_note}</dd>
             </>
           )}
           {cancelled && (

@@ -121,6 +121,7 @@ Status: **built**, **partial** (part of the job is done, or only another role ca
 - Billing, the hotel's own view of its plan and platform invoices (`/app/settings/billing`, migration 103)
 - Offers for the homepage (`/app/settings/offers`, migration 102)
 - Discounts (`/app/settings/discounts`) and tax rules (`/app/settings/tax`)
+- Guest booking extras (2026-11-12): Address and Special requests on the booking form (migration 107; staff see both on the reservation page); on a confirmed booking an Add to calendar file (`/booking/[token]/calendar`), Print or save as PDF, and Contact the hotel; search results can be sorted and filtered (price, sleeps at least, amenity), show the nights times the rate plus tax, and list sold-out room types as not available
 - Guest homepage reviews now sit under the room cards (they had been rendered inside every card)
 - Platform administration: `/platform`, `/platform/new`, `/platform/[tenantId]`
 

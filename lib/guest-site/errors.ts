@@ -11,6 +11,10 @@ const RULES: Array<[RegExp, GuestError]> = [
     /too many active holds/i,
     { code: "too_many_holds", message: "You already have several unpaid reservations. Please pay for or wait out an existing one first." },
   ],
+  [
+    /POLICY_VIOLATION: guest (address|requests)/,
+    { code: "guest_details", message: "Please shorten your address (200 characters) or special requests (500 characters)." },
+  ],
   [/POLICY_VIOLATION: guest/, { code: "guest_details", message: "Please check your name and email address." }],
   [
     /POLICY_VIOLATION: (stay too long|arrival too far ahead|arrival in the past|departure must follow arrival)/,

@@ -1943,6 +1943,7 @@ export type Database = {
         Row: {
           arrival_date: string
           attention_reason: string | null
+          guest_note: string | null
           booking_reference: string
           cancel_reason: string | null
           cancellation_charge_minor: number
@@ -1975,6 +1976,7 @@ export type Database = {
         Insert: {
           arrival_date: string
           attention_reason?: string | null
+          guest_note?: string | null
           booking_reference: string
           cancel_reason?: string | null
           cancellation_charge_minor?: number
@@ -2006,6 +2008,7 @@ export type Database = {
         Update: {
           arrival_date?: string
           attention_reason?: string | null
+          guest_note?: string | null
           booking_reference?: string
           cancel_reason?: string | null
           cancellation_charge_minor?: number

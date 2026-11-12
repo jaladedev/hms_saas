@@ -7,6 +7,7 @@ import { messageForCode } from "@/lib/guest-site/errors";
 import { averageLabel, ratingText, reviewMonth } from "@/lib/guest-site/reviews";
 import { parseStayParams, stayQuery } from "@/lib/guest-site/params";
 import { checkGuestLimits } from "@/lib/guest-site/limits";
+import { amenityOptions, nightlyBreakdown, parseResultsView, SORT_LABELS, soldOutTypes, viewQuotes } from "@/lib/guest-site/results";
 import { facilityList, photoCountLabel, placeLine, socialLinks, timesLine } from "@/lib/guest-site/hotel";
 import {
   amenityHighlights,
@@ -53,6 +54,14 @@ export default async function GuestHome({ searchParams }: Props) {
   const today = new Date().toISOString().slice(0, 10);
   const notice = typeof raw.error === "string" ? messageForCode(raw.error) : null;
   const chosen = typeof raw.type === "string" ? raw.type : undefined;
+  const view = parseResultsView(raw);
+  const inChosen = stay && result?.ok ? onlyChosenType(result.data.room_types, chosen) : [];
+  const shown = viewQuotes(inChosen, view);
+  const amenityChoices = amenityOptions(inChosen);
+  const soldOut =
+    stay && result?.ok
+      ? soldOutTypes(chosen ? onlyChosenType(types, chosen) : types, result.data.room_types, stay.adults, stay.children)
+      : [];
   const supa = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
   const highlights = amenityHighlights(types, 6);
   const cancelBadge = policyResult.ok ? freeCancellationBadge(policyResult.data) : null;
@@ -231,11 +240,61 @@ export default async function GuestHome({ searchParams }: Props) {
             <h2 className="text-lg font-medium">
               {result.data.property_name}: {result.data.nights} {result.data.nights === 1 ? "night" : "nights"}
             </h2>
-            {onlyChosenType(result.data.room_types, chosen).length === 0 ? (
-              <p className="mt-3 text-muted">No rooms are available for those dates and guests. Try different dates.</p>
+            {inChosen.length > 1 || view.minGuests > 0 || view.amenity ? (
+              <form action="/" method="get" className="mt-3 flex flex-wrap items-end gap-3 text-sm">
+                <input type="hidden" name="arrival" value={stay.arrival} />
+                <input type="hidden" name="departure" value={stay.departure} />
+                <input type="hidden" name="adults" value={stay.adults} />
+                <input type="hidden" name="children" value={stay.children} />
+                {chosen ? <input type="hidden" name="type" value={chosen} /> : null}
+                <label className="block">
+                  <span className="block text-xs text-muted">Sort</span>
+                  <select name="sort" defaultValue={view.sort} className="mt-1 rounded-lg border border-line bg-white p-2">
+                    {Object.entries(SORT_LABELS).map(([value, text]) => (
+                      <option key={value} value={value}>
+                        {text}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="block text-xs text-muted">Sleeps at least</span>
+                  <select name="guests" defaultValue={view.minGuests || ""} className="mt-1 rounded-lg border border-line bg-white p-2">
+                    <option value="">Any</option>
+                    {[2, 3, 4, 5, 6].map((n) => (
+                      <option key={n} value={n}>
+                        {n} guests
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {amenityChoices.length > 0 ? (
+                  <label className="block">
+                    <span className="block text-xs text-muted">Amenity</span>
+                    <select name="amenity" defaultValue={view.amenity ?? ""} className="mt-1 rounded-lg border border-line bg-white p-2">
+                      <option value="">Any</option>
+                      {amenityChoices.map((a) => (
+                        <option key={a} value={a}>
+                          {a}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
+                <button type="submit" className="min-h-11 rounded-full border border-ink px-5 hover:bg-ink hover:text-paper">
+                  Apply
+                </button>
+              </form>
+            ) : null}
+            {shown.length === 0 ? (
+              <p className="mt-3 text-muted">
+                {inChosen.length === 0
+                  ? "No rooms are available for those dates and guests. Try different dates."
+                  : "No rooms match those filters. Try fewer filters."}
+              </p>
             ) : (
               <ul className="mt-4 space-y-4">
-                {onlyChosenType(result.data.room_types, chosen).map((t) => (
+                {shown.map((t) => (
                   <li key={t.room_type_id} className="rounded-xl border border-line bg-white p-4">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
@@ -273,6 +332,7 @@ export default async function GuestHome({ searchParams }: Props) {
                       <div className="ml-auto text-right">
                         <p className="text-xl font-medium">{formatMoney(t.total_minor, result.data.currency)}</p>
                         <p className="text-xs text-muted">total, taxes included</p>
+                        <p className="mt-1 text-xs text-muted">{nightlyBreakdown(t, result.data.currency)}</p>
                         <a
                           href={`/reserve?${stayQuery(stay)}&type=${t.room_type_id}`}
                           className="mt-3 inline-block rounded-full bg-primary px-5 py-2 text-sm font-medium text-white hover:bg-primary-strong"
@@ -285,6 +345,24 @@ export default async function GuestHome({ searchParams }: Props) {
                 ))}
               </ul>
             )}
+            {soldOut.length > 0 ? (
+              <ul aria-label="Not available for these dates" className="mt-4 space-y-3">
+                {soldOut.map((t) => (
+                  <li
+                    key={t.room_type_id}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-white/60 p-4 text-muted"
+                  >
+                    <div>
+                      <h3 className="font-display text-xl text-ink">{t.name}</h3>
+                      <p className="mt-1 text-sm">Not available for these dates</p>
+                    </div>
+                    <Link href={`/rooms/${t.room_type_id}`} className="text-sm text-primary underline underline-offset-2">
+                      View room
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </section>
         ) : null}
 

@@ -35,7 +35,13 @@ export async function reserveAction(formData: FormData): Promise<void> {
     stay,
     roomTypeId: input.data.type,
     quantity: input.data.quantity,
-    guest: { full_name: guest.data.full_name, email: guest.data.email, ...(guest.data.phone ? { phone: guest.data.phone } : {}) },
+    guest: {
+      full_name: guest.data.full_name,
+      email: guest.data.email,
+      ...(guest.data.phone ? { phone: guest.data.phone } : {}),
+      ...(guest.data.address ? { address: guest.data.address } : {}),
+      ...(guest.data.special_requests ? { special_requests: guest.data.special_requests } : {}),
+    },
     idempotencyKey: input.data.key,
   });
   if (!result.ok) redirect(`${base}&error=${result.error.code}`);

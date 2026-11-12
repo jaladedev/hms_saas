@@ -2,11 +2,21 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { HoldCountdown } from "@/components/site/hold-countdown";
+import { PrintButton } from "@/components/site/print-button";
 import { formatDate, formatMoney, formatTime } from "@/lib/guest-site/format";
 import { messageForCode } from "@/lib/guest-site/errors";
 import { secondsRemaining } from "@/lib/guest-site/hold";
 import { notAllowedText } from "@/lib/guest-site/cancel";
-import { bookingStatus, cancelPreview, changeOptions, reviewState, verifiedBookingId } from "@/lib/guest-site/server";
+import { telHref } from "@/lib/staff/hotel-profile";
+import {
+  bookingStatus,
+  cancelPreview,
+  changeOptions,
+  guestHotel,
+  requestHost,
+  reviewState,
+  verifiedBookingId,
+} from "@/lib/guest-site/server";
 import { payAction } from "./actions";
 import { showsAmountDue } from "@/lib/guest-site/booking-summary";
 
@@ -36,6 +46,8 @@ export default async function BookingPage({ params, searchParams }: Props) {
   const cancel = b.status === "confirmed" ? await cancelPreview(reservationId) : null;
   const change = b.status === "confirmed" ? await changeOptions(reservationId) : null;
   const review = b.status === "checked_out" ? await reviewState(reservationId) : null;
+  const hotelResult = await guestHotel(await requestHost());
+  const hotel = hotelResult.ok ? hotelResult.data : null;
   const key = crypto.randomUUID();
 
   return (
@@ -127,6 +139,18 @@ export default async function BookingPage({ params, searchParams }: Props) {
         </dl>
       </section>
 
+      {b.status === "confirmed" || b.status === "checked_in" ? (
+        <div className="mt-4 flex flex-wrap gap-2 print:hidden">
+          <a
+            href={`/booking/${token}/calendar`}
+            className="inline-flex min-h-11 items-center justify-center rounded-full border border-ink px-5 text-sm hover:bg-ink hover:text-paper focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            Add to calendar
+          </a>
+          <PrintButton>Print or save as PDF</PrintButton>
+        </div>
+      ) : null}
+
       {holdLive && !awaitingConfirmation ? (
         <section className="mt-6 rounded border border-line bg-white p-4">
           <HoldCountdown initialSeconds={secondsRemaining(b.hold_expires_at, Date.now())} />
@@ -175,6 +199,35 @@ export default async function BookingPage({ params, searchParams }: Props) {
               Pay the balance of {formatMoney(b.outstanding_minor, b.currency)}
             </button>
           </form>
+        </section>
+      ) : null}
+      {hotel && (hotel.phone || hotel.email) ? (
+        <section aria-labelledby="contact-title" className="mt-6 rounded border border-line bg-white p-4 print:border-0 print:p-0">
+          <h2 id="contact-title" className="font-medium">
+            Contact the hotel
+          </h2>
+          <p className="mt-2 text-sm">
+            {hotel.phone ? (
+              <>
+                {telHref(hotel.phone) ? (
+                  <a href={telHref(hotel.phone) as string} className="underline underline-offset-2">
+                    {hotel.phone}
+                  </a>
+                ) : (
+                  hotel.phone
+                )}
+              </>
+            ) : null}
+            {hotel.phone && hotel.email ? " · " : null}
+            {hotel.email ? (
+              <a
+                href={`mailto:${hotel.email}?subject=${encodeURIComponent(`Booking ${b.booking_reference}`)}`}
+                className="break-all underline underline-offset-2"
+              >
+                {hotel.email}
+              </a>
+            ) : null}
+          </p>
         </section>
       ) : null}
     </main>

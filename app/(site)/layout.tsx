@@ -42,7 +42,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
       })}
     >
       <RouteProgress />
-      <header className="relative border-b border-line bg-white">
+      <header className="relative border-b border-line bg-white print:hidden">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-4 sm:gap-4">
           <Link href="/" className={`flex min-w-0 items-center gap-3 font-display text-xl ${linkTap}`}>
             {hotel?.logo ? (
@@ -79,7 +79,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
       </header>
       <div className="flex-1">{children}</div>
       {hotel ? (
-        <footer className="mt-16 border-t border-line bg-white text-sm text-muted">
+        <footer className="mt-16 border-t border-line bg-white text-sm text-muted print:hidden">
           <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:grid-cols-3">
             <div>
               <p className="font-display text-lg text-ink">{name}</p>

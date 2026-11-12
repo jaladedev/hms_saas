@@ -73,3 +73,18 @@ describe("friendly errors", () => {
     expect(messageForCode(undefined)).toBeNull();
   });
 });
+
+describe("guest address and special requests", () => {
+  it("accepts them blank or absent, trims them, and refuses text past the limits", () => {
+    const base = { full_name: "Ada Obi", email: "ada@example.com" };
+    expect(guestSchema.parse({ ...base, address: "  12 Oyo Road ", special_requests: " High floor " })).toMatchObject({
+      address: "12 Oyo Road",
+      special_requests: "High floor",
+    });
+    expect(guestSchema.safeParse({ ...base, address: "", special_requests: "" }).success).toBe(true);
+    expect(guestSchema.safeParse(base).success).toBe(true);
+    expect(guestSchema.safeParse({ ...base, special_requests: "x".repeat(500) }).success).toBe(true);
+    expect(guestSchema.safeParse({ ...base, special_requests: "x".repeat(501) }).success).toBe(false);
+    expect(guestSchema.safeParse({ ...base, address: "y".repeat(201) }).success).toBe(false);
+  });
+});

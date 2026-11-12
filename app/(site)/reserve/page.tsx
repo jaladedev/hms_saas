@@ -156,6 +156,21 @@ export default async function Reserve({ searchParams }: Props) {
           Phone (optional)
           <input type="tel" name="phone" autoComplete="tel" maxLength={32} className="mt-1 w-full rounded border border-line p-2" />
         </label>
+        <label className="block text-sm">
+          Address (optional)
+          <input name="address" autoComplete="street-address" maxLength={200} className="mt-1 w-full rounded border border-line p-2" />
+        </label>
+        <label className="block text-sm">
+          Special requests (optional)
+          <textarea
+            name="special_requests"
+            rows={3}
+            maxLength={500}
+            placeholder="High floor, extra pillows"
+            className="mt-1 w-full rounded border border-line p-2"
+          />
+          <span className="mt-1 block text-xs text-muted">The hotel sees this with your booking. It is a request, not a promise.</span>
+        </label>
         <p className="text-sm text-muted">
           We hold your room for a short time while you pay. Nothing is charged until you choose to pay on the next page.
         </p>

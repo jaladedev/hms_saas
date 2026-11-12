@@ -168,7 +168,7 @@ export function createHold(args: {
   stay: StayParams;
   roomTypeId: string;
   quantity: number;
-  guest: { full_name: string; email: string; phone?: string };
+  guest: { full_name: string; email: string; phone?: string; address?: string; special_requests?: string };
   idempotencyKey: string;
 }) {
   const rooms = Array.from({ length: args.quantity }, () => ({

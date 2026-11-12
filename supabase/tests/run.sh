@@ -831,4 +831,8 @@ GRT="$(psql -f "$HERE/106_guest_room_type.sql" 2>&1)" || { echo "$GRT"; echo "GU
 echo "$GRT" | grep -E 'PASS' || true
 if echo "$GRT" | grep -qE 'FAIL|ERROR'; then echo "$GRT"; echo "GUEST ROOM TYPE TESTS FAILED"; exit 1; fi
 
+GQ="$(psql -f "$HERE/107_guest_requests.sql" 2>&1)" || { echo "$GQ"; echo "GUEST REQUEST TESTS FAILED"; exit 1; }
+echo "$GQ" | grep -E 'PASS' || true
+if echo "$GQ" | grep -qE 'FAIL|ERROR'; then echo "$GQ"; echo "GUEST REQUEST TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"
