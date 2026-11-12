@@ -168,11 +168,30 @@ export function parseBodyFont(v: unknown): BodyFontId | null {
   return BODY_FONTS.find((f) => f.value === v)?.value ?? null;
 }
 
+// ---- corners ---------------------------------------------------------------------------------------------------------
+
+/** Corner styles over the standard corners (migration 118). Each is the size of every corner token, in rem; "rounded-full" is untouched. */
+export const RADII = [
+  { value: "sharp", label: "Sharp", tokens: { base: "0rem", sm: "0rem", md: "0rem", lg: "0rem", xl: "0rem", "2xl": "0rem" } },
+  {
+    value: "round",
+    label: "Round",
+    tokens: { base: "0.5rem", sm: "0.5rem", md: "0.625rem", lg: "0.875rem", xl: "1.125rem", "2xl": "1.5rem" },
+  },
+] as const;
+export type RadiusId = (typeof RADII)[number]["value"];
+
+/** A stored corner key, or null for anything else (the standard corners). */
+export function parseRadius(v: unknown): RadiusId | null {
+  return RADII.find((r) => r.value === v)?.value ?? null;
+}
+
 export type Look = {
   theme?: string | null;
   primary?: string | null;
   fontDisplay?: string | null;
   fontBody?: string | null;
+  radius?: string | null;
 };
 
 /**
@@ -182,12 +201,23 @@ export type Look = {
 export function lookStyle(look: Look): CSSProperties | undefined {
   const display = DISPLAY_FONTS.find((f) => f.value === look.fontDisplay);
   const body = BODY_FONTS.find((f) => f.value === look.fontBody);
+  const radius = RADII.find((r) => r.value === look.radius);
   const base = themeStyle(parseTheme(look.theme), look.primary);
-  if (!display && !body) return base;
+  if (!display && !body && !radius) return base;
   return {
     ...base,
     ...(display ? { "--font-display": display.stack } : {}),
     ...(body ? { "--font-sans": body.stack } : {}),
+    ...(radius
+      ? {
+          "--radius-base": radius.tokens.base,
+          "--radius-sm": radius.tokens.sm,
+          "--radius-md": radius.tokens.md,
+          "--radius-lg": radius.tokens.lg,
+          "--radius-xl": radius.tokens.xl,
+          "--radius-2xl": radius.tokens["2xl"],
+        }
+      : {}),
   } as CSSProperties;
 }
 
@@ -203,6 +233,12 @@ export const STANDARD_STYLE = {
   "--color-navy-800": "#17263c",
   "--font-sans": '"Inter", ui-sans-serif, system-ui, sans-serif',
   "--font-display": '"Playfair Display", ui-serif, Georgia, serif',
+  "--radius-base": "0.25rem",
+  "--radius-sm": "0.25rem",
+  "--radius-md": "0.375rem",
+  "--radius-lg": "0.5rem",
+  "--radius-xl": "0.75rem",
+  "--radius-2xl": "1rem",
 } as CSSProperties;
 
 /** A look as a complete style for the editor's preview: every token is set, so it shows the look and not the hotel's saved one. */

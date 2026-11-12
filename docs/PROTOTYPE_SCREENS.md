@@ -104,10 +104,10 @@ Status: **built**, **partial** (part of the job is done, or only another role ca
 | --- | --- | --- |
 | Property Profile | built | `/app/settings/hotel` |
 | Operational Settings | built | `/app/settings/hotel` holds the check-in and check-out times, contact details, hotel facilities and Instagram and Facebook links (migration 105) |
-| Guest Homepage | built | `/`: hero, search card, room cards (migration 096), info pills, offers (migration 102) and guest reviews (migration 104); the prototype's "experience" section is not built (no data) |
+| Guest Homepage | built | `/`: hero, search card, room cards (migration 096), info pills; offers (migration 102) and guest reviews (migration 104) are shown; the experience section is not built (no data) |
 | Guest Room Details | built | `/rooms/[roomTypeId]`: every picture, description, amenities, who it sleeps, a 14-night price calendar and a Book form; opened from "View room" on the homepage cards (migration 106 `guest_room_type`) |
 | Guest Policies / Contact / Privacy | built | `/policies`, `/contact`, `/privacy` (privacy text needs review) |
-| Branding & Theme Editor | built | `/app/settings/hotel`: logo and room photos, and the hotel's look (Standard, Luxury, Modern or Classic; migration 093) for the guest site and the staff screens, plus an optional main colour over it (migration 099; refused if white text on it or links on the page fall below WCAG AA 4.5:1). heading and body fonts over it (migration 100), and a live preview of the choices before saving. Not built: other colours (secondary, accent, background), corner radius, draft versus published |
+| Branding & Theme Editor | built | `/app/settings/hotel`: logo and room photos, and the hotel's look (Standard, Luxury, Modern or Classic; migration 093) for the guest site and the staff screens, plus an optional main colour over it (migration 099; refused if white text on it or links on the page fall below WCAG AA 4.5:1). heading and body fonts over it (migration 100), corner style (sharp or round, migration 118), and a live preview of the choices before saving. Not built: other colours (secondary, accent, background), draft versus published |
 | Staff Management | built | `/app/staff` |
 | Staff Permissions | built | `/app/staff/roles` (custom roles) |
 | Audit Log | built | `/app/settings/history` (Setup history) |

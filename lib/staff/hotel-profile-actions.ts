@@ -144,7 +144,10 @@ export async function saveHotelTheme(formData: FormData) {
         p_display: v.value.fontDisplay ?? "",
         p_body: v.value.fontBody ?? "",
       });
-  const error = fonted.error;
+  const cornered = fonted.error
+    ? fonted
+    : await supabase.rpc("set_hotel_radius", { p_property: v.value.propertyId, p_radius: v.value.radius ?? "" });
+  const error = cornered.error;
   if (error) return back(PAGE, { err: /NOT_FOUND/.test(error.message) ? "setup_forbidden" : classifySetupError(error) });
   revalidatePath(PAGE);
   revalidatePath("/", "layout");

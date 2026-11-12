@@ -39,6 +39,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
         primary: hotel?.theme_primary,
         fontDisplay: hotel?.font_display,
         fontBody: hotel?.font_body,
+        radius: hotel?.radius,
       })}
     >
       <RouteProgress />

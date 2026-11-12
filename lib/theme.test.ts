@@ -5,6 +5,8 @@ import {
   lookStyle,
   parseBodyFont,
   parseDisplayFont,
+  parseRadius,
+  RADII,
   previewStyle,
   STANDARD_STYLE,
   contrastRatio,
@@ -166,5 +168,27 @@ describe("fonts", () => {
     expect(mixed["--color-primary"]).toBe("#7c2d12");
     expect(mixed["--color-paper"]).toBe(THEMES.classic.colors.paper);
     expect(mixed["--font-sans"]).toContain("Inter");
+  });
+});
+
+describe("corners", () => {
+  it("parse only the listed keys", () => {
+    expect(parseRadius("sharp")).toBe("sharp");
+    expect(parseRadius("round")).toBe("round");
+    for (const bad of ["Round", "pill", "8px", "", null, 3]) expect(parseRadius(bad)).toBeNull();
+    expect(RADII.length).toBe(2);
+  });
+  it("lookStyle sets every corner token, and nothing for an unknown key", () => {
+    expect(lookStyle({ radius: "pill" })).toBeUndefined();
+    const sharp = lookStyle({ radius: "sharp" }) as Record<string, string>;
+    for (const k of ["base", "sm", "md", "lg", "xl", "2xl"]) expect(sharp[`--radius-${k}`], k).toBe("0rem");
+    const over = lookStyle({ theme: "luxury", radius: "round" }) as Record<string, string>;
+    expect(over["--radius-2xl"]).toBe("1.5rem");
+    expect(over["--color-paper"]).toBe(THEMES.luxury.colors.paper);
+  });
+  it("the standard preview carries the standard corners, so choosing Standard shows them again", () => {
+    const std = previewStyle({}) as Record<string, string>;
+    expect(std["--radius-base"]).toBe("0.25rem");
+    expect((previewStyle({ radius: "sharp" }) as Record<string, string>)["--radius-lg"]).toBe("0rem");
   });
 });

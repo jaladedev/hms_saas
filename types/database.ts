@@ -1525,6 +1525,7 @@ export type Database = {
           tenant_id: string
           theme: string | null
           theme_primary: string | null
+          theme_radius: string | null
           theme_font_display: string | null
           theme_font_body: string | null
           timezone: string
@@ -1554,6 +1555,7 @@ export type Database = {
           tenant_id: string
           theme?: string | null
           theme_primary?: string | null
+          theme_radius?: string | null
           theme_font_display?: string | null
           theme_font_body?: string | null
           timezone?: string
@@ -1582,6 +1584,7 @@ export type Database = {
           tenant_id?: string
           theme?: string | null
           theme_primary?: string | null
+          theme_radius?: string | null
           theme_font_display?: string | null
           theme_font_body?: string | null
           timezone?: string
@@ -3155,6 +3158,7 @@ export type Database = {
       set_hotel_extras: { Args: { p_facebook: string; p_facilities: string[]; p_instagram: string; p_property: string }; Returns: undefined }
       set_hotel_fonts: { Args: { p_body: string; p_display: string; p_property: string }; Returns: undefined }
       set_hotel_primary_color: { Args: { p_color: string; p_property: string }; Returns: undefined }
+      set_hotel_radius: { Args: { p_property: string; p_radius: string }; Returns: undefined }
       set_hotel_theme: { Args: { p_property: string; p_theme: string }; Returns: undefined }
       lock_room_types: {
         Args: { p_property: string; p_types: string[] }

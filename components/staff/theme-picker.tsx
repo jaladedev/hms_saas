@@ -13,6 +13,7 @@ export function ThemePicker({
   primary,
   fontDisplay,
   fontBody,
+  radius,
 }: {
   propertyId: string;
   name: string;
@@ -20,6 +21,7 @@ export function ThemePicker({
   primary?: string | null;
   fontDisplay?: string | null;
   fontBody?: string | null;
+  radius?: string | null;
 }) {
   return (
     <ThemeEditor
@@ -30,6 +32,7 @@ export function ThemePicker({
       primary={primary}
       fontDisplay={fontDisplay}
       fontBody={fontBody}
+      radius={radius}
       buttonClass={buttonPrimary}
       inputClass={inputClass}
     />

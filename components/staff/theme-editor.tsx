@@ -6,6 +6,8 @@ import {
   DISPLAY_FONTS,
   normalizeHex,
   parseBodyFont,
+  parseRadius,
+  RADII,
   parseDisplayFont,
   parseTheme,
   previewStyle,
@@ -66,6 +68,7 @@ export function ThemeEditor({
   primary,
   fontDisplay,
   fontBody,
+  radius,
   buttonClass,
   inputClass,
 }: {
@@ -76,6 +79,7 @@ export function ThemeEditor({
   primary?: string | null;
   fontDisplay?: string | null;
   fontBody?: string | null;
+  radius?: string | null;
   buttonClass: string;
   inputClass: string;
 }) {
@@ -84,18 +88,20 @@ export function ThemeEditor({
   const [color, setColor] = useState<string>(normalizeHex(primary) ?? "");
   const [display, setDisplay] = useState<string>(parseDisplayFont(fontDisplay) ?? "");
   const [body, setBody] = useState<string>(parseBodyFont(fontBody) ?? "");
+  const [corners, setCorners] = useState<string>(parseRadius(radius) ?? "");
 
   const themeId = parseTheme(theme);
   const hex = normalizeHex(color);
   const colorBad = color.trim() !== "" && !hex;
   const contrast = hex ? primaryContrast(hex, themeId) : [];
   const failing = contrast.some((l) => !l.pass);
-  const style = previewStyle({ theme: themeId, primary: hex, fontDisplay: display, fontBody: body });
+  const style = previewStyle({ theme: themeId, primary: hex, fontDisplay: display, fontBody: body, radius: corners });
   const dirty =
     theme !== (parseTheme(current) ?? "standard") ||
     (hex ?? "") !== (normalizeHex(primary) ?? "") ||
     display !== (parseDisplayFont(fontDisplay) ?? "") ||
-    body !== (parseBodyFont(fontBody) ?? "");
+    body !== (parseBodyFont(fontBody) ?? "") ||
+    corners !== (parseRadius(radius) ?? "");
 
   return (
     <form action={action} className="mt-8">
@@ -226,6 +232,26 @@ export function ThemeEditor({
             ))}
           </select>
         </div>
+      </div>
+
+      <div className="mt-3 max-w-xs">
+        <label htmlFor={`${group}-radius`} className="text-sm font-medium">
+          Corners (optional)
+        </label>
+        <select
+          id={`${group}-radius`}
+          name="radius"
+          value={corners}
+          onChange={(e) => setCorners(e.target.value)}
+          className={`${inputClass} mt-1 w-full`}
+        >
+          <option value="">Standard</option>
+          {RADII.map((r) => (
+            <option key={r.value} value={r.value}>
+              {r.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="mt-5">

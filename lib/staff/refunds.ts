@@ -210,6 +210,7 @@ export type ErrorCode =
   | "theme_color"
   | "theme_contrast"
   | "theme_font"
+  | "theme_radius"
   | "offer_invalid"
   | "review_invalid"
   | "offer_dates"
@@ -610,6 +611,8 @@ export function errorMessage(code: string, refundable: number | null, formatMino
       return "A payment came in that does not match the invoice. Nothing was marked paid; the platform will contact you. Keep your payment receipt.";
     case "offer_limit":
       return "A hotel can have up to 12 offers. Delete one you no longer need first.";
+    case "theme_radius":
+      return "Choose the corners from the list, or leave them as standard.";
     case "theme_font":
       return "Choose a heading font and a body font from the lists, or leave them as the look's own.";
     case "theme_contrast":

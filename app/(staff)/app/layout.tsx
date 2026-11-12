@@ -67,7 +67,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   // decides the look (its chosen theme, or the standard look when it has not chosen one or the read fails).
   const propsQ = await supabase
     .from("properties")
-    .select("id, name, theme, theme_primary, theme_font_display, theme_font_body")
+    .select("id, name, theme, theme_primary, theme_font_display, theme_font_body, theme_radius")
     .eq("status", "active")
     .order("name");
   const switchable = (propsQ.data ?? []) as {
@@ -77,6 +77,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
     theme_primary: string | null;
     theme_font_display: string | null;
     theme_font_body: string | null;
+    theme_radius: string | null;
   }[];
   const current = pickProperty(switchable, undefined, await rememberedProperty());
 
@@ -88,6 +89,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
         primary: current?.theme_primary,
         fontDisplay: current?.theme_font_display,
         fontBody: current?.theme_font_body,
+        radius: current?.theme_radius,
       })}
     >
       <RouteProgress />

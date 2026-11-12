@@ -14,6 +14,7 @@ export type GuestHotel = {
   logo?: string | null; // storage path in the room-photos bucket (migration 090)
   font_display?: string | null; // heading font key over the theme (migration 100)
   font_body?: string | null;
+  radius?: string | null; // corner style key over the theme (migration 118)
   theme_primary?: string | null; // optional main colour as #rrggbb over the theme (migration 099)
   theme?: string | null; // 'luxury', 'modern' or 'classic'; null is the standard look (migration 093)
   facilities?: string[] | null; // what the hotel as a whole offers: Pool, Restaurant (migration 105)

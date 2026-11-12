@@ -811,6 +811,10 @@ HF="$(psql -f "$HERE/101_hotel_fonts.sql" 2>&1)" || { echo "$HF"; echo "HOTEL FO
 echo "$HF" | grep -E 'PASS' || true
 if echo "$HF" | grep -qE 'FAIL|ERROR'; then echo "$HF"; echo "HOTEL FONT TESTS FAILED"; exit 1; fi
 
+HR="$(psql -f "$HERE/118_hotel_corner_radius.sql" 2>&1)" || { echo "$HR"; echo "HOTEL RADIUS TESTS FAILED"; exit 1; }
+echo "$HR" | grep -E 'PASS' || true
+if echo "$HR" | grep -qE 'FAIL|ERROR'; then echo "$HR"; echo "HOTEL RADIUS TESTS FAILED"; exit 1; fi
+
 HO="$(psql -f "$HERE/102_hotel_offers.sql" 2>&1)" || { echo "$HO"; echo "HOTEL OFFERS TESTS FAILED"; exit 1; }
 echo "$HO" | grep -E 'PASS' || true
 if echo "$HO" | grep -qE 'FAIL|ERROR'; then echo "$HO"; echo "HOTEL OFFERS TESTS FAILED"; exit 1; fi

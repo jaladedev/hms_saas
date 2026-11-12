@@ -21,7 +21,7 @@ export default async function HotelDetailsPage({ searchParams }: { searchParams:
   const propQ = await supabase
     .from("properties")
     .select(
-      "id, name, address, city, state, check_in_time, check_out_time, phone, contact_email, intro, logo_path, theme, theme_primary, theme_font_display, theme_font_body, facilities, social_instagram, social_facebook",
+      "id, name, address, city, state, check_in_time, check_out_time, phone, contact_email, intro, logo_path, theme, theme_primary, theme_font_display, theme_font_body, theme_radius, facilities, social_instagram, social_facebook",
     )
     .order("name");
   const properties = (propQ.data ?? []) as {
@@ -40,6 +40,7 @@ export default async function HotelDetailsPage({ searchParams }: { searchParams:
     theme_primary: string | null;
     theme_font_display: string | null;
     theme_font_body: string | null;
+    theme_radius: string | null;
     facilities: string[];
     social_instagram: string | null;
     social_facebook: string | null;
@@ -117,6 +118,7 @@ export default async function HotelDetailsPage({ searchParams }: { searchParams:
                 primary={p.theme_primary}
                 fontDisplay={p.theme_font_display}
                 fontBody={p.theme_font_body}
+                radius={p.theme_radius}
               />
               <form action={saveHotelBasics} className="mt-8 grid gap-4 sm:grid-cols-2">
                 <input type="hidden" name="propertyId" value={p.id} />

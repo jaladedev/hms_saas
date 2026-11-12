@@ -23,6 +23,11 @@
   --spacing: 0.21rem;
 }
 
+/* Tailwind 4's bare "rounded" is a fixed 0.25rem; this lets a hotel's corner style (lib/theme.ts RADII) reach it too. */
+.rounded {
+  border-radius: var(--radius-base, 0.25rem);
+}
+
 body {
   background: var(--color-paper);
   color: var(--color-ink);

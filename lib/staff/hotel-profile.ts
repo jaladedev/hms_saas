@@ -6,6 +6,8 @@
 import {
   normalizeHex,
   parseBodyFont,
+  parseRadius,
+  type RadiusId,
   parseDisplayFont,
   parseTheme,
   primaryContrast,
@@ -80,10 +82,11 @@ export type ThemeForm = {
   primary: string | null;
   fontDisplay: DisplayFontId | null;
   fontBody: BodyFontId | null;
+  radius: RadiusId | null;
 };
 export type ThemeCheck =
   | { ok: true; value: ThemeForm }
-  | { ok: false; code: "setup_invalid" | "theme_color" | "theme_contrast" | "theme_font" };
+  | { ok: false; code: "setup_invalid" | "theme_color" | "theme_contrast" | "theme_font" | "theme_radius" };
 
 /**
  * The hotel's look (migrations 093 and 099): "standard" (the look the app has always had) or one of the three theme names,
@@ -104,7 +107,10 @@ export function parseThemeForm(raw: Record<string, unknown>): ThemeCheck {
   const fontDisplay = displayRaw ? parseDisplayFont(displayRaw) : null;
   const fontBody = bodyRaw ? parseBodyFont(bodyRaw) : null;
   if ((displayRaw && !fontDisplay) || (bodyRaw && !fontBody)) return { ok: false, code: "theme_font" };
-  return { ok: true, value: { propertyId, theme, primary, fontDisplay, fontBody } };
+  const radiusRaw = text(raw.radius);
+  const radius = radiusRaw ? parseRadius(radiusRaw) : null;
+  if (radiusRaw && !radius) return { ok: false, code: "theme_radius" };
+  return { ok: true, value: { propertyId, theme, primary, fontDisplay, fontBody, radius } };
 }
 
 /** "14:00:00" from the database as "14:00" for a time field. */
