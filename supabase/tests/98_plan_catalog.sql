@@ -65,7 +65,7 @@ do $$ declare r jsonb; v_before int; v_f text[]; begin
   raise notice 'PASS plan catalog: created, tidied, repeat changes nothing, edit audited once, placeholder cleared by saving';
 end $$;
 
--- 4. applying a plan sets the code and the seven flags; other flags are left alone; a repeat changes nothing
+-- 4. applying a plan sets the code and the enforced flags; other flags are left alone; a repeat changes nothing
 do $$ declare v_t uuid := (select id from tenants where slug = 't50-hotel'); r jsonb; v_n int; begin
   perform t_sys();
   delete from tenant_feature_entitlements where tenant_id = v_t;
@@ -83,7 +83,7 @@ do $$ declare v_t uuid := (select id from tenants where slug = 't50-hotel'); r j
   perform t_sys();
   if (select plan_code from tenant_subscriptions where tenant_id = v_t) <> 'starter' then raise exception 'FAIL plan code not set'; end if;
   select count(*) into v_n from tenant_feature_entitlements where tenant_id = v_t and feature_key = any (plan_enforced_flags());
-  if v_n <> 7 then raise exception 'FAIL % of 7 flags set', v_n; end if;
+  if v_n <> 11 then raise exception 'FAIL % of 11 flags set', v_n; end if;
   if not (select enabled from tenant_feature_entitlements where tenant_id = v_t and feature_key = 'online_booking') then raise exception 'FAIL online_booking should be on'; end if;
   if (select enabled from tenant_feature_entitlements where tenant_id = v_t and feature_key = 'reports.export') then raise exception 'FAIL reports.export should be off on starter'; end if;
   if not (select enabled from tenant_feature_entitlements where tenant_id = v_t and feature_key = 'beta.thing') then raise exception 'FAIL an unrelated flag was touched'; end if;
@@ -95,7 +95,7 @@ do $$ declare v_t uuid := (select id from tenants where slug = 't50-hotel'); r j
   perform t_sys();
   if (r ->> 'changed') <> 'true' or not (select enabled from tenant_feature_entitlements where tenant_id = v_t and feature_key = 'reports.export') then raise exception 'FAIL switching to pro %', r; end if;
   if (select count(*) from tenant_subscriptions where tenant_id = v_t) <> 1 then raise exception 'FAIL a second subscription row'; end if;
-  raise notice 'PASS plan catalog: apply sets plan and the seven flags, leaves other flags, repeat changes nothing';
+  raise notice 'PASS plan catalog: apply sets plan and the enforced flags, leaves other flags, repeat changes nothing';
 end $$;
 
 -- 5. an inactive plan cannot be applied; the catalog is closed to every login except through the functions

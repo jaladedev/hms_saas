@@ -851,4 +851,8 @@ AR="$(psql -f "$HERE/111_platform_access_requests.sql" 2>&1)" || { echo "$AR"; e
 echo "$AR" | grep -E 'PASS' || true
 if echo "$AR" | grep -qE 'FAIL|ERROR'; then echo "$AR"; echo "ACCESS REQUEST TESTS FAILED"; exit 1; fi
 
+MF="$(psql -f "$HERE/112_more_plan_flags.sql" 2>&1)" || { echo "$MF"; echo "MORE PLAN FLAGS TESTS FAILED"; exit 1; }
+echo "$MF" | grep -E 'PASS' || true
+if echo "$MF" | grep -qE 'FAIL|ERROR'; then echo "$MF"; echo "MORE PLAN FLAGS TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

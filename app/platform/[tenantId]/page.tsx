@@ -299,14 +299,17 @@ export default async function HotelDetail({
       <section aria-labelledby="sub">
         <SectionTitle id="sub">Plan and features</SectionTitle>
         <p className="mt-2 max-w-prose text-sm text-muted">
-          Seven flags are enforced. reports.export: turned off, the hotel's CSV downloads stop. online_payments: turned off, guests cannot
+          Eleven flags are enforced. reports.export: turned off, the hotel's CSV downloads stop. online_payments: turned off, guests cannot
           start a card payment (payments already made, refunds and staff-recorded payments are unaffected). discounts: turned off, nobody at
           the hotel can give or change a discount (discounts already on bookings stay). online_booking: turned off, the guest website takes
           no new bookings (existing bookings, payments and staff-made reservations are unaffected). guest_cancel: turned off, guests cannot
           cancel from their booking link (staff still can). guest_changes: turned off, guests cannot edit their phone, send change requests
           or change dates from their booking link (staff still can, and can answer open requests). early_checkin: turned off, guests cannot
-          be checked in before their arrival date (guests already checked in early and ordinary check-in are unaffected). With no row, or
-          on, all seven work. Any other key is only recorded and switches nothing.
+          be checked in before their arrival date (guests already checked in early and ordinary check-in are unaffected). housekeeping,
+          maintenance: turned off, the hotel's staff lose those screens and actions (tasks and requests already made stay). audit_log:
+          turned off, the hotel cannot read its own audit history (it is still written, and the platform still sees it). branding: turned
+          off, the hotel cannot change its theme, colour or fonts (the look it has stays). With no row, or on, all eleven work. Any other
+          key is only recorded and switches nothing.
         </p>
         <p className="mt-3 text-sm">
           {d.subscription
@@ -332,7 +335,7 @@ export default async function HotelDetail({
               Apply plan
             </button>
             <p className="basis-full text-sm text-muted">
-              Sets the plan code and turns the seven enforced flags on or off to match the plan. Use the form below to change only the
+              Sets the plan code and turns the eleven enforced flags on or off to match the plan. Use the form below to change only the
               status or dates.
             </p>
           </form>
