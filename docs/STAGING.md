@@ -195,6 +195,7 @@ Deploy this commit to the staging host and set these variables there (see `.env.
 | `SUPABASE_SERVICE_ROLE_KEY` | the secret key from step 2 (server only) |
 | `BOOKING_TOKEN_SECRET` | `openssl rand -base64 48` |
 | `CRON_SECRET` | `openssl rand -base64 48` |
+| `PLATFORM_PAYSTACK_SECRET_KEY` | (optional) a Paystack TEST secret key for the platform account; set its webhook to `https://<staging-host>/api/webhooks/platform-paystack` to try "Pay online" on a hotel's billing page |
 | `PAYSTACK_SECRET_STAGING` | the Paystack TEST secret key (the name must match `secret_reference` from step 5) |
 | `RESEND_API_KEY`, `EMAIL_FROM` | step 9; until then mail waits in the outbox and nothing is lost |
 

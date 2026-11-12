@@ -214,6 +214,10 @@ export type ErrorCode =
   | "review_invalid"
   | "offer_dates"
   | "offer_limit"
+  | "invoice_pay_unavailable"
+  | "invoice_pay_failed"
+  | "invoice_pay_closed"
+  | "invoice_pay_review"
   | "setup_duplicate_code"
   | "setup_duplicate_name"
   | "setup_duplicate_room"
@@ -426,6 +430,8 @@ export const OK_MESSAGES = {
   review_rejected: "Review rejected. It is not shown on your website.",
   offer_saved: "Offer saved. Guests see it on the homepage while it is switched on and inside its dates.",
   offer_deleted: "Offer deleted.",
+  invoice_paid: "Payment received. The invoice is marked paid. Thank you.",
+  invoice_pay_pending: "We have not received the payment yet. If you paid, it will show here shortly; otherwise try again.",
   hotel_theme_saved: "Look saved. Your website and the staff screens for this hotel now use it.",
   photo_moved: "Photo order saved.",
   photo_caption_saved: "Caption saved.",
@@ -594,6 +600,14 @@ export function errorMessage(code: string, refundable: number | null, formatMino
       return "Check the offer. It needs a title (up to 80 characters); the text can be up to 300 and the badge up to 24.";
     case "offer_dates":
       return "Check the dates. Leave them empty for no limit, or enter real dates with the end on or after the start.";
+    case "invoice_pay_unavailable":
+      return "Paying online is not available right now. Contact the platform with the invoice number.";
+    case "invoice_pay_failed":
+      return "The payment could not be started. Try again, or contact the platform with the invoice number.";
+    case "invoice_pay_closed":
+      return "That invoice is no longer open.";
+    case "invoice_pay_review":
+      return "A payment came in that does not match the invoice. Nothing was marked paid; the platform will contact you. Keep your payment receipt.";
     case "offer_limit":
       return "A hotel can have up to 12 offers. Delete one you no longer need first.";
     case "theme_font":

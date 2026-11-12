@@ -3144,6 +3144,8 @@ export type Database = {
       platform_list_access: { Args: { p_status?: string; p_tenant?: string }; Returns: Json }
       platform_access_view: { Args: { p_request: string }; Returns: Json }
       hotel_billing: { Args: { p_property: string }; Returns: Json }
+      hotel_start_invoice_payment: { Args: { p_invoice: string; p_property: string }; Returns: Json }
+      settle_invoice_payment: { Args: { p_amount_minor: number; p_currency: string; p_reference: string; p_status: string }; Returns: Json }
       platform_open_invoices: { Args: Record<string, never>; Returns: Json }
       hotel_platform_access: { Args: { p_property: string }; Returns: Json }
       guest_offers: { Args: { p_host: string }; Returns: Json }

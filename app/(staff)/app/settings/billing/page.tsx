@@ -1,4 +1,6 @@
-import { EmptyState, ErrorBanner, PageIntro, PageTitle, SectionTitle } from "@/components/staff/ui";
+import { buttonPrimary, EmptyState, ErrorBanner, Notice, PageIntro, PageTitle, SectionTitle } from "@/components/staff/ui";
+import { platformPaystackSecret } from "@/lib/platform/invoice-payment";
+import { payInvoiceOnline } from "@/lib/staff/invoice-payment-actions";
 import { formatMoney } from "@/lib/guest-site/format";
 import { amountOwing, dueLabel, invoiceOverdue, type BillingInvoice } from "@/lib/staff/hotel-billing";
 import { createClient } from "@/lib/supabase/server";
@@ -11,7 +13,9 @@ type Billing = { plan_code: string | null; invoices: BillingInvoice[] };
  * What the platform has billed this hotel: the current plan and the invoices, read-only. Only people who may change the hotel setup
  * (property.configure) can read it; the database answers nobody else. Payment is arranged with the platform; this page only shows it.
  */
-export default async function BillingPage() {
+export default async function BillingPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const search = await searchParams;
+  const canPay = platformPaystackSecret() !== null;
   const supabase = await createClient();
   const propQ = await supabase.from("properties").select("id, name").order("name");
   const properties = (propQ.data ?? []) as { id: string; name: string }[];
@@ -29,9 +33,12 @@ export default async function BillingPage() {
     <main className="max-w-3xl">
       <PageTitle>Billing</PageTitle>
       <PageIntro>
-        Your plan and the invoices from the platform. This page is for reading; to pay or ask about an invoice, contact the platform with
-        the invoice number.
+        Your plan and the invoices from the platform. Open invoices can be paid online by card when the platform has switched that on; to
+        pay another way or ask about an invoice, contact the platform with the invoice number.
       </PageIntro>
+      <div className="mt-6">
+        <Notice search={search} currency="NGN" />
+      </div>
       {propQ.error && <ErrorBanner className="mt-6">The billing details could not be loaded. Reload the page.</ErrorBanner>}
       {!propQ.error && visible.length === 0 && (
         <EmptyState className="mt-6">Billing is shown to the hotel&rsquo;s owner and general manager.</EmptyState>
@@ -74,6 +81,15 @@ export default async function BillingPage() {
                           ? `Paid ${i.paid_at?.slice(0, 10) ?? ""}${i.payment_ref ? ` (${i.payment_ref})` : ""}`
                           : (due ?? "Open")}
                       </span>
+                      {canPay && i.status === "open" && (
+                        <form action={payInvoiceOnline} className="ml-auto">
+                          <input type="hidden" name="propertyId" value={p.id} />
+                          <input type="hidden" name="invoiceId" value={i.id} />
+                          <button type="submit" className={buttonPrimary}>
+                            Pay online
+                          </button>
+                        </form>
+                      )}
                       {i.note && <span className="w-full text-xs text-muted">{i.note}</span>}
                     </li>
                   );
