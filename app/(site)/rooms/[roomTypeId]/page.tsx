@@ -7,7 +7,7 @@ import { SiteBreadcrumbs } from "@/components/site/site-breadcrumbs";
 import { capacityLabel, freeCancellationBadge, fromPriceLabel, nightPriceLabel } from "@/lib/guest-site/home";
 import { timesLine } from "@/lib/guest-site/hotel";
 import { uuidSchema } from "@/lib/guest-site/params";
-import { guestHotel, guestPolicy, guestRoomType, requestHost } from "@/lib/guest-site/server";
+import { guestHotel, guestPolicy, guestRoomType, guestRoomTypeAvailability, requestHost } from "@/lib/guest-site/server";
 import { photoUrl } from "@/lib/staff/room-photos";
 
 export const dynamic = "force-dynamic";
@@ -20,9 +20,17 @@ export default async function RoomDetails({ params }: Props) {
   const { roomTypeId } = await params;
   if (!uuidSchema.safeParse(roomTypeId).success) notFound();
   const host = await requestHost();
-  const [roomResult, hotelResult, policyResult] = await Promise.all([guestRoomType(host, roomTypeId), guestHotel(host), guestPolicy(host)]);
+  const [roomResult, hotelResult, policyResult, availResult] = await Promise.all([
+    guestRoomType(host, roomTypeId),
+    guestHotel(host),
+    guestPolicy(host),
+    guestRoomTypeAvailability(host, roomTypeId),
+  ]);
   if (!roomResult.ok) notFound();
-  const { currency, room_type: room, nights } = roomResult.data;
+  const { currency, room_type: room } = roomResult.data;
+  // Rates and availability are asked for separately. If availability cannot be had, every night stays pickable and the search checks it.
+  const free = new Map((availResult.ok ? availResult.data.nights : []).map((n) => [n.date, n.available]));
+  const nights = roomResult.data.nights.map((n) => ({ ...n, available: free.get(n.date) }));
   const hotel = hotelResult.ok ? hotelResult.data : null;
   const supa = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
   const price = fromPriceLabel(room.from_rate_minor, currency);

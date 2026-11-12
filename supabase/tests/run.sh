@@ -859,4 +859,8 @@ PS="$(psql -f "$HERE/113_payments_summary.sql" 2>&1)" || { echo "$PS"; echo "PAY
 echo "$PS" | grep -E 'PASS' || true
 if echo "$PS" | grep -qE 'FAIL|ERROR'; then echo "$PS"; echo "PAYMENTS SUMMARY TESTS FAILED"; exit 1; fi
 
+GA="$(psql -f "$HERE/114_guest_room_type_availability.sql" 2>&1)" || { echo "$GA"; echo "GUEST ROOM TYPE AVAILABILITY TESTS FAILED"; exit 1; }
+echo "$GA" | grep -E 'PASS' || true
+if echo "$GA" | grep -qE 'FAIL|ERROR'; then echo "$GA"; echo "GUEST ROOM TYPE AVAILABILITY TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

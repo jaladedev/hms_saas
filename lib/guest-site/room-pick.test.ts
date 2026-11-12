@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDaysIso, inStay, pickNight, stayEstimate, type Pick, type PriceNight } from "./room-pick";
+import { addDaysIso, inStay, isClosed, pickNight, stayEstimate, stayHasFullNight, type Pick, type PriceNight } from "./room-pick";
 
 const nights: PriceNight[] = [
   { date: "2026-11-12", rate_minor: 2500000 },
@@ -49,5 +49,29 @@ describe("stayEstimate", () => {
     expect(stayEstimate(nights, "2026-11-16", "2026-11-18")).toBeNull();
     expect(stayEstimate(nights, "2026-11-14", "2026-11-12")).toBeNull();
     expect(stayEstimate(nights, "", "")).toBeNull();
+  });
+});
+
+describe("full nights", () => {
+  const withFull: PriceNight[] = [
+    { date: "2026-11-12", rate_minor: 2500000, available: true },
+    { date: "2026-11-13", rate_minor: 2500000, available: false },
+    { date: "2026-11-14", rate_minor: 2500000, available: true },
+    { date: "2026-11-15", rate_minor: 2500000 },
+  ];
+  it("a full night is closed; an unknown one is not", () => {
+    expect(isClosed(withFull[1]!)).toBe(true);
+    expect(isClosed(withFull[3]!)).toBe(false);
+  });
+  it("cannot be picked, and a range across one starts again", () => {
+    expect(pickNight(none, withFull, "2026-11-13")).toBe(none);
+    const start = pickNight(none, withFull, "2026-11-12");
+    expect(pickNight(start, withFull, "2026-11-14")).toEqual({ arrival: "2026-11-14", departure: "2026-11-15", awaitingEnd: true });
+  });
+  it("is found in a typed stay, and then no estimate is given", () => {
+    expect(stayHasFullNight(withFull, "2026-11-12", "2026-11-14")).toBe(true);
+    expect(stayHasFullNight(withFull, "2026-11-14", "2026-11-16")).toBe(false);
+    expect(stayEstimate(withFull, "2026-11-12", "2026-11-14")).toBeNull();
+    expect(stayEstimate(withFull, "2026-11-14", "2026-11-16")).toEqual({ nights: 2, totalMinor: 5000000 });
   });
 });

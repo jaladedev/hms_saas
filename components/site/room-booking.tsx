@@ -2,7 +2,16 @@
 
 import { useState } from "react";
 import { nightDayLabel, nightPriceLabel } from "@/lib/guest-site/home";
-import { addDaysIso, inStay, pickNight, stayEstimate, type Pick, type PriceNight } from "@/lib/guest-site/room-pick";
+import {
+  addDaysIso,
+  inStay,
+  isClosed,
+  pickNight,
+  stayEstimate,
+  stayHasFullNight,
+  type Pick,
+  type PriceNight,
+} from "@/lib/guest-site/room-pick";
 
 const field = "mt-1 w-full rounded-lg border border-line bg-white p-2.5 text-base normal-case tracking-normal text-ink";
 const label = "text-xs font-medium uppercase tracking-wider text-muted";
@@ -31,6 +40,7 @@ export function RoomBooking({
   const today = nights[0]?.date;
   const [pick, setPick] = useState<Pick>({ arrival: "", departure: "", awaitingEnd: false });
   const est = stayEstimate(nights, pick.arrival, pick.departure);
+  const full = stayHasFullNight(nights, pick.arrival, pick.departure);
 
   return (
     <>
@@ -40,11 +50,13 @@ export function RoomBooking({
         </h2>
         <p className="mt-1 text-xs text-muted">
           The nightly rate for the next {nights.length} nights, before tax. Press a night to pick it; press a later one to stay until then.
+          Nights marked Full cannot be picked.
         </p>
         <ul className="mt-3 grid grid-cols-2 gap-2 text-center text-sm sm:grid-cols-4 xl:grid-cols-5">
           {nights.map((n) => {
             const on = inStay(n.date, pick.arrival, pick.departure);
-            const none = n.rate_minor === null;
+            const none = isClosed(n);
+            const sold = n.available === false;
             return (
               <li key={n.date}>
                 <button
@@ -57,7 +69,10 @@ export function RoomBooking({
                   }`}
                 >
                   <span className={`block text-xs ${on ? "text-white/80" : "text-muted"}`}>{nightDayLabel(n.date)}</span>
-                  <span className="block font-medium">{nightPriceLabel(n.rate_minor, currency)}</span>
+                  <span className={`block font-medium ${sold ? "text-muted" : ""}`}>
+                    {sold ? "Full" : nightPriceLabel(n.rate_minor, currency)}
+                  </span>
+                  {sold ? <span className="sr-only">, fully booked</span> : null}
                 </button>
               </li>
             );
@@ -116,9 +131,11 @@ export function RoomBooking({
           <input type="number" name="children" min={0} max={Math.min(20, maxChildren)} defaultValue={0} className={field} />
         </label>
         <p role="status" aria-live="polite" className="col-span-2 min-h-5 text-sm text-muted">
-          {est
-            ? `${est.nights} ${est.nights === 1 ? "night" : "nights"}, about ${nightPriceLabel(est.totalMinor, currency)} before tax`
-            : ""}
+          {full
+            ? "One or more of these nights is fully booked. Choose other dates."
+            : est
+              ? `${est.nights} ${est.nights === 1 ? "night" : "nights"}, about ${nightPriceLabel(est.totalMinor, currency)} before tax`
+              : ""}
         </p>
         <button
           type="submit"

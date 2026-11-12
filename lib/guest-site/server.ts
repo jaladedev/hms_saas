@@ -128,6 +128,16 @@ export const guestRoomType = cache((host: string, roomType: string) =>
   call<RoomTypeDetails>("guest_room_type", { p_host: host, p_room_type: roomType, p_from: null, p_nights: 14 }),
 );
 
+/** Whether a room of the type is free on each of the next nights, for the price calendar (migration 114). A yes or no, never a count. */
+export const guestRoomTypeAvailability = cache((host: string, roomType: string) =>
+  call<{ nights: { date: string; available: boolean }[] }>("guest_room_type_availability", {
+    p_host: host,
+    p_room_type: roomType,
+    p_from: null,
+    p_nights: 14,
+  }),
+);
+
 export type HomeOffer = { title: string; body: string; badge: string | null; valid_to: string | null };
 
 /** The hotel's live offers for the homepage (migration 102): active, inside their dates, at most six. */
