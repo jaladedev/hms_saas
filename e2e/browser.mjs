@@ -169,6 +169,11 @@ const staffPages = [
   "/app/requests",
   "/app/settings/discounts",
   "/app/staff/roles",
+  "/app/settings/hotel",
+  "/app/settings/offers",
+  "/app/settings/reviews",
+  "/app/settings/billing",
+  "/app/settings/platform-access",
   ...(reservationId
     ? [
         `/app/reservations/${reservationId}`,
@@ -183,7 +188,18 @@ const staffPages = [
 // The platform area, as a platform admin (and the read-only list as support). It never shows a hotel's reservations or guests.
 const tenant = await firstRow("tenants", "order=id.asc");
 check("a hotel group exists for the platform pages", !!tenant);
-const platformPages = ["/platform", "/platform/new", ...(tenant ? [`/platform/${tenant.id}`] : [])];
+const ticket = await firstRow("support_tickets", "order=id.asc");
+const platformPages = [
+  "/platform",
+  "/platform/new",
+  "/platform/entitlements",
+  "/platform/tickets",
+  "/platform/access",
+  "/platform/plans",
+  "/platform/invoices",
+  ...(tenant ? [`/platform/${tenant.id}`] : []),
+  ...(ticket ? [`/platform/tickets/${ticket.id}`] : []),
+];
 
 // The guest's own links, made by flow.mjs: the page that quotes a room, the booking page, and the cancel page.
 const shared = (() => {
