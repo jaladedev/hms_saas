@@ -117,6 +117,17 @@ export type HomeRoomTypes = { currency: string; room_types: HomeRoomType[] };
 /** The room types a guest could book at the hotel behind this host, with pictures and a "from" price, for the homepage (migration 096). */
 export const guestRoomTypes = cache((host: string) => call<HomeRoomTypes>("guest_room_types", { p_host: host }));
 
+export type RoomTypeDetails = {
+  currency: string;
+  room_type: Omit<HomeRoomType, "from_rate_minor"> & { from_rate_minor: number | null };
+  nights: { date: string; rate_minor: number | null }[]; // the next nights on the default plan, before tax; null when no rate
+};
+
+/** One bookable room type with all its pictures and the rate for each of the next nights, for the Room Details page (migration 106). */
+export const guestRoomType = cache((host: string, roomType: string) =>
+  call<RoomTypeDetails>("guest_room_type", { p_host: host, p_room_type: roomType, p_from: null, p_nights: 14 }),
+);
+
 export type HomeOffer = { title: string; body: string; badge: string | null; valid_to: string | null };
 
 /** The hotel's live offers for the homepage (migration 102): active, inside their dates, at most six. */

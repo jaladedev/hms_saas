@@ -105,6 +105,7 @@ Status: **built**, **partial** (part of the job is done, or only another role ca
 | Property Profile | built | `/app/settings/hotel` |
 | Operational Settings | built | `/app/settings/hotel` holds the check-in and check-out times, contact details, hotel facilities and Instagram and Facebook links (migration 105) |
 | Guest Homepage | built | `/`: hero, search card, room cards (migration 096), info pills; offers, reviews and experience not built (no data) |
+| Guest Room Details | built | `/rooms/[roomTypeId]`: every picture, description, amenities, who it sleeps, a 14-night price calendar and a Book form; opened from "View room" on the homepage cards (migration 106 `guest_room_type`) |
 | Guest Policies / Contact / Privacy | built | `/policies`, `/contact`, `/privacy` (privacy text needs review) |
 | Branding & Theme Editor | built | `/app/settings/hotel`: logo and room photos, and the hotel's look (Standard, Luxury, Modern or Classic; migration 093) for the guest site and the staff screens, plus an optional main colour over it (migration 099; refused if white text on it or links on the page fall below WCAG AA 4.5:1). heading and body fonts over it (migration 100), and a live preview of the choices before saving. Not built: other colours (secondary, accent, background), corner radius, draft versus published |
 | Staff Management | built | `/app/staff` |
@@ -120,8 +121,9 @@ Status: **built**, **partial** (part of the job is done, or only another role ca
 - Billing, the hotel's own view of its plan and platform invoices (`/app/settings/billing`, migration 103)
 - Offers for the homepage (`/app/settings/offers`, migration 102)
 - Discounts (`/app/settings/discounts`) and tax rules (`/app/settings/tax`)
+- Guest homepage reviews now sit under the room cards (they had been rendered inside every card)
 - Platform administration: `/platform`, `/platform/new`, `/platform/[tenantId]`
 
 ## Totals
 
-52 screens: 51 built, 1 partial, 0 not built.
+52 screens: 51 built, 1 partial, 0 not built. The guest booking screens (Room Details included) are listed under Property & System.

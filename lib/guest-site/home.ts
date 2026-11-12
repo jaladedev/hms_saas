@@ -63,3 +63,16 @@ export function offerUntilLabel(validTo: string | null | undefined): string | nu
   if (typeof validTo !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(validTo)) return null;
   return `Until ${formatDate(validTo)}`;
 }
+
+/** "₦25,000" for one night in a price calendar: whole naira, no kobo. Null (no rate for that night) shows as "n/a". */
+export function nightPriceLabel(minor: number | null | undefined, currency: string): string {
+  if (minor === null || minor === undefined || !Number.isFinite(minor)) return "n/a";
+  return new Intl.NumberFormat("en-NG", { style: "currency", currency, maximumFractionDigits: 0 }).format(minor / 100);
+}
+
+/** "12 Nov" for a night in a price calendar, without any timezone shift. */
+export function nightDayLabel(isoDate: string): string {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  if (!y || !m || !d) return isoDate;
+  return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(Date.UTC(y, m - 1, d)));
+}

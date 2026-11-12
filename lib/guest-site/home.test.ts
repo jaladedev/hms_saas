@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { amenityHighlights, capacityLabel, freeCancellationBadge, fromPriceLabel, monogram, offerUntilLabel, onlyChosenType } from "./home";
+import {
+  amenityHighlights,
+  capacityLabel,
+  freeCancellationBadge,
+  fromPriceLabel,
+  monogram,
+  nightDayLabel,
+  nightPriceLabel,
+  offerUntilLabel,
+  onlyChosenType,
+} from "./home";
 
 describe("fromPriceLabel", () => {
   it("formats the nightly price, and gives nothing for a missing or non-positive one", () => {
@@ -71,5 +81,19 @@ describe("offerUntilLabel", () => {
   it("words an end date, and is null for none or a bad value", () => {
     expect(offerUntilLabel("2026-11-30")).toMatch(/^Until .*2026/);
     for (const bad of [null, undefined, "", "soon", "2026-11-30T00:00:00Z"]) expect(offerUntilLabel(bad)).toBeNull();
+  });
+});
+
+describe("price calendar labels", () => {
+  it("shows a night's price in whole naira, and n/a when there is no rate", () => {
+    expect(nightPriceLabel(2500000, "NGN")).toBe("₦25,000");
+    expect(nightPriceLabel(null, "NGN")).toBe("n/a");
+    expect(nightPriceLabel(undefined, "NGN")).toBe("n/a");
+    expect(nightPriceLabel(Number.NaN, "NGN")).toBe("n/a");
+  });
+  it("shows a night's date as day and month, with no time zone shift", () => {
+    expect(nightDayLabel("2026-11-12")).toBe("12 Nov");
+    expect(nightDayLabel("2027-01-01")).toBe("1 Jan");
+    expect(nightDayLabel("nope")).toBe("nope");
   });
 });

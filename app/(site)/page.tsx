@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { formatMoney } from "@/lib/guest-site/format";
 import { telHref } from "@/lib/staff/hotel-profile";
 import { photoUrl } from "@/lib/staff/room-photos";
@@ -327,32 +328,6 @@ export default async function GuestHome({ searchParams }: Props) {
                       <div aria-hidden="true" className="aspect-[4/3] w-full bg-line/40" />
                     ) : null}
 
-                    {!searching && reviews && reviews.reviews.length > 0 ? (
-                      <section aria-labelledby="reviews-title" className="pt-6">
-                        <h2 id="reviews-title" className="font-display text-3xl">
-                          Guest reviews
-                        </h2>
-                        {summary ? <p className="mt-1 text-sm text-muted">{summary}</p> : null}
-                        <ul className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                          {reviews.reviews.map((r, i) => (
-                            <li key={i} className="flex flex-col gap-2 rounded-2xl border border-line bg-white p-5">
-                              <p aria-label={ratingText(r.rating)} className="text-lg tracking-wide text-primary">
-                                <span aria-hidden="true">
-                                  {"★".repeat(r.rating)}
-                                  {"☆".repeat(5 - r.rating)}
-                                </span>
-                              </p>
-                              {r.comment ? <p className="whitespace-pre-line text-sm">{r.comment}</p> : null}
-                              <p className="mt-auto pt-2 text-xs text-muted">
-                                {r.author}
-                                {reviewMonth(r.month) ? `, ${reviewMonth(r.month)}` : ""}
-                              </p>
-                            </li>
-                          ))}
-                        </ul>
-                      </section>
-                    ) : null}
-
                     <div className="flex flex-1 flex-col p-5">
                       <h3 className="font-display text-2xl">{t.name}</h3>
                       {price ? <p className="mt-1 font-medium text-primary-strong">{price}</p> : null}
@@ -367,16 +342,50 @@ export default async function GuestHome({ searchParams }: Props) {
                         </ul>
                       ) : null}
                       <p className="mt-3 text-sm text-muted">{capacityLabel(t.max_occupancy)}</p>
-                      <a
-                        href="#search"
-                        className="mt-5 inline-flex min-h-11 items-center justify-center self-start rounded-full border border-ink px-5 text-sm hover:bg-ink hover:text-paper"
-                      >
-                        Check dates
-                      </a>
+                      <div className="mt-5 flex flex-wrap gap-2">
+                        <Link
+                          href={`/rooms/${t.room_type_id}`}
+                          className="inline-flex min-h-11 items-center justify-center rounded-full border border-ink px-5 text-sm hover:bg-ink hover:text-paper"
+                        >
+                          View room
+                        </Link>
+                        <a
+                          href="#search"
+                          className="inline-flex min-h-11 items-center justify-center rounded-full px-3 text-sm text-primary underline underline-offset-2"
+                        >
+                          Check dates
+                        </a>
+                      </div>
                     </div>
                   </li>
                 );
               })}
+            </ul>
+          </section>
+        ) : null}
+
+        {!searching && reviews && reviews.reviews.length > 0 ? (
+          <section aria-labelledby="reviews-title" className="pt-6">
+            <h2 id="reviews-title" className="font-display text-3xl">
+              Guest reviews
+            </h2>
+            {summary ? <p className="mt-1 text-sm text-muted">{summary}</p> : null}
+            <ul className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {reviews.reviews.map((r, i) => (
+                <li key={i} className="flex flex-col gap-2 rounded-2xl border border-line bg-white p-5">
+                  <p aria-label={ratingText(r.rating)} className="text-lg tracking-wide text-primary">
+                    <span aria-hidden="true">
+                      {"★".repeat(r.rating)}
+                      {"☆".repeat(5 - r.rating)}
+                    </span>
+                  </p>
+                  {r.comment ? <p className="whitespace-pre-line text-sm">{r.comment}</p> : null}
+                  <p className="mt-auto pt-2 text-xs text-muted">
+                    {r.author}
+                    {reviewMonth(r.month) ? `, ${reviewMonth(r.month)}` : ""}
+                  </p>
+                </li>
+              ))}
             </ul>
           </section>
         ) : null}

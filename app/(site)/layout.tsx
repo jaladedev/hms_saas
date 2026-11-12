@@ -43,8 +43,8 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
     >
       <RouteProgress />
       <header className="relative border-b border-line bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4">
-          <Link href="/" className={`flex items-center gap-3 font-display text-xl ${linkTap}`}>
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-4 sm:gap-4">
+          <Link href="/" className={`flex min-w-0 items-center gap-3 font-display text-xl ${linkTap}`}>
             {hotel?.logo ? (
               <>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -71,7 +71,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
           {hotel ? <SiteNav /> : null}
           <Link
             href="/booking/find"
-            className={`shrink-0 rounded-full border border-ink px-4 py-2 text-sm hover:bg-ink hover:text-paper focus-visible:outline-2 focus-visible:outline-primary ${linkTap}`}
+            className={`shrink-0 rounded-full border border-ink px-3 py-2 text-sm sm:px-4 hover:bg-ink hover:text-paper focus-visible:outline-2 focus-visible:outline-primary ${linkTap}`}
           >
             Manage booking
           </Link>
