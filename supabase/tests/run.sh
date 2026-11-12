@@ -867,4 +867,8 @@ HPA="$(psql -f "$HERE/115_hotel_platform_access.sql" 2>&1)" || { echo "$HPA"; ec
 echo "$HPA" | grep -E 'PASS' || true
 if echo "$HPA" | grep -qE 'FAIL|ERROR'; then echo "$HPA"; echo "HOTEL PLATFORM ACCESS TESTS FAILED"; exit 1; fi
 
+POI="$(psql -f "$HERE/116_platform_open_invoices.sql" 2>&1)" || { echo "$POI"; echo "PLATFORM OPEN INVOICES TESTS FAILED"; exit 1; }
+echo "$POI" | grep -E 'PASS' || true
+if echo "$POI" | grep -qE 'FAIL|ERROR'; then echo "$POI"; echo "PLATFORM OPEN INVOICES TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

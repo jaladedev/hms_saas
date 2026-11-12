@@ -3,6 +3,7 @@ import { NavMenu } from "@/components/staff/nav-menu";
 import { NavLink } from "@/components/ui/nav-link";
 import { RouteProgress } from "@/components/ui/route-progress";
 import { readAccess, waitingForMe } from "@/lib/platform/access";
+import { overdueInvoices, readOpenInvoices } from "@/lib/platform/invoices";
 import { signOut } from "@/lib/staff/auth-actions";
 import { createClient } from "@/lib/supabase/server";
 
@@ -16,6 +17,8 @@ export default async function PlatformLayout({ children }: { children: React.Rea
   const level = await supabase.rpc("platform_level");
   if (level.error || !level.data) notFound();
   // Admins see how many access requests wait for them. A failed read shows no count rather than breaking the menu.
+  const owed = await supabase.rpc("platform_open_invoices");
+  const lateCount = owed.error ? 0 : overdueInvoices(readOpenInvoices(owed.data), new Date().toISOString().slice(0, 10)).length;
   let waiting = 0;
   if (level.data === "admin") {
     const pending = await supabase.rpc("platform_list_access", { p_status: "pending" });
@@ -74,6 +77,19 @@ export default async function PlatformLayout({ children }: { children: React.Rea
               activeClassName="bg-white/15 font-medium"
             >
               Support tickets
+            </NavLink>
+            <NavLink
+              href="/platform/invoices"
+              className="block rounded px-2 py-3 text-white hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-white md:py-1.5"
+              activeClassName="bg-white/15 font-medium"
+            >
+              Unpaid invoices
+              {lateCount > 0 && (
+                <span className="ml-2 rounded-full bg-white px-2 py-0.5 text-xs font-medium text-navy-900">
+                  {lateCount}
+                  <span className="sr-only"> overdue</span>
+                </span>
+              )}
             </NavLink>
             <NavLink
               href="/platform/access"
