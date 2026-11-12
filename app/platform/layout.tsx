@@ -61,6 +61,13 @@ export default async function PlatformLayout({ children }: { children: React.Rea
             >
               Entitlements
             </NavLink>
+            <NavLink
+              href="/platform/tickets"
+              className="block rounded px-2 py-3 text-white hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-white md:py-1.5"
+              activeClassName="bg-white/15 font-medium"
+            >
+              Support tickets
+            </NavLink>
             {level.data === "admin" && (
               <NavLink
                 href="/platform/new"

@@ -7,6 +7,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { siteOrigin } from "@/lib/staff/auth";
+import { parseNewTicket, parseNote, isTicketStatus } from "./tickets";
 import { classifyPlatformError, normalizeHost, parseNairaToKobo, validateNewHotel, type PlatformCode, type PlatformOk } from "./hotel";
 
 /**
@@ -315,4 +316,48 @@ export async function voidInvoice(formData: FormData) {
   if (error) return fail(page, classifyPlatformError(error));
   revalidatePath(page);
   return done(page, (data as { changed?: boolean } | null)?.changed === false ? "unchanged" : "invoice_voided");
+}
+
+const TICKETS = "/platform/tickets";
+
+/** Opens a support ticket about a hotel group (migration 110). Admin only; support people read. */
+export async function openTicket(formData: FormData) {
+  const t = parseNewTicket(Object.fromEntries(formData));
+  if (!t) return fail(TICKETS, "ticket_details");
+  const supabase = await adminClient(TICKETS);
+  const { data, error } = await supabase.rpc("platform_open_ticket", {
+    p_tenant: t.tenantId,
+    p_title: t.title,
+    p_details: t.details,
+    p_priority: t.priority,
+  });
+  if (error) return fail(TICKETS, classifyPlatformError(error));
+  revalidatePath(TICKETS);
+  const id = (data as { id?: string } | null)?.id;
+  return done(id && uuid.safeParse(id).success ? `${TICKETS}/${id}` : TICKETS, "ticket_opened");
+}
+
+export async function addTicketNote(formData: FormData) {
+  const ticketId = z.object({ ticketId: uuid }).safeParse(Object.fromEntries(formData));
+  if (!ticketId.success) return fail(TICKETS, "bad_request");
+  const page = `${TICKETS}/${ticketId.data.ticketId}`;
+  const note = parseNote(formData.get("note"));
+  if (!note) return fail(page, "ticket_details");
+  const supabase = await adminClient(page);
+  const { error } = await supabase.rpc("platform_add_ticket_note", { p_ticket: ticketId.data.ticketId, p_note: note });
+  if (error) return fail(page, classifyPlatformError(error));
+  revalidatePath(page);
+  return done(page, "ticket_note_added");
+}
+
+export async function setTicketStatus(formData: FormData) {
+  const p = z.object({ ticketId: uuid, status: z.string().max(20) }).safeParse(Object.fromEntries(formData));
+  if (!p.success || !isTicketStatus(p.data.status)) return fail(TICKETS, "ticket_details");
+  const page = `${TICKETS}/${p.data.ticketId}`;
+  const supabase = await adminClient(page);
+  const { data, error } = await supabase.rpc("platform_set_ticket_status", { p_ticket: p.data.ticketId, p_status: p.data.status });
+  if (error) return fail(page, classifyPlatformError(error));
+  revalidatePath(page);
+  revalidatePath(TICKETS);
+  return done(page, (data as { changed?: boolean } | null)?.changed === false ? "unchanged" : "ticket_status_set");
 }

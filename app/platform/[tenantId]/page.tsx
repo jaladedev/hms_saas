@@ -105,6 +105,11 @@ export default async function HotelDetail({
           </Link>
         </p>
         <PageTitle className="mt-2">{t.name}</PageTitle>
+        <p className="mt-1 text-sm">
+          <Link href={`/platform/tickets?hotel=${t.id}`} className={linkClass}>
+            Support tickets for this hotel
+          </Link>
+        </p>
         <p className="mt-2 text-muted">
           {t.slug} · {t.status} · created {shortDate(t.created_at)}
         </p>

@@ -843,4 +843,8 @@ PHR="$(psql -f "$HERE/109_platform_hotel_readiness.sql" 2>&1)" || { echo "$PHR";
 echo "$PHR" | grep -E 'PASS' || true
 if echo "$PHR" | grep -qE 'FAIL|ERROR'; then echo "$PHR"; echo "PLATFORM READINESS TESTS FAILED"; exit 1; fi
 
+PST="$(psql -f "$HERE/110_platform_support_tickets.sql" 2>&1)" || { echo "$PST"; echo "SUPPORT TICKET TESTS FAILED"; exit 1; }
+echo "$PST" | grep -E 'PASS' || true
+if echo "$PST" | grep -qE 'FAIL|ERROR'; then echo "$PST"; echo "SUPPORT TICKET TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

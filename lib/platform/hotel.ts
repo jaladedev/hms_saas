@@ -152,6 +152,7 @@ export type PlatformCode =
   | "invoice_details"
   | "invoice_exists"
   | "invoice_state"
+  | "ticket_details"
   | "subscription_status"
   | "feature_key"
   | "bad_request"
@@ -185,6 +186,12 @@ export function classifyPlatformError(err: { code?: string; message?: string } |
     case "plan":
     case "plan code":
       return "plan";
+    case "ticket title":
+    case "ticket details":
+    case "ticket priority":
+    case "ticket note":
+    case "ticket status":
+      return "ticket_details";
     case "invoice period":
     case "invoice due":
     case "invoice note":
@@ -237,6 +244,8 @@ export const ERROR_MESSAGES: Record<PlatformCode, string> = {
   invoice_details:
     "Check the invoice: the period must end after it starts (and be under 400 days), the amount must be above zero (or the group needs a plan with a decided price), paying needs a reference, and voiding needs a reason of at least 3 characters.",
   invoice_exists: "That period already has an invoice. Void it first if it has to be raised again.",
+  ticket_details:
+    "Check the ticket: a title of 3 to 120 characters, details up to 2,000, a note of 1 to 1,000, and a priority and status from the lists.",
   invoice_state: "A paid invoice cannot be voided, and a void one cannot be paid.",
   subscription_status: "Choose trial, active, past due or cancelled.",
   feature_key: "The feature key must be 2 to 60 characters: lowercase letters, digits, dots or underscores, starting with a letter.",
@@ -259,6 +268,9 @@ export type PlatformOk =
   | "invoice_raised"
   | "invoice_paid"
   | "invoice_voided"
+  | "ticket_opened"
+  | "ticket_note_added"
+  | "ticket_status_set"
   | "feature_set"
   | "unchanged";
 export const OK_MESSAGES: Record<PlatformOk, string> = {
@@ -274,6 +286,9 @@ export const OK_MESSAGES: Record<PlatformOk, string> = {
   invoice_raised: "Invoice raised.",
   invoice_paid: "Invoice marked paid.",
   invoice_voided: "Invoice voided.",
+  ticket_opened: "Ticket opened.",
+  ticket_note_added: "Note added.",
+  ticket_status_set: "Ticket status changed.",
   plan_applied: "Plan applied: the group's plan and its feature flags now follow it.",
   feature_set: "Feature flag saved.",
   unchanged: "Nothing changed: it was already like that.",
