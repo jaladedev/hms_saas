@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { awaitingDecision, parseAccessDecision, parseAccessRequest, readAccess, readSetup, timeLeft, type AccessRow } from "./access";
+import {
+  awaitingDecision,
+  parseAccessDecision,
+  parseAccessRequest,
+  readAccess,
+  readSetup,
+  timeLeft,
+  waitingForMe,
+  type AccessRow,
+} from "./access";
 
 const T = "00000000-0000-0000-0000-0000000000a1";
 const K = "00000000-0000-0000-0000-0000000000f1";
@@ -112,5 +121,19 @@ describe("timeLeft", () => {
     expect(timeLeft({ status: "pending", approved_until: null }, now)).toBeNull();
     expect(timeLeft({ status: "revoked", approved_until: "2026-11-12T12:00:00Z" }, now)).toBeNull();
     expect(timeLeft({ status: "approved", approved_until: "junk" }, now)).toBeNull();
+  });
+});
+
+describe("waitingForMe", () => {
+  it("counts pending requests that are not the admin's own", () => {
+    expect(
+      waitingForMe([
+        { status: "pending", mine: false },
+        { status: "pending", mine: true },
+        { status: "approved", mine: false },
+        { status: "pending", mine: false },
+      ]),
+    ).toBe(2);
+    expect(waitingForMe([])).toBe(0);
   });
 });

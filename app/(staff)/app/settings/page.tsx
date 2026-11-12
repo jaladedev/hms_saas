@@ -47,6 +47,11 @@ const SECTIONS = [
     title: "Billing",
     text: "Your plan and the invoices from the platform. For the owner and general manager.",
   },
+  {
+    href: "/app/settings/platform-access",
+    title: "Platform access",
+    text: "When someone from the platform opened your setup, who approved the time and how long it lasted. For the owner and general manager.",
+  },
   { href: "/app/staff", title: "Staff and permissions", text: "Who can sign in and what each person may do." },
   {
     href: "/app/settings/history",

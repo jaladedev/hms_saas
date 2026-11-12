@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { NavMenu } from "@/components/staff/nav-menu";
 import { NavLink } from "@/components/ui/nav-link";
 import { RouteProgress } from "@/components/ui/route-progress";
+import { readAccess, waitingForMe } from "@/lib/platform/access";
 import { signOut } from "@/lib/staff/auth-actions";
 import { createClient } from "@/lib/supabase/server";
 
@@ -14,6 +15,12 @@ export default async function PlatformLayout({ children }: { children: React.Rea
   if (!data.user) redirect("/login?next=/platform");
   const level = await supabase.rpc("platform_level");
   if (level.error || !level.data) notFound();
+  // Admins see how many access requests wait for them. A failed read shows no count rather than breaking the menu.
+  let waiting = 0;
+  if (level.data === "admin") {
+    const pending = await supabase.rpc("platform_list_access", { p_status: "pending" });
+    waiting = pending.error ? 0 : waitingForMe(readAccess(pending.data));
+  }
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
@@ -74,6 +81,12 @@ export default async function PlatformLayout({ children }: { children: React.Rea
               activeClassName="bg-white/15 font-medium"
             >
               Access requests
+              {waiting > 0 && (
+                <span className="ml-2 rounded-full bg-white px-2 py-0.5 text-xs font-medium text-navy-900">
+                  {waiting}
+                  <span className="sr-only"> waiting for you</span>
+                </span>
+              )}
             </NavLink>
             {level.data === "admin" && (
               <NavLink

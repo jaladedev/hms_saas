@@ -88,6 +88,11 @@ export function awaitingDecision(rows: AccessRow[]): AccessRow[] {
   return rows.filter((r) => r.status === "pending").sort((a, b) => a.requested_at.localeCompare(b.requested_at));
 }
 
+/** How many requests wait for this admin to decide: pending ones that are not their own (an admin may not decide their own request). */
+export function waitingForMe(rows: Pick<AccessRow, "status" | "mine">[]): number {
+  return rows.filter((r) => r.status === "pending" && !r.mine).length;
+}
+
 /** "2 hours 5 minutes left", "Ends in 12 minutes", or null when it is not an approved window (or has run out). */
 export function timeLeft(row: Pick<AccessRow, "status" | "approved_until">, now: Date): string | null {
   if (row.status !== "approved" || !row.approved_until) return null;

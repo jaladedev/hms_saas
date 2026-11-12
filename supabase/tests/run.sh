@@ -863,4 +863,8 @@ GA="$(psql -f "$HERE/114_guest_room_type_availability.sql" 2>&1)" || { echo "$GA
 echo "$GA" | grep -E 'PASS' || true
 if echo "$GA" | grep -qE 'FAIL|ERROR'; then echo "$GA"; echo "GUEST ROOM TYPE AVAILABILITY TESTS FAILED"; exit 1; fi
 
+HPA="$(psql -f "$HERE/115_hotel_platform_access.sql" 2>&1)" || { echo "$HPA"; echo "HOTEL PLATFORM ACCESS TESTS FAILED"; exit 1; }
+echo "$HPA" | grep -E 'PASS' || true
+if echo "$HPA" | grep -qE 'FAIL|ERROR'; then echo "$HPA"; echo "HOTEL PLATFORM ACCESS TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"
