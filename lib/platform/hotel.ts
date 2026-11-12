@@ -153,6 +153,10 @@ export type PlatformCode =
   | "invoice_exists"
   | "invoice_state"
   | "ticket_details"
+  | "access_details"
+  | "access_open"
+  | "access_state"
+  | "access_own"
   | "subscription_status"
   | "feature_key"
   | "bad_request"
@@ -168,6 +172,9 @@ export function classifyPlatformError(err: { code?: string; message?: string } |
   if (/^CONFLICT: host/.test(m)) return "host_taken";
   if (/^CONFLICT: invoice period/.test(m)) return "invoice_exists";
   if (/^CONFLICT: invoice state/.test(m)) return "invoice_state";
+  if (/^CONFLICT: access open/.test(m)) return "access_open";
+  if (/^CONFLICT: access state/.test(m)) return "access_state";
+  if (/^POLICY_VIOLATION: access own request/.test(m)) return "access_own";
   const v = /^POLICY_VIOLATION: (.+)$/.exec(m)?.[1]?.trim();
   switch (v) {
     case "slug":
@@ -192,6 +199,13 @@ export function classifyPlatformError(err: { code?: string; message?: string } |
     case "ticket note":
     case "ticket status":
       return "ticket_details";
+    case "access reason":
+    case "access hours":
+    case "access ticket":
+    case "access decision":
+    case "access note":
+    case "access status":
+      return "access_details";
     case "invoice period":
     case "invoice due":
     case "invoice note":
@@ -246,6 +260,11 @@ export const ERROR_MESSAGES: Record<PlatformCode, string> = {
   invoice_exists: "That period already has an invoice. Void it first if it has to be raised again.",
   ticket_details:
     "Check the ticket: a title of 3 to 120 characters, details up to 2,000, a note of 1 to 1,000, and a priority and status from the lists.",
+  access_details:
+    "Check the request: a reason of 10 to 500 characters, 1, 4 or 24 hours, and a ticket that belongs to the same hotel group. A decision note can be up to 300 characters.",
+  access_open: "You already have a request open for that hotel group. Wait for it, or end it first.",
+  access_state: "That request has already been decided, ended or has run out. Ask again if you still need to look.",
+  access_own: "Another admin has to decide your request.",
   invoice_state: "A paid invoice cannot be voided, and a void one cannot be paid.",
   subscription_status: "Choose trial, active, past due or cancelled.",
   feature_key: "The feature key must be 2 to 60 characters: lowercase letters, digits, dots or underscores, starting with a letter.",
@@ -271,6 +290,10 @@ export type PlatformOk =
   | "ticket_opened"
   | "ticket_note_added"
   | "ticket_status_set"
+  | "access_requested"
+  | "access_approved"
+  | "access_denied"
+  | "access_ended"
   | "feature_set"
   | "unchanged";
 export const OK_MESSAGES: Record<PlatformOk, string> = {
@@ -289,6 +312,10 @@ export const OK_MESSAGES: Record<PlatformOk, string> = {
   ticket_opened: "Ticket opened.",
   ticket_note_added: "Note added.",
   ticket_status_set: "Ticket status changed.",
+  access_requested: "Request sent. An admin other than you has to approve it before you can look.",
+  access_approved: "Approved. The person who asked can now open the hotel's setup until the time runs out.",
+  access_denied: "Request denied.",
+  access_ended: "Access ended.",
   plan_applied: "Plan applied: the group's plan and its feature flags now follow it.",
   feature_set: "Feature flag saved.",
   unchanged: "Nothing changed: it was already like that.",

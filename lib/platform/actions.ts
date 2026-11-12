@@ -7,6 +7,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { siteOrigin } from "@/lib/staff/auth";
+import { parseAccessDecision, parseAccessRequest } from "./access";
 import { parseNewTicket, parseNote, isTicketStatus } from "./tickets";
 import { classifyPlatformError, normalizeHost, parseNairaToKobo, validateNewHotel, type PlatformCode, type PlatformOk } from "./hotel";
 
@@ -360,4 +361,44 @@ export async function setTicketStatus(formData: FormData) {
   revalidatePath(page);
   revalidatePath(TICKETS);
   return done(page, (data as { changed?: boolean } | null)?.changed === false ? "unchanged" : "ticket_status_set");
+}
+
+const ACCESS = "/platform/access";
+
+/** Asks for time-limited, read-only sight of a hotel group's setup (migration 111). Support or admin; an admin other than you decides. */
+export async function requestAccess(formData: FormData) {
+  const v = parseAccessRequest(Object.fromEntries(formData));
+  if (!v) return fail(ACCESS, "access_details");
+  const supabase = await platformClient();
+  const { error } = await supabase.rpc("platform_request_access", {
+    p_tenant: v.tenantId,
+    p_reason: v.reason,
+    p_hours: v.hours,
+    p_ticket: v.ticketId as string,
+  });
+  if (error) return fail(ACCESS, classifyPlatformError(error));
+  revalidatePath(ACCESS);
+  return done(ACCESS, "access_requested");
+}
+
+/** Approves or denies a request. Admin only, never your own. */
+export async function decideAccess(formData: FormData) {
+  const v = parseAccessDecision(Object.fromEntries(formData));
+  if (!v) return fail(ACCESS, "access_details");
+  const supabase = await adminClient(ACCESS);
+  const { error } = await supabase.rpc("platform_decide_access", { p_request: v.requestId, p_decision: v.decision, p_note: v.note });
+  if (error) return fail(ACCESS, classifyPlatformError(error));
+  revalidatePath(ACCESS);
+  return done(ACCESS, v.decision === "approved" ? "access_approved" : "access_denied");
+}
+
+/** Withdraws a pending request or ends an approved one early. The person who asked, or any admin. */
+export async function endAccess(formData: FormData) {
+  const id = z.object({ requestId: uuid }).safeParse(Object.fromEntries(formData));
+  if (!id.success) return fail(ACCESS, "bad_request");
+  const supabase = await platformClient();
+  const { error } = await supabase.rpc("platform_end_access", { p_request: id.data.requestId });
+  if (error) return fail(ACCESS, classifyPlatformError(error));
+  revalidatePath(ACCESS);
+  return done(ACCESS, "access_ended");
 }

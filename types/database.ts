@@ -3137,6 +3137,11 @@ export type Database = {
       submit_guest_review: { Args: { p_comment: string; p_rating: number; p_reservation_id: string }; Returns: Json }
       moderate_guest_review: { Args: { p_decision: string; p_review: string }; Returns: Json }
       guest_reviews_public: { Args: { p_host: string }; Returns: Json }
+      platform_request_access: { Args: { p_hours: number; p_reason: string; p_tenant: string; p_ticket?: string }; Returns: Json }
+      platform_decide_access: { Args: { p_decision: string; p_note?: string; p_request: string }; Returns: Json }
+      platform_end_access: { Args: { p_request: string }; Returns: Json }
+      platform_list_access: { Args: { p_status?: string; p_tenant?: string }; Returns: Json }
+      platform_access_view: { Args: { p_request: string }; Returns: Json }
       hotel_billing: { Args: { p_property: string }; Returns: Json }
       guest_offers: { Args: { p_host: string }; Returns: Json }
       email_booking_invoice: { Args: { p_idempotency_key: string; p_invoice_id: string }; Returns: Json }

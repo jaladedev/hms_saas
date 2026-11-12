@@ -847,4 +847,8 @@ PST="$(psql -f "$HERE/110_platform_support_tickets.sql" 2>&1)" || { echo "$PST";
 echo "$PST" | grep -E 'PASS' || true
 if echo "$PST" | grep -qE 'FAIL|ERROR'; then echo "$PST"; echo "SUPPORT TICKET TESTS FAILED"; exit 1; fi
 
+AR="$(psql -f "$HERE/111_platform_access_requests.sql" 2>&1)" || { echo "$AR"; echo "ACCESS REQUEST TESTS FAILED"; exit 1; }
+echo "$AR" | grep -E 'PASS' || true
+if echo "$AR" | grep -qE 'FAIL|ERROR'; then echo "$AR"; echo "ACCESS REQUEST TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"
