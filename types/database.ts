@@ -3223,6 +3223,7 @@ export type Database = {
         Args: { p_reservation_id: string }
         Returns: Json
       }
+      payments_summary: { Args: { p_from?: string; p_to?: string }; Returns: Json }
       payments_to_verify: { Args: { p_limit?: number; p_status?: string }; Returns: Json }
       pending_required_minor: {
         Args: { p_reservation: string }

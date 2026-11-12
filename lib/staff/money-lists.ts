@@ -261,3 +261,49 @@ export function filterZone(zones: string[]): { zone: string; mixed: boolean } {
   if (distinct.length === 1) return { zone: distinct[0]!, mixed: false };
   return { zone: "UTC", mixed: distinct.length > 1 };
 }
+
+// ---- The money position tiles (migration 113) -------------------------------------------------------------------------
+
+export type SummaryRow = { currency: string; amount_minor: number; count: number };
+export type PaymentsSummary = { received: SummaryRow[]; unverified: SummaryRow[]; refunds_open: SummaryRow[]; refunded: SummaryRow[] };
+
+const isRow = (r: unknown): r is SummaryRow =>
+  typeof r === "object" &&
+  r !== null &&
+  typeof (r as SummaryRow).currency === "string" &&
+  Number.isSafeInteger((r as SummaryRow).amount_minor) &&
+  Number.isSafeInteger((r as SummaryRow).count);
+
+/**
+ * Reads what payments_summary returned. Anything that is not the expected shape gives null, so the page shows no tiles rather
+ * than wrong ones; a list with an odd row keeps only the good rows, and a missing list is empty.
+ */
+export function parseSummary(raw: unknown): PaymentsSummary | null {
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return null;
+  const o = raw as Record<string, unknown>;
+  const list = (k: string): SummaryRow[] => (Array.isArray(o[k]) ? (o[k] as unknown[]).filter(isRow) : []);
+  return { received: list("received"), unverified: list("unverified"), refunds_open: list("refunds_open"), refunded: list("refunded") };
+}
+
+/** The window the date filter stands for, as the two instants payments_summary takes (either may be null for no limit). */
+export function summaryWindow(f: { from: string | null; to: string | null }, zone: string): { from: string | null; to: string | null } {
+  return { from: f.from ? startOfDayIso(f.from, zone) : null, to: f.to ? startOfNextDayIso(f.to, zone) : null };
+}
+
+/** What the two dated tiles are about, in words: "All time", "From 1 Nov 2026", "Up to 10 Nov 2026" or "1 Nov 2026 to 10 Nov 2026". */
+export function windowLabel(f: { from: string | null; to: string | null }, fmt: (iso: string) => string): string {
+  if (f.from && f.to) return f.from === f.to ? fmt(f.from) : `${fmt(f.from)} to ${fmt(f.to)}`;
+  if (f.from) return `From ${fmt(f.from)}`;
+  if (f.to) return `Up to ${fmt(f.to)}`;
+  return "All time";
+}
+
+/** "3 payments" or "1 refund": the count under an amount. */
+export const countLabel = (n: number, noun: "payment" | "refund") => `${n} ${noun}${n === 1 ? "" : "s"}`;
+
+/** A calendar day (YYYY-MM-DD) as "1 Nov 2026", the same on every machine. Anything unusable is shown as it was given. */
+export function formatDay(iso: string): string {
+  const t = Date.parse(`${iso}T00:00:00Z`);
+  if (Number.isNaN(t)) return iso;
+  return new Date(t).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+}

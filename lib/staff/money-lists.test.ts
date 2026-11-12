@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  countLabel,
   filterZone,
+  formatDay,
   invoiceBalanceMinor,
   invoiceFiltersActive,
   invoiceQuery,
@@ -12,8 +14,11 @@ import {
   paymentFiltersActive,
   paymentMethodLabel,
   paymentQuery,
+  parseSummary,
   paymentStatusColumns,
   receivedTotals,
+  summaryWindow,
+  windowLabel,
   startOfDayIso,
   startOfNextDayIso,
 } from "./money-lists";
@@ -167,5 +172,49 @@ describe("invoice balance", () => {
     expect(held.get("a")).toBe(55_00);
     expect(held.get("b")).toBe(10_00);
     expect(held.get("c")).toBeUndefined();
+  });
+});
+
+describe("money position tiles", () => {
+  const row = (currency: string, amount_minor: number, count: number) => ({ currency, amount_minor, count });
+  it("reads a well-formed summary", () => {
+    const raw = { received: [row("NGN", 100, 2)], unverified: [], refunds_open: [row("NGN", 5, 1), row("USD", 7, 1)], refunded: [] };
+    expect(parseSummary(raw)).toEqual(raw);
+  });
+  it("gives nothing for the wrong shape, and keeps only good rows otherwise", () => {
+    expect(parseSummary(null)).toBeNull();
+    expect(parseSummary("x")).toBeNull();
+    expect(parseSummary([])).toBeNull();
+    expect(parseSummary({})).toEqual({ received: [], unverified: [], refunds_open: [], refunded: [] });
+    expect(
+      parseSummary({
+        received: [row("NGN", 1, 1), { currency: "NGN", amount_minor: "9", count: 1 }, null, { currency: 3 }],
+        unverified: "nope",
+      }),
+    ).toEqual({ received: [row("NGN", 1, 1)], unverified: [], refunds_open: [], refunded: [] });
+  });
+  it("turns the date filter into instants in the hotel's zone, leaving an unset end open", () => {
+    expect(summaryWindow({ from: null, to: null }, "Africa/Lagos")).toEqual({ from: null, to: null });
+    expect(summaryWindow({ from: "2026-11-01", to: "2026-11-10" }, "Africa/Lagos")).toEqual({
+      from: "2026-10-31T23:00:00.000Z",
+      to: "2026-11-10T23:00:00.000Z",
+    });
+    expect(summaryWindow({ from: "2026-11-01", to: null }, "UTC")).toEqual({ from: "2026-11-01T00:00:00.000Z", to: null });
+  });
+  it("describes the window and counts in words", () => {
+    const fmt = (d: string) => `<${d}>`;
+    expect(windowLabel({ from: null, to: null }, fmt)).toBe("All time");
+    expect(windowLabel({ from: "2026-11-01", to: null }, fmt)).toBe("From <2026-11-01>");
+    expect(windowLabel({ from: null, to: "2026-11-10" }, fmt)).toBe("Up to <2026-11-10>");
+    expect(windowLabel({ from: "2026-11-01", to: "2026-11-10" }, fmt)).toBe("<2026-11-01> to <2026-11-10>");
+    expect(windowLabel({ from: "2026-11-01", to: "2026-11-01" }, fmt)).toBe("<2026-11-01>");
+    expect(countLabel(1, "payment")).toBe("1 payment");
+    expect(countLabel(3, "refund")).toBe("3 refunds");
+    expect(countLabel(0, "payment")).toBe("0 payments");
+  });
+  it("writes a day the same way everywhere", () => {
+    expect(formatDay("2026-11-01")).toBe("1 Nov 2026");
+    expect(formatDay("2026-12-31")).toBe("31 Dec 2026");
+    expect(formatDay("garbage")).toBe("garbage");
   });
 });

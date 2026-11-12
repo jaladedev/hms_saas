@@ -834,7 +834,8 @@ const formBlocks = (html) => [...html.matchAll(/<form[\s\S]*?<\/form>/g)].map((m
 const ruleBlock = (html, ruleId, marker) =>
   formBlocks(html).find((b) => b.includes(`name="ruleId" value="${ruleId}"`) && b.includes(marker));
 const historyRows = (html) => {
-  const ol = /<ol\b[^>]*>([\s\S]*?)<\/ol>/.exec(html);
+  // The history list, not the breadcrumbs (also an <ol>): it is the one whose rows are <li class="py-4">.
+  const ol = [...html.matchAll(/<ol\b[^>]*>([\s\S]*?)<\/ol>/g)].find((m) => m[1].includes('<li class="py-4">'));
   return ol ? ol[1].split('<li class="py-4">').slice(1).map(pageText) : [];
 };
 const everyRule = async () =>
@@ -3095,6 +3096,41 @@ check("the audit trail records the needs-details outcome without the details", r
   check(
     "nonsense filters fall back to the plain list instead of failing",
     byBadFilters.status === 200 && byBadFilters.html.includes(`/app/payments/${pay.id}`),
+  );
+  // the money position tiles
+  const okPayments = await restJson("/payments?select=id,currency&payment_status=eq.succeeded&limit=5000");
+  const ngnReceived = okPayments.filter((p) => p.currency === "NGN").length;
+  check(
+    "the payments list opens with the four money position tiles",
+    sees(
+      payList.text,
+      "Received",
+      "Waiting to be verified",
+      "Refunds in progress",
+      "Refunded",
+      "All time",
+      "Received is money taken before any refund",
+    ),
+    payList.text.slice(0, 400),
+  );
+  check(
+    "the Received tile counts the succeeded payments the database holds",
+    sees(payList.text, `${ngnReceived} ${ngnReceived === 1 ? "payment" : "payments"}`),
+    `expected ${ngnReceived} payments in ${payList.text.slice(0, 500)}`,
+  );
+  const futureTiles = await getPage(`/app/payments/all?from=${plusDays(tonight, 400)}`, OWNER_COOKIE);
+  check(
+    "a date window in the future says so and leaves Received empty",
+    futureTiles.status === 200 && sees(futureTiles.text, "From ", "None"),
+    futureTiles.text.slice(0, 300),
+  );
+  const unverifiedNow = await restJson("/payments?select=id&payment_status=eq.succeeded&verification_status=eq.unverified&limit=5000");
+  check(
+    "the waiting-to-be-verified tile ignores the dates and matches the database",
+    unverifiedNow.length === 0
+      ? sees(futureTiles.text, "Waiting to be verified", "None")
+      : sees(futureTiles.text, `${unverifiedNow.length} ${unverifiedNow.length === 1 ? "payment" : "payments"}`),
+    `unverified in db: ${unverifiedNow.length}`,
   );
   const payHk = await getPage("/app/payments/all", HK_COOKIE);
   check(

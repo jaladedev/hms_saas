@@ -3,8 +3,13 @@ import { buttonPrimary, buttonQuiet, EmptyState, ErrorBanner, inputClass, PageIn
 import { formatMoney } from "@/lib/guest-site/format";
 import { formatDateTime } from "@/lib/staff/format";
 import {
+  countLabel,
   filterZone,
+  formatDay,
   MONEY_PAGE_SIZE,
+  parseSummary,
+  summaryWindow,
+  windowLabel,
   PAYMENT_SOURCE_FILTERS,
   PAYMENT_STATUS_FILTERS,
   parsePaymentFilters,
@@ -50,6 +55,13 @@ export default async function AllPaymentsPage({ searchParams }: { searchParams: 
   const zones = new Map(props.map((p) => [p.id, p.timezone]));
   const names = new Map(props.map((p) => [p.id, p.name]));
   const { zone, mixed } = filterZone(props.map((p) => p.timezone));
+
+  // The money position is read in the same dates as the list. "Received" and "Refunded" follow the dates; the two waiting tiles are
+  // the position right now. Row level security limits it to what this person may see, so someone who may see no money gets nothing.
+  const win = summaryWindow(f, zone);
+  const summaryQ = await supabase.rpc("payments_summary", { p_from: win.from ?? undefined, p_to: win.to ?? undefined });
+  const summary = summaryQ.error ? null : parseSummary(summaryQ.data);
+  const dateNote = windowLabel(f, formatDay);
 
   let query = supabase.from("payments").select(COLUMNS, { count: "exact" });
   if (f.source !== "all") query = query.eq("payment_provider", f.source);
@@ -121,6 +133,33 @@ export default async function AllPaymentsPage({ searchParams }: { searchParams: 
           All payments
         </Link>
       </div>
+
+      {summary && (
+        <section
+          aria-label="Money position"
+          className="mt-4 grid gap-x-6 gap-y-4 rounded border border-line bg-white p-4 sm:grid-cols-2 lg:grid-cols-4"
+        >
+          <Tile title="Received" note={dateNote} rows={summary.received} noun="payment" />
+          <Tile
+            title="Waiting to be verified"
+            note="Right now"
+            rows={summary.unverified}
+            noun="payment"
+            href="/app/payments"
+            linkText="Verify them"
+          />
+          <Tile
+            title="Refunds in progress"
+            note="Right now"
+            rows={summary.refunds_open}
+            noun="refund"
+            href="/app/refunds"
+            linkText="Open refunds"
+          />
+          <Tile title="Refunded" note={dateNote} rows={summary.refunded} noun="refund" />
+        </section>
+      )}
+      {summary && <p className="mt-1 text-xs text-muted">Received is money taken before any refund. Refunds are counted separately.</p>}
 
       <form
         method="get"
@@ -273,5 +312,48 @@ export default async function AllPaymentsPage({ searchParams }: { searchParams: 
         </>
       )}
     </main>
+  );
+}
+
+/** One figure in the money position: a title, the dates it covers, and an amount per currency (never added across currencies). */
+function Tile({
+  title,
+  note,
+  rows,
+  noun,
+  href,
+  linkText,
+}: {
+  title: string;
+  note: string;
+  rows: { currency: string; amount_minor: number; count: number }[];
+  noun: "payment" | "refund";
+  href?: string;
+  linkText?: string;
+}) {
+  return (
+    <div>
+      <h2 className="text-sm text-muted">{title}</h2>
+      <p className="text-xs text-muted">{note}</p>
+      {rows.length === 0 ? (
+        <p className="mt-1 text-lg">None</p>
+      ) : (
+        <ul className="mt-1">
+          {rows.map((r) => (
+            <li key={r.currency}>
+              <span className="text-lg font-semibold tabular-nums">{formatMoney(r.amount_minor, r.currency)}</span>
+              <span className="ml-2 text-xs text-muted">{countLabel(r.count, noun)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {href && rows.length > 0 && (
+        <p className="mt-1 text-sm">
+          <Link href={href} className="text-primary-strong underline underline-offset-2">
+            {linkText}
+          </Link>
+        </p>
+      )}
+    </div>
   );
 }

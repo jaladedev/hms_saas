@@ -855,4 +855,8 @@ MF="$(psql -f "$HERE/112_more_plan_flags.sql" 2>&1)" || { echo "$MF"; echo "MORE
 echo "$MF" | grep -E 'PASS' || true
 if echo "$MF" | grep -qE 'FAIL|ERROR'; then echo "$MF"; echo "MORE PLAN FLAGS TESTS FAILED"; exit 1; fi
 
+PS="$(psql -f "$HERE/113_payments_summary.sql" 2>&1)" || { echo "$PS"; echo "PAYMENTS SUMMARY TESTS FAILED"; exit 1; }
+echo "$PS" | grep -E 'PASS' || true
+if echo "$PS" | grep -qE 'FAIL|ERROR'; then echo "$PS"; echo "PAYMENTS SUMMARY TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"
