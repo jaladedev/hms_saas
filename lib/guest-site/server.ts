@@ -165,6 +165,21 @@ export function submitReview(reservationId: string, rating: number, comment: str
 /** The hotel's approved reviews for the homepage: average, count and the newest six (migration 104). */
 export const guestReviews = cache((host: string) => call<PublicReviews>("guest_reviews_public", { p_host: host }));
 
+/** Puts a guest on the waiting list for a sold out room type; staff call them if a room frees up (migration 124). */
+export function joinWaitlist(args: { host: string; stay: StayParams; roomTypeId: string; name: string; email: string; phone: string }) {
+  return call<{ waitlist_id: string; created: boolean }>("guest_join_waitlist", {
+    p_host: args.host,
+    p_room_type: args.roomTypeId,
+    p_arrival: args.stay.arrival,
+    p_departure: args.stay.departure,
+    p_adults: args.stay.adults,
+    p_children: args.stay.children,
+    p_name: args.name,
+    p_email: args.email,
+    p_phone: args.phone,
+  });
+}
+
 export type GuestPolicy = {
   currency: string;
   cancellation_rules: unknown;

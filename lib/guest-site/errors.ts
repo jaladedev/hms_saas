@@ -92,6 +92,19 @@ const RULES: Array<[RegExp, GuestError]> = [
   [/CONFLICT: reviewed/, { code: "review_done", message: "You have already sent a review for this stay. Thank you." }],
   [/POLICY_VIOLATION: rating/, { code: "review_rating", message: "Please choose a rating from 1 to 5 stars." }],
   [/POLICY_VIOLATION: comment/, { code: "review_comment", message: "Please keep your comment to 1000 characters or fewer." }],
+  [
+    /POLICY_VIOLATION: waitlist rooms free/,
+    { code: "waitlist_free", message: "Good news: a room is free for those dates now. Please search again and book it." },
+  ],
+  [
+    /POLICY_VIOLATION: waitlist too many/,
+    { code: "waitlist_many", message: "You are already on several waiting lists at this hotel. Please wait for the hotel to contact you." },
+  ],
+  [
+    /POLICY_VIOLATION: waitlist (name|email|phone|party)/,
+    { code: "waitlist_details", message: "Please check your name, email address and phone number (digits only, at most 32 characters)." },
+  ],
+  [/POLICY_VIOLATION: waitlist dates/, { code: "dates", message: "Please check your dates." }],
   [/NOT_FOUND: (host|property)/, { code: "not_configured", message: "Online booking is not available on this site yet." }],
   [/NOT_FOUND: room type/, { code: "not_bookable", message: "That room type is not available to book online." }],
 ];

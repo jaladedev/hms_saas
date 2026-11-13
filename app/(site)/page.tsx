@@ -7,6 +7,7 @@ import { messageForCode } from "@/lib/guest-site/errors";
 import { averageLabel, ratingText, reviewMonth } from "@/lib/guest-site/reviews";
 import { parseStayParams, stayQuery } from "@/lib/guest-site/params";
 import { checkGuestLimits } from "@/lib/guest-site/limits";
+import { joinWaitlistAction } from "@/app/(site)/waitlist/actions";
 import { amenityOptions, nightlyBreakdown, parseResultsView, SORT_LABELS, soldOutTypes, viewQuotes } from "@/lib/guest-site/results";
 import { facilityList, photoCountLabel, placeLine, socialLinks, timesLine } from "@/lib/guest-site/hotel";
 import {
@@ -222,6 +223,11 @@ export default async function GuestHome({ searchParams }: Props) {
             {hotelResult.error.message}
           </p>
         ) : null}
+        {raw.waitlisted === "1" ? (
+          <p role="status" className="mt-4 rounded-lg border border-line bg-white p-3 text-ink">
+            You are on the waiting list. The hotel will contact you if a room becomes free for those dates.
+          </p>
+        ) : null}
         {notice ? (
           <p role="alert" className="mt-4 rounded-lg border border-critical/40 bg-white p-3 text-critical">
             {notice}
@@ -355,17 +361,70 @@ export default async function GuestHome({ searchParams }: Props) {
             {soldOut.length > 0 ? (
               <ul aria-label="Not available for these dates" className="mt-4 space-y-3">
                 {soldOut.map((t) => (
-                  <li
-                    key={t.room_type_id}
-                    className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-white/60 p-4 text-muted"
-                  >
-                    <div>
-                      <h3 className="font-display text-xl text-ink">{t.name}</h3>
-                      <p className="mt-1 text-sm">Not available for these dates</p>
+                  <li key={t.room_type_id} className="rounded-xl border border-line bg-white/60 p-4 text-muted">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <h3 className="font-display text-xl text-ink">{t.name}</h3>
+                        <p className="mt-1 text-sm">Not available for these dates</p>
+                      </div>
+                      <Link href={`/rooms/${t.room_type_id}`} className="text-sm text-primary underline underline-offset-2">
+                        View room
+                      </Link>
                     </div>
-                    <Link href={`/rooms/${t.room_type_id}`} className="text-sm text-primary underline underline-offset-2">
-                      View room
-                    </Link>
+                    {stay ? (
+                      <details className="mt-3 text-sm">
+                        <summary className="cursor-pointer text-primary underline underline-offset-2">Tell me if a room frees up</summary>
+                        <form action={joinWaitlistAction} className="mt-3 grid gap-3 text-ink sm:max-w-md">
+                          <p className="text-muted">
+                            Leave your details and the hotel will contact you if a room becomes free for these dates. This does not book a
+                            room.
+                          </p>
+                          <input type="hidden" name="roomTypeId" value={t.room_type_id} />
+                          <input type="hidden" name="arrival" value={stay.arrival} />
+                          <input type="hidden" name="departure" value={stay.departure} />
+                          <input type="hidden" name="adults" value={stay.adults} />
+                          <input type="hidden" name="children" value={stay.children} />
+                          <label className="grid gap-1">
+                            Your name
+                            <input
+                              name="name"
+                              required
+                              minLength={2}
+                              maxLength={80}
+                              autoComplete="name"
+                              className="rounded-lg border border-line bg-white px-3 py-2"
+                            />
+                          </label>
+                          <label className="grid gap-1">
+                            Email
+                            <input
+                              name="email"
+                              type="email"
+                              required
+                              maxLength={254}
+                              autoComplete="email"
+                              className="rounded-lg border border-line bg-white px-3 py-2"
+                            />
+                          </label>
+                          <label className="grid gap-1">
+                            Phone (optional)
+                            <input
+                              name="phone"
+                              type="tel"
+                              maxLength={32}
+                              autoComplete="tel"
+                              className="rounded-lg border border-line bg-white px-3 py-2"
+                            />
+                          </label>
+                          <button
+                            type="submit"
+                            className="w-fit rounded-full bg-primary px-5 py-2 text-sm font-medium text-white hover:bg-primary-strong"
+                          >
+                            Add me to the waiting list
+                          </button>
+                        </form>
+                      </details>
+                    ) : null}
                   </li>
                 ))}
               </ul>

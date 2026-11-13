@@ -895,4 +895,8 @@ AR="$(psql -f "$HERE/122_arrival_reminders.sql" 2>&1)" || { echo "$AR"; echo "AR
 echo "$AR" | grep -E 'PASS' || true
 if echo "$AR" | grep -qE 'FAIL|ERROR'; then echo "$AR"; echo "ARRIVAL REMINDER TESTS FAILED"; exit 1; fi
 
+WL="$(psql -f "$HERE/124_waitlist.sql" 2>&1)" || { echo "$WL"; echo "WAITLIST TESTS FAILED"; exit 1; }
+echo "$WL" | grep -E 'PASS' || true
+if echo "$WL" | grep -qE 'FAIL|ERROR'; then echo "$WL"; echo "WAITLIST TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

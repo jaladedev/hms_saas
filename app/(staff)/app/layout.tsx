@@ -23,6 +23,7 @@ const NAV: { label: string; href?: string; exact?: boolean; sub?: boolean }[] = 
   { label: "Front Desk", href: "/app/front-desk" },
   { label: "Reservations", href: "/app/reservations" },
   { label: "Guest requests", href: "/app/requests" },
+  { label: "Waiting list", href: "/app/waitlist" },
   { label: "Room Management", href: "/app/rooms" },
   { label: "Guests", href: "/app/guests" },
   { label: "Housekeeping", href: "/app/housekeeping" },
