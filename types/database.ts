@@ -3545,6 +3545,16 @@ export type Database = {
         Args: { p_percent: number; p_property_id: string; p_role_key: string }
         Returns: Json
       }
+      room_status_history: {
+        Args: { p_limit?: number; p_room: string }
+        Returns: {
+          actor_name: string | null
+          changed_at: string
+          field: string
+          from_value: string | null
+          to_value: string
+        }[]
+      }
       set_housekeeping_status: {
         Args: { p_room_id: string; p_status: string }
         Returns: Json

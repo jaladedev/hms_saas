@@ -883,4 +883,8 @@ HPL="$(psql -f "$HERE/119_hotel_places.sql" 2>&1)" || { echo "$HPL"; echo "HOTEL
 echo "$HPL" | grep -E 'PASS' || true
 if echo "$HPL" | grep -qE 'FAIL|ERROR'; then echo "$HPL"; echo "HOTEL PLACES TESTS FAILED"; exit 1; fi
 
+RS="$(psql -f "$HERE/120_room_status_events.sql" 2>&1)" || { echo "$RS"; echo "ROOM STATUS EVENTS TESTS FAILED"; exit 1; }
+echo "$RS" | grep -E 'PASS' || true
+if echo "$RS" | grep -qE 'FAIL|ERROR'; then echo "$RS"; echo "ROOM STATUS EVENTS TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

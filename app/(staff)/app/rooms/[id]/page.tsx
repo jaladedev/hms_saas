@@ -5,6 +5,7 @@ import { cardClass, EmptyState, linkClass, PageTitle, SectionTitle } from "@/com
 import { formatDate } from "@/lib/guest-site/format";
 import { historyLine, type TaskRow } from "@/lib/staff/housekeeping-tasks";
 import { historyLine as repairLine, REQUEST_COLUMNS, type RequestRow } from "@/lib/staff/maintenance";
+import { statusEventLine, type StatusEvent } from "@/lib/staff/room-status-history";
 import { roomViews, STATE_LABEL, type BoardClaim, type BoardRoom, type RoomState } from "@/lib/staff/room-board";
 import { todayIn } from "@/lib/staff/reservations";
 import { createClient } from "@/lib/supabase/server";
@@ -88,7 +89,8 @@ export default async function RoomDetailsPage({ params }: { params: Promise<{ id
   }
   const [current, next] = await Promise.all([bookingOf(view.current?.reservation_room_id), bookingOf(view.next?.reservation_room_id)]);
 
-  const [taskQ, repairQ] = await Promise.all([
+  const [eventQ, taskQ, repairQ] = await Promise.all([
+    supabase.rpc("room_status_history", { p_room: room.id, p_limit: 20 }),
     supabase
       .from("housekeeping_tasks")
       .select(
@@ -104,6 +106,7 @@ export default async function RoomDetailsPage({ params }: { params: Promise<{ id
       .order("created_at", { ascending: false })
       .limit(10),
   ]);
+  const events = (eventQ.data ?? []) as StatusEvent[];
   const tasks = (taskQ.data ?? []) as TaskRow[];
   const repairs = (repairQ.data ?? []) as RequestRow[];
   const amenities = type?.amenities ?? [];
@@ -224,8 +227,27 @@ export default async function RoomDetailsPage({ params }: { params: Promise<{ id
 
       <section className="mt-8" aria-label="Status history">
         <SectionTitle>Status history</SectionTitle>
+        {events.length === 0 ? (
+          <EmptyState className="mt-3">No status changes have been recorded for this room yet.</EmptyState>
+        ) : (
+          <ul className="mt-3 space-y-2 text-sm">
+            {events.map((e, i) => {
+              const line = statusEventLine(e, tz);
+              return (
+                <li key={`${e.changed_at}-${i}`} className="border-b border-line pb-2">
+                  <span className="font-medium">{line.title}</span>
+                  <span className="block text-xs text-muted">{line.detail}</span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      <section className="mt-8" aria-label="Cleaning tasks">
+        <SectionTitle>Cleaning tasks</SectionTitle>
         {tasks.length === 0 ? (
-          <EmptyState className="mt-3">No housekeeping history to show.</EmptyState>
+          <EmptyState className="mt-3">No cleaning tasks to show.</EmptyState>
         ) : (
           <ul className="mt-3 space-y-2 text-sm">
             {tasks.map((t) => {
