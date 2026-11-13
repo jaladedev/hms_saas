@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { back, ok, staffClient } from "./action-helpers";
-import { expandDates, validateRateRange } from "./rates";
+import { expandDates, parseWeekdays, validateRateRange } from "./rates";
 import type { ErrorCode } from "./refunds";
 
 /**
@@ -68,11 +68,17 @@ export async function setRates(formData: FormData) {
   // validateRateRange(…, true) already refuses a missing price; this narrows the type for the insert below.
   if (amountMinor === null) return back(PAGE, { err: "rate_range_invalid" });
 
+  // Ticked weekdays limit the price to those nights (for example Friday and Saturday); none ticked means every night in the range.
+  const weekdays = parseWeekdays(formData.getAll("days"));
+  if (weekdays === "invalid") return back(PAGE, { err: "bad_request" });
+  const dates = expandDates(from, to, weekdays);
+  if (dates.length === 0) return back(PAGE, { err: "rate_days_none" });
+
   const { supabase, plan, type } = await context(propertyId, roomTypeId);
   if (!plan) return back(PAGE, { err: "rate_no_plan" });
   if (!type) return back(PAGE, { err: "room_type_missing" });
 
-  const rows = expandDates(from, to).map((business_date) => ({
+  const rows = dates.map((business_date) => ({
     tenant_id: type.tenant_id,
     property_id: propertyId,
     room_type_id: roomTypeId,

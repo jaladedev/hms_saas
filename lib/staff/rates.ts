@@ -12,11 +12,49 @@ function addDay(iso: string, n: number): string {
   return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
 }
 
-/** Every date from `from` to `to`, both included. Empty when the range is backwards or invalid. */
-export function expandDates(from: string, to: string): string[] {
+export const WEEKDAYS = [
+  { key: "mon", label: "Mon", day: 1 },
+  { key: "tue", label: "Tue", day: 2 },
+  { key: "wed", label: "Wed", day: 3 },
+  { key: "thu", label: "Thu", day: 4 },
+  { key: "fri", label: "Fri", day: 5 },
+  { key: "sat", label: "Sat", day: 6 },
+  { key: "sun", label: "Sun", day: 0 },
+] as const;
+
+/** Day of the week of a calendar date, 0 = Sunday to 6 = Saturday. Dates are plain business dates, so no time zone applies. */
+function weekdayOf(iso: string): number {
+  const [y = 0, m = 0, d = 0] = iso.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+}
+
+/**
+ * The weekdays ticked on the form, as numbers (0 = Sunday). Nothing ticked means every night, so it returns null (no filter).
+ * Anything that is not one of the seven keys makes the whole input invalid (the string "invalid"), rather than quietly pricing
+ * more nights than the person meant.
+ */
+export function parseWeekdays(values: unknown[]): number[] | null | "invalid" {
+  const picked = new Set<number>();
+  for (const v of values) {
+    const hit = WEEKDAYS.find((w) => w.key === v);
+    if (!hit) return "invalid";
+    picked.add(hit.day);
+  }
+  if (picked.size === 0 || picked.size === 7) return null;
+  return [...picked];
+}
+
+/**
+ * Every date from `from` to `to`, both included, or only those that fall on one of `weekdays` (0 = Sunday) when given. Empty when
+ * the range is backwards or invalid.
+ */
+export function expandDates(from: string, to: string, weekdays?: number[] | null): string[] {
   if (!parseIsoDate(from) || !parseIsoDate(to) || to < from) return [];
   const out: string[] = [];
-  for (let d = from; d <= to && out.length <= MAX_RANGE_NIGHTS; d = addDay(d, 1)) out.push(d);
+  let looked = 0;
+  for (let d = from; d <= to && looked <= MAX_RANGE_NIGHTS; d = addDay(d, 1), looked++) {
+    if (!weekdays || weekdays.includes(weekdayOf(d))) out.push(d);
+  }
   return out;
 }
 

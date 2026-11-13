@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { errorMessage } from "./refunds";
-import { expandDates, groupRanges, MAX_RANGE_NIGHTS, validateRateRange } from "./rates";
+import { expandDates, groupRanges, MAX_RANGE_NIGHTS, parseWeekdays, validateRateRange } from "./rates";
 
 const P = "11111111-1111-4111-8111-111111111111";
 const T = "22222222-2222-4222-8222-222222222222";
@@ -64,7 +64,38 @@ describe("groupRanges", () => {
 
 describe("wording", () => {
   it("has a sentence for every rate code", () => {
-    for (const c of ["rate_range_invalid", "rate_range_long", "rate_forbidden", "rate_no_plan"])
+    for (const c of ["rate_range_invalid", "rate_range_long", "rate_days_none", "rate_forbidden", "rate_no_plan"])
       expect(errorMessage(c, null, String), c).not.toMatch(/Nothing was changed/);
+  });
+});
+
+describe("weekday filter", () => {
+  it("reads ticked days, treating none or all seven as every night", () => {
+    expect(parseWeekdays([])).toBeNull();
+    expect(parseWeekdays(["mon", "tue", "wed", "thu", "fri", "sat", "sun"])).toBeNull();
+    expect((parseWeekdays(["fri", "sat"]) as number[]).slice().sort()).toEqual([5, 6]);
+    expect(parseWeekdays(["sun", "sun"])).toEqual([0]);
+  });
+
+  it("refuses anything that is not a day key, instead of pricing more nights than meant", () => {
+    expect(parseWeekdays(["fri", "friday"])).toBe("invalid");
+    expect(parseWeekdays([5])).toBe("invalid");
+    expect(parseWeekdays([null])).toBe("invalid");
+  });
+
+  it("keeps only the ticked days in a range, including across a month end", () => {
+    // 2026-11-13 is a Friday
+    expect(expandDates("2026-11-13", "2026-11-22", [5, 6])).toEqual(["2026-11-13", "2026-11-14", "2026-11-20", "2026-11-21"]);
+    expect(expandDates("2026-11-27", "2026-12-06", [0])).toEqual(["2026-11-29", "2026-12-06"]);
+  });
+
+  it("gives every night with no filter, and nothing when no night matches", () => {
+    expect(expandDates("2026-11-13", "2026-11-15", null)).toHaveLength(3);
+    expect(expandDates("2026-11-13", "2026-11-15")).toHaveLength(3);
+    expect(expandDates("2026-11-16", "2026-11-17", [5, 6])).toEqual([]);
+  });
+
+  it("stays bounded on a very long range", () => {
+    expect(expandDates("2026-01-01", "2030-01-01", [5]).length).toBeLessThanOrEqual(MAX_RANGE_NIGHTS);
   });
 });

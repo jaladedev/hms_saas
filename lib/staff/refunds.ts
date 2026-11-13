@@ -192,6 +192,7 @@ export type ErrorCode =
   | "email_invalid"
   | "rate_range_invalid"
   | "rate_range_long"
+  | "rate_days_none"
   | "rate_forbidden"
   | "rate_no_plan"
   | "tax_forbidden"
@@ -572,6 +573,8 @@ export function errorMessage(code: string, refundable: number | null, formatMino
       return "Choose a first and last night (the last on or after the first) and a price above zero.";
     case "rate_range_long":
       return "A price change can cover at most 366 nights at a time. Split it into smaller ranges.";
+    case "rate_days_none":
+      return "None of the nights between those dates fall on the days you ticked. Widen the dates or tick other days.";
     case "rate_forbidden":
       return "You do not have permission to change rates.";
     case "rate_no_plan":

@@ -5,6 +5,7 @@ import { groupRanges, type StoredRate } from "@/lib/staff/rates";
 import { todayIn } from "@/lib/staff/reservations";
 import { createClient } from "@/lib/supabase/server";
 import { PendingButton } from "@/components/ui/pending-button";
+import { WEEKDAYS } from "@/lib/staff/rates";
 
 export const dynamic = "force-dynamic";
 
@@ -155,6 +156,17 @@ export default async function RatesPage({ searchParams }: { searchParams: Promis
                               <input id={`st-${t.id}`} name="to" type="date" required min={today} className={inputClass} />
                             </div>
                           </div>
+                          <fieldset>
+                            <legend className="block text-xs text-muted">Only on these days (leave all empty for every night)</legend>
+                            <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
+                              {WEEKDAYS.map((w) => (
+                                <label key={w.key} className="flex items-center gap-1.5 text-sm">
+                                  <input type="checkbox" name="days" value={w.key} />
+                                  {w.label}
+                                </label>
+                              ))}
+                            </div>
+                          </fieldset>
                           <div>
                             <label htmlFor={`sa-${t.id}`} className="block text-xs text-muted">
                               Price a night (₦)
