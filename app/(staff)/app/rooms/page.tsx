@@ -16,7 +16,7 @@ import {
   SectionTitle,
 } from "@/components/staff/ui";
 import { formatDate } from "@/lib/guest-site/format";
-import { historyByRoom, historyLine, type TaskRow } from "@/lib/staff/housekeeping-tasks";
+import { formatShort, historyByRoom, historyLine, lastCleanedByRoom, type TaskRow } from "@/lib/staff/housekeeping-tasks";
 import {
   faultLabel,
   faultsByRoom,
@@ -114,6 +114,7 @@ export default async function RoomBoardPage({ searchParams }: { searchParams: Pr
         .limit(1000)
     : { data: [] };
   const history = historyByRoom((taskQ.data ?? []) as TaskRow[]);
+  const lastCleaned = lastCleanedByRoom((taskQ.data ?? []) as TaskRow[]);
   const tzOf = new Map(properties.map((p) => [p.id, p.timezone]));
 
   // Repairs for each room: how many are open (the indicator) and the recent ones (the list). Readable with
@@ -209,6 +210,8 @@ export default async function RoomBoardPage({ searchParams }: { searchParams: Pr
                   <p className="mt-1 text-xs text-muted">
                     {v.room.floor !== null ? `Floor ${v.room.floor}, ` : ""}
                     {HOUSEKEEPING[v.room.housekeeping_status] ?? v.room.housekeeping_status}
+                    {lastCleaned.has(v.room.id) &&
+                      `, last cleaned ${formatShort(lastCleaned.get(v.room.id), tzOf.get(v.room.property_id) ?? "UTC")}`}
                   </p>
                   {faults.get(v.room.id) && (
                     <p className="mt-1 text-xs">

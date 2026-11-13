@@ -9,6 +9,7 @@ import {
   groupLive,
   historyByRoom,
   historyLine,
+  lastCleanedByRoom,
   recentlyDone,
   roomsWithoutTask,
   sortTasks,
@@ -346,5 +347,37 @@ describe("zonedToIso", () => {
     for (const bad of ["", "2026-11-03", "2026-11-03 14:30", "2026-02-31T10:00", "2026-11-03T25:00", "2026-11-03T10:61", "garbage"]) {
       expect(zonedToIso(bad, "Africa/Lagos"), bad).toBeNull();
     }
+  });
+});
+
+describe("last cleaned", () => {
+  const done = (id: string, room: string, completed: string, over: Partial<TaskRow> = {}) =>
+    task(id, room, { status: "done", completed_at: completed, ...over });
+
+  it("takes the latest finished cleaning or deep clean for each room", () => {
+    const m = lastCleanedByRoom([
+      done("a", "101", "2026-11-01T10:00:00Z"),
+      done("b", "101", "2026-11-03T10:00:00Z", { task_type: "deep_clean" }),
+      done("c", "101", "2026-11-02T10:00:00Z"),
+      done("d", "102", "2026-11-02T09:00:00Z"),
+    ]);
+    expect(m.get("101")).toBe("2026-11-03T10:00:00Z");
+    expect(m.get("102")).toBe("2026-11-02T09:00:00Z");
+  });
+
+  it("ignores inspections, other tasks, cancelled and unfinished tasks, and bad times", () => {
+    const m = lastCleanedByRoom([
+      done("a", "101", "2026-11-03T10:00:00Z", { task_type: "inspection" }),
+      done("b", "101", "2026-11-03T11:00:00Z", { task_type: "other" }),
+      task("c", "101", { status: "cancelled", completed_at: "2026-11-03T12:00:00Z" }),
+      task("d", "101", { status: "in_progress", completed_at: null }),
+      done("e", "101", "not a time"),
+    ]);
+    expect(m.has("101")).toBe(false);
+  });
+
+  it("compares moments, not text, so different offsets order correctly", () => {
+    const m = lastCleanedByRoom([done("a", "101", "2026-11-03T10:00:00+05:00"), done("b", "101", "2026-11-03T08:00:00Z")]);
+    expect(m.get("101")).toBe("2026-11-03T08:00:00Z");
   });
 });

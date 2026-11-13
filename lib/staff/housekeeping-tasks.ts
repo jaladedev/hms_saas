@@ -185,6 +185,23 @@ export function historyByRoom(tasks: TaskRow[], perRoom = 5): Map<string, TaskRo
   return out;
 }
 
+/**
+ * When each room was last cleaned: the latest completion time among its finished cleaning and deep-clean tasks. Inspections and
+ * "other" tasks do not count, and a cancelled or unfinished task never does. A room with none among the tasks given is absent from
+ * the map, so a caller that only loaded recent tasks shows nothing rather than a wrong date.
+ */
+export function lastCleanedByRoom(tasks: TaskRow[]): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const t of tasks) {
+    if (t.status !== "done" || !t.completed_at) continue;
+    if (t.task_type !== "cleaning" && t.task_type !== "deep_clean") continue;
+    if (Number.isNaN(new Date(t.completed_at).getTime())) continue;
+    const seen = out.get(t.room_id);
+    if (!seen || new Date(t.completed_at).getTime() > new Date(seen).getTime()) out.set(t.room_id, t.completed_at);
+  }
+  return out;
+}
+
 /** "31 Oct, 15:05" in the property's timezone (UTC if it is unknown); empty for a missing or invalid time. */
 export function formatShort(iso: string | null | undefined, timeZone: string): string {
   if (!iso) return "";
