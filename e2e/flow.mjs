@@ -3341,6 +3341,147 @@ check("the audit trail records the needs-details outcome without the details", r
   const guestsList = await getPage("/app/guests", OWNER_COOKIE);
   check("the guest list has the add-a-guest button", guestsList.status === 200 && guestsList.html.includes('href="/app/guests/new"'));
 
+  // VIP flag, private notes and the booked total on the guest list
+  const vipPage = await getPage(`/app/guests/${madeId}`, OWNER_COOKIE);
+  check(
+    "the guest page has the VIP and notes form, saying the guest never sees it",
+    vipPage.status === 200 &&
+      sees(vipPage.text, "VIP and notes", "VIP guest", "Notes", "Guests never see this") &&
+      vipPage.html.includes('name="notes"'),
+    vipPage.text.slice(0, 300),
+  );
+  check("a new guest is not VIP", !/>VIP</.test(vipPage.html.split("VIP and notes")[0]));
+  const vipForm = formWith(vipPage.html, 'name="notes"');
+  const guestRow = async () => (await restJson(`/guests?id=eq.${madeId}&select=vip,notes`))[0];
+  res = await send(`/app/guests/${madeId}`, OWNER_COOKIE, vipForm, {
+    vip: "on",
+    notes: "  Prefers a quiet room.\nAllergic to feathers.  ",
+  });
+  check(
+    "saving VIP and a note confirms",
+    res.status === 303 && outcome(res).get("ok") === "guest_profile_saved",
+    res.headers.get("location") ?? "",
+  );
+  const vipRow = await guestRow();
+  check(
+    "they were stored, with the note trimmed",
+    vipRow.vip === true && vipRow.notes === "Prefers a quiet room.\nAllergic to feathers.",
+    JSON.stringify(vipRow),
+  );
+  const vipAfter = await getPage(`/app/guests/${madeId}`, OWNER_COOKIE);
+  check(
+    "the guest page shows the VIP badge and the note",
+    sees(vipAfter.text, "Chidi Eze", "VIP", "Prefers a quiet room.") && vipAfter.html.includes('checked=""'),
+    vipAfter.text.slice(0, 300),
+  );
+  const vipList = await getPage(`/app/guests?q=${encodeURIComponent(guestEmail)}`, OWNER_COOKIE);
+  check("the guest list marks them VIP", vipList.status === 200 && sees(vipList.text, "Chidi Eze", "VIP"), vipList.text.slice(0, 300));
+  check("and never shows the note in the list", doesNotSee(vipList.text, "quiet room") && doesNotSee(vipList.text, "feathers"));
+
+  // The guest flow leaves no completed stay, so make one: mark a confirmed booking as checked out (this database is thrown away).
+  const svcWrite = { "content-type": "application/json", authorization: `Bearer ${jwt("service_role")}` };
+  const toFinish = (
+    await restJson("/reservations?reservation_status=eq.confirmed&select=id,primary_guest_id&order=created_at.asc&limit=1")
+  )[0];
+  check("there is a confirmed booking to turn into a completed stay", Boolean(toFinish), JSON.stringify(toFinish));
+  const finished = await fetch(`${REST}/reservations?id=eq.${toFinish.id}`, {
+    method: "PATCH",
+    headers: svcWrite,
+    body: JSON.stringify({ reservation_status: "checked_out" }),
+  });
+  check("it was marked checked out", finished.ok, `${finished.status}`);
+  const doneStays = await restJson(
+    `/reservations?reservation_status=eq.checked_out&primary_guest_id=eq.${toFinish.primary_guest_id}&select=primary_guest_id,total_minor,currency&limit=1000`,
+  );
+  check(
+    "the guest now has a completed stay to total",
+    Array.isArray(doneStays) && doneStays.length > 0,
+    JSON.stringify(doneStays).slice(0, 200),
+  );
+  const doneGuest = toFinish.primary_guest_id;
+  const doneCur = doneStays[0].currency;
+  const doneSum = doneStays.filter((r) => r.currency === doneCur).reduce((n, r) => n + r.total_minor, 0);
+  const doneName = (await restJson(`/guests?id=eq.${doneGuest}&select=full_name`))[0].full_name;
+  const doneList = await getPage(`/app/guests?q=${encodeURIComponent(doneName)}`, OWNER_COOKIE);
+  const expectBooked = `${new Intl.NumberFormat("en-NG", { style: "currency", currency: doneCur }).format(doneSum / 100)} booked`;
+  check(
+    "a guest with completed stays shows the total booked on them",
+    sees(doneList.text, expectBooked),
+    `expected "${expectBooked}" in ${doneList.text.slice(0, 500)}`,
+  );
+  check("a guest with no completed stays shows no booked total", !/\d booked/.test(vipList.text), vipList.text.slice(0, 400));
+
+  const vipOnlyOn = await getPage(`/app/guests?vip=1&q=${encodeURIComponent(guestEmail)}`, OWNER_COOKIE);
+  check("the VIP-only filter keeps a VIP guest", vipOnlyOn.html.includes(`/app/guests/${madeId}`));
+  const vipOnlyOther = await getPage(`/app/guests?vip=1&q=${encodeURIComponent(doneName)}`, OWNER_COOKIE);
+  check(
+    "and leaves out a guest who is not VIP",
+    vipOnlyOther.status === 200 &&
+      !vipOnlyOther.html.includes(`/app/guests/${doneGuest}`) &&
+      sees(vipOnlyOther.text, "No guest matches that."),
+  );
+  const vipOffOther = await getPage(`/app/guests?vip=0&q=${encodeURIComponent(doneName)}`, OWNER_COOKIE);
+  check("a vip value other than 1 does not filter", vipOffOther.html.includes(`/app/guests/${doneGuest}`));
+
+  res = await send(`/app/guests/${madeId}`, OWNER_COOKIE, vipForm, { vip: "on", notes: "n".repeat(2001) });
+  check(
+    "a note over 2000 characters is refused and nothing changes",
+    res.status === 303 &&
+      outcome(res).get("err") === "guest_notes" &&
+      (await guestRow()).notes === "Prefers a quiet room.\nAllergic to feathers.",
+  );
+  for (const [who, cookie] of [
+    ["housekeeping", HK_COOKIE],
+    ["the accountant", ACCOUNTANT_COOKIE],
+    ["hotel B's owner", OWNER_B_COOKIE],
+  ]) {
+    res = await send(`/app/guests/${madeId}`, cookie, vipForm, { notes: "Hacked", vip: null });
+    check(
+      `posting the action as ${who} is refused and changes nothing`,
+      res.status === 303 &&
+        outcome(res).get("ok") === null &&
+        (await guestRow()).notes === "Prefers a quiet room.\nAllergic to feathers." &&
+        (await guestRow()).vip === true,
+      res.headers.get("location") ?? "",
+    );
+  }
+  const accSeesGuest =
+    (await (await fetch(`${REST}/guests?id=eq.${madeId}&select=id`, { headers: { authorization: `Bearer ${ACCOUNTANT}` } })).json())
+      .length > 0;
+  const accGuestPage = await getPage(`/app/guests/${madeId}`, ACCOUNTANT_COOKIE);
+  check(
+    accSeesGuest
+      ? "someone who may view but not manage guests sees the note read-only, with no form"
+      : "someone who may not view guests gets not-found",
+    accSeesGuest
+      ? accGuestPage.status === 200 && sees(accGuestPage.text, "Prefers a quiet room.") && !accGuestPage.html.includes('name="notes"')
+      : accGuestPage.status === 404 && doesNotSee(accGuestPage.text, "quiet room"),
+    `status ${accGuestPage.status}`,
+  );
+  const vipAudit = await restJson(`/audit_logs?action=eq.guest.profile_updated&entity_id=eq.${madeId}&select=metadata`);
+  check(
+    "saving is on the audit trail by field name, never holding the note",
+    vipAudit.length === 1 &&
+      JSON.stringify(vipAudit).includes("vip") &&
+      JSON.stringify(vipAudit).includes("notes") &&
+      !JSON.stringify(vipAudit).includes("feathers"),
+    JSON.stringify(vipAudit),
+  );
+  res = await send(`/app/guests/${madeId}`, OWNER_COOKIE, vipForm, { vip: "on", notes: "Prefers a quiet room.\nAllergic to feathers." });
+  check(
+    "saving the same thing again is quiet: no second audit row",
+    res.status === 303 &&
+      outcome(res).get("ok") === "guest_profile_saved" &&
+      (await restJson(`/audit_logs?action=eq.guest.profile_updated&entity_id=eq.${madeId}&select=id`)).length === 1,
+  );
+  res = await send(`/app/guests/${madeId}`, OWNER_COOKIE, vipForm, { vip: null, notes: "   " });
+  const cleared = await guestRow();
+  check(
+    "clearing the note and unticking VIP works",
+    res.status === 303 && outcome(res).get("ok") === "guest_profile_saved" && cleared.vip === false && cleared.notes === null,
+    JSON.stringify(cleared),
+  );
+
   // profile and screen spacing
   const profOwner = await getPage("/app/profile", OWNER_COOKIE);
   check(

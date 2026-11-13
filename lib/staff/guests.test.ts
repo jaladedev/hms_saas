@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { checkGuestForm, searchPattern, stayLine, summariseStays, type StayRow } from "./guests";
+import {
+  bookedLine,
+  checkGuestForm,
+  checkGuestProfile,
+  MAX_NOTES,
+  searchPattern,
+  stayLine,
+  summariseStays,
+  vipOnly,
+  type StayRow,
+} from "./guests";
 import { classifyRpcError, errorMessage } from "./refunds";
 
 describe("searchPattern", () => {
@@ -44,17 +54,17 @@ describe("summariseStays and stayLine", () => {
     "2026-10-31",
   );
   it("counts finished stays and finds the next arrival from today on", () => {
-    expect(m.get("a")).toEqual({ completed: 2, nextArrival: "2026-11-05", lastDeparture: "2026-10-04", inHouse: false });
-    expect(m.get("b")).toEqual({ completed: 0, nextArrival: null, lastDeparture: "2026-11-02", inHouse: true });
-    expect(m.get("c")).toEqual({ completed: 0, nextArrival: null, lastDeparture: null, inHouse: false });
+    expect(m.get("a")).toEqual({ completed: 2, nextArrival: "2026-11-05", lastDeparture: "2026-10-04", inHouse: false, booked: new Map() });
+    expect(m.get("b")).toEqual({ completed: 0, nextArrival: null, lastDeparture: "2026-11-02", inHouse: true, booked: new Map() });
+    expect(m.get("c")).toEqual({ completed: 0, nextArrival: null, lastDeparture: null, inHouse: false, booked: new Map() });
   });
   it("words one line per guest", () => {
     expect(stayLine(m.get("b"), fmt)).toBe("In house now");
     expect(stayLine(m.get("a"), fmt)).toBe("Arrives 2026-11-05");
-    expect(stayLine({ completed: 1, nextArrival: null, lastDeparture: "2026-10-04", inHouse: false }, fmt)).toBe(
+    expect(stayLine({ completed: 1, nextArrival: null, lastDeparture: "2026-10-04", inHouse: false, booked: new Map() }, fmt)).toBe(
       "1 stay, last left 2026-10-04",
     );
-    expect(stayLine({ completed: 3, nextArrival: null, lastDeparture: null, inHouse: false }, fmt)).toBe("3 stays");
+    expect(stayLine({ completed: 3, nextArrival: null, lastDeparture: null, inHouse: false, booked: new Map() }, fmt)).toBe("3 stays");
     expect(stayLine(m.get("c"), fmt)).toBe("No stays yet");
     expect(stayLine(undefined, fmt)).toBe("No stays yet");
   });
@@ -83,5 +93,68 @@ describe("checkGuestForm and errors", () => {
       expect(classifyRpcError(msg).code).toBe(code);
       expect(errorMessage(code, null, String)).not.toMatch(/Something went wrong/);
     }
+  });
+});
+
+describe("booked total on completed stays", () => {
+  const stay = (over: Partial<StayRow>): StayRow => ({
+    primary_guest_id: "g",
+    reservation_status: "checked_out",
+    arrival_date: "2026-09-01",
+    departure_date: "2026-09-03",
+    total_minor: 100_000,
+    currency: "NGN",
+    ...over,
+  });
+  const money = (minor: number, cur: string) => `${cur} ${(minor / 100).toLocaleString("en-US")}`;
+  it("adds up only checked-out stays, per currency", () => {
+    const m = summariseStays(
+      [
+        stay({}),
+        stay({ total_minor: 50_000 }),
+        stay({ reservation_status: "cancelled", total_minor: 999_999 }),
+        stay({ reservation_status: "confirmed", arrival_date: "2026-12-01", total_minor: 888_888 }),
+        stay({ reservation_status: "checked_in", total_minor: 777_777 }),
+        stay({ currency: "USD", total_minor: 20_000 }),
+      ],
+      "2026-11-10",
+    );
+    expect(m.get("g")?.booked).toEqual(
+      new Map([
+        ["NGN", 150_000],
+        ["USD", 20_000],
+      ]),
+    );
+    expect(bookedLine(m.get("g"), money)).toBe("NGN 1,500 and USD 200 booked");
+  });
+  it("shows nothing when there is nothing to show or the rows carry no amounts", () => {
+    expect(bookedLine(undefined, money)).toBeNull();
+    expect(
+      bookedLine(summariseStays([stay({ reservation_status: "confirmed", arrival_date: "2026-12-01" })], "2026-11-10").get("g"), money),
+    ).toBeNull();
+    const noAmounts = summariseStays(
+      [{ primary_guest_id: "g", reservation_status: "checked_out", arrival_date: "2026-09-01", departure_date: "2026-09-03" }],
+      "2026-11-10",
+    );
+    expect(noAmounts.get("g")?.completed).toBe(1);
+    expect(bookedLine(noAmounts.get("g"), money)).toBeNull();
+  });
+  it("ignores an amount that is not a whole number and a zero total", () => {
+    const m = summariseStays([stay({ total_minor: 12.5 }), stay({ total_minor: 0 })], "2026-11-10");
+    expect(bookedLine(m.get("g"), money)).toBeNull();
+  });
+});
+
+describe("VIP filter and notes", () => {
+  it("turns the filter on only for the exact value 1", () => {
+    expect(vipOnly("1")).toBe(true);
+    expect(vipOnly(["1", "0"])).toBe(true);
+    for (const v of [undefined, "", "0", "true", "yes", "11", ["0", "1"]]) expect(vipOnly(v)).toBe(false);
+  });
+  it("accepts notes up to the limit counted after trimming, and refuses more", () => {
+    expect(checkGuestProfile({ notes: "" })).toBeNull();
+    expect(checkGuestProfile({ notes: "x".repeat(MAX_NOTES) })).toBeNull();
+    expect(checkGuestProfile({ notes: `  ${"x".repeat(MAX_NOTES)}  ` })).toBeNull();
+    expect(checkGuestProfile({ notes: "x".repeat(MAX_NOTES + 1) })).toBe("guest_notes");
   });
 });

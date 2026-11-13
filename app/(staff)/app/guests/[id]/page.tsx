@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { z } from "zod";
 import { buttonPrimary, inputClass, Notice, linkClass, PageTitle, SectionTitle } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
-import { updateGuest } from "@/lib/staff/guest-actions";
+import { saveGuestProfile, updateGuest } from "@/lib/staff/guest-actions";
+import { MAX_NOTES } from "@/lib/staff/guests";
 import { createClient } from "@/lib/supabase/server";
 import { PendingButton } from "@/components/ui/pending-button";
 
@@ -18,6 +19,8 @@ type Guest = {
   address: string | null;
   country_code: string | null;
   created_at: string;
+  vip: boolean;
+  notes: string | null;
 };
 type Stay = {
   id: string;
@@ -44,7 +47,7 @@ export default async function GuestPage({
 
   const { data } = await supabase
     .from("guests")
-    .select("id, tenant_id, full_name, email, phone, address, country_code, created_at")
+    .select("id, tenant_id, full_name, email, phone, address, country_code, created_at, vip, notes")
     .eq("id", id)
     .maybeSingle();
   if (!data) notFound();
@@ -72,7 +75,10 @@ export default async function GuestPage({
           Guests
         </Link>
       </p>
-      <PageTitle className="mt-2">{guest.full_name}</PageTitle>
+      <PageTitle className="mt-2">
+        {guest.full_name}
+        {guest.vip && <span className="ml-3 rounded bg-pending/10 px-2 py-0.5 align-middle text-xs font-medium text-pending">VIP</span>}
+      </PageTitle>
       <p className="mt-1 text-sm text-muted">Guest since {formatDate(guest.created_at.slice(0, 10))}</p>
 
       <div className="mt-6">
@@ -151,6 +157,52 @@ export default async function GuestPage({
             <dd>{guest.address ?? "None"}</dd>
             <dt className="text-muted">Country</dt>
             <dd>{guest.country_code ?? "None"}</dd>
+          </dl>
+        )}
+      </section>
+
+      <section className="mt-10" aria-labelledby="notes">
+        <SectionTitle id="notes">VIP and notes</SectionTitle>
+        <p className="mt-1 max-w-prose text-sm text-muted">
+          For the hotel's staff only. Guests never see this, and it is not put in any email. Use it for preferences and things to remember,
+          not for payment details or identity numbers.
+        </p>
+        {canEdit ? (
+          <form action={saveGuestProfile} className="mt-3 grid max-w-xl gap-4">
+            <input type="hidden" name="guestId" value={guest.id} />
+            <label className="flex items-center gap-3 text-sm">
+              <input type="checkbox" name="vip" defaultChecked={guest.vip} />
+              <span className="font-medium">VIP guest</span>
+            </label>
+            <div>
+              <label htmlFor="notes-field" className="block text-sm font-medium">
+                Notes
+              </label>
+              <textarea
+                id="notes-field"
+                name="notes"
+                rows={5}
+                maxLength={MAX_NOTES + 200}
+                defaultValue={guest.notes ?? ""}
+                aria-describedby="notes-limit"
+                className={inputClass}
+              />
+              <p id="notes-limit" className="mt-1 text-xs text-muted">
+                Up to {MAX_NOTES} characters.
+              </p>
+            </div>
+            <div>
+              <PendingButton className={buttonPrimary} pendingLabel="Saving…">
+                Save
+              </PendingButton>
+            </div>
+          </form>
+        ) : (
+          <dl className="mt-3 text-sm">
+            <dt className="text-muted">VIP guest</dt>
+            <dd>{guest.vip ? "Yes" : "No"}</dd>
+            <dt className="mt-2 text-muted">Notes</dt>
+            <dd className="max-w-prose whitespace-pre-wrap break-words">{guest.notes ?? "None"}</dd>
           </dl>
         )}
       </section>

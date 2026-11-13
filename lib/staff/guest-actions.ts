@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { back, fail, ok, staffClient } from "./action-helpers";
-import { checkGuestForm } from "./guests";
+import { checkGuestForm, checkGuestProfile } from "./guests";
 
 /** Saves a guest's contact details through update_guest (permission, validation and audit are in the database). */
 export async function updateGuest(formData: FormData) {
@@ -73,4 +73,26 @@ export async function createGuest(formData: FormData) {
   if (!result || typeof result.guest_id !== "string") return back(NEW, { err: "guest_failed" });
   revalidatePath("/app/guests");
   return ok(`/app/guests/${result.guest_id}`, result.created === true ? "guest_created" : "guest_exists");
+}
+
+/**
+ * Saves a guest's VIP flag and private notes through set_guest_profile (permission, limits and audit are in the database).
+ * A checkbox that is not ticked sends nothing, so a missing "vip" means false.
+ */
+export async function saveGuestProfile(formData: FormData) {
+  const parsed = z
+    .object({ guestId: z.guid(), notes: z.string().max(4000), vip: z.string().max(10).optional() })
+    .safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return back("/app/guests", { err: "bad_request" });
+  const { guestId, notes, vip } = parsed.data;
+  const page = `/app/guests/${guestId}`;
+  const problem = checkGuestProfile({ notes });
+  if (problem) return back(page, { err: problem });
+
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("set_guest_profile", { p_guest: guestId, p_vip: vip === "on", p_notes: notes });
+  if (error) return fail(page, error.message);
+  revalidatePath(page);
+  revalidatePath("/app/guests");
+  return ok(page, "guest_profile_saved");
 }

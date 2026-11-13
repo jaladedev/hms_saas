@@ -171,6 +171,7 @@ export type ErrorCode =
   | "guest_email"
   | "guest_country"
   | "guest_field"
+  | "guest_notes"
   | "profile_name"
   | "profile_phone"
   | "profile_density"
@@ -348,6 +349,7 @@ export function classifyRpcError(message: string): { code: ErrorCode; refundable
   if (/POLICY_VIOLATION: email/.test(message)) return { code: "guest_email" };
   if (/POLICY_VIOLATION: country/.test(message)) return { code: "guest_country" };
   if (/POLICY_VIOLATION: too long/.test(message)) return { code: "guest_field" };
+  if (/POLICY_VIOLATION: notes/.test(message)) return { code: "guest_notes" };
   if (/ROLE_ESCALATION/.test(message)) return { code: "role_escalation" };
   if (/SELF_CHANGE/.test(message)) return { code: "self_change" };
   if (/LAST_OWNER/.test(message)) return { code: "last_owner" };
@@ -443,6 +445,7 @@ export const OK_MESSAGES = {
   room_added: "Room added.",
   room_status_changed: "Room status updated.",
   guest_updated: "Guest details saved.",
+  guest_profile_saved: "Notes and the VIP setting are saved.",
   profile_saved: "Your details and display setting are saved.",
   password_changed: "Password changed. Your other sign-ins have been signed out.",
   guest_created: "Guest added. You can now book them in from Reservations, New reservation.",
@@ -673,6 +676,8 @@ export function errorMessage(code: string, refundable: number | null, formatMino
       return "Use the two-letter country code, such as NG, or leave it empty.";
     case "guest_field":
       return "The phone number (40 characters) or address (500) is too long.";
+    case "guest_notes":
+      return "Notes can be up to 2000 characters.";
     case "profile_name":
       return "A name is required (up to 200 characters).";
     case "profile_phone":

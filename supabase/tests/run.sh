@@ -887,4 +887,8 @@ RS="$(psql -f "$HERE/120_room_status_events.sql" 2>&1)" || { echo "$RS"; echo "R
 echo "$RS" | grep -E 'PASS' || true
 if echo "$RS" | grep -qE 'FAIL|ERROR'; then echo "$RS"; echo "ROOM STATUS EVENTS TESTS FAILED"; exit 1; fi
 
+GV="$(psql -f "$HERE/121_guest_vip_notes.sql" 2>&1)" || { echo "$GV"; echo "GUEST VIP NOTES TESTS FAILED"; exit 1; }
+echo "$GV" | grep -E 'PASS' || true
+if echo "$GV" | grep -qE 'FAIL|ERROR'; then echo "$GV"; echo "GUEST VIP NOTES TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"
