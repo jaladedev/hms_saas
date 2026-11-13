@@ -129,7 +129,7 @@ export default async function GuestHome({ searchParams }: Props) {
             </div>
           ) : null}
           {highlights.length > 0 ? (
-            <ul aria-label="Amenities" className="mt-6 flex flex-wrap gap-2">
+            <ul aria-label="Highlights of the rooms" className="mt-6 flex flex-wrap gap-2">
               {highlights.map((a) => (
                 <li key={a} className="rounded-full border border-line bg-white px-3 py-1 text-xs">
                   {a}

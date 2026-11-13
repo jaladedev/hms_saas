@@ -42,7 +42,7 @@ export default async function RoomDetails({ params }: Props) {
     <main className="mx-auto max-w-6xl px-4 py-8">
       <SiteBreadcrumbs items={[{ label: "Home", href: "/" }, { label: "Rooms", href: "/#rooms" }, { label: room.name }]} />
 
-      <div className="mt-5 grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+      <div className="mt-5 grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
         <RoomGallery name={room.name} photos={photos} />
 
         <div>

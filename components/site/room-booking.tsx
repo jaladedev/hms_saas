@@ -52,7 +52,7 @@ export function RoomBooking({
           The nightly rate for the next {nights.length} nights, before tax. Press a night to pick it; press a later one to stay until then.
           Nights marked Full cannot be picked.
         </p>
-        <ul className="mt-3 grid grid-cols-2 gap-2 text-center text-sm sm:grid-cols-4 xl:grid-cols-5">
+        <ul className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(5.5rem,1fr))] gap-2 text-center text-sm">
           {nights.map((n) => {
             const on = inStay(n.date, pick.arrival, pick.departure);
             const none = isClosed(n);

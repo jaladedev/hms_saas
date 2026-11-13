@@ -110,6 +110,7 @@ await seed("report_maintenance_request", {
 });
 
 const guest = await firstRow("guests", "order=id.asc");
+const room = await firstRow("rooms", `property_id=eq.${PROPERTY}&order=room_number.asc`);
 const repair = await firstRow("maintenance_requests", "title=like.Browser*");
 const invoice = inHouse ? await firstRow("folio_invoices", `reservation_id=eq.${inHouse.id}&order=id.asc`) : null;
 check(
@@ -181,6 +182,7 @@ const staffPages = [
         `/app/reservations/${reservationId}/documents`,
       ]
     : []),
+  ...(room ? [`/app/rooms/${room.id}`] : []),
   ...(guestId ? [`/app/guests/${guestId}`] : []),
   ...(maintenanceId ? [`/app/maintenance/${maintenanceId}`] : []),
   ...(invoice ? [`/app/reservations/${invoice.reservation_id}/folio-invoice/${invoice.id}`] : []),
@@ -215,6 +217,7 @@ const guestPages = [
   "/booking/find",
   "/login",
   "/forgot-password",
+  ...(standard ? [`/rooms/${standard.id}`] : []),
   ...(shared ? [shared.reservePath, shared.bookingPath, `${shared.bookingPath}/cancel`] : []),
 ];
 
