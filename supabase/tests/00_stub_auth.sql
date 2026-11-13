@@ -1,6 +1,6 @@
 -- Local-only stand-ins for Supabase's auth schema and roles. Never applied to a real project.
 create schema if not exists auth;
-create table if not exists auth.users (id uuid primary key default gen_random_uuid(), email text, email_confirmed_at timestamptz);
+create table if not exists auth.users (id uuid primary key default gen_random_uuid(), email text, email_confirmed_at timestamptz, last_sign_in_at timestamptz);
 -- Same lookup as Supabase's auth.uid(): the legacy per-claim setting, else the JSON claims PostgREST sets.
 create or replace function auth.uid() returns uuid language sql stable as $$
   select coalesce(nullif(current_setting('request.jwt.claim.sub', true), ''),

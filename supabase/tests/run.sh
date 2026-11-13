@@ -899,4 +899,8 @@ WL="$(psql -f "$HERE/124_waitlist.sql" 2>&1)" || { echo "$WL"; echo "WAITLIST TE
 echo "$WL" | grep -E 'PASS' || true
 if echo "$WL" | grep -qE 'FAIL|ERROR'; then echo "$WL"; echo "WAITLIST TESTS FAILED"; exit 1; fi
 
+SL="$(psql -f "$HERE/125_staff_last_sign_in.sql" 2>&1)" || { echo "$SL"; echo "STAFF LAST SIGN-IN TESTS FAILED"; exit 1; }
+echo "$SL" | grep -E 'PASS' || true
+if echo "$SL" | grep -qE 'FAIL|ERROR'; then echo "$SL"; echo "STAFF LAST SIGN-IN TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

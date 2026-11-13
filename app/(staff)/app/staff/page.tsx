@@ -14,7 +14,8 @@ import {
   SectionTitle,
 } from "@/components/staff/ui";
 import { addStaffRole, inviteStaff, removeStaffRole, setStaffStatus } from "@/lib/staff/staff-actions";
-import { memberActions, memberLabel, ROLE_HELP, scopeLabel, type Member } from "@/lib/staff/staff-rules";
+import { formatDate } from "@/lib/guest-site/format";
+import { lastSignInText, memberActions, memberLabel, ROLE_HELP, scopeLabel, type Member } from "@/lib/staff/staff-rules";
 import { createClient } from "@/lib/supabase/server";
 import { PendingButton } from "@/components/ui/pending-button";
 
@@ -114,6 +115,7 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
             {manyTenants && <span className="text-xs text-muted">{tenantName.get(m.tenant_id)}</span>}
           </p>
           {m.full_name && m.email && <p className="text-sm text-muted">{m.email}</p>}
+          {m.status !== "revoked" && <p className="text-xs text-muted">{lastSignInText(m.last_sign_in_at, new Date(), formatDate)}</p>}
           {m.roles.length === 0 ? (
             <p className="mt-2 text-sm text-muted">{m.status === "revoked" ? "No access." : "No roles, so no access to anything."}</p>
           ) : (

@@ -9,6 +9,8 @@ export type Member = {
   email: string | null;
   full_name: string | null;
   is_self: boolean;
+  /** When the person last signed in (Supabase auth), or null if never. A refreshed session does not change it. */
+  last_sign_in_at?: string | null;
   roles: MemberRole[];
 };
 
@@ -42,3 +44,21 @@ export function memberActions(m: Pick<Member, "status" | "is_self">): MemberActi
 
 /** Name to show for a person: their name when known, else their email. */
 export const memberLabel = (m: Pick<Member, "full_name" | "email">) => m.full_name?.trim() || m.email || "Unknown person";
+
+/**
+ * "Last sign-in" text for the staff list: "Not signed in yet", "Signed in just now", "Signed in 5 hours ago", "1 day ago",
+ * "12 days ago", or the date after 30 days. It is the time of the last sign-in, not of the last click, so it is worded that way.
+ * `fmt` turns an ISO date (yyyy-mm-dd) into the page's date style.
+ */
+export function lastSignInText(iso: string | null | undefined, now: Date, fmt: (isoDate: string) => string): string {
+  const t = iso ? new Date(iso) : null;
+  if (!t || Number.isNaN(t.getTime())) return "Not signed in yet";
+  const minutes = Math.floor((now.getTime() - t.getTime()) / 60_000);
+  if (minutes < 5) return "Signed in just now";
+  if (minutes < 60) return `Signed in ${minutes} minutes ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `Signed in ${hours} ${hours === 1 ? "hour" : "hours"} ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `Signed in ${days} ${days === 1 ? "day" : "days"} ago`;
+  return `Last signed in ${fmt(t.toISOString().slice(0, 10))}`;
+}

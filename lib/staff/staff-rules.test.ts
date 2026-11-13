@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { classifyRpcError, errorMessage, OK_MESSAGES } from "./refunds";
-import { memberActions, memberLabel, ROLE_HELP, scopeLabel } from "./staff-rules";
+import { lastSignInText, memberActions, memberLabel, ROLE_HELP, scopeLabel } from "./staff-rules";
 
 describe("memberActions", () => {
   it("offers everything for another active person", () => {
@@ -62,5 +62,35 @@ describe("staff errors", () => {
     }
     expect(errorMessage("invite_failed", null, String)).toMatch(/nobody was added/);
     expect(OK_MESSAGES.staff_added).toMatch(/Access granted/);
+  });
+});
+
+describe("lastSignInText", () => {
+  const now = new Date("2026-11-13T12:00:00Z");
+  const fmt = (d: string) => `on ${d}`;
+  const ago = (ms: number) => new Date(now.getTime() - ms).toISOString();
+  const MIN = 60_000;
+  const HOUR = 60 * MIN;
+  const DAY = 24 * HOUR;
+
+  it("says so when the person never signed in or the time is unusable", () => {
+    expect(lastSignInText(null, now, fmt)).toBe("Not signed in yet");
+    expect(lastSignInText(undefined, now, fmt)).toBe("Not signed in yet");
+    expect(lastSignInText("not a time", now, fmt)).toBe("Not signed in yet");
+  });
+
+  it("uses minutes, hours and days, with singular and plural wording", () => {
+    expect(lastSignInText(ago(2 * MIN), now, fmt)).toBe("Signed in just now");
+    expect(lastSignInText(ago(5 * MIN), now, fmt)).toBe("Signed in 5 minutes ago");
+    expect(lastSignInText(ago(HOUR), now, fmt)).toBe("Signed in 1 hour ago");
+    expect(lastSignInText(ago(5 * HOUR + 59 * MIN), now, fmt)).toBe("Signed in 5 hours ago");
+    expect(lastSignInText(ago(DAY), now, fmt)).toBe("Signed in 1 day ago");
+    expect(lastSignInText(ago(12 * DAY), now, fmt)).toBe("Signed in 12 days ago");
+  });
+
+  it("switches to a date at 30 days, and treats a time slightly in the future as just now", () => {
+    expect(lastSignInText(ago(29 * DAY + 23 * HOUR), now, fmt)).toBe("Signed in 29 days ago");
+    expect(lastSignInText(ago(30 * DAY), now, fmt)).toBe("Last signed in on 2026-10-14");
+    expect(lastSignInText(ago(-2 * MIN), now, fmt)).toBe("Signed in just now");
   });
 });
