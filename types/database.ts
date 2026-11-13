@@ -1583,6 +1583,7 @@ export type Database = {
           updated_at: string
           facilities: string[]
           social_facebook: string | null
+          arrival_reminder_days: number | null
           social_instagram: string | null
         }
         ComputedFields: never
@@ -1613,6 +1614,7 @@ export type Database = {
           updated_at?: string
           facilities?: string[]
           social_facebook?: string | null
+          arrival_reminder_days?: number | null
           social_instagram?: string | null
         }
         Update: {
@@ -1642,6 +1644,7 @@ export type Database = {
           updated_at?: string
           facilities?: string[]
           social_facebook?: string | null
+          arrival_reminder_days?: number | null
           social_instagram?: string | null
         }
         Relationships: [
@@ -3057,6 +3060,8 @@ export type Database = {
       guest_policy: { Args: { p_host: string }; Returns: Json }
       guest_room_type: { Args: { p_from?: string; p_host: string; p_nights?: number; p_room_type: string }; Returns: Json }
       guest_room_type_availability: { Args: { p_from?: string; p_host: string; p_nights?: number; p_room_type: string }; Returns: Json }
+      queue_arrival_reminders: { Args: { p_limit?: number }; Returns: number }
+      set_arrival_reminder_days: { Args: { p_days: number; p_property: string }; Returns: undefined }
       guest_room_types: { Args: { p_host: string }; Returns: Json }
       guest_report: {
         Args: { p_from: string; p_property_id: string; p_to: string }

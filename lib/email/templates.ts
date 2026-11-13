@@ -12,7 +12,8 @@ export type EmailKind =
   | "early_checkout_credit"
   | "stay_changed"
   | "change_request_answered"
-  | "booking_invoice";
+  | "booking_invoice"
+  | "arrival_reminder";
 export type RenderedEmail = { subject: string; text: string; html: string };
 
 export function escapeHtml(value: string): string {
@@ -257,6 +258,16 @@ export function renderEmail(input: {
             : "Nothing is owing on this invoice at the time of this email.",
         );
       lines.push("If anything looks wrong, please speak to the hotel.");
+      break;
+    }
+    case "arrival_reminder": {
+      subject = `See you soon: booking ${b.booking_reference} at ${b.property_name}`;
+      heading = "Your stay is coming up";
+      button = "View your booking";
+      lines.push(`We look forward to welcoming you to ${b.property_name} on ${formatDate(b.arrival_date)} (${stay}).`);
+      lines.push(`Check-in is from ${formatTime(b.check_in_time)} and check-out by ${formatTime(b.check_out_time)}.`);
+      if (b.outstanding_minor > 0) lines.push(`Still to pay: ${formatMoney(b.outstanding_minor, b.currency)}.`);
+      lines.push("You can see your booking, ask for a change or add it to your calendar from the link below.");
       break;
     }
     case "booking_link":

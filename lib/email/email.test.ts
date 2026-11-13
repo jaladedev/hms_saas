@@ -51,6 +51,16 @@ describe("email templates", () => {
     expect(r.text).toContain("25,000.00");
     expect(renderEmail({ kind: "refund_processed", booking: paid, link: LINK }).text).toContain("processed a refund");
   });
+  it("arrival reminder: says when they arrive, the check-in time and any balance, and links to the booking", () => {
+    const paid = { ...booking, status: "confirmed", payment_status: "paid", paid_minor: 5000000, outstanding_minor: 0 };
+    const e = renderEmail({ kind: "arrival_reminder", booking: paid, link: LINK });
+    expect(e.subject).toBe("See you soon: booking BK-ABC123 at Hotel A <Ibadan>");
+    expect(e.text).toContain("from 14:00");
+    expect(e.text).not.toContain("Still to pay");
+    expect(e.html).toContain(`href="${LINK}"`);
+    const owing = renderEmail({ kind: "arrival_reminder", booking: { ...paid, outstanding_minor: 2500000 }, link: LINK });
+    expect(owing.text).toContain("Still to pay: ₦25,000.00");
+  });
   it("cancelled: states the charge and the refund due, and promises no payout date", () => {
     const e = renderEmail({
       kind: "booking_cancelled",

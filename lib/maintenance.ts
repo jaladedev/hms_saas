@@ -2,6 +2,8 @@ import { createHash, timingSafeEqual } from "node:crypto";
 
 export type MaintenanceDeps = {
   expireLapsedHolds(limit: number): Promise<number>;
+  /** Queues the arrival reminder emails that are due (migration 122); the hotels that turned them on only. */
+  queueArrivalReminders(): Promise<unknown>;
   drainEmails(limit: number): Promise<unknown>;
   purgeOldData(): Promise<unknown>;
   /** Raises overdue-repair notices and clears notifications older than 90 days. */
@@ -25,6 +27,7 @@ export async function runMaintenance(deps: MaintenanceDeps): Promise<Record<stri
   };
   return {
     expiredHolds: await step(() => deps.expireLapsedHolds(200)),
+    arrivalReminders: await step(() => deps.queueArrivalReminders()),
     emails: await step(() => deps.drainEmails(25)),
     purge: await step(() => deps.purgeOldData()),
     photoFiles: await step(() => deps.cleanPhotoFiles()),

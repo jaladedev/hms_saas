@@ -5,6 +5,7 @@ import { back, ok, staffClient } from "./action-helpers";
 import { parseDecision } from "./guest-reviews";
 import { parseOfferForm } from "./hotel-offers";
 import { parsePlaceForm } from "./hotel-places";
+import { parseReminderForm } from "./arrival-reminders";
 import { parseExtrasForm } from "./hotel-extras";
 import { parseBasicsForm, parseProfileForm, parseThemeForm } from "./hotel-profile";
 import { logoPath, PHOTO_BUCKET, validatePhoto } from "./room-photos";
@@ -60,6 +61,24 @@ export async function saveHotelExtras(formData: FormData) {
   revalidatePath(PAGE);
   revalidatePath("/");
   return ok(PAGE, "hotel_extras_saved");
+}
+
+/** Turns the arrival reminder email on (1 to 7 days before arrival) or off (migration 122). Same permission as the other hotel forms. */
+export async function saveArrivalReminder(formData: FormData) {
+  const v = parseReminderForm(Object.fromEntries(formData));
+  if (!v.ok) return back(PAGE, { err: v.code });
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("set_arrival_reminder_days", { p_property: v.value.propertyId, p_days: v.value.days as number });
+  if (error)
+    return back(PAGE, {
+      err: /NOT_FOUND/.test(error.message)
+        ? "setup_forbidden"
+        : /INVALID_DAYS/.test(error.message)
+          ? "setup_invalid"
+          : classifySetupError(error),
+    });
+  revalidatePath(PAGE);
+  return ok(PAGE, "hotel_reminder_saved");
 }
 
 /** Saves the hotel's name, address, town, state and check-in and check-out times (migration 089). Same permission as above. */

@@ -59,6 +59,7 @@ describe("maintenance", () => {
   it("runs every step and isolates failures", async () => {
     const out = await runMaintenance({
       expireLapsedHolds: async () => 3,
+      queueArrivalReminders: async () => 2,
       drainEmails: async () => {
         throw new Error("mailer exploded");
       },

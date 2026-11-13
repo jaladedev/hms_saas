@@ -1,8 +1,16 @@
 import { ThemePicker } from "@/components/staff/theme-picker";
 import { buttonPrimary, buttonQuiet, ErrorBanner, inputClass, Notice, PageIntro, PageTitle } from "@/components/staff/ui";
+import { REMINDER_DAY_CHOICES, reminderSummary } from "@/lib/staff/arrival-reminders";
 import { MAX_FACILITIES, MAX_FACILITY_LENGTH } from "@/lib/staff/hotel-extras";
 import { MAX_INTRO, timeInput } from "@/lib/staff/hotel-profile";
-import { removeHotelLogo, saveHotelBasics, saveHotelExtras, saveHotelProfile, uploadHotelLogo } from "@/lib/staff/hotel-profile-actions";
+import {
+  removeHotelLogo,
+  saveArrivalReminder,
+  saveHotelBasics,
+  saveHotelExtras,
+  saveHotelProfile,
+  uploadHotelLogo,
+} from "@/lib/staff/hotel-profile-actions";
 import { photoUrl } from "@/lib/staff/room-photos";
 import { PendingButton } from "@/components/ui/pending-button";
 import { PhotoPicker } from "@/components/ui/photo-picker";
@@ -21,7 +29,7 @@ export default async function HotelDetailsPage({ searchParams }: { searchParams:
   const propQ = await supabase
     .from("properties")
     .select(
-      "id, name, address, city, state, check_in_time, check_out_time, phone, contact_email, intro, logo_path, theme, theme_primary, theme_font_display, theme_font_body, theme_radius, facilities, social_instagram, social_facebook",
+      "id, name, address, city, state, check_in_time, check_out_time, phone, contact_email, intro, logo_path, theme, theme_primary, theme_font_display, theme_font_body, theme_radius, facilities, social_instagram, social_facebook, arrival_reminder_days",
     )
     .order("name");
   const properties = (propQ.data ?? []) as {
@@ -44,6 +52,7 @@ export default async function HotelDetailsPage({ searchParams }: { searchParams:
     facilities: string[];
     social_instagram: string | null;
     social_facebook: string | null;
+    arrival_reminder_days: number | null;
   }[];
   const canEdit = new Map<string, boolean>();
   await Promise.all(
@@ -120,6 +129,33 @@ export default async function HotelDetailsPage({ searchParams }: { searchParams:
                 fontBody={p.theme_font_body}
                 radius={p.theme_radius}
               />
+              <form action={saveArrivalReminder} className="mt-8 rounded border border-line bg-white p-4">
+                <input type="hidden" name="propertyId" value={p.id} />
+                <h3 className="font-medium">Arrival reminder email</h3>
+                <p className="mt-1 text-sm text-muted">{reminderSummary(p.arrival_reminder_days)}</p>
+                <div className="mt-3 flex flex-wrap items-end gap-3">
+                  <div>
+                    <label htmlFor={`ar-${p.id}`} className="block text-sm">
+                      Send a reminder
+                    </label>
+                    <select id={`ar-${p.id}`} name="days" defaultValue={p.arrival_reminder_days ?? ""} className={inputClass}>
+                      <option value="">Never</option>
+                      {REMINDER_DAY_CHOICES.map((d) => (
+                        <option key={d} value={d}>
+                          {d === 1 ? "The day before" : `${d} days before`}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <button type="submit" className={buttonQuiet}>
+                    Save reminder
+                  </button>
+                </div>
+                <p className="mt-2 text-xs text-muted">
+                  One email per booking, only for confirmed bookings with a guest email. A booking made in the last 24 hours is not reminded
+                  straight after its confirmation.
+                </p>
+              </form>
               <form action={saveHotelBasics} className="mt-8 grid gap-4 sm:grid-cols-2">
                 <input type="hidden" name="propertyId" value={p.id} />
                 <div className="sm:col-span-2">
