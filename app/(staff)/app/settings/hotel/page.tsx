@@ -6,6 +6,7 @@ import { MAX_INTRO, timeInput } from "@/lib/staff/hotel-profile";
 import {
   removeHotelLogo,
   saveArrivalReminder,
+  saveReviewRequest,
   saveHotelBasics,
   saveHotelExtras,
   saveHotelProfile,
@@ -29,7 +30,7 @@ export default async function HotelDetailsPage({ searchParams }: { searchParams:
   const propQ = await supabase
     .from("properties")
     .select(
-      "id, name, address, city, state, check_in_time, check_out_time, phone, contact_email, intro, logo_path, theme, theme_primary, theme_font_display, theme_font_body, theme_radius, facilities, social_instagram, social_facebook, arrival_reminder_days",
+      "id, name, address, city, state, check_in_time, check_out_time, phone, contact_email, intro, logo_path, theme, theme_primary, theme_font_display, theme_font_body, theme_radius, facilities, social_instagram, social_facebook, arrival_reminder_days, review_request_enabled",
     )
     .order("name");
   const properties = (propQ.data ?? []) as {
@@ -53,6 +54,7 @@ export default async function HotelDetailsPage({ searchParams }: { searchParams:
     social_instagram: string | null;
     social_facebook: string | null;
     arrival_reminder_days: number | null;
+    review_request_enabled: boolean;
   }[];
   const canEdit = new Map<string, boolean>();
   await Promise.all(
@@ -154,6 +156,28 @@ export default async function HotelDetailsPage({ searchParams }: { searchParams:
                 <p className="mt-2 text-xs text-muted">
                   One email per booking, only for confirmed bookings with a guest email. A booking made in the last 24 hours is not reminded
                   straight after its confirmation.
+                </p>
+              </form>
+              <form action={saveReviewRequest} className="mt-4 rounded border border-line bg-white p-4">
+                <input type="hidden" name="propertyId" value={p.id} />
+                <h3 className="font-medium">Review request email</h3>
+                <p className="mt-1 text-sm text-muted">
+                  {p.review_request_enabled
+                    ? "Each guest is emailed once after check-out, with a link to their booking where they can leave a review."
+                    : "Guests are not emailed after they check out."}
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" name="enabled" defaultChecked={p.review_request_enabled} />
+                    Ask guests for a review after check-out
+                  </label>
+                  <button type="submit" className={buttonQuiet}>
+                    Save
+                  </button>
+                </div>
+                <p className="mt-2 text-xs text-muted">
+                  Sent a couple of hours after check-out, for stays that ended in the last 14 days, to guests with an email who have not
+                  reviewed. Reviews are shown on your website only after you approve them.
                 </p>
               </form>
               <form action={saveHotelBasics} className="mt-8 grid gap-4 sm:grid-cols-2">

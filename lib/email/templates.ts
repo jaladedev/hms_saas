@@ -13,7 +13,8 @@ export type EmailKind =
   | "stay_changed"
   | "change_request_answered"
   | "booking_invoice"
-  | "arrival_reminder";
+  | "arrival_reminder"
+  | "review_request";
 export type RenderedEmail = { subject: string; text: string; html: string };
 
 export function escapeHtml(value: string): string {
@@ -270,6 +271,15 @@ export function renderEmail(input: {
       lines.push("You can see your booking, ask for a change or add it to your calendar from the link below.");
       break;
     }
+    case "review_request":
+      subject = `How was your stay at ${b.property_name}?`;
+      heading = "Thank you for staying with us";
+      button = "Open your booking";
+      lines.push(`We hope you enjoyed your stay at ${b.property_name} (${stay}).`);
+      lines.push(
+        "If you have a minute, please tell us how it went: open your booking and choose Leave a review. Your rating helps other guests.",
+      );
+      break;
     case "booking_link":
       subject = `Your booking link for ${b.booking_reference}`;
       heading = "Your booking link";

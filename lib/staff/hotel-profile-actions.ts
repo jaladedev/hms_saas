@@ -63,6 +63,20 @@ export async function saveHotelExtras(formData: FormData) {
   return ok(PAGE, "hotel_extras_saved");
 }
 
+/** Turns the review request email (sent after check-out, migration 128) on or off. Same permission as the other hotel forms. */
+export async function saveReviewRequest(formData: FormData) {
+  const propertyId = formData.get("propertyId");
+  const enabled = formData.get("enabled") === "on";
+  if (typeof propertyId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(propertyId)) {
+    return back(PAGE, { err: "setup_invalid" });
+  }
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("set_review_request", { p_property: propertyId, p_enabled: enabled });
+  if (error) return back(PAGE, { err: /NOT_FOUND/.test(error.message) ? "setup_forbidden" : classifySetupError(error) });
+  revalidatePath(PAGE);
+  return ok(PAGE, enabled ? "hotel_review_request_on" : "hotel_review_request_off");
+}
+
 /** Turns the arrival reminder email on (1 to 7 days before arrival) or off (migration 122). Same permission as the other hotel forms. */
 export async function saveArrivalReminder(formData: FormData) {
   const v = parseReminderForm(Object.fromEntries(formData));

@@ -28,6 +28,11 @@ async function handle(request: Request) {
       if (error) throw new Error(error.message);
       return data as number;
     },
+    async queueReviewRequests() {
+      const { data, error } = await db.rpc("queue_review_requests", { p_limit: 200 });
+      if (error) throw new Error(error.message);
+      return data as number;
+    },
     drainEmails: drainNow,
     async staleRefunds() {
       const { data, error } = await db.rpc("stale_processing_refunds", { p_older_than_minutes: 120 });

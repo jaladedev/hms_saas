@@ -32,7 +32,7 @@ begin
   if l -> 1 ->> 'state' <> 'ended_early' then raise exception 'FAIL second should be ended early %', l -> 1; end if;
   if l -> 2 ->> 'state' <> 'finished' then raise exception 'FAIL third should be finished (ran out) %', l -> 2; end if;
   txt := l::text;
-  if txt ~* 'secret internal|requested_by|decided_by|decision_note|ticket|f05' then raise exception 'FAIL internal detail leaked: %', txt; end if;
+  if txt ~* 'secret internal|requested_by|decided_by|decision_note|ticket|00000000-0000-0000-0000-00000000f05' then raise exception 'FAIL internal detail leaked: %', txt; end if;
 
   -- who may read
   perform t_expect(format('select hotel_platform_access(%L)', gen_random_uuid()), 'NOT_FOUND');

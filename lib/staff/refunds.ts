@@ -430,6 +430,8 @@ export const OK_MESSAGES = {
   photo_removed: "Photo removed.",
   hotel_profile_saved: "Hotel details saved. Guests see them on the hotel's website.",
   waitlist_updated: "Waiting list updated.",
+  hotel_review_request_on: "Review request email turned on. Guests who check out from now on are emailed once.",
+  hotel_review_request_off: "Review request email turned off.",
   hotel_reminder_saved: "Arrival reminder saved. It applies to bookings from now on; guests already reminded are not emailed again.",
   hotel_extras_saved: "Facilities and social links saved. Guests see them on the hotel's website.",
   hotel_basics_saved: "Hotel name, address and times saved. Bookings made from now on use the new check-in and check-out times.",

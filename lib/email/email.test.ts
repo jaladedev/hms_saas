@@ -61,6 +61,14 @@ describe("email templates", () => {
     const owing = renderEmail({ kind: "arrival_reminder", booking: { ...paid, outstanding_minor: 2500000 }, link: LINK });
     expect(owing.text).toContain("Still to pay: ₦25,000.00");
   });
+  it("review request: thanks the guest, says where to leave the review, and links to the booking", () => {
+    const stayed = { ...booking, status: "checked_out" };
+    const e = renderEmail({ kind: "review_request", booking: stayed, link: LINK });
+    expect(e.subject).toBe("How was your stay at Hotel A <Ibadan>?");
+    expect(e.text).toContain("Leave a review");
+    expect(e.html).toContain(`href="${LINK}"`);
+    expect(e.html).toContain("Hotel A &lt;Ibadan&gt;");
+  });
   it("cancelled: states the charge and the refund due, and promises no payout date", () => {
     const e = renderEmail({
       kind: "booking_cancelled",

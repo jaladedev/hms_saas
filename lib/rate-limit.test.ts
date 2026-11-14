@@ -60,6 +60,7 @@ describe("maintenance", () => {
     const out = await runMaintenance({
       expireLapsedHolds: async () => 3,
       queueArrivalReminders: async () => 2,
+      queueReviewRequests: async () => 1,
       drainEmails: async () => {
         throw new Error("mailer exploded");
       },
@@ -70,6 +71,7 @@ describe("maintenance", () => {
       log: vi.fn(),
     });
     expect(out.expiredHolds).toEqual({ ok: true, result: 3 });
+    expect(out.reviewRequests).toEqual({ ok: true, result: 1 });
     expect(out.emails).toEqual({ ok: false, error: "mailer exploded" });
     expect(out.purge).toEqual({ ok: true, result: { rate_limit_rows: 1 } });
     expect(out.photoFiles).toEqual({ ok: true, result: { claimed: 1, cleared: 1, error: null } });
