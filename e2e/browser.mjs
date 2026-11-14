@@ -197,6 +197,7 @@ const platformPages = [
   "/platform/entitlements",
   "/platform/tickets",
   "/platform/access",
+  "/platform/audit",
   "/platform/plans",
   "/platform/invoices",
   ...(tenant ? [`/platform/${tenant.id}`] : []),

@@ -3341,6 +3341,7 @@ export type Database = {
       }
       platform_level: { Args: Record<PropertyKey, never>; Returns: string }
       platform_entitlements_overview: { Args: Record<PropertyKey, never>; Returns: Json }
+      platform_audit_events: { Args: { p_before_at?: string; p_before_id?: string; p_from?: string; p_limit?: number; p_search?: string; p_tenant?: string; p_to?: string }; Returns: Json }
       platform_hotel_readiness: { Args: { p_tenant: string }; Returns: Json }
       platform_open_ticket: { Args: { p_details: string; p_priority?: string; p_tenant: string; p_title: string }; Returns: Json }
       platform_add_ticket_note: { Args: { p_note: string; p_ticket: string }; Returns: Json }

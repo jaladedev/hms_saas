@@ -903,4 +903,8 @@ SL="$(psql -f "$HERE/125_staff_last_sign_in.sql" 2>&1)" || { echo "$SL"; echo "S
 echo "$SL" | grep -E 'PASS' || true
 if echo "$SL" | grep -qE 'FAIL|ERROR'; then echo "$SL"; echo "STAFF LAST SIGN-IN TESTS FAILED"; exit 1; fi
 
+PA="$(psql -f "$HERE/126_platform_audit_log.sql" 2>&1)" || { echo "$PA"; echo "PLATFORM AUDIT TESTS FAILED"; exit 1; }
+echo "$PA" | grep -E 'PASS' || true
+if echo "$PA" | grep -qE 'FAIL|ERROR'; then echo "$PA"; echo "PLATFORM AUDIT TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

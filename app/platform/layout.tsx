@@ -79,6 +79,13 @@ export default async function PlatformLayout({ children }: { children: React.Rea
               Support tickets
             </NavLink>
             <NavLink
+              href="/platform/audit"
+              className="block rounded px-2 py-3 text-white hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-white md:py-1.5"
+              activeClassName="bg-white/15 font-medium"
+            >
+              Audit log
+            </NavLink>
+            <NavLink
               href="/platform/invoices"
               className="block rounded px-2 py-3 text-white hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-white md:py-1.5"
               activeClassName="bg-white/15 font-medium"
