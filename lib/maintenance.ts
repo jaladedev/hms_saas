@@ -9,6 +9,9 @@ export type MaintenanceDeps = {
   /** Queues each hotel's morning summary once its local day has started (migration 129), then sends the ones that are due. */
   queueDailyDigests(): Promise<unknown>;
   drainDigests(limit: number): Promise<unknown>;
+  /** Queues the waiting list emails for requests whose room has freed up (migration 130), then sends the ones that are due. */
+  queueWaitlistNotices(): Promise<unknown>;
+  drainWaitlistNotices(limit: number): Promise<unknown>;
   drainEmails(limit: number): Promise<unknown>;
   purgeOldData(): Promise<unknown>;
   /** Raises overdue-repair notices and clears notifications older than 90 days. */
@@ -35,6 +38,7 @@ export async function runMaintenance(deps: MaintenanceDeps): Promise<Record<stri
     arrivalReminders: await step(() => deps.queueArrivalReminders()),
     reviewRequests: await step(() => deps.queueReviewRequests()),
     dailyDigests: await step(async () => ({ queued: await deps.queueDailyDigests(), sent: await deps.drainDigests(10) })),
+    waitlistNotices: await step(async () => ({ queued: await deps.queueWaitlistNotices(), sent: await deps.drainWaitlistNotices(10) })),
     emails: await step(() => deps.drainEmails(25)),
     purge: await step(() => deps.purgeOldData()),
     photoFiles: await step(() => deps.cleanPhotoFiles()),

@@ -21,7 +21,8 @@ describe("parseWaitlist", () => {
   it("reads rows and drops malformed ones", () => {
     const rows = parseWaitlist([row(), { id: "x" }, null, row({ id: "2", status: "contacted", phone: "0800", rooms_free_now: 2 })]);
     expect(rows.map((r) => r.id)).toEqual(["1", "2"]);
-    expect(rows[1]).toMatchObject({ status: "contacted", phone: "0800", rooms_free_now: 2 });
+    expect(rows[1]).toMatchObject({ status: "contacted", phone: "0800", rooms_free_now: 2, notified_at: null });
+    expect(parseWaitlist([row({ notified_at: "2026-11-14T08:00:00Z" })])[0]?.notified_at).toBe("2026-11-14T08:00:00Z");
   });
   it("returns nothing for non-lists", () => {
     expect(parseWaitlist(null)).toEqual([]);

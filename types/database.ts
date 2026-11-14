@@ -1586,6 +1586,7 @@ export type Database = {
           arrival_reminder_days: number | null
           review_request_enabled: boolean
           digest_email: string | null
+          waitlist_email_enabled: boolean
           social_instagram: string | null
         }
         ComputedFields: never
@@ -1619,6 +1620,7 @@ export type Database = {
           arrival_reminder_days?: number | null
           review_request_enabled?: boolean
           digest_email?: string | null
+          waitlist_email_enabled?: boolean
           social_instagram?: string | null
         }
         Update: {
@@ -1651,6 +1653,7 @@ export type Database = {
           arrival_reminder_days?: number | null
           review_request_enabled?: boolean
           digest_email?: string | null
+          waitlist_email_enabled?: boolean
           social_instagram?: string | null
         }
         Relationships: [
@@ -3082,6 +3085,10 @@ export type Database = {
       }
       waitlist_list: { Args: { p_property: string }; Returns: Json }
       waitlist_set_status: { Args: { p_id: string; p_status: string }; Returns: Json }
+      queue_waitlist_notices: { Args: { p_limit?: number }; Returns: number }
+      claim_waitlist_notices: { Args: { p_limit?: number }; Returns: Json }
+      mark_waitlist_notice_result: { Args: { p_error?: string; p_id: string; p_ok: boolean }; Returns: undefined }
+      set_waitlist_email: { Args: { p_enabled: boolean; p_property: string }; Returns: undefined }
       queue_daily_digests: { Args: Record<PropertyKey, never>; Returns: number }
       claim_digests: { Args: { p_limit?: number }; Returns: Json }
       mark_digest_result: { Args: { p_error?: string; p_id: string; p_ok: boolean }; Returns: undefined }

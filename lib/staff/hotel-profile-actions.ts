@@ -63,6 +63,20 @@ export async function saveHotelExtras(formData: FormData) {
   return ok(PAGE, "hotel_extras_saved");
 }
 
+/** Turns the automatic "a room may be free" email for waiting guests on or off (migration 130). Same permission as the other hotel forms. */
+export async function saveWaitlistEmail(formData: FormData) {
+  const propertyId = formData.get("propertyId");
+  const enabled = formData.get("enabled") === "on";
+  if (typeof propertyId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(propertyId)) {
+    return back(PAGE, { err: "setup_invalid" });
+  }
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("set_waitlist_email", { p_property: propertyId, p_enabled: enabled });
+  if (error) return back(PAGE, { err: /NOT_FOUND/.test(error.message) ? "setup_forbidden" : classifySetupError(error) });
+  revalidatePath(PAGE);
+  return ok(PAGE, enabled ? "hotel_waitlist_email_on" : "hotel_waitlist_email_off");
+}
+
 /** Sets the address that gets the morning summary (migration 129); empty turns it off. Same permission as the other hotel forms. */
 export async function saveDailyDigest(formData: FormData) {
   const propertyId = formData.get("propertyId");

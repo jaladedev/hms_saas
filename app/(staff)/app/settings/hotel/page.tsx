@@ -8,6 +8,7 @@ import {
   saveArrivalReminder,
   saveReviewRequest,
   saveDailyDigest,
+  saveWaitlistEmail,
   saveHotelBasics,
   saveHotelExtras,
   saveHotelProfile,
@@ -31,7 +32,7 @@ export default async function HotelDetailsPage({ searchParams }: { searchParams:
   const propQ = await supabase
     .from("properties")
     .select(
-      "id, name, address, city, state, check_in_time, check_out_time, phone, contact_email, intro, logo_path, theme, theme_primary, theme_font_display, theme_font_body, theme_radius, facilities, social_instagram, social_facebook, arrival_reminder_days, review_request_enabled, digest_email",
+      "id, name, address, city, state, check_in_time, check_out_time, phone, contact_email, intro, logo_path, theme, theme_primary, theme_font_display, theme_font_body, theme_radius, facilities, social_instagram, social_facebook, arrival_reminder_days, review_request_enabled, digest_email, waitlist_email_enabled",
     )
     .order("name");
   const properties = (propQ.data ?? []) as {
@@ -57,6 +58,7 @@ export default async function HotelDetailsPage({ searchParams }: { searchParams:
     arrival_reminder_days: number | null;
     review_request_enabled: boolean;
     digest_email: string | null;
+    waitlist_email_enabled: boolean;
   }[];
   const canEdit = new Map<string, boolean>();
   await Promise.all(
@@ -158,6 +160,28 @@ export default async function HotelDetailsPage({ searchParams }: { searchParams:
                 <p className="mt-2 text-xs text-muted">
                   One email per booking, only for confirmed bookings with a guest email. A booking made in the last 24 hours is not reminded
                   straight after its confirmation.
+                </p>
+              </form>
+              <form action={saveWaitlistEmail} className="mt-4 rounded border border-line bg-white p-4">
+                <input type="hidden" name="propertyId" value={p.id} />
+                <h3 className="font-medium">Waiting list email</h3>
+                <p className="mt-1 text-sm text-muted">
+                  {p.waitlist_email_enabled
+                    ? "A waiting guest is emailed once when a room frees up for their dates. Nothing is held for them."
+                    : "Waiting guests are not emailed: your staff contact them from the Waiting list page."}
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" name="enabled" defaultChecked={p.waitlist_email_enabled} />
+                    Email waiting guests when a room frees up
+                  </label>
+                  <button type="submit" className={buttonQuiet}>
+                    Save
+                  </button>
+                </div>
+                <p className="mt-2 text-xs text-muted">
+                  The email links to your website&rsquo;s search for the same dates; the guest still has to book. It needs a verified domain
+                  for the hotel.
                 </p>
               </form>
               <form action={saveDailyDigest} className="mt-4 rounded border border-line bg-white p-4">

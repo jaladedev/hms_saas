@@ -919,4 +919,8 @@ DG="$(psql -f "$HERE/129_daily_digest.sql" 2>&1)" || { echo "$DG"; echo "DAILY D
 echo "$DG" | grep -E 'PASS' || true
 if echo "$DG" | grep -qE 'FAIL|ERROR'; then echo "$DG"; echo "DAILY DIGEST TESTS FAILED"; exit 1; fi
 
+WE="$(psql -f "$HERE/130_waitlist_email.sql" 2>&1)" || { echo "$WE"; echo "WAITLIST EMAIL TESTS FAILED"; exit 1; }
+echo "$WE" | grep -E 'PASS' || true
+if echo "$WE" | grep -qE 'FAIL|ERROR'; then echo "$WE"; echo "WAITLIST EMAIL TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

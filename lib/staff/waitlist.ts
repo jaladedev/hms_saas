@@ -12,6 +12,7 @@ export type WaitlistRow = {
   status: WaitlistStatus;
   created_at: string;
   rooms_free_now: number;
+  notified_at: string | null;
 };
 
 /** Reads what waitlist_list returned; anything that is not a well formed row is dropped rather than shown wrong. */
@@ -36,6 +37,7 @@ export function parseWaitlist(data: unknown): WaitlistRow[] {
       phone: s("phone") || null,
       status: o.status === "contacted" ? "contacted" : "waiting",
       created_at: s("created_at"),
+      notified_at: s("notified_at") || null,
       rooms_free_now: Math.max(0, Math.trunc(n("rooms_free_now"))),
     });
   }

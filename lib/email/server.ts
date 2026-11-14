@@ -4,6 +4,7 @@ import { serverEnv } from "@/lib/env";
 import { createServiceClient } from "@/lib/supabase/service";
 import { createMailer } from "@/lib/email/mailer";
 import { drainDigests, type ClaimedDigest } from "@/lib/email/digest";
+import { drainNotices, type ClaimedNotice } from "@/lib/email/waitlist-notice";
 import { drainOutbox, type ClaimedEmail, type DrainResult } from "@/lib/email/outbox";
 
 /** Emailed booking links work for a week; the guest can always ask for a fresh one. */
@@ -26,6 +27,30 @@ export async function drainDigestsNow(limit: number): Promise<{ claimed: number;
         if (error) throw new Error(error.message);
       },
       mailer,
+      log: (level, message, context) => console[level === "info" ? "log" : level](`[email] ${message}`, context ?? {}),
+    },
+    limit,
+  );
+}
+
+/** Sends the waiting list emails that are due (migration 130). Same rules as drainNow. */
+export async function drainNoticesNow(limit: number): Promise<{ claimed: number; sent: number; failed: number } | { skipped: string }> {
+  const mailer = createMailer();
+  if (!mailer) return { skipped: "email not configured" };
+  const db = createServiceClient();
+  return drainNotices(
+    {
+      async claim(n) {
+        const { data, error } = await db.rpc("claim_waitlist_notices", { p_limit: n });
+        if (error) throw new Error(error.message);
+        return (data ?? []) as ClaimedNotice[];
+      },
+      async mark(id, ok, errorText) {
+        const { error } = await db.rpc("mark_waitlist_notice_result", { p_id: id, p_ok: ok, p_error: errorText ?? null });
+        if (error) throw new Error(error.message);
+      },
+      mailer,
+      linkScheme: process.env.EMAIL_LINK_SCHEME === "http" ? "http" : "https",
       log: (level, message, context) => console[level === "info" ? "log" : level](`[email] ${message}`, context ?? {}),
     },
     limit,

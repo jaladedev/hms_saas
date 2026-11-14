@@ -24,9 +24,9 @@ export default async function WaitlistPage({ searchParams }: { searchParams: Pro
     <main className="max-w-4xl">
       <PageTitle>Waiting list</PageTitle>
       <PageIntro>
-        Guests who found a room type sold out for their dates and left their details. Nothing is sent to them: when a room shows as free
-        now, call or email the guest yourself, take the booking in Reservations, then mark the request contacted or closed. Requests are
-        removed a month after the stay dates.
+        Guests who found a room type sold out for their dates and left their details. Unless the hotel turned on the waiting list email in
+        Settings, nothing is sent to them: when a room shows as free now, call or email the guest yourself, take the booking in
+        Reservations, then mark the request contacted or closed. Requests are removed a month after the stay dates.
       </PageIntro>
       <div className="mt-6">
         <Notice search={search} currency="NGN" />
@@ -52,6 +52,7 @@ export default async function WaitlistPage({ searchParams }: { searchParams: Pro
                     <span className="rounded-full bg-ink/5 px-2.5 py-0.5 text-xs text-muted">{freeLabel(r)}</span>
                   )}
                   {r.status === "contacted" && <span className="rounded-full bg-ink/5 px-2.5 py-0.5 text-xs text-muted">Contacted</span>}
+                  {r.notified_at && <span className="rounded-full bg-ink/5 px-2.5 py-0.5 text-xs text-muted">Emailed</span>}
                 </p>
                 <p className="mt-1 text-sm">
                   {r.room_type}, {formatDate(r.arrival_date)} to {formatDate(r.departure_date)}, {r.adults} adult{r.adults === 1 ? "" : "s"}
