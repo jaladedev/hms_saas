@@ -148,7 +148,13 @@ export default async function BookingPage({ params, searchParams }: Props) {
           >
             Add to calendar
           </a>
-          <PrintButton>Print or save as PDF</PrintButton>
+          <a
+            href={`/booking/${token}/confirmation.pdf`}
+            className="inline-block rounded border border-line bg-white px-4 py-2 text-sm hover:bg-bg"
+          >
+            Download confirmation (PDF)
+          </a>
+          <PrintButton>Print this page</PrintButton>
         </div>
       ) : null}
 

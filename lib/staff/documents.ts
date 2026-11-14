@@ -64,3 +64,11 @@ export const REFUND_STATUS_LABEL: Record<string, string> = {
 
 export const documentsPath = (reservationId: string, kind?: DocKind) =>
   `/app/reservations/${reservationId}/documents${kind ? `?doc=${kind}` : ""}`;
+
+/** Statuses that have a booking confirmation to download as a PDF: the same ones `availableDocs` gives a confirmation to. */
+export const CONFIRMATION_STATUSES = ["confirmed", "checked_in", "checked_out"] as const;
+export const STATUS_LABEL_FOR_PDF: Record<string, string> = {
+  confirmed: "Confirmed",
+  checked_in: "Checked in",
+  checked_out: "Checked out",
+};

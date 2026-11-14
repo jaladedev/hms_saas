@@ -162,6 +162,11 @@ export default async function DocumentsPage({
           Back to the booking
         </Link>
         {kind && <PrintButton />}
+        {kind === "confirmation" && (
+          <a href={`/app/reservations/${id}/documents/confirmation.pdf`} className={linkClass}>
+            Download confirmation (PDF)
+          </a>
+        )}
       </p>
       {available.length > 1 && (
         <nav aria-label="Documents for this booking" className="mt-3 flex flex-wrap gap-2 text-sm print:hidden">
