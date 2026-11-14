@@ -25,7 +25,11 @@ const PAGE = "/app/settings/policies";
 
 export async function publishPolicy(formData: FormData) {
   const v = validatePolicy(Object.fromEntries(formData));
-  if (!v.ok) return back(PAGE, { err: v.field === "deposit" ? "policy_deposit" : v.field === "date" ? "policy_date" : "policy_rules" });
+  if (!v.ok)
+    return back(PAGE, {
+      err:
+        v.field === "deposit" ? "policy_deposit" : v.field === "date" ? "policy_date" : v.field === "stay" ? "policy_stay" : "policy_rules",
+    });
   const { propertyId, effectiveFrom, config } = v.value;
 
   const supabase = await staffClient();

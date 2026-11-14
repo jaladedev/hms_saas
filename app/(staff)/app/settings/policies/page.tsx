@@ -253,6 +253,31 @@ export default async function PoliciesPage({ searchParams }: { searchParams: Pro
                       </p>
                     </div>
                     <div className="sm:col-span-2">
+                      <span className="block text-sm">Length of stay (nights)</span>
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-sm">
+                        <label htmlFor={`mn-${p.id}`}>Fewest</label>
+                        <input
+                          id={`mn-${p.id}`}
+                          name="minNights"
+                          inputMode="numeric"
+                          defaultValue={String(cfg.min_nights)}
+                          className={`${inputClass} w-16 tabular-nums`}
+                        />
+                        <label htmlFor={`mx-${p.id}`}>Most</label>
+                        <input
+                          id={`mx-${p.id}`}
+                          name="maxNights"
+                          inputMode="numeric"
+                          defaultValue={String(cfg.max_nights)}
+                          className={`${inputClass} w-16 tabular-nums`}
+                        />
+                      </div>
+                      <p className="mt-1 text-xs text-muted">
+                        Whole nights, 1 to 30. Applies to every new booking and to a date change that alters the length, whoever makes it,
+                        including front desk staff. Bookings already made keep their dates and can still move by the same length.
+                      </p>
+                    </div>
+                    <div className="sm:col-span-2">
                       <label htmlFor={`ec-${p.id}`} className="block text-sm">
                         When a guest checks out early
                       </label>

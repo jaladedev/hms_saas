@@ -56,6 +56,8 @@ describe("friendly errors", () => {
   it("maps known database errors", () => {
     expect(friendlyError("ROOM_UNAVAILABLE").code).toBe("unavailable");
     expect(friendlyError("POLICY_VIOLATION: too many active holds").code).toBe("too_many_holds");
+    expect(friendlyError("POLICY_VIOLATION: minimum stay 2").code).toBe("stay_length");
+    expect(friendlyError("POLICY_VIOLATION: maximum stay 14").code).toBe("stay_length");
     expect(friendlyError("INVALID_STATE: hold lapsed").code).toBe("hold_lapsed");
     expect(friendlyError("NOT_FOUND: host").code).toBe("not_configured");
     expect(friendlyError("CAPACITY_EXCEEDED").code).toBe("capacity");

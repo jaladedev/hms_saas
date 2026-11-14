@@ -186,6 +186,8 @@ export type GuestPolicy = {
   online_payment: unknown;
   checkin_payment: unknown;
   guest_cancellation: unknown;
+  min_nights?: number;
+  max_nights?: number;
 };
 
 /** The cancellation and payment policy in force for the hotel behind this host (migration 032). */

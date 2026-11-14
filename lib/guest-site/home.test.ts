@@ -9,6 +9,7 @@ import {
   nightPriceLabel,
   offerUntilLabel,
   onlyChosenType,
+  stayRule,
 } from "./home";
 
 describe("fromPriceLabel", () => {
@@ -95,5 +96,23 @@ describe("price calendar labels", () => {
     expect(nightDayLabel("2026-11-12")).toBe("12 Nov");
     expect(nightDayLabel("2027-01-01")).toBe("1 Jan");
     expect(nightDayLabel("nope")).toBe("nope");
+  });
+});
+
+describe("stayRule", () => {
+  it("says nothing when the hotel has no limit", () => {
+    expect(stayRule({})).toBeNull();
+    expect(stayRule(null)).toBeNull();
+    expect(stayRule({ min_nights: 1, max_nights: 30 })).toBeNull();
+  });
+  it("says what the hotel asks for", () => {
+    expect(stayRule({ min_nights: 2, max_nights: 14 })).toBe("Stays of 2 to 14 nights");
+    expect(stayRule({ min_nights: 3, max_nights: 30 })).toBe("Minimum stay: 3 nights");
+    expect(stayRule({ min_nights: 1, max_nights: 7 })).toBe("Maximum stay: 7 nights");
+    expect(stayRule({ min_nights: 2, max_nights: 2 })).toBe("Stays of exactly 2 nights");
+    expect(stayRule({ min_nights: 1, max_nights: 1 })).toBe("Maximum stay: 1 night");
+  });
+  it("ignores values the database would ignore", () => {
+    expect(stayRule({ min_nights: 0, max_nights: 99 })).toBeNull();
   });
 });

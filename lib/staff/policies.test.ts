@@ -39,6 +39,8 @@ describe("readConfig", () => {
       early_checkin_days: 0,
       guest_changes: "off",
       guest_change_hours: 48,
+      min_nights: 1,
+      max_nights: 30,
     });
     expect(readConfig(null).online_payment).toEqual({ mode: "full" });
     expect(readConfig({ online_payment: { mode: "deposit_percent", value: 0 } }).online_payment).toEqual({ mode: "full" });
@@ -306,5 +308,57 @@ describe("classifyPolicyError", () => {
     expect(classifyPolicyError({ code: "23505" })).toBe("policy_conflict");
     expect(classifyPolicyError({ code: "23514" })).toBe("policy_invalid");
     expect(classifyPolicyError({ code: "XX000" })).toBe("unknown");
+  });
+});
+
+describe("night limits (migration 127)", () => {
+  const form = {
+    propertyId: "00000000-0000-0000-0000-0000000000a2",
+    effectiveFrom: "2026-12-01",
+    rules: [],
+    onlineMode: "full",
+    depositPercent: "",
+    checkinPayment: "none",
+  } as Parameters<typeof validatePolicy>[0];
+  it("reads the stored limits the way the database does", () => {
+    expect(readConfig({ min_nights: 2, max_nights: 5 })).toMatchObject({ min_nights: 2, max_nights: 5 });
+    for (const bad of [0, 31, 2.5, "4", null, {}])
+      expect(readConfig({ min_nights: bad, max_nights: bad }), String(bad)).toMatchObject({ min_nights: 1, max_nights: 30 });
+    expect(readConfig({ min_nights: 6, max_nights: 3 })).toMatchObject({ min_nights: 6, max_nights: 6 });
+  });
+  it("an older form without the fields means no limit; good values are kept", () => {
+    expect(validatePolicy(form)).toMatchObject({ ok: true, value: { config: { min_nights: 1, max_nights: 30 } } });
+    expect(validatePolicy({ ...form, minNights: "2", maxNights: "14" } as typeof form)).toMatchObject({
+      ok: true,
+      value: { config: { min_nights: 2, max_nights: 14 } },
+    });
+    expect(validatePolicy({ ...form, minNights: "3", maxNights: "3" } as typeof form)).toMatchObject({
+      ok: true,
+      value: { config: { min_nights: 3, max_nights: 3 } },
+    });
+  });
+  it("refuses numbers out of range, fractions, text and a minimum above the maximum", () => {
+    for (const [min, max] of [
+      ["0", "30"],
+      ["1", "31"],
+      ["5", "4"],
+      ["2.5", "5"],
+      ["a", "5"],
+      ["", "5"],
+      ["1", ""],
+      ["-1", "5"],
+    ])
+      expect(validatePolicy({ ...form, minNights: min, maxNights: max } as typeof form), `${min}-${max}`).toEqual({
+        ok: false,
+        code: "policy_invalid",
+        field: "stay",
+      });
+  });
+  it("stores the limits only when they say something, and drops stale ones", () => {
+    const none = mergeConfig({ min_nights: 4, max_nights: 9 }, readConfig({}));
+    expect(none).not.toHaveProperty("min_nights");
+    expect(none).not.toHaveProperty("max_nights");
+    expect(mergeConfig({}, readConfig({ min_nights: 2, max_nights: 5 }))).toMatchObject({ min_nights: 2, max_nights: 5 });
+    expect(mergeConfig({}, readConfig({ min_nights: 2 }))).not.toHaveProperty("max_nights");
   });
 });

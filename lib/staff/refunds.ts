@@ -205,6 +205,7 @@ export type ErrorCode =
   | "policy_invalid"
   | "policy_rules"
   | "policy_deposit"
+  | "policy_stay"
   | "policy_date"
   | "policy_past"
   | "policy_order"
@@ -599,6 +600,8 @@ export function errorMessage(code: string, refundable: number | null, formatMino
       return "Check the cancellation rules. Each needs a number of hours (0 to 8760) that no other rule uses, and a charge: a percentage above 0 up to 100, 1 to 30 nights, or a naira amount. Leave a row empty to skip it.";
     case "policy_deposit":
       return "Enter the deposit as a percentage above 0 and up to 100, or choose to take the full amount online.";
+    case "policy_stay":
+      return "Enter the fewest and most nights as whole numbers from 1 to 30, with the fewest no higher than the most.";
     case "policy_date":
       return "Choose a real start date for the new policy.";
     case "policy_past":

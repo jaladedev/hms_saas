@@ -51,6 +51,20 @@ export function freeCancellationBadge(policy: unknown): string | null {
   return `Free cancellation until ${describeWindow(widest.within_hours).replace(" or less before check-in", "")} before check-in`;
 }
 
+/**
+ * The hotel's night limits as a sentence for the search form (migration 127), or null when it has none (1 to 30 nights is the system's
+ * own range, nothing to say). Read through the same rules the database uses.
+ */
+export function stayRule(policy: unknown): string | null {
+  const o = (typeof policy === "object" && policy !== null ? policy : {}) as { min_nights?: unknown; max_nights?: unknown };
+  const { min_nights: lo, max_nights: hi } = readConfig({ min_nights: o.min_nights, max_nights: o.max_nights });
+  const nights = (n: number) => `${n} ${n === 1 ? "night" : "nights"}`;
+  if (lo > 1 && hi < 30) return lo === hi ? `Stays of exactly ${nights(lo)}` : `Stays of ${lo} to ${nights(hi)}`;
+  if (lo > 1) return `Minimum stay: ${nights(lo)}`;
+  if (hi < 30) return `Maximum stay: ${nights(hi)}`;
+  return null;
+}
+
 /** Keeps only the room type the visitor chose in the search form, or all of them when none was chosen or the id is unknown. */
 export function onlyChosenType<T extends { room_type_id: string }>(types: T[], chosen: string | undefined): T[] {
   if (!chosen) return types;

@@ -907,4 +907,8 @@ PA="$(psql -f "$HERE/126_platform_audit_log.sql" 2>&1)" || { echo "$PA"; echo "P
 echo "$PA" | grep -E 'PASS' || true
 if echo "$PA" | grep -qE 'FAIL|ERROR'; then echo "$PA"; echo "PLATFORM AUDIT TESTS FAILED"; exit 1; fi
 
+SN="$(psql -f "$HERE/127_stay_length.sql" 2>&1)" || { echo "$SN"; echo "STAY LENGTH TESTS FAILED"; exit 1; }
+echo "$SN" | grep -E 'PASS' || true
+if echo "$SN" | grep -qE 'FAIL|ERROR'; then echo "$SN"; echo "STAY LENGTH TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

@@ -32,6 +32,9 @@ export type PolicyConfig = {
   guest_changes: "on" | "off";
   /** Dates and room requests close this many hours before arrival (migration 069). 48 when the key is absent. */
   guest_change_hours: number;
+  /** Fewest and most nights a booking may have (migration 127). 1 and 30 when the keys are absent. */
+  min_nights: number;
+  max_nights: number;
 };
 
 export type PolicyRow = { id: string; property_id: string; version: number; effective_from: string; config: Record<string, unknown> };
@@ -82,7 +85,16 @@ export function readConfig(config: unknown): PolicyConfig {
       Number.isInteger(c.guest_change_hours) && (c.guest_change_hours as number) >= 0 && (c.guest_change_hours as number) <= 720
         ? (c.guest_change_hours as number)
         : 48,
+    ...stayLimits(c),
   };
+}
+
+/** The stored night limits as the database reads them: whole numbers 1 to 30, else 1 and 30; a maximum under the minimum is raised to it. */
+function stayLimits(c: Record<string, unknown>): { min_nights: number; max_nights: number } {
+  const ok = (v: unknown) => typeof v === "number" && Number.isInteger(v) && v >= 1 && v <= 30;
+  const lo = ok(c.min_nights) ? (c.min_nights as number) : 1;
+  const hi = ok(c.max_nights) ? (c.max_nights as number) : 30;
+  return { min_nights: lo, max_nights: Math.max(hi, lo) };
 }
 
 /** Widest window first, the order a person reads them in. The database picks the smallest window that still covers the time left. */
@@ -146,7 +158,7 @@ export function guestSummary(cfg: PolicyConfig, formatMinor: (minor: number) => 
   return [...guestPaymentLines(cfg), ...guestCancellationLines(cfg, formatMinor)];
 }
 
-export type PolicyField = "rules" | "deposit" | "date";
+export type PolicyField = "rules" | "deposit" | "date" | "stay";
 export type PolicyInput = Record<string, unknown>;
 
 const ISO = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -235,6 +247,14 @@ export function validatePolicy(
   if (!/^\d{1,3}$/.test(gchRaw) || Number(gchRaw) > 720) return bad("rules");
   const guestChangeHours = Number(gchRaw);
 
+  // Night limits: a form from before this existed means no limit (1 and 30). Whole nights, 1 to 30, the minimum not above the maximum.
+  const minRaw = input.minNights === undefined ? "1" : clean(input.minNights, 3);
+  const maxRaw = input.maxNights === undefined ? "30" : clean(input.maxNights, 3);
+  if (!/^\d{1,2}$/.test(minRaw) || !/^\d{1,2}$/.test(maxRaw)) return bad("stay");
+  const minNights = Number(minRaw);
+  const maxNights = Number(maxRaw);
+  if (minNights < 1 || maxNights > MAX_NIGHTS || minNights > maxNights) return bad("stay");
+
   return {
     ok: true,
     value: {
@@ -249,6 +269,8 @@ export function validatePolicy(
         early_checkin_days: earlyCheckinDays,
         guest_changes: guestChanges,
         guest_change_hours: guestChangeHours,
+        min_nights: minNights,
+        max_nights: maxNights,
       },
     },
   };
@@ -271,7 +293,9 @@ export function mergeConfig(previous: unknown, next: PolicyConfig): Record<strin
   delete base.early_checkin_days;
   delete base.guest_changes;
   delete base.guest_change_hours;
-  const { checkin_payment, early_checkout, early_checkin_days, guest_changes, guest_change_hours, ...rest } = next;
+  delete base.min_nights;
+  delete base.max_nights;
+  const { checkin_payment, early_checkout, early_checkin_days, guest_changes, guest_change_hours, min_nights, max_nights, ...rest } = next;
   // Both are stored only when they say something: an absent key is "no payment needed" and "keep the whole price".
   return {
     ...base,
@@ -281,6 +305,9 @@ export function mergeConfig(previous: unknown, next: PolicyConfig): Record<strin
     ...(early_checkin_days > 0 ? { early_checkin_days } : {}),
     ...(guest_changes === "on" ? { guest_changes } : {}),
     ...(guest_changes === "on" && guest_change_hours !== 48 ? { guest_change_hours } : {}),
+    // Stored only when they say something: absent means 1 and 30.
+    ...(min_nights > 1 ? { min_nights } : {}),
+    ...(max_nights < 30 ? { max_nights } : {}),
   };
 }
 

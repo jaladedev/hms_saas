@@ -17,6 +17,17 @@ const RULES: Array<[RegExp, GuestError]> = [
   ],
   [/POLICY_VIOLATION: guest/, { code: "guest_details", message: "Please check your name and email address." }],
   [
+    /POLICY_VIOLATION: minimum stay (\d+)/,
+    { code: "stay_length", message: "This hotel needs a longer stay than that. Please check the minimum nights shown in the search form." },
+  ],
+  [
+    /POLICY_VIOLATION: maximum stay (\d+)/,
+    {
+      code: "stay_length",
+      message: "That stay is longer than this hotel takes. Please check the maximum nights shown in the search form.",
+    },
+  ],
+  [
     /POLICY_VIOLATION: (stay too long|arrival too far ahead|arrival in the past|departure must follow arrival)/,
     { code: "dates", message: "Please check your dates." },
   ],

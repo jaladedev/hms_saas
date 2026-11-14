@@ -14,6 +14,7 @@ import {
   amenityHighlights,
   capacityLabel,
   freeCancellationBadge,
+  stayRule,
   fromPriceLabel,
   offerUntilLabel,
   onlyChosenType,
@@ -69,6 +70,7 @@ export default async function GuestHome({ searchParams }: Props) {
   const supa = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
   const highlights = amenityHighlights(types, 6);
   const cancelBadge = policyResult.ok ? freeCancellationBadge(policyResult.data) : null;
+  const stayLimit = policyResult.ok ? stayRule(policyResult.data) : null;
   const offers = offersResult.ok ? offersResult.data.offers : [];
   const places = placesResult.ok ? placesResult.data.places : [];
   const reviews = reviewsResult.ok ? reviewsResult.data : null;
@@ -148,6 +150,7 @@ export default async function GuestHome({ searchParams }: Props) {
             className="grid grid-cols-2 gap-4 rounded-2xl border border-line bg-white p-5 shadow-lg sm:p-6"
           >
             <h2 className="col-span-2 font-display text-xl">Find a room</h2>
+            {stayLimit ? <p className="col-span-2 -mt-2 text-sm text-muted">{stayLimit}</p> : null}
             <label className={`${label} col-span-1`}>
               Check in
               <input
