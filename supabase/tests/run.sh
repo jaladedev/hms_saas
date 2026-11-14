@@ -915,4 +915,8 @@ RV="$(psql -f "$HERE/128_review_requests.sql" 2>&1)" || { echo "$RV"; echo "REVI
 echo "$RV" | grep -E 'PASS' || true
 if echo "$RV" | grep -qE 'FAIL|ERROR'; then echo "$RV"; echo "REVIEW REQUEST TESTS FAILED"; exit 1; fi
 
+DG="$(psql -f "$HERE/129_daily_digest.sql" 2>&1)" || { echo "$DG"; echo "DAILY DIGEST TESTS FAILED"; exit 1; }
+echo "$DG" | grep -E 'PASS' || true
+if echo "$DG" | grep -qE 'FAIL|ERROR'; then echo "$DG"; echo "DAILY DIGEST TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

@@ -3,10 +3,34 @@ import { createBookingToken } from "@/lib/booking-token";
 import { serverEnv } from "@/lib/env";
 import { createServiceClient } from "@/lib/supabase/service";
 import { createMailer } from "@/lib/email/mailer";
+import { drainDigests, type ClaimedDigest } from "@/lib/email/digest";
 import { drainOutbox, type ClaimedEmail, type DrainResult } from "@/lib/email/outbox";
 
 /** Emailed booking links work for a week; the guest can always ask for a fresh one. */
 export const EMAIL_LINK_TTL_SECONDS = 7 * 24 * 60 * 60;
+
+/** Sends the morning summaries that are due (migration 129). Same rules as drainNow: nothing is lost when email is not configured. */
+export async function drainDigestsNow(limit: number): Promise<{ claimed: number; sent: number; failed: number } | { skipped: string }> {
+  const mailer = createMailer();
+  if (!mailer) return { skipped: "email not configured" };
+  const db = createServiceClient();
+  return drainDigests(
+    {
+      async claim(n) {
+        const { data, error } = await db.rpc("claim_digests", { p_limit: n });
+        if (error) throw new Error(error.message);
+        return (data ?? []) as ClaimedDigest[];
+      },
+      async mark(id, ok, errorText) {
+        const { error } = await db.rpc("mark_digest_result", { p_id: id, p_ok: ok, p_error: errorText ?? null });
+        if (error) throw new Error(error.message);
+      },
+      mailer,
+      log: (level, message, context) => console[level === "info" ? "log" : level](`[email] ${message}`, context ?? {}),
+    },
+    limit,
+  );
+}
 
 /**
  * Claims due emails and sends them. Returns {skipped} when email is not configured, leaving the outbox

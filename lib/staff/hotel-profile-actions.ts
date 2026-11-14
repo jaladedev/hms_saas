@@ -63,6 +63,32 @@ export async function saveHotelExtras(formData: FormData) {
   return ok(PAGE, "hotel_extras_saved");
 }
 
+/** Sets the address that gets the morning summary (migration 129); empty turns it off. Same permission as the other hotel forms. */
+export async function saveDailyDigest(formData: FormData) {
+  const propertyId = formData.get("propertyId");
+  const email = formData.get("email");
+  if (
+    typeof propertyId !== "string" ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(propertyId) ||
+    typeof email !== "string"
+  ) {
+    return back(PAGE, { err: "setup_invalid" });
+  }
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("set_daily_digest", { p_property: propertyId, p_email: email });
+  if (error) {
+    return back(PAGE, {
+      err: /NOT_FOUND/.test(error.message)
+        ? "setup_forbidden"
+        : /INVALID_EMAIL/.test(error.message)
+          ? "digest_email"
+          : classifySetupError(error),
+    });
+  }
+  revalidatePath(PAGE);
+  return ok(PAGE, email.trim() ? "hotel_digest_on" : "hotel_digest_off");
+}
+
 /** Turns the review request email (sent after check-out, migration 128) on or off. Same permission as the other hotel forms. */
 export async function saveReviewRequest(formData: FormData) {
   const propertyId = formData.get("propertyId");

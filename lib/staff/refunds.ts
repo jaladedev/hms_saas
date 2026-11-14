@@ -228,6 +228,7 @@ export type ErrorCode =
   | "setup_duplicate_name"
   | "setup_duplicate_room"
   | "setup_forbidden"
+  | "digest_email"
   | "room_has_bookings"
   | "photo_file"
   | "photo_limit"
@@ -430,6 +431,8 @@ export const OK_MESSAGES = {
   photo_removed: "Photo removed.",
   hotel_profile_saved: "Hotel details saved. Guests see them on the hotel's website.",
   waitlist_updated: "Waiting list updated.",
+  hotel_digest_on: "Morning summary turned on. It is emailed each morning from 06:00 hotel time.",
+  hotel_digest_off: "Morning summary turned off.",
   hotel_review_request_on: "Review request email turned on. Guests who check out from now on are emailed once.",
   hotel_review_request_off: "Review request email turned off.",
   hotel_reminder_saved: "Arrival reminder saved. It applies to bookings from now on; guests already reminded are not emailed again.",
@@ -646,6 +649,8 @@ export function errorMessage(code: string, refundable: number | null, formatMino
       return "Another room type at this property has a name that is too similar. Choose a different name.";
     case "setup_duplicate_room":
       return "That room number already exists at this property.";
+    case "digest_email":
+      return "Enter a valid email address for the morning summary, or leave it empty to turn it off.";
     case "setup_forbidden":
       return "You do not have permission to change the hotel setup.";
     case "photo_file":

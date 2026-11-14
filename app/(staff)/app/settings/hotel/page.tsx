@@ -7,6 +7,7 @@ import {
   removeHotelLogo,
   saveArrivalReminder,
   saveReviewRequest,
+  saveDailyDigest,
   saveHotelBasics,
   saveHotelExtras,
   saveHotelProfile,
@@ -30,7 +31,7 @@ export default async function HotelDetailsPage({ searchParams }: { searchParams:
   const propQ = await supabase
     .from("properties")
     .select(
-      "id, name, address, city, state, check_in_time, check_out_time, phone, contact_email, intro, logo_path, theme, theme_primary, theme_font_display, theme_font_body, theme_radius, facilities, social_instagram, social_facebook, arrival_reminder_days, review_request_enabled",
+      "id, name, address, city, state, check_in_time, check_out_time, phone, contact_email, intro, logo_path, theme, theme_primary, theme_font_display, theme_font_body, theme_radius, facilities, social_instagram, social_facebook, arrival_reminder_days, review_request_enabled, digest_email",
     )
     .order("name");
   const properties = (propQ.data ?? []) as {
@@ -55,6 +56,7 @@ export default async function HotelDetailsPage({ searchParams }: { searchParams:
     social_facebook: string | null;
     arrival_reminder_days: number | null;
     review_request_enabled: boolean;
+    digest_email: string | null;
   }[];
   const canEdit = new Map<string, boolean>();
   await Promise.all(
@@ -156,6 +158,38 @@ export default async function HotelDetailsPage({ searchParams }: { searchParams:
                 <p className="mt-2 text-xs text-muted">
                   One email per booking, only for confirmed bookings with a guest email. A booking made in the last 24 hours is not reminded
                   straight after its confirmation.
+                </p>
+              </form>
+              <form action={saveDailyDigest} className="mt-4 rounded border border-line bg-white p-4">
+                <input type="hidden" name="propertyId" value={p.id} />
+                <h3 className="font-medium">Morning summary email</h3>
+                <p className="mt-1 text-sm text-muted">
+                  {p.digest_email
+                    ? `Counts of today's arrivals, departures and guests in house are emailed to ${p.digest_email} each morning.`
+                    : "No morning summary is sent."}
+                </p>
+                <div className="mt-3 flex flex-wrap items-end gap-3">
+                  <div>
+                    <label htmlFor={`dg-${p.id}`} className="block text-sm">
+                      Send it to
+                    </label>
+                    <input
+                      id={`dg-${p.id}`}
+                      name="email"
+                      type="email"
+                      maxLength={254}
+                      defaultValue={p.digest_email ?? ""}
+                      placeholder="manager@yourhotel.com"
+                      className={inputClass}
+                    />
+                  </div>
+                  <button type="submit" className={buttonQuiet}>
+                    Save
+                  </button>
+                </div>
+                <p className="mt-2 text-xs text-muted">
+                  Sent once a day from 06:00 hotel time. It holds counts only: no guest names, rooms or money. Leave it empty to turn it
+                  off.
                 </p>
               </form>
               <form action={saveReviewRequest} className="mt-4 rounded border border-line bg-white p-4">

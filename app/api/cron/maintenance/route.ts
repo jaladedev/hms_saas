@@ -1,4 +1,4 @@
-import { drainNow } from "@/lib/email/server";
+import { drainDigestsNow, drainNow } from "@/lib/email/server";
 import { drainPhotoCleanup } from "@/lib/photo-cleanup";
 import { isAuthorizedCron, runMaintenance } from "@/lib/maintenance";
 import { PHOTO_BUCKET } from "@/lib/staff/room-photos";
@@ -33,6 +33,12 @@ async function handle(request: Request) {
       if (error) throw new Error(error.message);
       return data as number;
     },
+    async queueDailyDigests() {
+      const { data, error } = await db.rpc("queue_daily_digests");
+      if (error) throw new Error(error.message);
+      return data as number;
+    },
+    drainDigests: drainDigestsNow,
     drainEmails: drainNow,
     async staleRefunds() {
       const { data, error } = await db.rpc("stale_processing_refunds", { p_older_than_minutes: 120 });
