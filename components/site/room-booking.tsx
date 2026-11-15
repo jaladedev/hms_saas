@@ -19,7 +19,7 @@ const label = "text-xs font-medium uppercase tracking-wider text-muted";
 /**
  * The price calendar and the booking form of the room page, joined: pressing nights in the calendar fills the dates (one
  * press for a night, a second on a later night for the last night of a longer stay), the dates can still be typed, and the
- * stay's price before tax shows when the calendar covers it. The form sends the guest to the homepage search with the dates
+ * stay's price before taxes and charges shows when the calendar covers it. The form sends the guest to the homepage search with the dates
  * filled in, exactly as before; the server prices and checks the stay there.
  */
 export function RoomBooking({
@@ -49,8 +49,8 @@ export function RoomBooking({
           Price calendar
         </h2>
         <p className="mt-1 text-xs text-muted">
-          The nightly rate for the next {nights.length} nights, before tax. Press a night to pick it; press a later one to stay until then.
-          Nights marked Full cannot be picked.
+          The nightly rate for the next {nights.length} nights, before taxes and charges. Press a night to pick it; press a later one to
+          stay until then. Nights marked Full cannot be picked.
         </p>
         <ul className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(5.5rem,1fr))] gap-2 text-center text-sm">
           {nights.map((n) => {
@@ -134,7 +134,7 @@ export function RoomBooking({
           {full
             ? "One or more of these nights is fully booked. Choose other dates."
             : est
-              ? `${est.nights} ${est.nights === 1 ? "night" : "nights"}, about ${nightPriceLabel(est.totalMinor, currency)} before tax`
+              ? `${est.nights} ${est.nights === 1 ? "night" : "nights"}, about ${nightPriceLabel(est.totalMinor, currency)} before taxes and charges`
               : ""}
         </p>
         <button

@@ -72,7 +72,7 @@ describe("nightlyBreakdown", () => {
       subtotal_minor: 9000000,
       tax_minor: 675000,
     };
-    expect(nightlyBreakdown(t, "NGN")).toBe("2 nights × ₦45,000.00 + ₦6,750.00 tax");
+    expect(nightlyBreakdown(t, "NGN")).toBe("2 nights × ₦45,000.00 + ₦6,750.00 taxes and charges");
   });
   it("shows the subtotal when rates differ, and leaves out tax when there is none", () => {
     const t = {

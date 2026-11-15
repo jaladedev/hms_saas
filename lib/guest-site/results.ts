@@ -57,7 +57,7 @@ export function nightlyBreakdown(q: Pick<RoomTypeQuote, "nights" | "subtotal_min
     n > 0 && rates.size === 1
       ? `${n} ${n === 1 ? "night" : "nights"} × ${formatMoney(q.nights[0]!.rate_minor, currency)}`
       : `${n} ${n === 1 ? "night" : "nights"}: ${formatMoney(q.subtotal_minor, currency)}`;
-  return q.tax_minor > 0 ? `${base} + ${formatMoney(q.tax_minor, currency)} tax` : base;
+  return q.tax_minor > 0 ? `${base} + ${formatMoney(q.tax_minor, currency)} taxes and charges` : base;
 }
 
 /** Room types the hotel sells that the guests could stay in but that have no room free on those dates. */
