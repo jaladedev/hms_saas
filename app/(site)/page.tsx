@@ -217,7 +217,7 @@ export default async function GuestHome({ searchParams }: Props) {
             >
               Check availability
             </PendingButton>
-            <p className="col-span-2 text-center text-xs text-muted">Prices in {currency}. Taxes are shown before you pay.</p>
+            <p className="col-span-2 text-center text-xs text-muted">Prices in {currency}. Taxes and charges are shown before you pay.</p>
           </form>
         ) : null}
       </section>
@@ -355,7 +355,7 @@ export default async function GuestHome({ searchParams }: Props) {
                       </div>
                       <div className="ml-auto text-right">
                         <p className="text-xl font-medium">{formatMoney(t.total_minor, result.data.currency)}</p>
-                        <p className="text-xs text-muted">total, taxes included</p>
+                        <p className="text-xs text-muted">total, taxes and charges included</p>
                         <p className="mt-1 text-xs text-muted">{nightlyBreakdown(t, result.data.currency)}</p>
                         <a
                           href={`/reserve?${stayQuery(stay)}&type=${t.room_type_id}`}

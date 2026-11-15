@@ -200,9 +200,9 @@ describe("email templates", () => {
     const e = renderEmail({ kind: "folio_invoice", booking, link: LINK, payload });
     expect(e.subject).toBe("Invoice INV-HTL-2026-000012 for extras at " + booking.property_name);
     expect(e.text).toContain("INV-HTL-2026-000012");
-    expect(e.text).toMatch(/Water, 2 x \S*1,500\.00 = \S*3,225\.00 \(tax \S*225\.00 included\)/);
+    expect(e.text).toMatch(/Water, 2 x \S*1,500\.00 = \S*3,225\.00 \(tax and charges \S*225\.00 included\)/);
     expect(e.text).toMatch(/Dinner, 1 x \S*10,000\.00 = \S*10,000\.00\n/);
-    expect(e.text).toMatch(/Total: \S*13,225\.00, of which tax \S*225\.00\./);
+    expect(e.text).toMatch(/Total: \S*13,225\.00, of which tax and charges \S*225\.00\./);
     expect(e.text).toContain("Money you have paid for extras is not shown");
     expect(e.html).toContain("Your invoice for extras");
   });
@@ -227,9 +227,9 @@ describe("email templates", () => {
     };
     const e = renderEmail({ kind: "booking_invoice", booking, link: LINK, payload });
     expect(e.subject).toBe("Invoice INV-HTL-2026-000020 from " + booking.property_name);
-    expect(e.text).toMatch(/Deluxe <b>Room<\/b>, 1 x \S*47,000\.00 = \S*50,000\.00 \(tax \S*3,000\.00 included\)/);
+    expect(e.text).toMatch(/Deluxe <b>Room<\/b>, 1 x \S*47,000\.00 = \S*50,000\.00 \(tax and charges \S*3,000\.00 included\)/);
     expect(e.text).toMatch(/Discount: \S*5,000\.00\./);
-    expect(e.text).toMatch(/Total: \S*45,000\.00, of which tax \S*3,000\.00\./);
+    expect(e.text).toMatch(/Total: \S*45,000\.00, of which tax and charges \S*3,000\.00\./);
     expect(e.text).toMatch(/Still to pay at the time of this email: \S*25,000\.00\./);
     expect(e.html).not.toContain("<b>Room</b>");
     const settled = renderEmail({ kind: "booking_invoice", booking, link: LINK, payload: { ...payload, balance_minor: 0 } });

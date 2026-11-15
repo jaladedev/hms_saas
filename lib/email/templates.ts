@@ -222,10 +222,11 @@ export function renderEmail(input: {
       for (const l of invoiceLinesFrom(input.payload)) {
         const when = l.date ? `${formatDate(l.date)}: ` : "";
         lines.push(
-          `${when}${l.description}, ${l.quantity} x ${formatMoney(l.unit, currency)} = ${formatMoney(l.total, currency)}${l.tax > 0 ? ` (tax ${formatMoney(l.tax, currency)} included)` : ""}`,
+          `${when}${l.description}, ${l.quantity} x ${formatMoney(l.unit, currency)} = ${formatMoney(l.total, currency)}${l.tax > 0 ? ` (tax and charges ${formatMoney(l.tax, currency)} included)` : ""}`,
         );
       }
-      if (sum !== null) lines.push(`Total: ${formatMoney(sum, currency)}${tax > 0 ? `, of which tax ${formatMoney(tax, currency)}` : ""}.`);
+      if (sum !== null)
+        lines.push(`Total: ${formatMoney(sum, currency)}${tax > 0 ? `, of which tax and charges ${formatMoney(tax, currency)}` : ""}.`);
       lines.push("Money you have paid for extras is not shown on this invoice. If anything looks wrong, please speak to the hotel.");
       break;
     }
@@ -247,11 +248,12 @@ export function renderEmail(input: {
       for (const l of invoiceLinesFrom(input.payload)) {
         const when = l.date ? `${formatDate(l.date)}: ` : "";
         lines.push(
-          `${when}${l.description}, ${l.quantity} x ${formatMoney(l.unit, currency)} = ${formatMoney(l.total, currency)}${l.tax > 0 ? ` (tax ${formatMoney(l.tax, currency)} included)` : ""}`,
+          `${when}${l.description}, ${l.quantity} x ${formatMoney(l.unit, currency)} = ${formatMoney(l.total, currency)}${l.tax > 0 ? ` (tax and charges ${formatMoney(l.tax, currency)} included)` : ""}`,
         );
       }
       if (discount > 0) lines.push(`Discount: ${formatMoney(discount, currency)}.`);
-      if (sum !== null) lines.push(`Total: ${formatMoney(sum, currency)}${tax > 0 ? `, of which tax ${formatMoney(tax, currency)}` : ""}.`);
+      if (sum !== null)
+        lines.push(`Total: ${formatMoney(sum, currency)}${tax > 0 ? `, of which tax and charges ${formatMoney(tax, currency)}` : ""}.`);
       if (owing !== null)
         lines.push(
           owing > 0

@@ -88,7 +88,7 @@ export default async function Reserve({ searchParams }: Props) {
           <dt className="text-muted">Price per room</dt>
           <dd>
             {formatMoney(quote.total_minor, result.data.currency)} for {result.data.nights} {result.data.nights === 1 ? "night" : "nights"},
-            taxes included
+            taxes and charges included
           </dd>
         </dl>
       </section>

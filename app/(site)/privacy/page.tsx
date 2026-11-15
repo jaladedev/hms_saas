@@ -81,7 +81,7 @@ export default async function PrivacyPage() {
           <Link href="/policies" className="text-primary underline">
             policies
           </Link>{" "}
-          on check-in, payment and cancellation. The total shown before you pay includes taxes.
+          on check-in, payment and cancellation. The total shown before you pay includes taxes and charges.
         </p>
       ),
     },
