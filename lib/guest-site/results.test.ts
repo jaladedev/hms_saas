@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { amenityOptions, nightlyBreakdown, parseResultsView, soldOutTypes, viewQuotes } from "./results";
+import { amenityOptions, chargeParts, nightlyBreakdown, parseResultsView, soldOutTypes, viewQuotes } from "./results";
 
 const q = (name: string, total: number, occ: number, amenities: string[] = []) => ({
   name,
@@ -73,6 +73,22 @@ describe("nightlyBreakdown", () => {
       tax_minor: 675000,
     };
     expect(nightlyBreakdown(t, "NGN")).toBe("2 nights × ₦45,000.00 + ₦6,750.00 taxes and charges");
+  });
+  it("shows the tax and the service charge apart when the answer says which part is which", () => {
+    const t = {
+      nights: [
+        { date: "a", rate_minor: 4500000 },
+        { date: "b", rate_minor: 4500000 },
+      ],
+      subtotal_minor: 9000000,
+      tax_minor: 1575000,
+      service_minor: 900000,
+    };
+    expect(nightlyBreakdown(t, "NGN")).toBe("2 nights × ₦45,000.00 + ₦6,750.00 tax + ₦9,000.00 service charge");
+    expect(nightlyBreakdown({ ...t, tax_minor: 900000 }, "NGN")).toBe("2 nights × ₦45,000.00 + ₦9,000.00 service charge");
+    expect(nightlyBreakdown({ ...t, service_minor: 0 }, "NGN")).toBe("2 nights × ₦45,000.00 + ₦15,750.00 tax");
+    expect(chargeParts({ tax_minor: 100, service_minor: 500 })).toEqual({ tax: 0, service: 100, combined: false });
+    expect(chargeParts({ tax_minor: 100 })).toEqual({ tax: 100, service: 0, combined: true });
   });
   it("shows the subtotal when rates differ, and leaves out tax when there is none", () => {
     const t = {

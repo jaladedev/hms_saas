@@ -158,6 +158,21 @@ do $$ begin
   raise notice 'PASS service charge: calc_night_service is closed to logins';
 end $$;
 
+-- F. guest search shows the service charge apart from tax, and the price the guest pays is unchanged
+do $$ declare
+  typ uuid := '00000000-0000-0000-0000-0000000000a3'; r jsonb; q jsonb; v_sum bigint;
+begin
+  perform t_sys();
+  r := search_availability('book.hotel-a.test', current_date + 250, current_date + 252, 2, 0);
+  select e into q from jsonb_array_elements(r -> 'room_types') e where (e ->> 'room_type_id')::uuid = typ;
+  if q is null then raise exception 'FAIL room type missing from search %', r; end if;
+  select coalesce(sum(round((n ->> 'rate_minor')::numeric * 0.10)), 0) into v_sum from jsonb_array_elements(q -> 'nights') n;
+  if (q ->> 'service_minor')::bigint <> v_sum then raise exception 'FAIL search service % expected %', q ->> 'service_minor', v_sum; end if;
+  if (q ->> 'service_minor')::bigint > (q ->> 'tax_minor')::bigint then raise exception 'FAIL service above tax in search'; end if;
+  if (q ->> 'total_minor')::bigint <> (q ->> 'subtotal_minor')::bigint + (q ->> 'tax_minor')::bigint then raise exception 'FAIL search total changed'; end if;
+  raise notice 'PASS service charge: guest search carries service_minor inside tax_minor';
+end $$;
+
 -- clean up
 do $$ declare prop uuid := '00000000-0000-0000-0000-0000000000a2'; begin
   perform t_sys();

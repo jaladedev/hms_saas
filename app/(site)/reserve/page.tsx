@@ -3,6 +3,7 @@ import { formatDate, formatMoney, formatTime } from "@/lib/guest-site/format";
 import { messageForCode } from "@/lib/guest-site/errors";
 import { parseStayParams, stayQuery, uuidSchema } from "@/lib/guest-site/params";
 import { photoCountLabel } from "@/lib/guest-site/hotel";
+import { chargeParts } from "@/lib/guest-site/results";
 import { guestPolicy, requestHost, searchAvailability } from "@/lib/guest-site/server";
 import { guestSummary, readConfig } from "@/lib/staff/policies";
 import { photoUrl } from "@/lib/staff/room-photos";
@@ -25,6 +26,7 @@ export default async function Reserve({ searchParams }: Props) {
   if (!result.ok) redirect(`/?${stayQuery(stay)}`);
   const quote = result.data.room_types.find((t) => t.room_type_id === type);
   if (!quote) redirect(`/?${stayQuery(stay)}&error=unavailable`);
+  const charges = chargeParts(quote);
 
   const notice = typeof raw.error === "string" ? messageForCode(raw.error) : null;
   const maxQty = Math.min(quote.rooms_available, 5);
@@ -88,8 +90,17 @@ export default async function Reserve({ searchParams }: Props) {
           <dt className="text-muted">Price per room</dt>
           <dd>
             {formatMoney(quote.total_minor, result.data.currency)} for {result.data.nights} {result.data.nights === 1 ? "night" : "nights"},
-            taxes and charges included
+            {charges.combined ? " taxes and charges included" : " tax and service charge included"}
           </dd>
+          {charges.service > 0 ? (
+            <>
+              <dt className="text-muted">Of which</dt>
+              <dd>
+                {formatMoney(charges.service, result.data.currency)} service charge
+                {charges.tax > 0 ? `, ${formatMoney(charges.tax, result.data.currency)} tax` : ""}
+              </dd>
+            </>
+          ) : null}
         </dl>
       </section>
 

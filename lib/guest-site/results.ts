@@ -49,15 +49,31 @@ export function amenityOptions(quotes: Pick<RoomTypeQuote, "amenities">[]): stri
   return [...seen.values()].sort((a, b) => a.localeCompare(b));
 }
 
-/** "2 nights × ₦45,000 + ₦3,375 tax": what the total is made of. Rates that differ from night to night are shown as a subtotal. */
-export function nightlyBreakdown(q: Pick<RoomTypeQuote, "nights" | "subtotal_minor" | "tax_minor">, currency: string): string {
+/** The tax and the service charge a quote is made of; tax_minor holds both. An answer without service_minor is all "taxes and charges". */
+export function chargeParts(q: Pick<RoomTypeQuote, "tax_minor" | "service_minor">): { tax: number; service: number; combined: boolean } {
+  if (q.service_minor === undefined) return { tax: q.tax_minor, service: 0, combined: true };
+  const service = Math.min(Math.max(q.service_minor, 0), q.tax_minor);
+  return { tax: q.tax_minor - service, service, combined: false };
+}
+
+/** "2 nights × ₦45,000 + ₦3,375 tax + ₦4,500 service charge": what the total is made of. Rates that differ from night to night are shown as a subtotal. */
+export function nightlyBreakdown(
+  q: Pick<RoomTypeQuote, "nights" | "subtotal_minor" | "tax_minor"> & { service_minor?: number },
+  currency: string,
+): string {
   const n = q.nights.length;
   const rates = new Set(q.nights.map((x) => x.rate_minor));
   const base =
     n > 0 && rates.size === 1
       ? `${n} ${n === 1 ? "night" : "nights"} × ${formatMoney(q.nights[0]!.rate_minor, currency)}`
       : `${n} ${n === 1 ? "night" : "nights"}: ${formatMoney(q.subtotal_minor, currency)}`;
-  return q.tax_minor > 0 ? `${base} + ${formatMoney(q.tax_minor, currency)} taxes and charges` : base;
+  const { tax, service, combined } = chargeParts(q);
+  if (combined) return tax > 0 ? `${base} + ${formatMoney(tax, currency)} taxes and charges` : base;
+  return (
+    base +
+    (tax > 0 ? ` + ${formatMoney(tax, currency)} tax` : "") +
+    (service > 0 ? ` + ${formatMoney(service, currency)} service charge` : "")
+  );
 }
 
 /** Room types the hotel sells that the guests could stay in but that have no room free on those dates. */

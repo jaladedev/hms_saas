@@ -38,6 +38,7 @@ export type RoomTypeQuote = {
   nights: NightQuote[];
   subtotal_minor: number;
   tax_minor: number;
+  service_minor?: number; // the part of tax_minor that is a service charge; absent from answers given before migration 133
   total_minor: number;
 };
 export type Availability = {
