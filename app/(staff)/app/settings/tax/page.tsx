@@ -7,6 +7,7 @@ import {
   canApplyToExtras,
   describeRate,
   extrasTaxRules,
+  isServiceCharge,
   nextSequence,
   rateInputValue,
   RULE_NAME_MAX,
@@ -56,7 +57,8 @@ export default async function TaxRulesPage({ searchParams }: { searchParams: Pro
       <PageIntro>
         Every tax rule in force is added to the stay: percentages and fixed nightly amounts to each night, and a fixed amount "once per
         stay" once for each room, on its first night. Extras posted to a guest's folio, such as the minibar or laundry, are taxed only by
-        the percentage rules you switch on here. Nothing is switched on until you do it, so until then extras carry no tax.
+        the percentage rules you switch on here. Nothing is switched on until you do it, so until then extras carry no tax. A rule can also
+        be a service charge: it is added to nights in the same way, in the same order, but shown on its own line and not counted as tax.
       </PageIntro>
 
       <div className="mt-6">
@@ -101,6 +103,11 @@ export default async function TaxRulesPage({ searchParams }: { searchParams: Pro
                       <div className="min-w-0 max-w-prose">
                         <p className="font-medium">
                           {r.name} <span className="tabular-nums text-muted">{describeRate(r, (m) => formatMoney(m, "NGN"))}</span>
+                          {isServiceCharge(r) && (
+                            <span className="ml-2 rounded border border-line px-1.5 py-0.5 text-xs font-normal text-muted">
+                              Service charge
+                            </span>
+                          )}
                           <span
                             className={`ml-2 rounded border px-1.5 py-0.5 text-xs font-normal ${state === "in_force" ? "border-primary/40 text-primary-strong" : "border-line text-muted"}`}
                           >
@@ -263,6 +270,19 @@ export default async function TaxRulesPage({ searchParams }: { searchParams: Pro
                     <input id={`an-${p.id}`} name="name" required maxLength={RULE_NAME_MAX} placeholder="VAT" className={inputClass} />
                   </div>
                   <div>
+                    <label htmlFor={`ak-${p.id}`} className="block text-sm">
+                      What it is
+                    </label>
+                    <select id={`ak-${p.id}`} name="kind" defaultValue="tax" className={inputClass}>
+                      <option value="tax">A tax or levy</option>
+                      <option value="service_charge">A service charge</option>
+                    </select>
+                    <p className="mt-1 text-xs text-muted">
+                      A service charge is added to the price like a tax but shown on its own line, so it is not counted as tax collected. It
+                      applies to nights only (never extras, never once per stay). This cannot be changed later.
+                    </p>
+                  </div>
+                  <div>
                     <label htmlFor={`ab-${p.id}`} className="block text-sm">
                       Kind of tax
                     </label>
@@ -329,7 +349,7 @@ export default async function TaxRulesPage({ searchParams }: { searchParams: Pro
                   </p>
                   <div className="sm:col-span-2">
                     <PendingButton className={buttonPrimary} pendingLabel="Adding…">
-                      Add tax rule
+                      Add rule
                     </PendingButton>
                   </div>
                 </form>

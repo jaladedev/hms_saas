@@ -15,6 +15,8 @@ export type TaxRuleRow = {
   id: string;
   property_id: string;
   name: string;
+  /** "tax" or "service_charge" (migration 132). Chosen when the rule is added, never edited. */
+  kind: string;
   basis: string;
   /** Percent rules: a percentage (7.5 means 7.5%). Fixed rules (a night or a stay): an amount in kobo. */
   rate_value: number | string;
@@ -27,7 +29,7 @@ export type TaxRuleRow = {
 };
 
 export const TAX_RULE_COLUMNS =
-  "id, property_id, name, basis, rate_value, sequence, compounds, effective_from, effective_to, status, applies_to_charges";
+  "id, property_id, name, kind, basis, rate_value, sequence, compounds, effective_from, effective_to, status, applies_to_charges";
 
 /** "7.5%" or, for a fixed rule, "₦1,000.00 a night" (the caller formats the money so this file stays free of locale code). */
 export function describeRate(r: Pick<TaxRuleRow, "basis" | "rate_value">, formatMinor: (minor: number) => string): string {
@@ -54,8 +56,13 @@ export const STATE_LABEL: Record<RuleState, string> = {
   switched_off: "Switched off",
 };
 
-/** Only a percent rule can be marked for extras; the database refuses a fixed-per-night rule. */
-export const canApplyToExtras = (r: Pick<TaxRuleRow, "basis">): boolean => r.basis === "percent";
+export type TaxKind = "tax" | "service_charge";
+export const isTaxKind = (v: unknown): v is TaxKind => v === "tax" || v === "service_charge";
+export const isServiceCharge = (r: Pick<TaxRuleRow, "kind">): boolean => r.kind === "service_charge";
+export const KIND_LABEL: Record<TaxKind, string> = { tax: "Tax", service_charge: "Service charge" };
+
+/** Only a percent tax rule can be marked for extras; the database refuses a fixed rule, and a service charge never applies to extras. */
+export const canApplyToExtras = (r: Pick<TaxRuleRow, "basis" | "kind">): boolean => r.basis === "percent" && r.kind !== "service_charge";
 
 /** Rules in the order the database applies them: sequence, then id. Rules of one property stay together. */
 export function sortRules<T extends Pick<TaxRuleRow, "property_id" | "sequence" | "id">>(rules: T[]): T[] {
@@ -66,7 +73,9 @@ export type TaxBasis = "percent" | "fixed_per_night" | "fixed_per_stay";
 export const isTaxBasis = (v: unknown): v is TaxBasis => v === "percent" || v === "fixed_per_night" || v === "fixed_per_stay";
 
 /** One line saying what a rule does to nights and to extras, for the row on the screen. */
-export function appliesLine(r: Pick<TaxRuleRow, "basis" | "applies_to_charges">): string {
+export function appliesLine(r: Pick<TaxRuleRow, "basis" | "kind" | "applies_to_charges">): string {
+  if (r.kind === "service_charge")
+    return "Added to each night of a stay and shown as a service charge, separate from tax. Extras carry no service charge.";
   if (r.basis === "fixed_per_stay") return "Charged once for each room, on its first night. Cannot be applied to extras.";
   if (r.basis !== "percent") return "Added to each night of a stay. Cannot be applied to extras.";
   return r.applies_to_charges
@@ -78,7 +87,12 @@ export function appliesLine(r: Pick<TaxRuleRow, "basis" | "applies_to_charges">)
 export function extrasTaxRules(rules: TaxRuleRow[], propertyId: string, today: string): TaxRuleRow[] {
   return sortRules(
     rules.filter(
-      (r) => r.property_id === propertyId && r.applies_to_charges && r.basis === "percent" && ruleState(r, today) === "in_force",
+      (r) =>
+        r.property_id === propertyId &&
+        r.applies_to_charges &&
+        r.basis === "percent" &&
+        r.kind !== "service_charge" &&
+        ruleState(r, today) === "in_force",
     ),
   );
 }
@@ -167,7 +181,7 @@ export type TaxRuleFields = {
   effectiveTo: string | null;
   status: "active" | "inactive";
 };
-export type TaxRuleInput = TaxRuleFields & { propertyId: string; basis: TaxBasis };
+export type TaxRuleInput = TaxRuleFields & { propertyId: string; basis: TaxBasis; kind: TaxKind };
 export type TaxRuleEdit = TaxRuleFields & { ruleId: string; sequence: number };
 
 function parseFields(raw: Record<string, unknown>, basis: TaxBasis): { ok: true; value: TaxRuleFields } | { ok: false; code: ErrorCode } {
@@ -193,8 +207,11 @@ export function validateTaxRule(raw: Record<string, unknown>): { ok: true; value
   if (!GUID.test(propertyId)) return { ok: false, code: "bad_request" };
   const basis = isTaxBasis(raw.basis) ? raw.basis : null;
   if (!basis) return { ok: false, code: "tax_invalid" };
+  // A form from before service charges existed means a tax. A service charge works on nights only: never a once-per-stay amount.
+  const kind = raw.kind === undefined || raw.kind === "" ? "tax" : isTaxKind(raw.kind) ? raw.kind : null;
+  if (!kind || (kind === "service_charge" && basis === "fixed_per_stay")) return { ok: false, code: "tax_invalid" };
   const fields = parseFields({ ...raw, status: "active" }, basis);
-  return fields.ok ? { ok: true, value: { propertyId, basis, ...fields.value } } : fields;
+  return fields.ok ? { ok: true, value: { propertyId, basis, kind, ...fields.value } } : fields;
 }
 
 /** The rule's basis comes from the database row, never from the form. */

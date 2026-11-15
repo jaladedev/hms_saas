@@ -8,6 +8,7 @@ import {
   describeRate,
   doubleTaxes,
   extrasTaxRules,
+  isServiceCharge,
   nextSequence,
   parseRateValue,
   parseToggle,
@@ -27,6 +28,7 @@ const rule = (over: Partial<TaxRuleRow>): TaxRuleRow => ({
   id: A,
   property_id: P1,
   name: "VAT",
+  kind: "tax",
   basis: "percent",
   rate_value: 7.5,
   sequence: 1,
@@ -160,6 +162,7 @@ describe("validateTaxRule (add)", () => {
       value: {
         propertyId: P1,
         basis: "percent",
+        kind: "tax",
         name: "VAT",
         rateValue: 7.5,
         sequence: null,
@@ -185,6 +188,7 @@ describe("validateTaxRule (add)", () => {
       value: {
         propertyId: P1,
         basis: "fixed_per_night",
+        kind: "tax",
         name: "Tourism levy",
         rateValue: 100000,
         sequence: 3,
@@ -334,6 +338,7 @@ describe("the columns the screen reads", () => {
     const table = /create table tax_rules \(([\s\S]*?)\n\);/.exec(sql)?.[1] ?? "";
     const columns = new Set([...table.matchAll(/^\s{2}(\w+)\s/gm)].map((m) => m[1]));
     columns.add("applies_to_charges");
+    columns.add("kind"); // migration 132
     for (const c of TAX_RULE_COLUMNS.split(",").map((s) => s.trim())) expect(columns.has(c), c).toBe(true);
   });
 });
@@ -375,5 +380,50 @@ describe("fixed amount once per stay", () => {
   });
   it("is accepted when an existing rule is edited, taking its basis from the row", () => {
     expect(validateTaxRuleEdit({ ...form, ruleId: P1, rate: "6,000", sequence: "2" }, "fixed_per_stay").ok).toBe(true);
+  });
+});
+
+describe("service charge rules (migration 132)", () => {
+  const form = {
+    propertyId: P1,
+    name: "Service charge",
+    basis: "percent",
+    rate: "10",
+    sequence: "1",
+    effectiveFrom: "2026-11-01",
+    effectiveTo: "",
+    compounds: "",
+  };
+  it("a form without a kind is a tax, so older forms keep working", () => {
+    expect(validateTaxRule(form)).toMatchObject({ ok: true, value: { kind: "tax" } });
+    expect(validateTaxRule({ ...form, kind: "" })).toMatchObject({ ok: true, value: { kind: "tax" } });
+  });
+  it("accepts a service charge on a percentage or a fixed amount a night", () => {
+    expect(validateTaxRule({ ...form, kind: "service_charge" })).toMatchObject({
+      ok: true,
+      value: { kind: "service_charge", rateValue: 10 },
+    });
+    expect(validateTaxRule({ ...form, kind: "service_charge", basis: "fixed_per_night", rate: "500" })).toMatchObject({
+      ok: true,
+      value: { kind: "service_charge", basis: "fixed_per_night", rateValue: 50000 },
+    });
+  });
+  it("refuses a service charge once per stay and an unknown kind", () => {
+    expect(validateTaxRule({ ...form, kind: "service_charge", basis: "fixed_per_stay", rate: "500" })).toEqual({
+      ok: false,
+      code: "tax_invalid",
+    });
+    expect(validateTaxRule({ ...form, kind: "levy" })).toEqual({ ok: false, code: "tax_invalid" });
+  });
+  it("is never offered for extras, and says what it does", () => {
+    expect(canApplyToExtras(rule({}))).toBe(true);
+    expect(canApplyToExtras(rule({ kind: "service_charge" }))).toBe(false);
+    expect(isServiceCharge(rule({ kind: "service_charge" }))).toBe(true);
+    expect(isServiceCharge(rule({}))).toBe(false);
+    expect(appliesLine(rule({ kind: "service_charge" }))).toContain("service charge");
+  });
+  it("a service charge marked for extras by mistake still taxes no extras", () => {
+    const rules = [rule({ applies_to_charges: true }), rule({ id: "c", kind: "service_charge", applies_to_charges: true })];
+    expect(extrasTaxRules(rules, P1, "2026-11-15").map((r) => r.id)).toEqual([A]);
   });
 });

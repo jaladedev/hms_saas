@@ -102,7 +102,7 @@ type ResRoom = {
   checked_in_at: string | null;
   checked_out_at: string | null;
 };
-type Night = { reservation_room_id: string; night_date: string; rate_minor: number; tax_minor: number };
+type Night = { reservation_room_id: string; night_date: string; rate_minor: number; tax_minor: number; service_minor: number };
 type Claim = {
   reservation_room_id: string;
   room_id: string;
@@ -204,7 +204,7 @@ export default async function ReservationPage({
     roomIds.length
       ? supabase
           .from("reservation_nights")
-          .select("reservation_room_id, night_date, rate_minor, tax_minor")
+          .select("reservation_room_id, night_date, rate_minor, tax_minor, service_minor")
           .in("reservation_room_id", roomIds)
           .order("night_date")
       : { data: [] },
@@ -225,6 +225,7 @@ export default async function ReservationPage({
       : { data: [] },
   ]);
   const nights = (nightsQ.data ?? []) as Night[];
+  const serviceMinor = nights.reduce((s, n) => s + n.service_minor, 0); // the part of the tax that is service charge (migration 132)
   const claims = (claimQ.data ?? []) as Claim[];
   const physicalQ = claims.length
     ? await supabase
@@ -744,7 +745,8 @@ export default async function ReservationPage({
         <dl className="mt-3 max-w-md text-sm">
           {[
             ["Room charges", money(res.subtotal_minor)],
-            ["Tax", money(res.tax_minor)],
+            ...(serviceMinor > 0 ? [["Service charge", money(serviceMinor)]] : []),
+            ["Tax", money(res.tax_minor - serviceMinor)],
             ...(res.discount_minor > 0
               ? [
                   [

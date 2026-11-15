@@ -7,7 +7,9 @@ export type ReportDay = {
   rooms_available: number;
   rooms_sold: number;
   room_revenue_minor: number;
+  /** Tax only; the service charge is its own column (migration 132), and the two add up to the old room tax. */
   room_tax_minor: number;
+  room_service_minor: number;
   extras_minor: number;
   extras_tax_minor: number;
   cash_in_minor: number;
@@ -70,6 +72,7 @@ export type Totals = {
   occupancyPercent: number | null;
   roomRevenue: number;
   roomTax: number;
+  roomService: number;
   extras: number;
   extrasTax: number;
   /** Before tax: room revenue plus extras. */
@@ -97,6 +100,7 @@ export function totals(rows: ReportDay[]): Totals {
     occupancyPercent: avail > 0 ? Math.round((roomNights / avail) * 1000) / 10 : null,
     roomRevenue,
     roomTax: sum((r) => r.room_tax_minor),
+    roomService: sum((r) => r.room_service_minor),
     extras,
     extrasTax: sum((r) => r.extras_tax_minor),
     earned: roomRevenue + extras,
@@ -122,6 +126,7 @@ export function toCsv(rows: ReportDay[]): string {
     "Occupancy %",
     "Room revenue",
     "Room tax",
+    "Room service charge",
     "Extras",
     "Extras tax",
     "Cash received",
@@ -135,6 +140,7 @@ export function toCsv(rows: ReportDay[]): string {
       dayOccupancy(r) ?? "",
       naira(r.room_revenue_minor),
       naira(r.room_tax_minor),
+      naira(r.room_service_minor),
       naira(r.extras_minor),
       naira(r.extras_tax_minor),
       naira(r.cash_in_minor),

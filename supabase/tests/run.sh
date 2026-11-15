@@ -927,4 +927,8 @@ PC="$(psql -f "$HERE/131_promo_codes.sql" 2>&1)" || { echo "$PC"; echo "PROMO CO
 echo "$PC" | grep -E 'PASS' || true
 if echo "$PC" | grep -qE 'FAIL|ERROR'; then echo "$PC"; echo "PROMO CODE TESTS FAILED"; exit 1; fi
 
+SC="$(psql -f "$HERE/132_service_charge.sql" 2>&1)" || { echo "$SC"; echo "SERVICE CHARGE TESTS FAILED"; exit 1; }
+echo "$SC" | grep -E 'PASS' || true
+if echo "$SC" | grep -qE 'FAIL|ERROR'; then echo "$SC"; echo "SERVICE CHARGE TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

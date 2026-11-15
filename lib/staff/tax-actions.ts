@@ -74,6 +74,7 @@ export async function addTaxRule(formData: FormData) {
       tenant_id: prop.tenant_id,
       property_id: value.propertyId,
       name: value.name,
+      kind: value.kind,
       basis: value.basis,
       rate_value: value.rateValue,
       sequence: value.sequence ?? nextSequence(others),

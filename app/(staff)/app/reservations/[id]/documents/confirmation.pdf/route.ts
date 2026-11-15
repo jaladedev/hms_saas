@@ -44,9 +44,17 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const typeQ = typeIds.length ? await supabase.from("room_types").select("id, name").in("id", typeIds) : { data: [] };
   const typeName = new Map((typeQ.data ?? []).map((t) => [t.id, t.name]));
 
+  const roomIdRows = await supabase.from("reservation_rooms").select("id").eq("reservation_id", id);
+  const roomIds = (roomIdRows.data ?? []).map((r) => r.id);
+  const nightsQ = roomIds.length
+    ? await supabase.from("reservation_nights").select("service_minor").in("reservation_room_id", roomIds)
+    : { data: [] as { service_minor: number }[] };
+  const serviceMinor = (nightsQ.data ?? []).reduce((s, n) => s + n.service_minor, 0);
+
   const paid = receiptTotals(payQ.data ?? [], refQ.data ?? []).kept;
   const lines: { label: string; minor: number }[] = [{ label: "Room charges", minor: res.subtotal_minor }];
-  if (res.tax_minor > 0) lines.push({ label: "Tax", minor: res.tax_minor });
+  if (serviceMinor > 0) lines.push({ label: "Service charge", minor: serviceMinor });
+  if (res.tax_minor - serviceMinor > 0) lines.push({ label: "Tax", minor: res.tax_minor - serviceMinor });
   if (res.discount_minor > 0) lines.push({ label: "Discount", minor: -res.discount_minor });
 
   const bytes = await buildConfirmationPdf({

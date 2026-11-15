@@ -1018,6 +1018,7 @@ export type Database = {
           reservation_id: string
           subtotal_minor: number
           tax_minor: number
+          service_minor: number
           tenant_id: string
           total_minor: number
           updated_at: string
@@ -1040,6 +1041,7 @@ export type Database = {
           reservation_id: string
           subtotal_minor: number
           tax_minor: number
+          service_minor?: number
           tenant_id: string
           total_minor: number
           updated_at?: string
@@ -1061,6 +1063,7 @@ export type Database = {
           reservation_id?: string
           subtotal_minor?: number
           tax_minor?: number
+          service_minor?: number
           tenant_id?: string
           total_minor?: number
           updated_at?: string
@@ -1883,6 +1886,7 @@ export type Database = {
           id: string
           night_date: string
           rate_minor: number
+          service_minor: number
           rate_source: string
           reservation_room_id: string
           tax_minor: number
@@ -1893,6 +1897,7 @@ export type Database = {
           id?: string
           night_date: string
           rate_minor: number
+          service_minor?: number
           rate_source: string
           reservation_room_id: string
           tax_minor?: number
@@ -1902,6 +1907,7 @@ export type Database = {
           id?: string
           night_date?: string
           rate_minor?: number
+          service_minor?: number
           rate_source?: string
           reservation_room_id?: string
           tax_minor?: number
@@ -2428,6 +2434,7 @@ export type Database = {
           effective_to: string | null
           id: string
           name: string
+          kind: string
           property_id: string
           rate_value: number
           sequence: number
@@ -2445,6 +2452,7 @@ export type Database = {
           effective_to?: string | null
           id?: string
           name: string
+          kind?: string
           property_id: string
           rate_value: number
           sequence?: number
@@ -2461,6 +2469,7 @@ export type Database = {
           effective_to?: string | null
           id?: string
           name?: string
+          kind?: string
           property_id?: string
           rate_value?: number
           sequence?: number

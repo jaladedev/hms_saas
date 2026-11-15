@@ -54,6 +54,8 @@ type Inv = {
   invoice_status: string;
   subtotal_minor: number;
   tax_minor: number;
+  /** The part of tax_minor that is service charge (migration 132). */
+  service_minor: number;
   discount_minor: number;
   total_minor: number;
   issued_at: string;
@@ -118,7 +120,7 @@ export default async function DocumentsPage({
     supabase
       .from("invoices")
       .select(
-        "id, invoice_number, invoice_status, subtotal_minor, tax_minor, discount_minor, total_minor, issued_at, void_reason, voided_at",
+        "id, invoice_number, invoice_status, subtotal_minor, tax_minor, service_minor, discount_minor, total_minor, issued_at, void_reason, voided_at",
       )
       .eq("reservation_id", id)
       .order("created_at"),
@@ -252,7 +254,7 @@ export default async function DocumentsPage({
       roomIds.length
         ? supabase
             .from("reservation_nights")
-            .select("reservation_room_id, night_date, rate_minor, tax_minor")
+            .select("reservation_room_id, night_date, rate_minor, tax_minor, service_minor")
             .in("reservation_room_id", roomIds)
             .order("night_date")
         : { data: [] },
@@ -263,7 +265,14 @@ export default async function DocumentsPage({
             .in("id", [...new Set(resRooms.map((r) => r.room_type_id))])
         : { data: [] },
     ]);
-    const nightRows = (nightsQ.data ?? []) as { reservation_room_id: string; night_date: string; rate_minor: number; tax_minor: number }[];
+    const nightRows = (nightsQ.data ?? []) as {
+      reservation_room_id: string;
+      night_date: string;
+      rate_minor: number;
+      tax_minor: number;
+      service_minor: number;
+    }[];
+    const serviceMinor = nightRows.reduce((s, n) => s + n.service_minor, 0);
     const typeNames = new Map(((typeQ.data ?? []) as { id: string; name: string }[]).map((t) => [t.id, t.name]));
     return (
       <main className="max-w-3xl">
@@ -292,7 +301,7 @@ export default async function DocumentsPage({
                       Rate
                     </th>
                     <th scope="col" className={`${th} text-right`}>
-                      Tax
+                      {serviceMinor > 0 ? "Tax and service" : "Tax"}
                     </th>
                   </tr>
                 </thead>
@@ -322,9 +331,15 @@ export default async function DocumentsPage({
               <dd>-{money(res.discount_minor)}</dd>
             </div>
           )}
+          {serviceMinor > 0 && (
+            <div className="flex justify-between gap-6 py-1.5">
+              <dt className="text-muted">Service charge</dt>
+              <dd>{money(serviceMinor)}</dd>
+            </div>
+          )}
           <div className="flex justify-between gap-6 py-1.5">
             <dt className="text-muted">Tax</dt>
-            <dd>{money(res.tax_minor)}</dd>
+            <dd>{money(res.tax_minor - serviceMinor)}</dd>
           </div>
           <div className="flex justify-between gap-6 border-t-2 border-ink py-2 text-base font-semibold">
             <dt>Total</dt>
@@ -436,9 +451,15 @@ export default async function DocumentsPage({
               <dd>-{money(invoice.discount_minor)}</dd>
             </div>
           )}
+          {invoice.service_minor > 0 && (
+            <div className="flex justify-between gap-6 py-1.5">
+              <dt className="text-muted">Service charge</dt>
+              <dd>{money(invoice.service_minor)}</dd>
+            </div>
+          )}
           <div className="flex justify-between gap-6 py-1.5">
             <dt className="text-muted">Tax</dt>
-            <dd>{money(invoice.tax_minor)}</dd>
+            <dd>{money(invoice.tax_minor - invoice.service_minor)}</dd>
           </div>
           <div className="flex justify-between gap-6 border-t-2 border-ink py-2 text-base font-semibold">
             <dt>Total</dt>

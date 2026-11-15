@@ -7,6 +7,7 @@ const row = (o: Partial<ReportDay>): ReportDay => ({
   rooms_sold: 5,
   room_revenue_minor: 5_000_000,
   room_tax_minor: 375_000,
+  room_service_minor: 100_000,
   extras_minor: 200_000,
   extras_tax_minor: 15_000,
   cash_in_minor: 3_000_000,
@@ -44,6 +45,7 @@ describe("totals", () => {
         rooms_sold: 0,
         room_revenue_minor: 0,
         room_tax_minor: 0,
+        room_service_minor: 0,
         extras_minor: 0,
         extras_tax_minor: 0,
         cash_in_minor: 0,
@@ -70,9 +72,9 @@ describe("toCsv", () => {
   it("writes a header, one line a day and naira with two decimals", () => {
     const csv = toCsv([row({})]);
     expect(csv.split("\n")[0]).toBe(
-      "Date,Rooms available,Rooms sold,Occupancy %,Room revenue,Room tax,Extras,Extras tax,Cash received,Refunds paid",
+      "Date,Rooms available,Rooms sold,Occupancy %,Room revenue,Room tax,Room service charge,Extras,Extras tax,Cash received,Refunds paid",
     );
-    expect(csv.split("\n")[1]).toBe("2026-11-01,10,5,50,50000.00,3750.00,2000.00,150.00,30000.00,5000.00");
+    expect(csv.split("\n")[1]).toBe("2026-11-01,10,5,50,50000.00,3750.00,1000.00,2000.00,150.00,30000.00,5000.00");
     expect(csv.endsWith("\n")).toBe(true);
   });
 });
