@@ -9,6 +9,7 @@ import {
   nightPriceLabel,
   offerUntilLabel,
   onlyChosenType,
+  stayLimitProblem,
   stayRule,
 } from "./home";
 
@@ -114,5 +115,28 @@ describe("stayRule", () => {
   });
   it("ignores values the database would ignore", () => {
     expect(stayRule({ min_nights: 0, max_nights: 99 })).toBeNull();
+  });
+});
+
+describe("stayLimitProblem", () => {
+  const rule = { min_nights: 2, max_nights: 5 };
+  it("is null inside the limits, at both edges, and when the hotel has none", () => {
+    expect(stayLimitProblem(rule, 2)).toBeNull();
+    expect(stayLimitProblem(rule, 5)).toBeNull();
+    expect(stayLimitProblem({}, 1)).toBeNull();
+    expect(stayLimitProblem({}, 30)).toBeNull();
+    expect(stayLimitProblem(null, 3)).toBeNull();
+  });
+  it("says the rule and the searched length outside them", () => {
+    expect(stayLimitProblem(rule, 1)).toBe(
+      "Stays of 2 to 5 nights. Your search is for 1 night, so no rooms are shown. Change your dates to see what is available.",
+    );
+    expect(stayLimitProblem(rule, 6)).toContain("Your search is for 6 nights");
+    expect(stayLimitProblem({ min_nights: 3, max_nights: 30 }, 2)).toContain("Minimum stay: 3 nights");
+    expect(stayLimitProblem({ min_nights: 1, max_nights: 7 }, 8)).toContain("Maximum stay: 7 nights");
+  });
+  it("ignores a length that is not a whole number of nights", () => {
+    expect(stayLimitProblem(rule, 0)).toBeNull();
+    expect(stayLimitProblem(rule, 2.5)).toBeNull();
   });
 });

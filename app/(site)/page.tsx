@@ -14,6 +14,7 @@ import {
   amenityHighlights,
   capacityLabel,
   freeCancellationBadge,
+  stayLimitProblem,
   stayRule,
   fromPriceLabel,
   offerUntilLabel,
@@ -71,6 +72,7 @@ export default async function GuestHome({ searchParams }: Props) {
   const highlights = amenityHighlights(types, 6);
   const cancelBadge = policyResult.ok ? freeCancellationBadge(policyResult.data) : null;
   const stayLimit = policyResult.ok ? stayRule(policyResult.data) : null;
+  const limitProblem = stay && result?.ok && policyResult.ok ? stayLimitProblem(policyResult.data, result.data.nights) : null;
   const offers = offersResult.ok ? offersResult.data.offers : [];
   const places = placesResult.ok ? placesResult.data.places : [];
   const reviews = reviewsResult.ok ? reviewsResult.data : null;
@@ -248,7 +250,13 @@ export default async function GuestHome({ searchParams }: Props) {
           </p>
         ) : null}
 
-        {stay && result?.ok ? (
+        {limitProblem ? (
+          <p role="alert" className="mx-auto mt-6 max-w-3xl text-critical">
+            {limitProblem}
+          </p>
+        ) : null}
+
+        {stay && result?.ok && !limitProblem ? (
           <section className="mx-auto max-w-3xl" aria-live="polite">
             <h2 className="text-lg font-medium">
               {result.data.property_name}: {result.data.nights} {result.data.nights === 1 ? "night" : "nights"}

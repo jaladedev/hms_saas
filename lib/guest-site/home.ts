@@ -65,6 +65,20 @@ export function stayRule(policy: unknown): string | null {
   return null;
 }
 
+/**
+ * What to tell a visitor whose searched stay is outside the hotel's night limits, or null when it is inside them (or the hotel has none).
+ * The database refuses such a booking at the reserve step; this says so up front, so rooms are not shown that cannot be booked.
+ */
+export function stayLimitProblem(policy: unknown, nights: number): string | null {
+  const rule = stayRule(policy);
+  if (!rule || !Number.isInteger(nights) || nights < 1) return null;
+  const o = policy as { min_nights?: unknown; max_nights?: unknown };
+  const { min_nights: lo, max_nights: hi } = readConfig({ min_nights: o.min_nights, max_nights: o.max_nights });
+  if (nights >= lo && nights <= hi) return null;
+  const word = nights === 1 ? "night" : "nights";
+  return `${rule}. Your search is for ${nights} ${word}, so no rooms are shown. Change your dates to see what is available.`;
+}
+
 /** Keeps only the room type the visitor chose in the search form, or all of them when none was chosen or the id is unknown. */
 export function onlyChosenType<T extends { room_type_id: string }>(types: T[], chosen: string | undefined): T[] {
   if (!chosen) return types;
