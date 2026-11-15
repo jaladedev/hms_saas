@@ -7,6 +7,7 @@ export type RateRule = { limit: number; windowSeconds: number };
 export const RATE_RULES = {
   search: { limit: 120, windowSeconds: 600 },
   hold: { limit: 10, windowSeconds: 3600 },
+  promo: { limit: 10, windowSeconds: 3600 },
   holdEmail: { limit: 6, windowSeconds: 3600 },
   pay: { limit: 10, windowSeconds: 3600 },
   payReservation: { limit: 6, windowSeconds: 3600 },

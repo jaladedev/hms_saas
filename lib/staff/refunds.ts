@@ -215,6 +215,12 @@ export type ErrorCode =
   | "theme_font"
   | "theme_radius"
   | "offer_invalid"
+  | "promo_invalid"
+  | "promo_dates"
+  | "promo_duplicate"
+  | "promo_limit"
+  | "promo_used"
+  | "promo_flag"
   | "review_invalid"
   | "offer_dates"
   | "offer_limit"
@@ -444,6 +450,8 @@ export const OK_MESSAGES = {
   hotel_logo_removed: "Logo removed.",
   review_approved: "Review approved. It now shows on your website.",
   review_rejected: "Review rejected. It is not shown on your website.",
+  promo_saved: "Promo code saved. Guests can enter it on the booking form while it is switched on and inside its dates.",
+  promo_deleted: "Promo code deleted.",
   offer_saved: "Offer saved. Guests see it on the homepage while it is switched on and inside its dates.",
   offer_deleted: "Offer deleted.",
   place_saved: "Place saved. Guests see it on the homepage while it is switched on.",
@@ -619,6 +627,18 @@ export function errorMessage(code: string, refundable: number | null, formatMino
       return "Enter the colour as six hex digits, such as #0f766e, or leave it blank to use the look's own colour.";
     case "review_invalid":
       return "That review could not be updated. Reload the page and try again.";
+    case "promo_invalid":
+      return "Check the code. It is 3 to 24 letters, digits, - or _; a percentage is 1 to 90; an amount is more than 0; minimum nights is 1 to 30; uses is a whole number or empty.";
+    case "promo_dates":
+      return "Check the dates. Leave them empty for no limit, or enter real dates with the end on or after the start.";
+    case "promo_duplicate":
+      return "This hotel already has a code with that name. Choose another, or edit the existing one.";
+    case "promo_limit":
+      return "A hotel can have up to 50 promo codes. Delete one you no longer need first.";
+    case "promo_used":
+      return "A code that bookings have used cannot be deleted. Switch it off instead.";
+    case "promo_flag":
+      return "Discounts are switched off for your hotel group, so promo codes cannot be saved. Contact the platform.";
     case "offer_invalid":
       return "Check the offer. It needs a title (up to 80 characters); the text can be up to 300 and the badge up to 24.";
     case "offer_dates":

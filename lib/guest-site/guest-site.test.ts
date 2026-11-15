@@ -84,6 +84,8 @@ describe("guest address and special requests", () => {
       special_requests: "High floor",
     });
     expect(guestSchema.safeParse({ ...base, address: "", special_requests: "" }).success).toBe(true);
+    expect(guestSchema.parse({ ...base, promo_code: " spring10 " }).promo_code).toBe("spring10");
+    expect(guestSchema.safeParse({ ...base, promo_code: "x".repeat(25) }).success).toBe(false);
     expect(guestSchema.safeParse(base).success).toBe(true);
     expect(guestSchema.safeParse({ ...base, special_requests: "x".repeat(500) }).success).toBe(true);
     expect(guestSchema.safeParse({ ...base, special_requests: "x".repeat(501) }).success).toBe(false);

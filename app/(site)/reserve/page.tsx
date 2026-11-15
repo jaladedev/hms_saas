@@ -172,6 +172,20 @@ export default async function Reserve({ searchParams }: Props) {
           />
           <span className="mt-1 block text-xs text-muted">The hotel sees this with your booking. It is a request, not a promise.</span>
         </label>
+        <label className="block text-sm">
+          Promo code (optional)
+          <input
+            name="promo_code"
+            autoComplete="off"
+            maxLength={24}
+            autoCapitalize="characters"
+            spellCheck={false}
+            className="mt-1 w-full rounded border border-line p-2 uppercase"
+          />
+          <span className="mt-1 block text-xs text-muted">
+            Taken off the price on the next page. If the code is not valid you will be told before anything is held.
+          </span>
+        </label>
         <p className="text-sm text-muted">
           We hold your room for a short time while you pay. Nothing is charged until you choose to pay on the next page.
         </p>

@@ -27,7 +27,11 @@ export async function reserveAction(formData: FormData): Promise<void> {
   const guest = guestSchema.safeParse(fields);
   if (!input.success || !guest.success) redirect(`${base}&error=bad_request`);
 
-  const limit = await checkGuestLimits({ ip: ["hold"], keyed: [{ rule: "holdEmail", value: guest.data.email }] });
+  const promoCode = guest.data.promo_code || undefined;
+  const limit = await checkGuestLimits({
+    ip: promoCode ? ["hold", "promo"] : ["hold"],
+    keyed: [{ rule: "holdEmail", value: guest.data.email }],
+  });
   if (!limit.allowed) redirect(`${base}&error=rate_limited`);
 
   const result = await createHold({
@@ -43,6 +47,7 @@ export async function reserveAction(formData: FormData): Promise<void> {
       ...(guest.data.special_requests ? { special_requests: guest.data.special_requests } : {}),
     },
     idempotencyKey: input.data.key,
+    ...(promoCode ? { promoCode } : {}),
   });
   if (!result.ok) redirect(`${base}&error=${result.error.code}`);
 

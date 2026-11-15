@@ -2919,6 +2919,7 @@ export type Database = {
           p_guest: Json
           p_host: string
           p_idempotency_key: string
+          p_promo_code?: string
           p_rooms: Json
         }
         Returns: Json
@@ -3085,6 +3086,23 @@ export type Database = {
       }
       waitlist_list: { Args: { p_property: string }; Returns: Json }
       waitlist_set_status: { Args: { p_id: string; p_status: string }; Returns: Json }
+      save_promo_code: {
+        Args: {
+          p_active: boolean
+          p_code: string
+          p_kind: string
+          p_max_uses: number
+          p_min_nights: number
+          p_promo: string
+          p_property: string
+          p_valid_from: string
+          p_valid_to: string
+          p_value: number
+        }
+        Returns: Json
+      }
+      delete_promo_code: { Args: { p_promo: string }; Returns: undefined }
+      promo_code_list: { Args: { p_property: string }; Returns: Json }
       queue_waitlist_notices: { Args: { p_limit?: number }; Returns: number }
       claim_waitlist_notices: { Args: { p_limit?: number }; Returns: Json }
       mark_waitlist_notice_result: { Args: { p_error?: string; p_id: string; p_ok: boolean }; Returns: undefined }

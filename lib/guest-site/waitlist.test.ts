@@ -39,6 +39,13 @@ describe("parseWaitlistForm", () => {
   });
 });
 
+describe("promo messages", () => {
+  it("maps a refused code to one message that does not say why", () => {
+    expect(friendlyError("POLICY_VIOLATION: promo").code).toBe("promo");
+    expect(messageForCode("promo")).toMatch(/promo code/i);
+  });
+});
+
 describe("waitlist messages", () => {
   it("maps database refusals to guest wording", () => {
     expect(friendlyError("POLICY_VIOLATION: waitlist rooms free").code).toBe("waitlist_free");

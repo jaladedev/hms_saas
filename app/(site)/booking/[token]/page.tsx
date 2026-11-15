@@ -127,6 +127,12 @@ export default async function BookingPage({ params, searchParams }: Props) {
               </dd>
             </>
           ) : null}
+          {b.discount_minor ? (
+            <>
+              <dt className="text-muted">{b.discount_reason ?? "Discount"}</dt>
+              <dd>&minus;{formatMoney(b.discount_minor, b.currency)}</dd>
+            </>
+          ) : null}
           <dt className="text-muted">Total</dt>
           <dd>{formatMoney(b.total_minor, b.currency)}</dd>
           <dt className="text-muted">Paid</dt>

@@ -32,6 +32,7 @@ export const guestSchema = z.object({
   phone: z.string().trim().max(32).optional().or(z.literal("")),
   address: z.string().trim().max(200).optional().or(z.literal("")),
   special_requests: z.string().trim().max(500).optional().or(z.literal("")),
+  promo_code: z.string().trim().max(24).optional().or(z.literal("")),
 });
 
 // guid(), not uuid(): accept any 8-4-4-4-12 hex id, exactly as Postgres does.

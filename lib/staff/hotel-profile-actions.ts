@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { back, ok, staffClient } from "./action-helpers";
 import { parseDecision } from "./guest-reviews";
+import { parsePromoForm } from "./promo-codes";
 import { parseOfferForm } from "./hotel-offers";
 import { parsePlaceForm } from "./hotel-places";
 import { parseReminderForm } from "./arrival-reminders";
@@ -274,6 +275,53 @@ export async function deleteHotelOffer(formData: FormData) {
   revalidatePath(OFFERS_PAGE);
   revalidatePath("/");
   return ok(OFFERS_PAGE, "offer_deleted");
+}
+
+const PROMO_PAGE = "/app/settings/promo-codes";
+
+function promoError(
+  message: string,
+): "setup_forbidden" | "promo_duplicate" | "promo_limit" | "promo_used" | "promo_flag" | "promo_invalid" | "promo_dates" {
+  if (/NOT_FOUND/.test(message)) return "setup_forbidden";
+  if (/POLICY_VIOLATION: duplicate/.test(message)) return "promo_duplicate";
+  if (/POLICY_VIOLATION: limit/.test(message)) return "promo_limit";
+  if (/INVALID_STATE: used/.test(message)) return "promo_used";
+  if (/POLICY_VIOLATION: discounts off/.test(message)) return "promo_flag";
+  if (/POLICY_VIOLATION: dates/.test(message)) return "promo_dates";
+  return "promo_invalid";
+}
+
+/** Creates or edits a promo code (migration 131). The database requires property.configure at that hotel and the discounts flag. */
+export async function savePromoCode(formData: FormData) {
+  const v = parsePromoForm(Object.fromEntries(formData));
+  if (!v.ok) return back(PROMO_PAGE, { err: v.code });
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("save_promo_code", {
+    p_property: v.value.propertyId,
+    p_promo: v.value.promoId as string,
+    p_code: v.value.code,
+    p_kind: v.value.kind,
+    p_value: v.value.value,
+    p_valid_from: (v.value.validFrom || null) as string,
+    p_valid_to: (v.value.validTo || null) as string,
+    p_min_nights: v.value.minNights,
+    p_max_uses: v.value.maxUses as number,
+    p_active: v.value.active,
+  });
+  if (error) return back(PROMO_PAGE, { err: promoError(error.message) });
+  revalidatePath(PROMO_PAGE);
+  return ok(PROMO_PAGE, "promo_saved");
+}
+
+/** Deletes a promo code no booking has used. */
+export async function deletePromoCode(formData: FormData) {
+  const id = String(formData.get("promoId") ?? "");
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return back(PROMO_PAGE, { err: "promo_invalid" });
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("delete_promo_code", { p_promo: id });
+  if (error) return back(PROMO_PAGE, { err: promoError(error.message) });
+  revalidatePath(PROMO_PAGE);
+  return ok(PROMO_PAGE, "promo_deleted");
 }
 
 const PLACES_PAGE = "/app/settings/places";

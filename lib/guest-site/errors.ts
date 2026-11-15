@@ -104,6 +104,13 @@ const RULES: Array<[RegExp, GuestError]> = [
   [/POLICY_VIOLATION: rating/, { code: "review_rating", message: "Please choose a rating from 1 to 5 stars." }],
   [/POLICY_VIOLATION: comment/, { code: "review_comment", message: "Please keep your comment to 1000 characters or fewer." }],
   [
+    /POLICY_VIOLATION: promo/,
+    {
+      code: "promo",
+      message: "That promo code is not valid for these dates. Check it and try again, or leave it empty to book at the normal price.",
+    },
+  ],
+  [
     /POLICY_VIOLATION: waitlist rooms free/,
     { code: "waitlist_free", message: "Good news: a room is free for those dates now. Please search again and book it." },
   ],

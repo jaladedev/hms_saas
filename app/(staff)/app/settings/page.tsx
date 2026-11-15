@@ -17,6 +17,11 @@ const SECTIONS = [
     text: "Short promotions shown on your website's homepage, such as a weekend package. A message only; it does not change prices.",
   },
   {
+    href: "/app/settings/promo-codes",
+    title: "Promo codes",
+    text: "Codes guests type on the booking form for a percentage or fixed amount off. Needs discounts to be switched on for your hotel group.",
+  },
+  {
     href: "/app/settings/reviews",
     title: "Guest reviews",
     text: "Reviews guests wrote after their stay. Approve the ones you want on your website.",

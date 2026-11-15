@@ -65,6 +65,8 @@ export type BookingStatus = {
   check_out_time: string;
   currency: string;
   total_minor: number;
+  discount_minor?: number; // absent before migration 131
+  discount_reason?: string | null;
   paid_minor: number;
   outstanding_minor: number;
   hold_expires_at: string | null;
@@ -76,6 +78,8 @@ export type HoldResult = {
   hold_expires_at: string;
   total_minor: number;
   currency: string;
+  discount_minor?: number; // absent from answers given before migration 131
+  promo_code?: string | null;
 };
 
 /** A database function that exists, so a misspelt name fails the typecheck. */
@@ -202,6 +206,7 @@ export function createHold(args: {
   quantity: number;
   guest: { full_name: string; email: string; phone?: string; address?: string; special_requests?: string };
   idempotencyKey: string;
+  promoCode?: string;
 }) {
   const rooms = Array.from({ length: args.quantity }, () => ({
     room_type_id: args.roomTypeId,
@@ -215,6 +220,7 @@ export function createHold(args: {
     p_rooms: rooms,
     p_guest: args.guest,
     p_idempotency_key: args.idempotencyKey,
+    ...(args.promoCode ? { p_promo_code: args.promoCode } : {}),
   });
 }
 

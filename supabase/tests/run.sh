@@ -923,4 +923,8 @@ WE="$(psql -f "$HERE/130_waitlist_email.sql" 2>&1)" || { echo "$WE"; echo "WAITL
 echo "$WE" | grep -E 'PASS' || true
 if echo "$WE" | grep -qE 'FAIL|ERROR'; then echo "$WE"; echo "WAITLIST EMAIL TESTS FAILED"; exit 1; fi
 
+PC="$(psql -f "$HERE/131_promo_codes.sql" 2>&1)" || { echo "$PC"; echo "PROMO CODE TESTS FAILED"; exit 1; }
+echo "$PC" | grep -E 'PASS' || true
+if echo "$PC" | grep -qE 'FAIL|ERROR'; then echo "$PC"; echo "PROMO CODE TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"
