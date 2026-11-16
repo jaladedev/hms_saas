@@ -22,6 +22,7 @@ import {
 import { experienceUnit, requestStatusLabel } from "@/lib/guest-site/experiences";
 import { experienceAction, payAction } from "./actions";
 import { showsAmountDue } from "@/lib/guest-site/booking-summary";
+import { bookingTimeline } from "@/lib/guest-site/timeline";
 import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
@@ -100,6 +101,24 @@ export default async function BookingPage({ params, searchParams }: Props) {
           Your booking is confirmed. Check-in is from {formatTime(b.check_in_time)} on {formatDate(b.arrival_date)}.
         </p>
       ) : null}
+      <ol aria-label="Booking progress" className="mt-6 grid gap-3 rounded-2xl border border-line bg-white p-5 sm:grid-cols-4">
+        {bookingTimeline(b.status).map((step, i) => (
+          <li key={step.key} aria-current={step.state === "current" ? "step" : undefined} className="flex gap-3 sm:block">
+            <span
+              aria-hidden="true"
+              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-medium ${
+                step.state === "later" ? "border border-line text-muted" : "bg-primary text-white"
+              }`}
+            >
+              {step.state === "done" ? "✓" : i + 1}
+            </span>
+            <div className="sm:mt-2">
+              <p className={`text-sm font-medium ${step.state === "later" ? "text-muted" : ""}`}>{step.label}</p>
+              <p className="text-xs text-muted">{step.note}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
       {awaitingConfirmation ? (
         <p role="status" className="mt-4 rounded border border-pending/40 bg-white p-3 text-pending">
           We are confirming your payment. This page will update by itself; you do not need to pay again.
