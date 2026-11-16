@@ -25,7 +25,7 @@ export default async function FindBooking({ searchParams }: Props) {
           If a booking matches, we have emailed a new link to that address. It may take a minute to arrive.
         </p>
       ) : null}
-      <form action={requestLinkAction} className="mt-6 space-y-4 rounded border border-line bg-white p-4">
+      <form action={requestLinkAction} className="mt-6 space-y-4 rounded-2xl border border-line bg-white p-6">
         <label className="block text-sm">
           Booking reference
           <input
