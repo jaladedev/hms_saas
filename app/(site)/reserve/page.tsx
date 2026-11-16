@@ -121,7 +121,7 @@ export default async function Reserve({ searchParams }: Props) {
         )}
       </section>
 
-      <form action={reserveAction} className="mt-6 space-y-4 rounded border border-line bg-white p-4">
+      <form action={reserveAction} className="mt-6 space-y-4 rounded-2xl border border-line bg-white p-6">
         <input type="hidden" name="arrival" value={stay.arrival} />
         <input type="hidden" name="departure" value={stay.departure} />
         <input type="hidden" name="adults" value={stay.adults} />
@@ -142,36 +142,40 @@ export default async function Reserve({ searchParams }: Props) {
         ) : (
           <input type="hidden" name="quantity" value="1" />
         )}
-        <label className="block text-sm">
-          Full name
-          <input
-            name="full_name"
-            autoComplete="name"
-            required
-            minLength={2}
-            maxLength={120}
-            className="mt-1 w-full rounded border border-line p-2"
-          />
-        </label>
-        <label className="block text-sm">
-          Email (your booking link is shown next and can be sent here)
-          <input
-            type="email"
-            name="email"
-            autoComplete="email"
-            required
-            maxLength={254}
-            className="mt-1 w-full rounded border border-line p-2"
-          />
-        </label>
-        <label className="block text-sm">
-          Phone (optional)
-          <input type="tel" name="phone" autoComplete="tel" maxLength={32} className="mt-1 w-full rounded border border-line p-2" />
-        </label>
-        <label className="block text-sm">
-          Address (optional)
-          <input name="address" autoComplete="street-address" maxLength={200} className="mt-1 w-full rounded border border-line p-2" />
-        </label>
+        <div className="grid gap-4 sm:grid-cols-2 sm:items-end">
+          <label className="block text-sm">
+            Full name
+            <input
+              name="full_name"
+              autoComplete="name"
+              required
+              minLength={2}
+              maxLength={120}
+              className="mt-1 w-full rounded border border-line p-2"
+            />
+          </label>
+          <label className="block text-sm">
+            Email (your booking link is shown next and can be sent here)
+            <input
+              type="email"
+              name="email"
+              autoComplete="email"
+              required
+              maxLength={254}
+              className="mt-1 w-full rounded border border-line p-2"
+            />
+          </label>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="block text-sm">
+            Phone (optional)
+            <input type="tel" name="phone" autoComplete="tel" maxLength={32} className="mt-1 w-full rounded border border-line p-2" />
+          </label>
+          <label className="block text-sm">
+            Address (optional)
+            <input name="address" autoComplete="street-address" maxLength={200} className="mt-1 w-full rounded border border-line p-2" />
+          </label>
+        </div>
         <label className="block text-sm">
           Special requests (optional)
           <textarea
