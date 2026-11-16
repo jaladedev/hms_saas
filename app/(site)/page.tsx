@@ -74,6 +74,7 @@ export default async function GuestHome({ searchParams }: Props) {
       : [];
   const supa = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
   const highlights = amenityHighlights(types, 6);
+  const amenityCards = amenityHighlights(types, 9);
   const cancelBadge = policyResult.ok ? freeCancellationBadge(policyResult.data) : null;
   const stayLimit = policyResult.ok ? stayRule(policyResult.data) : null;
   const limitProblem = stay && result?.ok && policyResult.ok ? stayLimitProblem(policyResult.data, result.data.nights) : null;
@@ -449,22 +450,52 @@ export default async function GuestHome({ searchParams }: Props) {
           </section>
         ) : null}
 
-        {!searching && offers.length > 0 ? (
-          <section aria-labelledby="offers-title" className="pt-6">
-            <h2 id="offers-title" className="font-display text-3xl">
-              Offers
+        {!searching && types.length > 0 ? (
+          <section id="rooms" aria-labelledby="rooms-title" className="scroll-mt-6 pt-6">
+            <h2 id="rooms-title" className="font-display text-3xl">
+              Rooms
             </h2>
             <ul className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {offers.map((o, i) => {
-                const until = offerUntilLabel(o.valid_to);
+              {types.map((t) => {
+                const price = fromPriceLabel(t.from_rate_minor, currency);
+                const photo = t.photos[0];
                 return (
-                  <li key={i} className="flex flex-col gap-2 rounded-2xl border border-line bg-white p-5">
-                    {o.badge ? (
-                      <span className="w-fit rounded-full bg-primary px-3 py-0.5 text-xs font-medium text-white">{o.badge}</span>
+                  <li key={t.room_type_id} className="flex flex-col overflow-hidden rounded-2xl border border-line bg-white">
+                    {photo ? (
+                      <PhotoFrame src={photoUrl(supa, photo.path)} alt={photo.caption ?? `${t.name}`} className="aspect-[4/3] w-full" />
+                    ) : anyPhoto ? (
+                      <div aria-hidden="true" className="aspect-[4/3] w-full bg-line/40" />
                     ) : null}
-                    <h3 className="font-display text-xl">{o.title}</h3>
-                    {o.body ? <p className="text-sm text-muted">{o.body}</p> : null}
-                    {until ? <p className="mt-auto pt-2 text-xs text-muted">{until}</p> : null}
+
+                    <div className="flex flex-1 flex-col p-5">
+                      <h3 className="font-display text-2xl">{t.name}</h3>
+                      {price ? <p className="mt-1 font-medium text-primary-strong">{price}</p> : null}
+                      {t.description ? <p className="mt-2 line-clamp-3 text-sm text-muted">{t.description}</p> : null}
+                      {t.amenities.length > 0 ? (
+                        <ul aria-label={`${t.name} amenities`} className="mt-3 flex flex-wrap gap-1.5">
+                          {t.amenities.slice(0, 4).map((a) => (
+                            <li key={a} className="rounded-full border border-line px-2.5 py-0.5 text-xs text-muted">
+                              {a}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                      <p className="mt-3 text-sm text-muted">{capacityLabel(t.max_occupancy)}</p>
+                      <div className="mt-5 flex flex-wrap gap-2">
+                        <Link
+                          href={`/rooms/${t.room_type_id}`}
+                          className="inline-flex min-h-11 items-center justify-center rounded-full border border-ink px-5 text-sm hover:bg-ink hover:text-paper"
+                        >
+                          View room
+                        </Link>
+                        <a
+                          href="#search"
+                          className="inline-flex min-h-11 items-center justify-center rounded-full px-3 text-sm text-primary underline underline-offset-2"
+                        >
+                          Check dates
+                        </a>
+                      </div>
+                    </div>
                   </li>
                 );
               })}
@@ -472,8 +503,57 @@ export default async function GuestHome({ searchParams }: Props) {
           </section>
         ) : null}
 
+        {!searching && (offers.length > 0 || amenityCards.length > 0) ? (
+          <div className="grid gap-8 pt-12 lg:grid-cols-2">
+            {offers.length > 0 ? (
+              <section id="offers" aria-labelledby="offers-title" className="scroll-mt-6">
+                <h2 id="offers-title" className="font-display text-3xl">
+                  Offers
+                </h2>
+                <ul className="mt-6 divide-y divide-line border-b border-line">
+                  {offers.map((o, i) => {
+                    const until = offerUntilLabel(o.valid_to);
+                    return (
+                      <li key={i} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-4">
+                        <div className="min-w-0">
+                          <h3 className="font-medium">{o.title}</h3>
+                          {o.body ? <p className="text-sm text-muted">{o.body}</p> : null}
+                        </div>
+                        <div className="text-right text-xs text-muted">
+                          {o.badge ? <p className="font-medium text-primary-strong">{o.badge}</p> : null}
+                          {until ? <p>{until}</p> : null}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            ) : null}
+            {amenityCards.length > 0 ? (
+              <section aria-labelledby="amenities-title" className="rounded-2xl border border-line bg-white p-6 lg:col-start-2">
+                <h2 id="amenities-title" className="font-display text-2xl">
+                  Amenities
+                </h2>
+                <ul className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {amenityCards.map((a) => (
+                    <li key={a} className="flex flex-col items-center gap-2 rounded-xl border border-line p-4 text-center">
+                      <span
+                        aria-hidden="true"
+                        className="flex h-8 w-8 items-center justify-center rounded-full bg-paper text-sm font-medium text-primary-strong"
+                      >
+                        {a.charAt(0).toUpperCase()}
+                      </span>
+                      <span className="text-xs uppercase tracking-wide text-muted">{a}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+          </div>
+        ) : null}
+
         {!searching && experiences.length > 0 ? (
-          <section aria-labelledby="experiences-title" className="pt-6">
+          <section id="experiences" aria-labelledby="experiences-title" className="scroll-mt-6 pt-6">
             <h2 id="experiences-title" className="font-display text-3xl">
               Experiences
             </h2>
@@ -528,59 +608,6 @@ export default async function GuestHome({ searchParams }: Props) {
               </section>
             ))
           : null}
-
-        {!searching && types.length > 0 ? (
-          <section id="rooms" aria-labelledby="rooms-title" className="scroll-mt-6 pt-6">
-            <h2 id="rooms-title" className="font-display text-3xl">
-              Rooms
-            </h2>
-            <ul className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {types.map((t) => {
-                const price = fromPriceLabel(t.from_rate_minor, currency);
-                const photo = t.photos[0];
-                return (
-                  <li key={t.room_type_id} className="flex flex-col overflow-hidden rounded-2xl border border-line bg-white">
-                    {photo ? (
-                      <PhotoFrame src={photoUrl(supa, photo.path)} alt={photo.caption ?? `${t.name}`} className="aspect-[4/3] w-full" />
-                    ) : anyPhoto ? (
-                      <div aria-hidden="true" className="aspect-[4/3] w-full bg-line/40" />
-                    ) : null}
-
-                    <div className="flex flex-1 flex-col p-5">
-                      <h3 className="font-display text-2xl">{t.name}</h3>
-                      {price ? <p className="mt-1 font-medium text-primary-strong">{price}</p> : null}
-                      {t.description ? <p className="mt-2 line-clamp-3 text-sm text-muted">{t.description}</p> : null}
-                      {t.amenities.length > 0 ? (
-                        <ul aria-label={`${t.name} amenities`} className="mt-3 flex flex-wrap gap-1.5">
-                          {t.amenities.slice(0, 4).map((a) => (
-                            <li key={a} className="rounded-full border border-line px-2.5 py-0.5 text-xs text-muted">
-                              {a}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : null}
-                      <p className="mt-3 text-sm text-muted">{capacityLabel(t.max_occupancy)}</p>
-                      <div className="mt-5 flex flex-wrap gap-2">
-                        <Link
-                          href={`/rooms/${t.room_type_id}`}
-                          className="inline-flex min-h-11 items-center justify-center rounded-full border border-ink px-5 text-sm hover:bg-ink hover:text-paper"
-                        >
-                          View room
-                        </Link>
-                        <a
-                          href="#search"
-                          className="inline-flex min-h-11 items-center justify-center rounded-full px-3 text-sm text-primary underline underline-offset-2"
-                        >
-                          Check dates
-                        </a>
-                      </div>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
-        ) : null}
 
         {!searching && reviews && reviews.reviews.length > 0 ? (
           <section aria-labelledby="reviews-title" className="pt-6">

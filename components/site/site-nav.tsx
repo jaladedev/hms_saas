@@ -4,11 +4,16 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { NavLink } from "@/components/ui/nav-link";
 
-const LINKS = [
-  { href: "/#rooms", label: "Rooms" },
-  { href: "/policies", label: "Policies" },
-  { href: "/contact", label: "Contact" },
-];
+/** Offers and Experiences only appear when the homepage has those sections. */
+function linksFor(offers: boolean, experiences: boolean) {
+  return [
+    { href: "/#rooms", label: "Rooms" },
+    ...(offers ? [{ href: "/#offers", label: "Offers" }] : []),
+    ...(experiences ? [{ href: "/#experiences", label: "Experiences" }] : []),
+    { href: "/policies", label: "Policies" },
+    { href: "/contact", label: "Contact" },
+  ];
+}
 
 /**
  * The guest site's header links. From the `md` breakpoint up they sit in the header; on a phone they were missing
@@ -16,7 +21,8 @@ const LINKS = [
  * the guest goes to another page (it remembers the page it was opened on, as the staff menu does). The header it hangs
  * from must be `relative`.
  */
-export function SiteNav() {
+export function SiteNav({ offers = false, experiences = false }: { offers?: boolean; experiences?: boolean }) {
+  const LINKS = linksFor(offers, experiences);
   const here = usePathname() ?? "";
   const [openOn, setOpenOn] = useState<string | null>(null);
   const open = openOn !== null && openOn === here;

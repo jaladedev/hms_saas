@@ -6,7 +6,7 @@ import { headerName, placeLine, timesLine } from "@/lib/guest-site/hotel";
 import { monogram } from "@/lib/guest-site/home";
 import { telHref } from "@/lib/staff/hotel-profile";
 import { photoUrl } from "@/lib/staff/room-photos";
-import { guestHotel, requestHost } from "@/lib/guest-site/server";
+import { guestExperiences, guestHotel, guestOffers, requestHost } from "@/lib/guest-site/server";
 import { lookStyle, THEME_WRAPPER_CLASS } from "@/lib/theme";
 
 export const dynamic = "force-dynamic";
@@ -31,6 +31,11 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
   const name = headerName(hotel);
   const place = hotel ? placeLine(hotel) : "";
   const year = new Date().getFullYear();
+  // Header links to homepage sections only when the hotel has something to show there.
+  const host = await requestHost();
+  const [offersResult, experiencesResult] = hotel ? await Promise.all([guestOffers(host), guestExperiences(host)]) : [null, null];
+  const hasOffers = !!offersResult?.ok && offersResult.data.offers.length > 0;
+  const hasExperiences = !!experiencesResult?.ok && experiencesResult.data.experiences.length > 0;
   return (
     <div
       className={`flex min-h-screen flex-col ${THEME_WRAPPER_CLASS}`}
@@ -69,7 +74,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
               </>
             )}
           </Link>
-          {hotel ? <SiteNav /> : null}
+          {hotel ? <SiteNav offers={hasOffers} experiences={hasExperiences} /> : null}
           <Link
             href="/booking/find"
             className={`shrink-0 rounded-full border border-ink px-3 py-2 text-sm sm:px-4 hover:bg-ink hover:text-paper focus-visible:outline-2 focus-visible:outline-primary ${linkTap}`}
