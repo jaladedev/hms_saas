@@ -264,7 +264,7 @@ export default async function GuestHome({ searchParams }: Props) {
         ) : null}
 
         {stay && result?.ok && !limitProblem ? (
-          <section className="mx-auto max-w-3xl" aria-live="polite">
+          <section className="pt-10" aria-live="polite">
             <h2 className="text-lg font-medium">
               {result.data.property_name}: {result.data.nights} {result.data.nights === 1 ? "night" : "nights"}
             </h2>
@@ -324,10 +324,10 @@ export default async function GuestHome({ searchParams }: Props) {
                   : "No rooms match those filters. Try fewer filters."}
               </p>
             ) : (
-              <ul className="mt-4 space-y-4">
+              <ul className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {shown.map((t) => (
-                  <li key={t.room_type_id} className="rounded-xl border border-line bg-white p-4">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
+                  <li key={t.room_type_id} className="flex flex-col rounded-2xl border border-line bg-white p-5">
+                    <div className="flex flex-1 flex-col gap-4">
                       <div>
                         <h3 className="font-display text-xl">{t.name}</h3>
                         {t.description ? <p className="mt-1 text-sm text-muted">{t.description}</p> : null}
@@ -360,13 +360,14 @@ export default async function GuestHome({ searchParams }: Props) {
                           Up to {t.max_occupancy} guests{t.rooms_available <= 3 ? ` · only ${t.rooms_available} left` : ""}
                         </p>
                       </div>
-                      <div className="ml-auto text-right">
-                        <p className="text-xl font-medium">{formatMoney(t.total_minor, result.data.currency)}</p>
+                      <div className="mt-auto border-t border-line pt-4">
+                        <p className="w-fit rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary-strong">Available</p>
+                        <p className="mt-2 text-xl font-medium">{formatMoney(t.total_minor, result.data.currency)}</p>
                         <p className="text-xs text-muted">total, taxes and charges included</p>
                         <p className="mt-1 text-xs text-muted">{nightlyBreakdown(t, result.data.currency)}</p>
                         <a
                           href={`/reserve?${stayQuery(stay)}&type=${t.room_type_id}`}
-                          className="mt-3 inline-block rounded-full bg-primary px-5 py-2 text-sm font-medium text-white hover:bg-primary-strong"
+                          className="mt-3 block rounded-full bg-primary px-5 py-2.5 text-center text-sm font-medium text-white hover:bg-primary-strong"
                         >
                           Reserve
                         </a>
@@ -377,7 +378,7 @@ export default async function GuestHome({ searchParams }: Props) {
               </ul>
             )}
             {soldOut.length > 0 ? (
-              <ul aria-label="Not available for these dates" className="mt-4 space-y-3">
+              <ul aria-label="Not available for these dates" className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {soldOut.map((t) => (
                   <li key={t.room_type_id} className="rounded-xl border border-line bg-white/60 p-4 text-muted">
                     <div className="flex flex-wrap items-center justify-between gap-3">
