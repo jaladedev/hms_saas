@@ -129,3 +129,6 @@ Status: **built**, **partial** (part of the job is done, or only another role ca
 ## Totals
 
 52 screens: 51 built, 1 partial, 0 not built. The prototype's "Experience Ibadan" cards are built as the hotel-managed places list (grouped by category, with optional links, migrations 119 and 134) and bookable experiences guests can request (migration 134). The guest booking screens (Room Details included) are listed under Property & System.
+
+## Field-level check (2026-11-16)
+All 52 screens of `Hms-Full-Platform.html` were rendered and their headings, columns, fields and buttons compared with the built pages. The gaps found are listed in `TODO.md` under "Prototype parity" (dashboard figures, housekeeping photos, payment receipt upload, invoice PDF, guest ID, rooms bulk actions, theme draft/favicon/hero, audit IP, sign-in remember me and branding, Paystack test button). Every other screen matches or goes further than the prototype.

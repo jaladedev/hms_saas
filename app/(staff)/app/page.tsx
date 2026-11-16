@@ -1,6 +1,8 @@
 import Link from "next/link";
-import { formatDate } from "@/lib/guest-site/format";
+import { formatDate, formatMoney } from "@/lib/guest-site/format";
+import { barPercent, recentReservations, weekStrip } from "@/lib/staff/dashboard";
 import { loadDeskRows } from "@/lib/staff/desk-query";
+import { formatBp } from "@/lib/staff/occupancy";
 import { bucketFrontDesk } from "@/lib/staff/front-desk";
 import {
   buildTasks,
@@ -12,11 +14,18 @@ import {
   type RequestBrief,
   type RoomBrief,
 } from "@/lib/staff/overview";
-import { todayIn } from "@/lib/staff/reservations";
+import { PAYMENT_LABEL, STATUS_LABEL, todayIn } from "@/lib/staff/reservations";
 import { createClient } from "@/lib/supabase/server";
 import { linkClass, ErrorBanner, PageTitle, SectionTitle } from "@/components/staff/ui";
 
 export const dynamic = "force-dynamic";
+
+/** The date n days after an ISO date (UTC arithmetic, so no daylight saving to worry about). */
+function addDays(iso: string, n: number): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
 
 /** True when the signed-in user holds at least one of the permissions at any of the properties. A failed check counts as no. */
 async function anyPermission(
@@ -41,35 +50,65 @@ export default async function Dashboard() {
 
   // Each source is read on its own and may come back empty: row level security decides what this person can see,
   // and a failed read is reported at the top rather than shown as "all clear".
-  const [desk, flaggedQ, refundQ, emailQ, repairQ, canSeeRepairs, roomQ, canSeeCleaning] = await Promise.all([
-    earliest && latest ? loadDeskRows(supabase, earliest, latest) : Promise.resolve({ rows: [], error: null }),
-    supabase.from("reservations").select("id", { count: "exact", head: true }).not("attention_reason", "is", null),
-    supabase
-      .from("refunds")
-      .select("refund_status, requested_by, attention_note, provider_call_started_at")
-      .in("refund_status", ["requested", "approved", "processing"])
-      .limit(500),
-    supabase.rpc("staff_failed_emails", { p_limit: 200 }),
-    // A thin read of live requests; row level security returns only what this person may see (maintenance.view or manage).
-    supabase.from("maintenance_requests").select("status, priority, assigned_to, due_at").in("status", ["open", "in_progress"]).limit(500),
-    // The repair figure is shown only to people who can read requests, so "0 open" is never shown to a role that sees none.
-    anyPermission(
-      supabase,
-      properties.map((p) => p.id),
-      ["maintenance.view", "maintenance.manage"],
-    ),
-    // Rooms not yet clean: two status columns only. Shown only to people who can open housekeeping, for the same reason.
-    supabase
-      .from("rooms")
-      .select("housekeeping_status, operational_status")
-      .in("housekeeping_status", ["dirty", "in_progress"])
-      .limit(1000),
-    anyPermission(
-      supabase,
-      properties.map((p) => p.id),
-      ["housekeeping.view", "housekeeping.update"],
-    ),
-  ]);
+  const [desk, flaggedQ, refundQ, emailQ, repairQ, canSeeRepairs, roomQ, canSeeCleaning, strips, recentQ, canSeeReservations] =
+    await Promise.all([
+      earliest && latest ? loadDeskRows(supabase, earliest, latest) : Promise.resolve({ rows: [], error: null }),
+      supabase.from("reservations").select("id", { count: "exact", head: true }).not("attention_reason", "is", null),
+      supabase
+        .from("refunds")
+        .select("refund_status, requested_by, attention_note, provider_call_started_at")
+        .in("refund_status", ["requested", "approved", "processing"])
+        .limit(500),
+      supabase.rpc("staff_failed_emails", { p_limit: 200 }),
+      // A thin read of live requests; row level security returns only what this person may see (maintenance.view or manage).
+      supabase
+        .from("maintenance_requests")
+        .select("status, priority, assigned_to, due_at")
+        .in("status", ["open", "in_progress"])
+        .limit(500),
+      // The repair figure is shown only to people who can read requests, so "0 open" is never shown to a role that sees none.
+      anyPermission(
+        supabase,
+        properties.map((p) => p.id),
+        ["maintenance.view", "maintenance.manage"],
+      ),
+      // Rooms not yet clean: two status columns only. Shown only to people who can open housekeeping, for the same reason.
+      supabase
+        .from("rooms")
+        .select("housekeeping_status, operational_status")
+        .in("housekeeping_status", ["dirty", "in_progress"])
+        .limit(1000),
+      anyPermission(
+        supabase,
+        properties.map((p) => p.id),
+        ["housekeeping.view", "housekeeping.update"],
+      ),
+      // Occupancy for today and the next six days, one read per hotel. Only people with report.view get an answer; the others get
+      // NOT_FOUND, which simply leaves the strip out.
+      Promise.all(
+        properties.map((p) => {
+          const from = todayByProperty.get(p.id) ?? "";
+          return supabase.rpc("occupancy_report", { p_property_id: p.id, p_from: from, p_to: addDays(from, 6) });
+        }),
+      ),
+      // The latest bookings; row level security returns only what this person may read.
+      supabase
+        .from("reservations")
+        .select("id, booking_reference, reservation_status, payment_status, total_minor, currency, arrival_date, primary_guest_id")
+        .order("created_at", { ascending: false })
+        .limit(6),
+      anyPermission(
+        supabase,
+        properties.map((p) => p.id),
+        ["reservation.view"],
+      ),
+    ]);
+  const week = strips.map((r) => weekStrip(r.error ? null : r.data)).filter((w): w is NonNullable<typeof w> => w !== null);
+  const recent = canSeeReservations ? recentReservations(recentQ.data) : [];
+  const recentGuestIds = [...new Set(recent.map((r) => r.primary_guest_id).filter((g): g is string => !!g))];
+  const guestQ = recentGuestIds.length ? await supabase.from("guests").select("id, full_name").in("id", recentGuestIds) : { data: [] };
+  const guestName = new Map(((guestQ.data ?? []) as { id: string; full_name: string }[]).map((g) => [g.id, g.full_name]));
+  const propertyName = new Map(properties.map((p) => [p.id, p.name]));
 
   const groups = bucketFrontDesk(desk.rows, todayByProperty);
   const refunds = countRefunds((refundQ.data ?? []) as RefundBrief[], auth.user?.id ?? null, now);
@@ -131,6 +170,71 @@ export default async function Dashboard() {
           )}
         </p>
       </section>
+
+      {week.length > 0 && (
+        <section className="mt-10" aria-labelledby="occupancy">
+          <SectionTitle id="occupancy">Occupancy</SectionTitle>
+          {week.map((w) => (
+            <div key={w.propertyId} className="mt-3">
+              {week.length > 1 && <p className="text-sm font-medium">{propertyName.get(w.propertyId)}</p>}
+              <p className="mt-1">
+                <span className="text-3xl font-semibold tabular-nums">{formatBp(w.today.bp)}</span>{" "}
+                <span className="text-sm text-muted">
+                  tonight: {w.today.sold} of {w.today.available} rooms sold, {w.today.free} free
+                </span>
+              </p>
+              <ol aria-label="Occupancy for the next seven days" className="mt-3 flex h-20 items-end gap-2">
+                {w.days.map((d) => (
+                  <li key={d.date} className="flex h-full flex-1 flex-col justify-end text-center">
+                    <div
+                      className="rounded-t bg-primary/70"
+                      style={{ height: `${barPercent(d.bp)}%` }}
+                      title={`${formatDate(d.date)}: ${formatBp(d.bp)} (${d.sold} of ${d.available})`}
+                    />
+                  </li>
+                ))}
+              </ol>
+              <ol className="mt-1 flex gap-2 text-xs text-muted" aria-hidden="true">
+                {w.days.map((d) => (
+                  <li key={d.date} className="flex-1 text-center tabular-nums">
+                    {formatBp(d.bp)}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          ))}
+          <p className="mt-2 text-sm">
+            <Link href="/app/reports/occupancy" className={linkClass}>
+              Open the occupancy report
+            </Link>
+          </p>
+        </section>
+      )}
+
+      {recent.length > 0 && (
+        <section className="mt-10" aria-labelledby="recent">
+          <SectionTitle id="recent">Recent reservations</SectionTitle>
+          <ul className="mt-3 border-t border-line">
+            {recent.map((r) => (
+              <li key={r.id} className="border-b border-line">
+                <Link href={`/app/reservations/${r.id}`} className="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-3 hover:bg-white">
+                  <span className="w-28 font-medium">{r.booking_reference}</span>
+                  <span className="min-w-32 flex-1">{r.primary_guest_id ? (guestName.get(r.primary_guest_id) ?? "Guest") : "Guest"}</span>
+                  <span className="text-sm text-muted">
+                    {STATUS_LABEL[r.reservation_status] ?? r.reservation_status} · {PAYMENT_LABEL[r.payment_status] ?? r.payment_status}
+                  </span>
+                  <span className="tabular-nums">{formatMoney(r.total_minor, r.currency)}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-sm">
+            <Link href="/app/reservations" className={linkClass}>
+              All reservations
+            </Link>
+          </p>
+        </section>
+      )}
 
       <section className="mt-10" aria-labelledby="needs">
         <SectionTitle id="needs">Needs a person</SectionTitle>
