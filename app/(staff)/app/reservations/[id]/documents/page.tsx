@@ -169,6 +169,11 @@ export default async function DocumentsPage({
             Download confirmation (PDF)
           </a>
         )}
+        {kind === "invoice" && (
+          <a href={`/app/reservations/${id}/documents/invoice.pdf`} className={linkClass}>
+            Download invoice (PDF)
+          </a>
+        )}
       </p>
       {available.length > 1 && (
         <nav aria-label="Documents for this booking" className="mt-3 flex flex-wrap gap-2 text-sm print:hidden">
