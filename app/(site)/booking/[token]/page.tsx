@@ -12,12 +12,15 @@ import {
   bookingStatus,
   cancelPreview,
   changeOptions,
+  guestExperiences,
   guestHotel,
+  myExperienceRequests,
   requestHost,
   reviewState,
   verifiedBookingId,
 } from "@/lib/guest-site/server";
-import { payAction } from "./actions";
+import { experienceUnit, requestStatusLabel } from "@/lib/guest-site/experiences";
+import { experienceAction, payAction } from "./actions";
 import { showsAmountDue } from "@/lib/guest-site/booking-summary";
 import { PendingButton } from "@/components/ui/pending-button";
 
@@ -47,8 +50,13 @@ export default async function BookingPage({ params, searchParams }: Props) {
   const cancel = b.status === "confirmed" ? await cancelPreview(reservationId) : null;
   const change = b.status === "confirmed" ? await changeOptions(reservationId) : null;
   const review = b.status === "checked_out" ? await reviewState(reservationId) : null;
-  const hotelResult = await guestHotel(await requestHost());
+  const host = await requestHost();
+  const hotelResult = await guestHotel(host);
   const hotel = hotelResult.ok ? hotelResult.data : null;
+  const canAsk = b.status === "pending" || b.status === "confirmed" || b.status === "checked_in";
+  const [expResult, askedResult] = canAsk ? await Promise.all([guestExperiences(host), myExperienceRequests(reservationId)]) : [null, null];
+  const experiences = expResult?.ok ? expResult.data.experiences : [];
+  const asked = askedResult?.ok ? askedResult.data.requests : [];
   const key = crypto.randomUUID();
 
   return (
@@ -177,6 +185,86 @@ export default async function BookingPage({ params, searchParams }: Props) {
               Pay now
             </PendingButton>
           </form>
+        </section>
+      ) : null}
+      {raw.asked === "1" ? (
+        <p role="status" className="mt-4 rounded border border-line bg-white p-3 text-sm">
+          Thank you. We have sent your request to the hotel. They will confirm it with you; nothing is charged yet.
+        </p>
+      ) : null}
+      {experiences.length > 0 || asked.length > 0 ? (
+        <section
+          id="experiences"
+          aria-labelledby="experiences-title"
+          className="mt-8 scroll-mt-6 rounded border border-line bg-white p-4 print:hidden"
+        >
+          <h2 id="experiences-title" className="font-display text-xl">
+            Add an experience
+          </h2>
+          {asked.length > 0 ? (
+            <ul className="mt-3 space-y-1 text-sm">
+              {asked.map((a, i) => (
+                <li key={i}>
+                  {a.name} &times; {a.quantity}
+                  {a.date ? ` on ${formatDate(a.date)}` : ""}: {requestStatusLabel(a.status)} ({formatMoney(a.total_minor, b.currency)})
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {experiences.length > 0 ? (
+            <form action={experienceAction} className="mt-4 grid gap-3 sm:grid-cols-2">
+              <input type="hidden" name="token" value={token} />
+              <label className="block text-sm sm:col-span-2" htmlFor="exp-id">
+                Experience
+                <select id="exp-id" name="experienceId" required className="mt-1 w-full rounded border border-line bg-white px-3 py-2">
+                  {experiences.map((x) => (
+                    <option key={x.id} value={x.id}>
+                      {x.name} ({formatMoney(x.price_minor, b.currency)} {experienceUnit(x.unit)})
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block text-sm" htmlFor="exp-qty">
+                How many people
+                <input
+                  id="exp-qty"
+                  name="quantity"
+                  type="number"
+                  min={1}
+                  max={20}
+                  defaultValue={1}
+                  required
+                  className="mt-1 w-full rounded border border-line bg-white px-3 py-2"
+                />
+              </label>
+              <label className="block text-sm" htmlFor="exp-date">
+                Day (optional)
+                <input
+                  id="exp-date"
+                  name="date"
+                  type="date"
+                  min={b.arrival_date}
+                  max={b.departure_date}
+                  className="mt-1 w-full rounded border border-line bg-white px-3 py-2"
+                />
+              </label>
+              <label className="block text-sm sm:col-span-2" htmlFor="exp-note">
+                Anything the hotel should know (optional)
+                <input id="exp-note" name="note" maxLength={200} className="mt-1 w-full rounded border border-line bg-white px-3 py-2" />
+              </label>
+              <div className="sm:col-span-2">
+                <PendingButton
+                  className="rounded bg-primary px-4 py-2 font-medium text-white hover:bg-primary-strong"
+                  pendingLabel="Sending…"
+                >
+                  Send request
+                </PendingButton>
+                <p className="mt-2 text-xs text-muted">
+                  This is a request, not a booking. The hotel confirms it and adds it to your bill; you pay nothing now.
+                </p>
+              </div>
+            </form>
+          ) : null}
         </section>
       ) : null}
       {raw.reviewed === "1" ? (

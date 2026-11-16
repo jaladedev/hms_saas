@@ -5,6 +5,7 @@ import { back, ok, staffClient } from "./action-helpers";
 import { parseDecision } from "./guest-reviews";
 import { parsePromoForm } from "./promo-codes";
 import { parseOfferForm } from "./hotel-offers";
+import { parseExperienceForm } from "./experiences";
 import { parsePlaceForm } from "./hotel-places";
 import { parseReminderForm } from "./arrival-reminders";
 import { parseExtrasForm } from "./hotel-extras";
@@ -332,7 +333,7 @@ function placeError(
 ): "setup_forbidden" | "place_invalid" | "place_limit" | ReturnType<typeof classifySetupError> {
   if (/NOT_FOUND/.test(message)) return "setup_forbidden";
   if (/POLICY_VIOLATION: limit/.test(message)) return "place_limit";
-  if (/POLICY_VIOLATION: (name|text)/.test(message)) return "place_invalid";
+  if (/POLICY_VIOLATION: (name|text|category|link)/.test(message)) return "place_invalid";
   return classifySetupError({ message, code });
 }
 
@@ -348,6 +349,8 @@ export async function saveHotelPlace(formData: FormData) {
     p_body: v.value.body,
     p_active: v.value.active,
     p_sort: v.value.sort,
+    p_category: v.value.category,
+    p_link: v.value.link === "" ? (null as unknown as string) : v.value.link,
   });
   if (error) return back(PLACES_PAGE, { err: placeError(error.message, error.code) });
   revalidatePath(PLACES_PAGE);
@@ -380,4 +383,50 @@ export async function moderateGuestReview(formData: FormData) {
   revalidatePath(REVIEWS_PAGE);
   revalidatePath("/");
   return ok(REVIEWS_PAGE, decision === "approved" ? "review_approved" : "review_rejected");
+}
+
+const EXPERIENCES_PAGE = "/app/settings/experiences";
+
+function experienceError(
+  message: string,
+  code?: string,
+): "setup_forbidden" | "experience_invalid" | "experience_limit" | "experience_used" | ReturnType<typeof classifySetupError> {
+  if (/NOT_FOUND/.test(message)) return "setup_forbidden";
+  if (/POLICY_VIOLATION: limit/.test(message)) return "experience_limit";
+  if (/INVALID_STATE: used/.test(message)) return "experience_used";
+  if (/POLICY_VIOLATION: (name|text|price|unit)/.test(message)) return "experience_invalid";
+  return classifySetupError({ message, code });
+}
+
+/** Creates or edits an experience a guest can ask for (migration 134). The database requires property.configure there. */
+export async function saveHotelExperience(formData: FormData) {
+  const v = parseExperienceForm(Object.fromEntries(formData));
+  if (!v.ok) return back(EXPERIENCES_PAGE, { err: v.code });
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("save_hotel_experience", {
+    p_property: v.value.propertyId,
+    p_experience: v.value.experienceId as string,
+    p_name: v.value.name,
+    p_body: v.value.body,
+    p_price: v.value.priceMinor,
+    p_unit: v.value.unit,
+    p_active: v.value.active,
+    p_sort: v.value.sort,
+  });
+  if (error) return back(EXPERIENCES_PAGE, { err: experienceError(error.message, error.code) });
+  revalidatePath(EXPERIENCES_PAGE);
+  revalidatePath("/");
+  return ok(EXPERIENCES_PAGE, "experience_saved");
+}
+
+/** Deletes an experience nobody has asked for; one with requests can only be switched off. */
+export async function deleteHotelExperience(formData: FormData) {
+  const id = String(formData.get("experienceId") ?? "");
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return back(EXPERIENCES_PAGE, { err: "experience_invalid" });
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("delete_hotel_experience", { p_experience: id });
+  if (error) return back(EXPERIENCES_PAGE, { err: experienceError(error.message, error.code) });
+  revalidatePath(EXPERIENCES_PAGE);
+  revalidatePath("/");
+  return ok(EXPERIENCES_PAGE, "experience_deleted");
 }

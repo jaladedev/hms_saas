@@ -128,4 +128,4 @@ Status: **built**, **partial** (part of the job is done, or only another role ca
 
 ## Totals
 
-52 screens: 51 built, 1 partial, 0 not built. The prototype's "Experience Ibadan" cards are built as the hotel-managed "Near the hotel" list. The guest booking screens (Room Details included) are listed under Property & System.
+52 screens: 51 built, 1 partial, 0 not built. The prototype's "Experience Ibadan" cards are built as the hotel-managed places list (grouped by category, with optional links, migrations 119 and 134) and bookable experiences guests can request (migration 134). The guest booking screens (Room Details included) are listed under Property & System.

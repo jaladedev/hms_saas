@@ -53,6 +53,11 @@ const SECTIONS = [
     text: "Your plan and the invoices from the platform. For the owner and general manager.",
   },
   {
+    href: "/app/settings/experiences",
+    title: "Experiences",
+    text: "Tours, dinners and transfers a guest can ask for from their booking, with a price. Staff confirm each request and post it to the folio. Up to 12.",
+  },
+  {
     href: "/app/settings/places",
     title: "Near the hotel",
     text: "Places guests might visit, such as a hall, gardens or a landmark, shown on your website's homepage. Up to 8.",

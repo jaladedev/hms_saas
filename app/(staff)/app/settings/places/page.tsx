@@ -1,12 +1,28 @@
 import { PendingButton } from "@/components/ui/pending-button";
 import { buttonPrimary, buttonQuiet, ErrorBanner, inputClass, Notice, PageIntro, PageTitle } from "@/components/staff/ui";
 import { deleteHotelPlace, saveHotelPlace } from "@/lib/staff/hotel-profile-actions";
-import { MAX_PLACE_BODY, MAX_PLACE_NAME, MAX_PLACES } from "@/lib/staff/hotel-places";
+import {
+  MAX_PLACE_BODY,
+  MAX_PLACE_LINK,
+  MAX_PLACE_NAME,
+  MAX_PLACES,
+  PLACE_CATEGORIES,
+  PLACE_CATEGORY_LABEL,
+} from "@/lib/staff/hotel-places";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-type Place = { id: string; property_id: string; name: string; body: string; is_active: boolean; sort_order: number };
+type Place = {
+  id: string;
+  property_id: string;
+  name: string;
+  body: string;
+  is_active: boolean;
+  sort_order: number;
+  category: string;
+  link_url: string | null;
+};
 
 /**
  * Places near the hotel for the guest homepage: a name and a line of text each, plain text only. People who may change the hotel
@@ -17,7 +33,11 @@ export default async function PlacesPage({ searchParams }: { searchParams: Promi
   const supabase = await createClient();
   const [propQ, placeQ] = await Promise.all([
     supabase.from("properties").select("id, name").order("name"),
-    supabase.from("hotel_places").select("id, property_id, name, body, is_active, sort_order").order("sort_order").order("created_at"),
+    supabase
+      .from("hotel_places")
+      .select("id, property_id, name, body, is_active, sort_order, category, link_url")
+      .order("sort_order")
+      .order("created_at"),
   ]);
   const properties = (propQ.data ?? []) as { id: string; name: string }[];
   const places = (placeQ.data ?? []) as Place[];
@@ -28,8 +48,8 @@ export default async function PlacesPage({ searchParams }: { searchParams: Promi
       <PageTitle>Near the hotel</PageTitle>
       <PageIntro>
         Places a guest might want to visit, such as a hall, gardens or a landmark, shown in a &ldquo;Near the hotel&rdquo; section on your
-        website&rsquo;s homepage. A name and a short line each, plain text only. Up to {MAX_PLACES} places; the ones switched on are shown,
-        lowest order first.
+        website&rsquo;s homepage. A name, a short line, a group (such as Dining) and an optional https link each; the homepage shows one
+        section per group. Up to {MAX_PLACES} places; the ones switched on are shown, lowest order first.
       </PageIntro>
       <div className="mt-6">
         <Notice search={search} currency="NGN" />
@@ -88,6 +108,28 @@ function PlaceForm({ propertyId, place }: { propertyId: string; place: Place | n
       <label className="block text-sm sm:col-span-2" htmlFor={`b-${id}`}>
         Short line (optional)
         <input id={`b-${id}`} name="body" maxLength={MAX_PLACE_BODY} defaultValue={place?.body ?? ""} className={`${inputClass} mt-1`} />
+      </label>
+      <label className="block text-sm" htmlFor={`c-${id}`}>
+        Group
+        <select id={`c-${id}`} name="category" defaultValue={place?.category ?? "other"} className={`${inputClass} mt-1`}>
+          {PLACE_CATEGORIES.map((c) => (
+            <option key={c} value={c}>
+              {PLACE_CATEGORY_LABEL[c]}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="block text-sm" htmlFor={`l-${id}`}>
+        Link (optional, https)
+        <input
+          id={`l-${id}`}
+          name="link"
+          type="url"
+          maxLength={MAX_PLACE_LINK}
+          placeholder="https://"
+          defaultValue={place?.link_url ?? ""}
+          className={`${inputClass} mt-1`}
+        />
       </label>
       <label className="block text-sm" htmlFor={`s-${id}`}>
         Order (lower first)

@@ -9,6 +9,8 @@ import { parseStayParams, stayQuery } from "@/lib/guest-site/params";
 import { checkGuestLimits } from "@/lib/guest-site/limits";
 import { joinWaitlistAction } from "@/app/(site)/waitlist/actions";
 import { amenityOptions, nightlyBreakdown, parseResultsView, SORT_LABELS, soldOutTypes, viewQuotes } from "@/lib/guest-site/results";
+import { experienceUnit } from "@/lib/guest-site/experiences";
+import { groupPlaces, safePlaceLink } from "@/lib/staff/hotel-places";
 import { facilityList, photoCountLabel, placeLine, socialLinks, timesLine } from "@/lib/guest-site/hotel";
 import {
   amenityHighlights,
@@ -23,6 +25,7 @@ import {
 import {
   guestHotel,
   guestOffers,
+  guestExperiences,
   guestPlaces,
   guestPolicy,
   guestReviews,
@@ -44,7 +47,7 @@ export default async function GuestHome({ searchParams }: Props) {
   const stay = parseStayParams(raw);
   const limited = stay ? !(await checkGuestLimits({ ip: ["search"] })).allowed : false;
   const host = await requestHost();
-  const [result, hotelResult, typesResult, policyResult, offersResult, placesResult, reviewsResult] = await Promise.all([
+  const [result, hotelResult, typesResult, policyResult, offersResult, placesResult, reviewsResult, experiencesResult] = await Promise.all([
     stay && !limited ? searchAvailability(host, stay) : null,
     guestHotel(host),
     guestRoomTypes(host),
@@ -52,6 +55,7 @@ export default async function GuestHome({ searchParams }: Props) {
     guestOffers(host),
     guestPlaces(host),
     guestReviews(host),
+    guestExperiences(host),
   ]);
   const hotel = hotelResult.ok ? hotelResult.data : null;
   const types = typesResult.ok ? typesResult.data.room_types : [];
@@ -75,6 +79,8 @@ export default async function GuestHome({ searchParams }: Props) {
   const limitProblem = stay && result?.ok && policyResult.ok ? stayLimitProblem(policyResult.data, result.data.nights) : null;
   const offers = offersResult.ok ? offersResult.data.offers : [];
   const places = placesResult.ok ? placesResult.data.places : [];
+  const placeGroups = groupPlaces(places);
+  const experiences = experiencesResult.ok ? experiencesResult.data.experiences : [];
   const reviews = reviewsResult.ok ? reviewsResult.data : null;
   const summary = reviews ? averageLabel(reviews.average, reviews.count) : null;
   const searching = Boolean(stay && result?.ok);
@@ -466,21 +472,58 @@ export default async function GuestHome({ searchParams }: Props) {
           </section>
         ) : null}
 
-        {!searching && places.length > 0 ? (
-          <section aria-labelledby="places-title" className="pt-6">
-            <h2 id="places-title" className="font-display text-3xl">
-              Near the hotel
+        {!searching && experiences.length > 0 ? (
+          <section aria-labelledby="experiences-title" className="pt-6">
+            <h2 id="experiences-title" className="font-display text-3xl">
+              Experiences
             </h2>
-            <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {places.map((pl, i) => (
-                <li key={i} className="rounded-2xl border border-line bg-white p-4">
-                  <h3 className="text-sm font-semibold">{pl.name}</h3>
-                  {pl.body ? <p className="mt-1 text-xs text-muted">{pl.body}</p> : null}
+            <p className="mt-1 text-sm text-muted">
+              Ask for any of these from your booking page once you have booked. The hotel confirms it; you pay nothing at that point.
+            </p>
+            <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {experiences.map((x) => (
+                <li key={x.id} className="rounded-2xl border border-line bg-white p-4">
+                  <h3 className="text-sm font-semibold">{x.name}</h3>
+                  {x.body ? <p className="mt-1 text-xs text-muted">{x.body}</p> : null}
+                  <p className="mt-2 text-sm">
+                    {formatMoney(x.price_minor, currency)} <span className="text-xs text-muted">{experienceUnit(x.unit)}</span>
+                  </p>
                 </li>
               ))}
             </ul>
           </section>
         ) : null}
+
+        {!searching
+          ? placeGroups.map((g) => (
+              <section key={g.category} aria-labelledby={`places-${g.category}`} className="pt-6">
+                <h2 id={`places-${g.category}`} className="font-display text-3xl">
+                  {g.category === "other" && placeGroups.length === 1 ? "Near the hotel" : g.label}
+                </h2>
+                <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  {g.places.map((pl, i) => {
+                    const href = safePlaceLink(pl.link);
+                    return (
+                      <li key={i} className="rounded-2xl border border-line bg-white p-4">
+                        <h3 className="text-sm font-semibold">{pl.name}</h3>
+                        {pl.body ? <p className="mt-1 text-xs text-muted">{pl.body}</p> : null}
+                        {href ? (
+                          <a
+                            href={href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-2 inline-block text-xs underline underline-offset-2"
+                          >
+                            More information
+                          </a>
+                        ) : null}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            ))
+          : null}
 
         {!searching && types.length > 0 ? (
           <section id="rooms" aria-labelledby="rooms-title" className="scroll-mt-6 pt-6">

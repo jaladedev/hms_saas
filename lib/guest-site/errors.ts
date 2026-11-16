@@ -104,6 +104,17 @@ const RULES: Array<[RegExp, GuestError]> = [
   [/POLICY_VIOLATION: rating/, { code: "review_rating", message: "Please choose a rating from 1 to 5 stars." }],
   [/POLICY_VIOLATION: comment/, { code: "review_comment", message: "Please keep your comment to 1000 characters or fewer." }],
   [
+    /POLICY_VIOLATION: experience limit/,
+    { code: "experience_limit", message: "You already have several requests waiting. Please wait for the hotel to answer them first." },
+  ],
+  [/POLICY_VIOLATION: experience quantity/, { code: "experience_quantity", message: "Please choose a number from 1 to 20." }],
+  [
+    /POLICY_VIOLATION: experience date/,
+    { code: "experience_date", message: "Please choose a day inside your stay, or leave the date empty." },
+  ],
+  [/POLICY_VIOLATION: experience note/, { code: "experience_note", message: "Please keep your note to 200 characters or fewer." }],
+  [/NOT_FOUND: experience/, { code: "experience_gone", message: "That experience is not available any more." }],
+  [
     /POLICY_VIOLATION: promo/,
     {
       code: "promo",

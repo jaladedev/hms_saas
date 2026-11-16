@@ -14,6 +14,7 @@ export const RATE_RULES = {
   cancelReservation: { limit: 6, windowSeconds: 3600 },
   submitReview: { limit: 4, windowSeconds: 3600 },
   joinWaitlist: { limit: 6, windowSeconds: 3600 },
+  requestExperience: { limit: 8, windowSeconds: 3600 },
   changeBooking: { limit: 10, windowSeconds: 3600 },
   link: { limit: 5, windowSeconds: 3600 },
   linkEmail: { limit: 3, windowSeconds: 3600 },

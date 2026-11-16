@@ -931,4 +931,8 @@ SC="$(psql -f "$HERE/132_service_charge.sql" 2>&1)" || { echo "$SC"; echo "SERVI
 echo "$SC" | grep -E 'PASS' || true
 if echo "$SC" | grep -qE 'FAIL|ERROR'; then echo "$SC"; echo "SERVICE CHARGE TESTS FAILED"; exit 1; fi
 
+EX="$(psql -f "$HERE/134_experiences.sql" 2>&1)" || { echo "$EX"; echo "EXPERIENCES TESTS FAILED"; exit 1; }
+echo "$EX" | grep -E 'PASS' || true
+if echo "$EX" | grep -qE 'FAIL|ERROR'; then echo "$EX"; echo "EXPERIENCES TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

@@ -226,6 +226,10 @@ export type ErrorCode =
   | "offer_limit"
   | "place_invalid"
   | "place_limit"
+  | "experience_invalid"
+  | "experience_limit"
+  | "experience_used"
+  | "experience_not_in_house"
   | "invoice_pay_unavailable"
   | "invoice_pay_failed"
   | "invoice_pay_closed"
@@ -456,6 +460,11 @@ export const OK_MESSAGES = {
   offer_deleted: "Offer deleted.",
   place_saved: "Place saved. Guests see it on the homepage while it is switched on.",
   place_deleted: "Place deleted.",
+  experience_saved: "Experience saved. Guests see it on the homepage and can ask for it from their booking page while it is switched on.",
+  experience_deleted: "Experience deleted.",
+  experience_confirmed: "Request confirmed. Tell the guest, then post it to their folio once they are in the house.",
+  experience_declined: "Request declined.",
+  experience_charged: "Posted to the guest's folio.",
   invoice_paid: "Payment received. The invoice is marked paid. Thank you.",
   invoice_pay_pending: "We have not received the payment yet. If you paid, it will show here shortly; otherwise try again.",
   hotel_theme_saved: "Look saved. Your website and the staff screens for this hotel now use it.",
@@ -655,6 +664,14 @@ export function errorMessage(code: string, refundable: number | null, formatMino
       return "Check the place. It needs a name (up to 60 characters); the text can be up to 140.";
     case "place_limit":
       return "A hotel can list up to 8 places. Delete one you no longer need first.";
+    case "experience_invalid":
+      return "Check the name (up to 60 characters), the line (up to 200) and the price (more than zero).";
+    case "experience_limit":
+      return "A hotel can list up to 12 experiences. Delete one you no longer need first.";
+    case "experience_used":
+      return "Guests have asked for this experience, so it cannot be deleted. Switch it off instead.";
+    case "experience_not_in_house":
+      return "A request can be posted to the folio once the guest is checked in.";
     case "offer_limit":
       return "A hotel can have up to 12 offers. Delete one you no longer need first.";
     case "theme_radius":

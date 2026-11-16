@@ -148,10 +148,47 @@ export type HomeOffer = { title: string; body: string; badge: string | null; val
 /** The hotel's live offers for the homepage (migration 102): active, inside their dates, at most six. */
 export const guestOffers = cache((host: string) => call<{ offers: HomeOffer[] }>("guest_offers", { p_host: host }));
 
-export type HomePlace = { name: string; body: string };
+export type HomePlace = { name: string; body: string; category?: string | null; link?: string | null };
 
 /** The places near the hotel that it lists on the homepage (migration 119), switched-on ones in the hotel's order. */
 export const guestPlaces = cache((host: string) => call<{ places: HomePlace[] }>("guest_places", { p_host: host }));
+
+export type HomeExperience = { id: string; name: string; body: string; price_minor: number; unit: "person" | "booking" };
+
+/** The experiences a guest can ask for, switched-on ones in the hotel's order, with the hotel's currency (migration 134). */
+export const guestExperiences = cache((host: string) =>
+  call<{ currency: string; experiences: HomeExperience[] }>("guest_experiences", { p_host: host }),
+);
+
+export type MyExperienceRequest = {
+  name: string;
+  quantity: number;
+  date: string | null;
+  status: "requested" | "confirmed" | "declined" | "charged";
+  total_minor: number;
+};
+
+/** The booking's own experience requests, oldest first (migration 134). */
+export function myExperienceRequests(reservationId: string) {
+  return call<{ requests: MyExperienceRequest[] }>("guest_experience_requests", { p_reservation_id: reservationId });
+}
+
+/** Sends a request for an experience. Staff confirm it; nothing is held or charged here (migration 134). */
+export function requestExperience(args: {
+  reservationId: string;
+  experienceId: string;
+  quantity: number;
+  date: string | null;
+  note: string;
+}) {
+  return call<{ request_id: string }>("guest_request_experience", {
+    p_reservation_id: args.reservationId,
+    p_experience: args.experienceId,
+    p_quantity: args.quantity,
+    p_date: args.date,
+    p_note: args.note === "" ? null : args.note,
+  });
+}
 
 export type ReviewState = { can_review: boolean; review: { rating: number; comment: string; status: string } | null };
 export type PublicReview = { rating: number; comment: string; author: string; month: string };

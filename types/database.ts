@@ -846,6 +846,8 @@ export type Database = {
       }
       hotel_places: {
         Row: {
+          category: string
+          link_url: string | null
           body: string
           created_at: string
           id: string
@@ -858,6 +860,8 @@ export type Database = {
         }
         ComputedFields: never
         Insert: {
+          category?: string
+          link_url?: string | null
           body?: string
           created_at?: string
           id?: string
@@ -869,6 +873,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          category?: string
+          link_url?: string | null
           body?: string
           created_at?: string
           id?: string
@@ -888,6 +894,104 @@ export type Database = {
             referencedColumns: ["tenant_id", "id"]
           },
         ]
+      }
+      hotel_experiences: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          price_minor: number
+          property_id: string
+          sort_order: number
+          tenant_id: string
+          unit: string
+          updated_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          body?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          price_minor: number
+          property_id: string
+          sort_order?: number
+          tenant_id: string
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          price_minor?: number
+          property_id?: string
+          sort_order?: number
+          tenant_id?: string
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      experience_requests: {
+        Row: {
+          created_at: string
+          experience_id: string
+          folio_charge_id: string | null
+          id: string
+          name_at_request: string
+          note: string | null
+          preferred_date: string | null
+          property_id: string
+          quantity: number
+          reservation_id: string
+          status: string
+          tenant_id: string
+          unit: string
+          unit_price_minor: number
+          updated_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          created_at?: string
+          experience_id: string
+          folio_charge_id?: string | null
+          id?: string
+          name_at_request: string
+          note?: string | null
+          preferred_date?: string | null
+          property_id: string
+          quantity: number
+          reservation_id: string
+          status?: string
+          tenant_id: string
+          unit: string
+          unit_price_minor: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          experience_id?: string
+          folio_charge_id?: string | null
+          id?: string
+          name_at_request?: string
+          note?: string | null
+          preferred_date?: string | null
+          property_id?: string
+          quantity?: number
+          reservation_id?: string
+          status?: string
+          tenant_id?: string
+          unit?: string
+          unit_price_minor?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       idempotency_keys: {
         Row: {
@@ -3269,9 +3373,37 @@ export type Database = {
       settle_invoice_payment: { Args: { p_amount_minor: number; p_currency: string; p_reference: string; p_status: string }; Returns: Json }
       platform_open_invoices: { Args: Record<string, never>; Returns: Json }
       save_hotel_place: {
-        Args: { p_active: boolean; p_body: string; p_name: string; p_place: string; p_property: string; p_sort?: number }
+        Args: {
+          p_active: boolean
+          p_body: string
+          p_category?: string
+          p_link?: string
+          p_name: string
+          p_place: string
+          p_property: string
+          p_sort?: number
+        }
         Returns: Json
       }
+      save_hotel_experience: {
+        Args: {
+          p_active: boolean
+          p_body: string
+          p_experience: string
+          p_name: string
+          p_price: number
+          p_property: string
+          p_sort?: number
+          p_unit: string
+        }
+        Returns: Json
+      }
+      delete_hotel_experience: { Args: { p_experience: string }; Returns: undefined }
+      guest_experiences: { Args: { p_host: string }; Returns: Json }
+      guest_request_experience: { Args: { p_date: string; p_experience: string; p_note: string; p_quantity: number; p_reservation_id: string }; Returns: Json }
+      guest_experience_requests: { Args: { p_reservation_id: string }; Returns: Json }
+      experience_requests_open: { Args: { p_property: string }; Returns: Json }
+      experience_request_set: { Args: { p_action: string; p_key: string; p_request: string }; Returns: Json }
       delete_hotel_place: { Args: { p_place: string }; Returns: undefined }
       guest_places: { Args: { p_host: string }; Returns: Json }
       hotel_platform_access: { Args: { p_property: string }; Returns: Json }

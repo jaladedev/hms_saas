@@ -3,7 +3,8 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { checkGuestLimits } from "@/lib/guest-site/limits";
-import { createPaymentAttempt, paymentStartContext, requestOrigin, verifiedBookingId } from "@/lib/guest-site/server";
+import { parseExperienceRequest } from "@/lib/guest-site/experiences";
+import { createPaymentAttempt, paymentStartContext, requestExperience, requestOrigin, verifiedBookingId } from "@/lib/guest-site/server";
 import { initializeTransaction } from "@/lib/paystack";
 import { resolveProviderSecret } from "@/lib/provider-secret";
 
@@ -50,4 +51,28 @@ export async function payAction(formData: FormData): Promise<void> {
     redirect(`${back}?error=payment_unavailable`);
   }
   redirect(authorizationUrl);
+}
+
+/**
+ * Sends the hotel a request for an experience from the booking page. Nothing is held or paid: staff confirm the request and the hotel
+ * adds it to the bill. The experience and the booking are checked again by the database.
+ */
+export async function experienceAction(formData: FormData): Promise<void> {
+  const raw = Object.fromEntries(formData.entries());
+  const input = z.object({ token: z.string().min(10).max(512) }).safeParse(raw);
+  if (!input.success) redirect("/?error=bad_request");
+  const { token } = input.data;
+  const reservationId = await verifiedBookingId(token);
+  if (!reservationId) redirect("/?error=bad_request");
+  const back = `/booking/${token}`;
+
+  const form = parseExperienceRequest(raw);
+  if ("error" in form) redirect(`${back}?error=${form.error}#experiences`);
+
+  const limit = await checkGuestLimits({ ip: ["pay"], keyed: [{ rule: "requestExperience", value: reservationId }] });
+  if (!limit.allowed) redirect(`${back}?error=rate_limited#experiences`);
+
+  const result = await requestExperience({ reservationId, ...form });
+  if (!result.ok) redirect(`${back}?error=${result.error.code}#experiences`);
+  redirect(`${back}?asked=1#experiences`);
 }
