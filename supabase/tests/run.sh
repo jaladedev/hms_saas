@@ -935,4 +935,8 @@ EX="$(psql -f "$HERE/134_experiences.sql" 2>&1)" || { echo "$EX"; echo "EXPERIEN
 echo "$EX" | grep -E 'PASS' || true
 if echo "$EX" | grep -qE 'FAIL|ERROR'; then echo "$EX"; echo "EXPERIENCES TESTS FAILED"; exit 1; fi
 
+SP="$(psql -f "$HERE/135_pin_function_search_path.sql" 2>&1)" || { echo "$SP"; echo "PIN SEARCH PATH TESTS FAILED"; exit 1; }
+echo "$SP" | grep -E 'PASS' || true
+if echo "$SP" | grep -qE 'FAIL|ERROR'; then echo "$SP"; echo "PIN SEARCH PATH TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"
