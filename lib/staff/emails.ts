@@ -32,6 +32,7 @@ const KIND: Record<string, string> = {
   change_request_answered: "Change request answered",
   arrival_reminder: "Arrival reminder",
   review_request: "Review request",
+  experience_answered: "Experience request answered",
 };
 export const kindLabel = (kind: string) => KIND[kind] ?? kind.replace(/_/g, " ");
 

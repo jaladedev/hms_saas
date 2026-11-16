@@ -846,6 +846,7 @@ export type Database = {
       }
       hotel_places: {
         Row: {
+          photo_path: string | null
           category: string
           link_url: string | null
           body: string
@@ -860,6 +861,7 @@ export type Database = {
         }
         ComputedFields: never
         Insert: {
+          photo_path?: string | null
           category?: string
           link_url?: string | null
           body?: string
@@ -873,6 +875,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          photo_path?: string | null
           category?: string
           link_url?: string | null
           body?: string
@@ -897,6 +900,7 @@ export type Database = {
       }
       hotel_experiences: {
         Row: {
+          photo_path: string | null
           body: string
           created_at: string
           id: string
@@ -911,6 +915,7 @@ export type Database = {
         }
         ComputedFields: never
         Insert: {
+          photo_path?: string | null
           body?: string
           created_at?: string
           id?: string
@@ -924,6 +929,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          photo_path?: string | null
           body?: string
           created_at?: string
           id?: string
@@ -3398,6 +3404,8 @@ export type Database = {
         }
         Returns: Json
       }
+      set_place_photo: { Args: { p_path: string; p_place: string }; Returns: undefined }
+      set_experience_photo: { Args: { p_experience: string; p_path: string }; Returns: undefined }
       delete_hotel_experience: { Args: { p_experience: string }; Returns: undefined }
       guest_experiences: { Args: { p_host: string }; Returns: Json }
       guest_request_experience: { Args: { p_date: string; p_experience: string; p_note: string; p_quantity: number; p_reservation_id: string }; Returns: Json }

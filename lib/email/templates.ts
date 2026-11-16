@@ -14,7 +14,8 @@ export type EmailKind =
   | "change_request_answered"
   | "booking_invoice"
   | "arrival_reminder"
-  | "review_request";
+  | "review_request"
+  | "experience_answered";
 export type RenderedEmail = { subject: string; text: string; html: string };
 
 export function escapeHtml(value: string): string {
@@ -282,6 +283,36 @@ export function renderEmail(input: {
         "If you have a minute, please tell us how it went: open your booking and choose Leave a review. Your rating helps other guests.",
       );
       break;
+    case "experience_answered": {
+      const p = input.payload ?? {};
+      const str = (k: string) => (typeof p[k] === "string" ? (p[k] as string) : "");
+      const num = (k: string) => (typeof p[k] === "number" ? (p[k] as number) : null);
+      const name = str("experience") || "your experience";
+      const qty = num("quantity") ?? 1;
+      const day = str("date");
+      const total = num("total_minor");
+      const currency = str("currency") || b.currency;
+      const what = `${name} \u00d7 ${qty}${/^\d{4}-\d{2}-\d{2}$/.test(day) ? ` on ${formatDate(day)}` : ""}`;
+      button = "Open your booking";
+      if (p.answer === "declined") {
+        subject = `About your request at ${b.property_name}`;
+        heading = "We could not arrange your request";
+        lines.push(
+          `Thank you for asking about ${what} during your stay at ${b.property_name}. Unfortunately we are not able to offer it this time.`,
+        );
+        lines.push("You have not been charged for it. If you would like something else, you can send another request from your booking.");
+      } else {
+        subject = `Your request is confirmed at ${b.property_name}`;
+        heading = "Your request is confirmed";
+        lines.push(`Good news: ${b.property_name} has confirmed ${what}.`);
+        lines.push(
+          total !== null
+            ? `The cost is ${formatMoney(total, currency)}. It will be added to your bill during your stay; nothing is charged now.`
+            : "It will be added to your bill during your stay; nothing is charged now.",
+        );
+      }
+      break;
+    }
     case "booking_link":
       subject = `Your booking link for ${b.booking_reference}`;
       heading = "Your booking link";

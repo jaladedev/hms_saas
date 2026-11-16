@@ -10,7 +10,7 @@ import { parsePlaceForm } from "./hotel-places";
 import { parseReminderForm } from "./arrival-reminders";
 import { parseExtrasForm } from "./hotel-extras";
 import { parseBasicsForm, parseProfileForm, parseThemeForm } from "./hotel-profile";
-import { logoPath, PHOTO_BUCKET, validatePhoto } from "./room-photos";
+import { extraPhotoPath, logoPath, PHOTO_BUCKET, validatePhoto } from "./room-photos";
 import { classifySetupError } from "./room-setup";
 import { createServiceClient } from "@/lib/supabase/service";
 import { randomUUID } from "node:crypto";
@@ -429,4 +429,73 @@ export async function deleteHotelExperience(formData: FormData) {
   revalidatePath(EXPERIENCES_PAGE);
   revalidatePath("/");
   return ok(EXPERIENCES_PAGE, "experience_deleted");
+}
+
+type PhotoTarget = {
+  kind: "places" | "experiences";
+  table: "hotel_places" | "hotel_experiences";
+  rpc: "set_place_photo" | "set_experience_photo";
+  page: string;
+};
+const PLACE_TARGET: PhotoTarget = { kind: "places", table: "hotel_places", rpc: "set_place_photo", page: PLACES_PAGE };
+const EXPERIENCE_TARGET: PhotoTarget = {
+  kind: "experiences",
+  table: "hotel_experiences",
+  rpc: "set_experience_photo",
+  page: EXPERIENCES_PAGE,
+};
+
+async function storeExtraPhoto(t: PhotoTarget, formData: FormData, saved: "place_photo_saved" | "experience_photo_saved") {
+  const id = String(formData.get("id") ?? "");
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return back(t.page, { err: "setup_invalid" });
+  const file = formData.get("photo");
+  const check = validatePhoto(file instanceof File ? file : null, "");
+  if (!check.ok) return back(t.page, { err: check.code });
+
+  const supabase = await staffClient();
+  const { data: row } = await supabase.from(t.table).select("tenant_id, property_id").eq("id", id).maybeSingle();
+  if (!row) return back(t.page, { err: "setup_forbidden" });
+
+  const path = extraPhotoPath(t.kind, row.tenant_id, row.property_id, randomUUID(), check.ext);
+  const service = createServiceClient();
+  const { error: upErr } = await service.storage
+    .from(PHOTO_BUCKET)
+    .upload(path, await (file as File).arrayBuffer(), { contentType: check.contentType });
+  if (upErr) return back(t.page, { err: "photo_upload" });
+  const arg = t.rpc === "set_place_photo" ? { p_place: id, p_path: path } : { p_experience: id, p_path: path };
+  const { error } = await supabase.rpc(t.rpc as "set_place_photo", arg as { p_place: string; p_path: string });
+  if (error) {
+    await service.storage.from(PHOTO_BUCKET).remove([path]);
+    return back(t.page, { err: /NOT_FOUND/.test(error.message) ? "setup_forbidden" : classifySetupError(error) });
+  }
+  revalidatePath(t.page);
+  revalidatePath("/");
+  return ok(t.page, saved);
+}
+
+async function clearExtraPhoto(t: PhotoTarget, formData: FormData, removed: "place_photo_removed" | "experience_photo_removed") {
+  const id = String(formData.get("id") ?? "");
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return back(t.page, { err: "setup_invalid" });
+  const supabase = await staffClient();
+  const arg = t.rpc === "set_place_photo" ? { p_place: id, p_path: "" } : { p_experience: id, p_path: "" };
+  const { error } = await supabase.rpc(t.rpc as "set_place_photo", arg as { p_place: string; p_path: string });
+  if (error) return back(t.page, { err: /NOT_FOUND/.test(error.message) ? "setup_forbidden" : classifySetupError(error) });
+  revalidatePath(t.page);
+  revalidatePath("/");
+  return ok(t.page, removed);
+}
+
+/** A picture for a place (migration 136): same flow as the logo. The old file is queued for removal by the database. */
+export async function uploadPlacePhoto(formData: FormData) {
+  return storeExtraPhoto(PLACE_TARGET, formData, "place_photo_saved");
+}
+export async function removePlacePhoto(formData: FormData) {
+  return clearExtraPhoto(PLACE_TARGET, formData, "place_photo_removed");
+}
+/** A picture for an experience (migration 136). */
+export async function uploadExperiencePhoto(formData: FormData) {
+  return storeExtraPhoto(EXPERIENCE_TARGET, formData, "experience_photo_saved");
+}
+export async function removeExperiencePhoto(formData: FormData) {
+  return clearExtraPhoto(EXPERIENCE_TARGET, formData, "experience_photo_removed");
 }

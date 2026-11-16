@@ -1,6 +1,8 @@
 import { PendingButton } from "@/components/ui/pending-button";
 import { buttonPrimary, buttonQuiet, ErrorBanner, inputClass, Notice, PageIntro, PageTitle } from "@/components/staff/ui";
-import { deleteHotelPlace, saveHotelPlace } from "@/lib/staff/hotel-profile-actions";
+import { deleteHotelPlace, removePlacePhoto, saveHotelPlace, uploadPlacePhoto } from "@/lib/staff/hotel-profile-actions";
+import { photoUrl } from "@/lib/staff/room-photos";
+import { PhotoPicker } from "@/components/ui/photo-picker";
 import {
   MAX_PLACE_BODY,
   MAX_PLACE_LINK,
@@ -22,6 +24,7 @@ type Place = {
   sort_order: number;
   category: string;
   link_url: string | null;
+  photo_path: string | null;
 };
 
 /**
@@ -35,13 +38,14 @@ export default async function PlacesPage({ searchParams }: { searchParams: Promi
     supabase.from("properties").select("id, name").order("name"),
     supabase
       .from("hotel_places")
-      .select("id, property_id, name, body, is_active, sort_order, category, link_url")
+      .select("id, property_id, name, body, is_active, sort_order, category, link_url, photo_path")
       .order("sort_order")
       .order("created_at"),
   ]);
   const properties = (propQ.data ?? []) as { id: string; name: string }[];
   const places = (placeQ.data ?? []) as Place[];
   const many = properties.length > 1;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 
   return (
     <main className="max-w-3xl">
@@ -65,6 +69,14 @@ export default async function PlacesPage({ searchParams }: { searchParams: Promi
               {mine.map((o) => (
                 <li key={o.id} className="rounded border border-line bg-white p-4">
                   <PlaceForm propertyId={p.id} place={o} />
+                  <PhotoBlock
+                    id={o.id}
+                    path={o.photo_path}
+                    name={o.name}
+                    upload={uploadPlacePhoto}
+                    remove={removePlacePhoto}
+                    supabaseUrl={supabaseUrl}
+                  />
                   <form action={deleteHotelPlace} className="mt-2">
                     <input type="hidden" name="placeId" value={o.id} />
                     <PendingButton className={buttonQuiet} pendingLabel="Deleting…">
@@ -145,5 +157,52 @@ function PlaceForm({ propertyId, place }: { propertyId: string; place: Place | n
         </PendingButton>
       </div>
     </form>
+  );
+}
+
+function PhotoBlock({
+  id,
+  path,
+  name,
+  upload,
+  remove,
+  supabaseUrl,
+}: {
+  id: string;
+  path: string | null;
+  name: string;
+  upload: (formData: FormData) => Promise<void>;
+  remove: (formData: FormData) => Promise<void>;
+  supabaseUrl: string;
+}) {
+  return (
+    <div className="mt-3 border-t border-line pt-3">
+      {path ? (
+        <div className="flex items-center gap-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={photoUrl(supabaseUrl, path)} alt={`${name} picture`} className="h-16 w-24 rounded border border-line object-cover" />
+          <form action={remove}>
+            <input type="hidden" name="id" value={id} />
+            <PendingButton className={buttonQuiet} pendingLabel="Removing…">
+              Remove picture
+            </PendingButton>
+          </form>
+        </div>
+      ) : (
+        <p className="text-sm text-muted">No picture yet.</p>
+      )}
+      <form action={upload} className="mt-2 flex flex-wrap items-end gap-3">
+        <input type="hidden" name="id" value={id} />
+        <div>
+          <label htmlFor={`ph-${id}`} className="block text-sm">
+            {path ? "Replace the picture" : "Add a picture"} (JPEG, PNG or WebP, up to 2 MB)
+          </label>
+          <PhotoPicker id={`ph-${id}`} name="photo" required className={inputClass} previewClassName="h-16 w-24 !object-cover" />
+        </div>
+        <PendingButton className={buttonPrimary} pendingLabel="Uploading…">
+          Save picture
+        </PendingButton>
+      </form>
+    </div>
   );
 }

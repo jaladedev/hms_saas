@@ -148,12 +148,19 @@ export type HomeOffer = { title: string; body: string; badge: string | null; val
 /** The hotel's live offers for the homepage (migration 102): active, inside their dates, at most six. */
 export const guestOffers = cache((host: string) => call<{ offers: HomeOffer[] }>("guest_offers", { p_host: host }));
 
-export type HomePlace = { name: string; body: string; category?: string | null; link?: string | null };
+export type HomePlace = { name: string; body: string; category?: string | null; link?: string | null; photo?: string | null };
 
 /** The places near the hotel that it lists on the homepage (migration 119), switched-on ones in the hotel's order. */
 export const guestPlaces = cache((host: string) => call<{ places: HomePlace[] }>("guest_places", { p_host: host }));
 
-export type HomeExperience = { id: string; name: string; body: string; price_minor: number; unit: "person" | "booking" };
+export type HomeExperience = {
+  id: string;
+  name: string;
+  body: string;
+  price_minor: number;
+  unit: "person" | "booking";
+  photo?: string | null;
+};
 
 /** The experiences a guest can ask for, switched-on ones in the hotel's order, with the hotel's currency (migration 134). */
 export const guestExperiences = cache((host: string) =>

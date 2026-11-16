@@ -54,6 +54,11 @@ export function logoPath(tenantId: string, propertyId: string, id: string, ext: 
   return `${tenantId}/${propertyId}/logo/${id}.${ext}`;
 }
 
+/** The storage path for a place or an experience picture (migration 136): tenant / property / places or experiences / unique id . extension. */
+export function extraPhotoPath(kind: "places" | "experiences", tenantId: string, propertyId: string, id: string, ext: string): string {
+  return `${tenantId}/${propertyId}/${kind}/${id}.${ext}`;
+}
+
 /** The public address of a stored picture. */
 export function photoUrl(supabaseUrl: string, path: string): string {
   const base = supabaseUrl.replace(/\/+$/, "");

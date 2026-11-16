@@ -1,7 +1,14 @@
 import { PendingButton } from "@/components/ui/pending-button";
 import { buttonPrimary, buttonQuiet, ErrorBanner, inputClass, Notice, PageIntro, PageTitle } from "@/components/staff/ui";
 import { formatMoney } from "@/lib/guest-site/format";
-import { deleteHotelExperience, saveHotelExperience } from "@/lib/staff/hotel-profile-actions";
+import {
+  deleteHotelExperience,
+  removeExperiencePhoto,
+  saveHotelExperience,
+  uploadExperiencePhoto,
+} from "@/lib/staff/hotel-profile-actions";
+import { photoUrl } from "@/lib/staff/room-photos";
+import { PhotoPicker } from "@/components/ui/photo-picker";
 import { MAX_EXPERIENCE_BODY, MAX_EXPERIENCE_NAME, MAX_EXPERIENCES, unitLabel } from "@/lib/staff/experiences";
 import { createClient } from "@/lib/supabase/server";
 
@@ -16,6 +23,7 @@ type Experience = {
   unit: string;
   is_active: boolean;
   sort_order: number;
+  photo_path: string | null;
 };
 
 /**
@@ -40,6 +48,7 @@ export default async function ExperiencesSettingsPage({
   const properties = (propQ.data ?? []) as { id: string; name: string; currency: string }[];
   const rows = (expQ.data ?? []) as Experience[];
   const many = properties.length > 1;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 
   return (
     <main className="max-w-3xl">
@@ -67,6 +76,14 @@ export default async function ExperiencesSettingsPage({
                     {formatMoney(o.price_minor, p.currency)} {unitLabel(o.unit)}
                   </p>
                   <ExperienceForm propertyId={p.id} item={o} />
+                  <PhotoBlock
+                    id={o.id}
+                    path={o.photo_path}
+                    name={o.name}
+                    upload={uploadExperiencePhoto}
+                    remove={removeExperiencePhoto}
+                    supabaseUrl={supabaseUrl}
+                  />
                   <form action={deleteHotelExperience} className="mt-2">
                     <input type="hidden" name="experienceId" value={o.id} />
                     <PendingButton className={buttonQuiet} pendingLabel="Deleting…">
@@ -149,5 +166,52 @@ function ExperienceForm({ propertyId, item }: { propertyId: string; item: Experi
         </PendingButton>
       </div>
     </form>
+  );
+}
+
+function PhotoBlock({
+  id,
+  path,
+  name,
+  upload,
+  remove,
+  supabaseUrl,
+}: {
+  id: string;
+  path: string | null;
+  name: string;
+  upload: (formData: FormData) => Promise<void>;
+  remove: (formData: FormData) => Promise<void>;
+  supabaseUrl: string;
+}) {
+  return (
+    <div className="mt-3 border-t border-line pt-3">
+      {path ? (
+        <div className="flex items-center gap-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={photoUrl(supabaseUrl, path)} alt={`${name} picture`} className="h-16 w-24 rounded border border-line object-cover" />
+          <form action={remove}>
+            <input type="hidden" name="id" value={id} />
+            <PendingButton className={buttonQuiet} pendingLabel="Removing…">
+              Remove picture
+            </PendingButton>
+          </form>
+        </div>
+      ) : (
+        <p className="text-sm text-muted">No picture yet.</p>
+      )}
+      <form action={upload} className="mt-2 flex flex-wrap items-end gap-3">
+        <input type="hidden" name="id" value={id} />
+        <div>
+          <label htmlFor={`ph-${id}`} className="block text-sm">
+            {path ? "Replace the picture" : "Add a picture"} (JPEG, PNG or WebP, up to 2 MB)
+          </label>
+          <PhotoPicker id={`ph-${id}`} name="photo" required className={inputClass} previewClassName="h-16 w-24 !object-cover" />
+        </div>
+        <PendingButton className={buttonPrimary} pendingLabel="Uploading…">
+          Save picture
+        </PendingButton>
+      </form>
+    </div>
   );
 }

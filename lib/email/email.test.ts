@@ -69,6 +69,33 @@ describe("email templates", () => {
     expect(e.html).toContain(`href="${LINK}"`);
     expect(e.html).toContain("Hotel A &lt;Ibadan&gt;");
   });
+  it("experience answered: confirmed says the cost and that nothing is charged now; declined says it is not charged", () => {
+    const payload = {
+      answer: "confirmed",
+      experience: "City <tour>",
+      quantity: 2,
+      date: "2026-12-01",
+      total_minor: 1000000,
+      currency: "NGN",
+    };
+    const yes = renderEmail({ kind: "experience_answered", booking, link: LINK, payload });
+    expect(yes.subject).toBe("Your request is confirmed at Hotel A <Ibadan>");
+    expect(yes.text).toContain("City <tour>");
+    expect(yes.text).toContain("₦10,000.00");
+    expect(yes.text).toContain("nothing is charged now");
+    expect(yes.html).toContain("City &lt;tour&gt;");
+    expect(yes.html).toContain(`href="${LINK}"`);
+    const no = renderEmail({ kind: "experience_answered", booking, link: LINK, payload: { ...payload, answer: "declined" } });
+    expect(no.subject).toBe("About your request at Hotel A <Ibadan>");
+    expect(no.text).toContain("You have not been charged");
+    expect(no.text).not.toContain("₦10,000.00");
+  });
+  it("experience answered: a payload with no cost or a bad date still reads well", () => {
+    const e = renderEmail({ kind: "experience_answered", booking, link: LINK, payload: { answer: "confirmed", date: "soon" } });
+    expect(e.text).toContain("your experience");
+    expect(e.text).not.toContain("soon");
+    expect(e.text).toContain("nothing is charged now");
+  });
   it("cancelled: states the charge and the refund due, and promises no payout date", () => {
     const e = renderEmail({
       kind: "booking_cancelled",

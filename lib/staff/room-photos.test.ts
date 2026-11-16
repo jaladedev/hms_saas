@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   classifyPhotoError,
   formatBytes,
+  extraPhotoPath,
   logoPath,
   MAX_PHOTO_BYTES,
   photoPath,
@@ -40,6 +41,8 @@ describe("photoPath and photoUrl", () => {
   });
   it("builds the logo path the database expects", () => {
     expect(logoPath("t", "p", "i", "png")).toBe("t/p/logo/i.png");
+    expect(extraPhotoPath("places", "t", "p", "i", "jpg")).toBe("t/p/places/i.jpg");
+    expect(extraPhotoPath("experiences", "t", "p", "i", "webp")).toBe("t/p/experiences/i.webp");
   });
   it("builds a public address and ignores a trailing slash", () => {
     expect(photoUrl("https://x.supabase.co/", "a/b.jpg")).toBe("https://x.supabase.co/storage/v1/object/public/room-photos/a/b.jpg");

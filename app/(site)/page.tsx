@@ -483,6 +483,7 @@ export default async function GuestHome({ searchParams }: Props) {
             <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {experiences.map((x) => (
                 <li key={x.id} className="rounded-2xl border border-line bg-white p-4">
+                  {x.photo ? <PhotoFrame src={photoUrl(supa, x.photo)} alt={x.name} className="mb-3 aspect-[4/3] w-full rounded" /> : null}
                   <h3 className="text-sm font-semibold">{x.name}</h3>
                   {x.body ? <p className="mt-1 text-xs text-muted">{x.body}</p> : null}
                   <p className="mt-2 text-sm">
@@ -505,6 +506,9 @@ export default async function GuestHome({ searchParams }: Props) {
                     const href = safePlaceLink(pl.link);
                     return (
                       <li key={i} className="rounded-2xl border border-line bg-white p-4">
+                        {pl.photo ? (
+                          <PhotoFrame src={photoUrl(supa, pl.photo)} alt={pl.name} className="mb-3 aspect-[4/3] w-full rounded" />
+                        ) : null}
                         <h3 className="text-sm font-semibold">{pl.name}</h3>
                         {pl.body ? <p className="mt-1 text-xs text-muted">{pl.body}</p> : null}
                         {href ? (

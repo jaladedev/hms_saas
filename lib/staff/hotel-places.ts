@@ -65,7 +65,7 @@ export function isHttpsLink(value: unknown): value is string {
   return typeof value === "string" && value.length <= MAX_PLACE_LINK && /^https:\/\/[^ "<>]+$/.test(value);
 }
 
-export type GuestPlace = { name: string; body: string; category?: string | null; link?: string | null };
+export type GuestPlace = { name: string; body: string; category?: string | null; link?: string | null; photo?: string | null };
 export type PlaceGroup = { category: PlaceCategory; label: string; places: GuestPlace[] };
 
 /** The homepage list as one group per category, in the order the categories are listed above, each keeping the hotel's own order. A
