@@ -62,8 +62,28 @@ export default async function BookingPage({ params, searchParams }: Props) {
   return (
     <main className="mx-auto max-w-3xl px-4 py-8">
       {awaitingConfirmation ? <meta httpEquiv="refresh" content="6" /> : null}
-      <p className="text-sm text-muted">Booking reference</p>
-      <h1 className="font-display text-3xl">{b.booking_reference}</h1>
+      <div className={b.status === "confirmed" || b.status === "checked_in" ? "text-center" : ""}>
+        {b.status === "confirmed" || b.status === "checked_in" ? (
+          <span
+            aria-hidden="true"
+            className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary-strong"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              className="h-6 w-6"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M5 13l4 4L19 7" />
+            </svg>
+          </span>
+        ) : null}
+        <p className="text-sm text-muted">Booking reference</p>
+        <h1 className="font-display text-3xl">{b.booking_reference}</h1>
+      </div>
       {raw.done === "dates_changed" ? (
         <p role="status" className="mt-4 rounded border border-primary/40 bg-white p-3 text-primary-strong">
           Your dates are changed. The details below are your new booking.
@@ -76,7 +96,7 @@ export default async function BookingPage({ params, searchParams }: Props) {
       ) : null}
 
       {b.status === "confirmed" || b.status === "checked_in" ? (
-        <p className="mt-4 rounded border border-primary/40 bg-white p-3 text-primary-strong">
+        <p className="mt-4 rounded-2xl border border-primary/40 bg-white p-3 text-center text-primary-strong">
           Your booking is confirmed. Check-in is from {formatTime(b.check_in_time)} on {formatDate(b.arrival_date)}.
         </p>
       ) : null}
