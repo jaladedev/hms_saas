@@ -28,13 +28,13 @@ export default async function PoliciesPage() {
     <main className="mx-auto max-w-3xl px-4 py-10">
       <h1 className="font-display text-4xl">Hotel policies</h1>
       <p className="mt-3 text-muted">The terms that apply to a booking at {hotel.name}. They are shown again before you pay.</p>
-      <div className="mt-8 space-y-4">
+      <div className="mt-8 space-y-6 rounded-3xl border border-line bg-white p-6 sm:p-8">
         {sections.map((s) => (
-          <section key={s.id} aria-labelledby={`${s.id}-title`} className="rounded-2xl border border-line bg-white p-5">
-            <h2 id={`${s.id}-title`} className="font-display text-xl">
+          <section key={s.id} aria-labelledby={`${s.id}-title`}>
+            <h2 id={`${s.id}-title`} className="text-lg font-semibold">
               {s.title}
             </h2>
-            <ul className="mt-3 space-y-2">
+            <ul className="mt-1 space-y-1 text-muted">
               {s.lines.map((line) => (
                 <li key={line}>{line}</li>
               ))}

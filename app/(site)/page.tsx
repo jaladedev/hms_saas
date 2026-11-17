@@ -384,10 +384,13 @@ export default async function GuestHome({ searchParams }: Props) {
             {soldOut.length > 0 ? (
               <ul aria-label="Not available for these dates" className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {soldOut.map((t) => (
-                  <li key={t.room_type_id} className="rounded-xl border border-line bg-white/60 p-4 text-muted">
+                  <li key={t.room_type_id} className="rounded-2xl border border-line bg-white/60 p-5 text-muted">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
                         <h3 className="font-display text-xl text-ink">{t.name}</h3>
+                        <p className="mt-2 w-fit rounded-full bg-critical/10 px-2.5 py-0.5 text-xs font-medium text-critical">
+                          Unavailable
+                        </p>
                         <p className="mt-1 text-sm">Not available for these dates</p>
                       </div>
                       <Link href={`/rooms/${t.room_type_id}`} className="text-sm text-primary underline underline-offset-2">
@@ -564,28 +567,55 @@ export default async function GuestHome({ searchParams }: Props) {
           : null}
 
         {!searching && reviews && reviews.reviews.length > 0 ? (
-          <section aria-labelledby="reviews-title" className="pt-6">
-            <h2 id="reviews-title" className="font-display text-3xl">
+          <section aria-labelledby="reviews-title" className="pt-14">
+            <h2 id="reviews-title" className="text-xs font-medium uppercase tracking-[0.18em] text-muted">
               Guest reviews
             </h2>
             {summary ? <p className="mt-1 text-sm text-muted">{summary}</p> : null}
-            <ul className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {reviews.reviews.map((r, i) => (
-                <li key={i} className="flex flex-col gap-2 rounded-2xl border border-line bg-white p-5">
-                  <p aria-label={ratingText(r.rating)} className="text-lg tracking-wide text-primary">
-                    <span aria-hidden="true">
-                      {"★".repeat(r.rating)}
-                      {"☆".repeat(5 - r.rating)}
-                    </span>
-                  </p>
-                  {r.comment ? <p className="whitespace-pre-line text-sm">{r.comment}</p> : null}
-                  <p className="mt-auto pt-2 text-xs text-muted">
-                    {r.author}
-                    {reviewMonth(r.month) ? `, ${reviewMonth(r.month)}` : ""}
-                  </p>
-                </li>
-              ))}
-            </ul>
+            {(() => {
+              const [first, ...others] = reviews.reviews;
+              if (!first) return null;
+              return (
+                <>
+                  <figure className="mt-5 max-w-3xl">
+                    <p aria-label={ratingText(first.rating)} className="text-lg tracking-wide text-primary">
+                      <span aria-hidden="true">
+                        {"★".repeat(first.rating)}
+                        {"☆".repeat(5 - first.rating)}
+                      </span>
+                    </p>
+                    {first.comment ? (
+                      <blockquote className="mt-2 whitespace-pre-line font-display text-2xl leading-snug sm:text-3xl">
+                        “{first.comment}”
+                      </blockquote>
+                    ) : null}
+                    <figcaption className="mt-3 text-sm text-muted">
+                      {first.author}
+                      {reviewMonth(first.month) ? `, ${reviewMonth(first.month)}` : ""}
+                    </figcaption>
+                  </figure>
+                  {others.length > 0 ? (
+                    <ul className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                      {others.map((r, i) => (
+                        <li key={i} className="flex flex-col gap-2 rounded-2xl border border-line bg-white p-5">
+                          <p aria-label={ratingText(r.rating)} className="text-lg tracking-wide text-primary">
+                            <span aria-hidden="true">
+                              {"★".repeat(r.rating)}
+                              {"☆".repeat(5 - r.rating)}
+                            </span>
+                          </p>
+                          {r.comment ? <p className="whitespace-pre-line text-sm">{r.comment}</p> : null}
+                          <p className="mt-auto pt-2 text-xs text-muted">
+                            {r.author}
+                            {reviewMonth(r.month) ? `, ${reviewMonth(r.month)}` : ""}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </>
+              );
+            })()}
           </section>
         ) : null}
 
