@@ -3576,6 +3576,7 @@ export type Database = {
       platform_set_ticket_status: { Args: { p_status: string; p_ticket: string }; Returns: Json }
       platform_list_tickets: { Args: { p_status?: string; p_tenant?: string }; Returns: Json }
       platform_ticket_detail: { Args: { p_ticket: string }; Returns: Json }
+      platform_list_properties: { Args: Record<PropertyKey, never>; Returns: Json }
       platform_list_tenants: { Args: Record<PropertyKey, never>; Returns: Json }
       platform_require: { Args: { p_min: string }; Returns: string }
       platform_set_domain_verified: {

@@ -365,6 +365,41 @@ export function filterHotels<T extends HotelListRow>(rows: T[], q: string | unde
   });
 }
 
+export type PropertyRow = {
+  id: string;
+  name: string;
+  code: string;
+  city: string;
+  state: string;
+  timezone: string;
+  currency: string;
+  status: string;
+  created_at: string;
+  tenant_id: string;
+  tenant_name: string;
+  tenant_status: string;
+  host: string | null;
+};
+
+/** The property directory rows from the database, keeping only well-formed ones. Anything else (a failed read, an odd shape) is no rows. */
+export function readProperties(data: unknown): PropertyRow[] {
+  if (!Array.isArray(data)) return [];
+  return data.filter(
+    (r): r is PropertyRow =>
+      !!r && typeof r === "object" && typeof r.id === "string" && typeof r.name === "string" && typeof r.tenant_name === "string",
+  );
+}
+
+/** Properties whose name, code, hotel, town, state or host contains every word typed (any case), optionally only one status. Blank means all. */
+export function filterProperties<T extends PropertyRow>(rows: T[], q: string | undefined, status?: string): T[] {
+  const words = (q ?? "").toLowerCase().split(/\s+/).filter(Boolean);
+  return rows.filter((r) => {
+    if (status && r.status !== status) return false;
+    const hay = `${r.name} ${r.code} ${r.tenant_name} ${r.city} ${r.state} ${r.host ?? ""}`.toLowerCase();
+    return words.every((w) => hay.includes(w));
+  });
+}
+
 export type EntitlementOverview = {
   enforced: string[];
   hotels: (HotelListRow & { entitlements: { feature_key: string; enabled: boolean }[] })[];

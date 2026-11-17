@@ -951,4 +951,8 @@ DM="$(psql -f "$HERE/138_digest_messages.sql" 2>&1)" || { echo "$DM"; echo "DIGE
 echo "$DM" | grep -E 'PASS' || true
 if echo "$DM" | grep -qE 'FAIL|ERROR'; then echo "$DM"; echo "DIGEST MESSAGES TESTS FAILED"; exit 1; fi
 
+PD="$(psql -f "$HERE/139_platform_property_directory.sql" 2>&1)" || { echo "$PD"; echo "PROPERTY DIRECTORY TESTS FAILED"; exit 1; }
+echo "$PD" | grep -E 'PASS' || true
+if echo "$PD" | grep -qE 'FAIL|ERROR'; then echo "$PD"; echo "PROPERTY DIRECTORY TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

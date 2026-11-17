@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   classifyPlatformError,
   filterHotels,
+  filterProperties,
+  readProperties,
   flagCell,
   gridKeys,
   readOverview,
@@ -221,6 +223,42 @@ describe("filterHotels", () => {
     expect(filterHotels(hotels, "", "suspended").map((h) => h.id)).toEqual(["2"]);
     expect(filterHotels(hotels, "grand", "active").map((h) => h.id)).toEqual(["3"]);
     expect(filterHotels(hotels, "lagos", "active")).toEqual([]);
+  });
+});
+
+describe("property directory", () => {
+  const prop = (id: string, over: Record<string, unknown> = {}) => ({
+    id,
+    name: "Bodija Boutique Hotel",
+    code: "BBH",
+    city: "Ibadan",
+    state: "Oyo",
+    timezone: "Africa/Lagos",
+    currency: "NGN",
+    status: "active",
+    created_at: "2026-01-01T00:00:00Z",
+    tenant_id: "t1",
+    tenant_name: "Bodija Group",
+    tenant_status: "active",
+    host: "book.bodija.example.com",
+    ...over,
+  });
+  const rows = [prop("1"), prop("2", { name: "Lekki Suites", code: "LKS", city: "Lagos", state: "Lagos", status: "inactive", host: null })];
+  it("keeps well-formed rows and treats anything else as none", () => {
+    expect(readProperties(rows)).toHaveLength(2);
+    expect(readProperties([{ nope: 1 }, null, rows[0]])).toHaveLength(1);
+    expect(readProperties(null)).toEqual([]);
+  });
+  it("matches name, code, hotel, town, state and host in any case, all words together", () => {
+    expect(filterProperties(rows, "").map((r) => r.id)).toEqual(["1", "2"]);
+    expect(filterProperties(rows, "LEKKI").map((r) => r.id)).toEqual(["2"]);
+    expect(filterProperties(rows, "ibadan oyo").map((r) => r.id)).toEqual(["1"]);
+    expect(filterProperties(rows, "bodija.example").map((r) => r.id)).toEqual(["1"]);
+    expect(filterProperties(rows, "lekki ibadan")).toEqual([]);
+  });
+  it("narrows by status", () => {
+    expect(filterProperties(rows, "", "inactive").map((r) => r.id)).toEqual(["2"]);
+    expect(filterProperties(rows, "ibadan", "inactive")).toEqual([]);
   });
 });
 
