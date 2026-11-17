@@ -58,6 +58,11 @@ export default async function StaffLayout({ children }: { children: React.ReactN
     .eq("assigned_to", data.user.id);
   const myRepairs = mineQ.error ? 0 : (mineQ.count ?? 0);
 
+  // Guest messages nobody has answered yet, at the hotels this person may read them for (row level security decides). A failed
+  // read shows no badge rather than a wrong number.
+  const msgQ = await supabase.from("contact_messages").select("id", { count: "exact", head: true }).eq("status", "new");
+  const newMessages = msgQ.error ? 0 : (msgQ.count ?? 0);
+
   // Unread notices for this person. A failed read shows no badge rather than a wrong number.
   const unreadQ = await supabase.rpc("notification_unread_count");
   const unread = unreadQ.error || typeof unreadQ.data !== "number" ? 0 : unreadQ.data;
@@ -137,6 +142,14 @@ export default async function StaffLayout({ children }: { children: React.ReactN
                         {badgeText(unread)}
                       </span>
                       <span className="sr-only">, {unread} unread</span>
+                    </>
+                  )}
+                  {item.href === "/app/messages" && newMessages > 0 && (
+                    <>
+                      <span aria-hidden="true" className="ml-2 rounded-full bg-white/20 px-2 py-0.5 text-xs tabular-nums">
+                        {badgeText(newMessages)}
+                      </span>
+                      <span className="sr-only">, {newMessages} new</span>
                     </>
                   )}
                   {item.href === "/app/maintenance" && myRepairs > 0 && (

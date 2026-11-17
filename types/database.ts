@@ -49,6 +49,45 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_messages: {
+        Row: {
+          created_at: string
+          email: string
+          guest_name: string
+          handled_at: string | null
+          handled_by: string | null
+          id: string
+          message: string
+          property_id: string
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          guest_name: string
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          message: string
+          property_id: string
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          guest_name?: string
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          message?: string
+          property_id?: string
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: []
+      }
       daily_rates: {
         Row: {
           amount_minor: number
