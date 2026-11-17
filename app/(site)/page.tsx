@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatMoney } from "@/lib/guest-site/format";
+import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { telHref } from "@/lib/staff/hotel-profile";
 import { photoUrl } from "@/lib/staff/room-photos";
 import { PhotoFrame } from "@/components/ui/photo-frame";
@@ -15,6 +15,7 @@ import { facilityList, photoCountLabel, placeLine, socialLinks, timesLine } from
 import {
   amenityHighlights,
   freeCancellationBadge,
+  guestsLabel,
   stayLimitProblem,
   stayRule,
   offerUntilLabel,
@@ -265,9 +266,12 @@ export default async function GuestHome({ searchParams }: Props) {
 
         {stay && result?.ok && !limitProblem ? (
           <section className="pt-10" aria-live="polite">
-            <h2 className="text-lg font-medium">
+            <h2 className="font-display text-3xl">
               {result.data.property_name}: {result.data.nights} {result.data.nights === 1 ? "night" : "nights"}
             </h2>
+            <p className="mt-1 text-muted">
+              {formatDate(stay.arrival)} to {formatDate(stay.departure)} · {guestsLabel(stay.adults + stay.children)}
+            </p>
             {inChosen.length > 1 || view.minGuests > 0 || view.amenity ? (
               <form action="/" method="get" className="mt-3 flex flex-wrap items-end gap-3 text-sm">
                 <input type="hidden" name="arrival" value={stay.arrival} />

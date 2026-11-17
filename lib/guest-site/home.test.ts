@@ -5,6 +5,7 @@ import {
   capacityLabel,
   freeCancellationBadge,
   fromPriceLabel,
+  guestsLabel,
   monogram,
   nightDayLabel,
   nightPriceLabel,
@@ -157,5 +158,13 @@ describe("bentoLayout", () => {
     const many = Array.from({ length: 9 }, (_, i) => i);
     const l = bentoLayout(many);
     expect([l.featured, l.highlight, ...l.small]).toEqual(many);
+  });
+});
+
+describe("guestsLabel", () => {
+  it("is singular for one and plural otherwise", () => {
+    expect(guestsLabel(1)).toBe("1 guest");
+    expect(guestsLabel(2)).toBe("2 guests");
+    expect(guestsLabel(6)).toBe("6 guests");
   });
 });

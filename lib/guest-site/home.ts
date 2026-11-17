@@ -122,3 +122,8 @@ export type BentoLayout<T> = {
 export function bentoLayout<T>(types: T[]): BentoLayout<T> {
   return { featured: types[0] ?? null, highlight: types[1] ?? null, small: types.slice(2) };
 }
+
+/** "1 guest" or "3 guests", for the line under the results heading. */
+export function guestsLabel(n: number): string {
+  return n === 1 ? "1 guest" : `${n} guests`;
+}
