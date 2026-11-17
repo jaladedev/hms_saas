@@ -40,6 +40,13 @@ export default async function Hotels({ searchParams }: { searchParams: Promise<R
   const status = typeof search.status === "string" ? search.status : "";
   const rows = filterHotels(all, q, status);
   const statuses = [...new Set(all.map((r) => r.status))].sort();
+  // The overview tiles count every hotel, not just the ones a search shows.
+  const tiles = [
+    { label: "Total hotels", value: all.length },
+    { label: "Active", value: all.filter((r) => r.status === "active").length },
+    { label: "Suspended", value: all.filter((r) => r.status === "suspended").length },
+    { label: "Properties", value: all.reduce((n, r) => n + r.properties, 0) },
+  ];
 
   return (
     <main className="max-w-5xl">
@@ -48,6 +55,16 @@ export default async function Hotels({ searchParams }: { searchParams: Promise<R
       <div className="mt-6">
         <PlatformNotice search={search} />
       </div>
+      {!error && all.length > 0 && (
+        <dl aria-label="Platform totals" className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {tiles.map((t) => (
+            <div key={t.label} className="rounded-2xl bg-navy-800 p-4 text-white">
+              <dt className="text-sm text-white/80">{t.label}</dt>
+              <dd className="mt-1 text-3xl font-semibold tabular-nums">{t.value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
       {error && <ErrorBanner className="mb-5">The list could not be loaded. Reload the page.</ErrorBanner>}
       {level.data === "admin" && (
         <p className="mb-4 text-sm">
