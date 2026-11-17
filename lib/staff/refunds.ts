@@ -441,6 +441,7 @@ export const OK_MESSAGES = {
   photo_removed: "Photo removed.",
   hotel_profile_saved: "Hotel details saved. Guests see them on the hotel's website.",
   waitlist_updated: "Waiting list updated.",
+  contact_updated: "Message updated.",
   hotel_waitlist_email_on: "Waiting list emails turned on. A waiting guest is emailed once when a room frees up for their dates.",
   hotel_waitlist_email_off: "Waiting list emails turned off. Staff contact waiting guests themselves.",
   hotel_digest_on: "Morning summary turned on. It is emailed each morning from 06:00 hotel time.",

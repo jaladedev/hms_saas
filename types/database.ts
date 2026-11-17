@@ -3203,6 +3203,9 @@ export type Database = {
         }
         Returns: Json
       }
+      guest_send_message: { Args: { p_email: string; p_host: string; p_message: string; p_name: string }; Returns: Json }
+      contact_messages_list: { Args: { p_property: string }; Returns: Json }
+      contact_message_set_status: { Args: { p_id: string; p_status: string }; Returns: Json }
       waitlist_list: { Args: { p_property: string }; Returns: Json }
       waitlist_set_status: { Args: { p_id: string; p_status: string }; Returns: Json }
       save_promo_code: {

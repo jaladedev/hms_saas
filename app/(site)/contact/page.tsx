@@ -2,13 +2,18 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { placeLine, timesLine } from "@/lib/guest-site/hotel";
+import { messageForCode } from "@/lib/guest-site/errors";
+import { MESSAGE_MAX } from "@/lib/guest-site/contact";
 import { guestHotel, requestHost } from "@/lib/guest-site/server";
+import { sendContactAction } from "./actions";
 import { telHref } from "@/lib/staff/hotel-profile";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Contact" };
 
-export default async function ContactPage() {
+export default async function ContactPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const raw = await searchParams;
+  const notice = typeof raw.error === "string" ? messageForCode(raw.error) : null;
   const hotelResult = await guestHotel(await requestHost());
   if (!hotelResult.ok) notFound();
   const hotel = hotelResult.data;
@@ -58,6 +63,63 @@ export default async function ContactPage() {
           </div>
         ))}
       </dl>
+
+      <section aria-labelledby="message-title" className="mt-8 rounded-2xl border border-line bg-white p-6">
+        <h2 id="message-title" className="font-display text-2xl">
+          Send a message
+        </h2>
+        <p className="mt-1 text-sm text-muted">The hotel reads messages in its inbox and answers by email or phone.</p>
+        {raw.sent === "1" ? (
+          <p role="status" className="mt-4 rounded-lg border border-line bg-paper p-3">
+            Thank you. Your message was sent and the hotel will get back to you.
+          </p>
+        ) : null}
+        {notice ? (
+          <p role="alert" className="mt-4 rounded-lg border border-critical/40 bg-white p-3 text-critical">
+            {notice}
+          </p>
+        ) : null}
+        <form action={sendContactAction} className="mt-5 space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block text-sm">
+              Your name
+              <input
+                name="name"
+                required
+                minLength={2}
+                maxLength={80}
+                autoComplete="name"
+                className="mt-1 block w-full rounded-lg border border-line px-3 py-2"
+              />
+            </label>
+            <label className="block text-sm">
+              Email
+              <input
+                name="email"
+                type="email"
+                required
+                maxLength={254}
+                autoComplete="email"
+                className="mt-1 block w-full rounded-lg border border-line px-3 py-2"
+              />
+            </label>
+          </div>
+          <label className="block text-sm">
+            Message
+            <textarea
+              name="message"
+              required
+              minLength={5}
+              maxLength={MESSAGE_MAX}
+              rows={5}
+              className="mt-1 block w-full rounded-lg border border-line px-3 py-2"
+            />
+          </label>
+          <button type="submit" className="rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-white hover:bg-primary-strong">
+            Send message
+          </button>
+        </form>
+      </section>
     </main>
   );
 }

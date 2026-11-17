@@ -229,6 +229,16 @@ export function joinWaitlist(args: { host: string; stay: StayParams; roomTypeId:
   });
 }
 
+/** Sends a guest's message to the hotel's inbox; staff answer by email or phone (migration 137). */
+export function sendContactMessage(args: { host: string; name: string; email: string; message: string }) {
+  return call<{ message_id: string; created: boolean }>("guest_send_message", {
+    p_host: args.host,
+    p_name: args.name,
+    p_email: args.email,
+    p_message: args.message,
+  });
+}
+
 export type GuestPolicy = {
   currency: string;
   cancellation_rules: unknown;

@@ -133,6 +133,14 @@ const RULES: Array<[RegExp, GuestError]> = [
     /POLICY_VIOLATION: waitlist (name|email|phone|party)/,
     { code: "waitlist_details", message: "Please check your name, email address and phone number (digits only, at most 32 characters)." },
   ],
+  [
+    /POLICY_VIOLATION: contact too many/,
+    { code: "contact_many", message: "You have sent several messages today. Please wait for the hotel to answer, or call them." },
+  ],
+  [
+    /POLICY_VIOLATION: contact (name|email|message)/,
+    { code: "contact_details", message: "Please check your name, your email address and your message (5 to 2000 characters)." },
+  ],
   [/POLICY_VIOLATION: waitlist dates/, { code: "dates", message: "Please check your dates." }],
   [/NOT_FOUND: (host|property)/, { code: "not_configured", message: "Online booking is not available on this site yet." }],
   [/NOT_FOUND: room type/, { code: "not_bookable", message: "That room type is not available to book online." }],

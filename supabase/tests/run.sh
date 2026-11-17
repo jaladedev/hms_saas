@@ -943,4 +943,8 @@ EP="$(psql -f "$HERE/136_experience_photos_and_emails.sql" 2>&1)" || { echo "$EP
 echo "$EP" | grep -E 'PASS' || true
 if echo "$EP" | grep -qE 'FAIL|ERROR'; then echo "$EP"; echo "EXPERIENCE PHOTOS TESTS FAILED"; exit 1; fi
 
+CM="$(psql -f "$HERE/137_contact_messages.sql" 2>&1)" || { echo "$CM"; echo "CONTACT MESSAGES TESTS FAILED"; exit 1; }
+echo "$CM" | grep -E 'PASS' || true
+if echo "$CM" | grep -qE 'FAIL|ERROR'; then echo "$CM"; echo "CONTACT MESSAGES TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"
