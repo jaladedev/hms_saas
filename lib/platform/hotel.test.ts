@@ -3,6 +3,7 @@ import {
   classifyPlatformError,
   filterHotels,
   filterProperties,
+  monthlyCounts,
   readProperties,
   flagCell,
   gridKeys,
@@ -223,6 +224,26 @@ describe("filterHotels", () => {
     expect(filterHotels(hotels, "", "suspended").map((h) => h.id)).toEqual(["2"]);
     expect(filterHotels(hotels, "grand", "active").map((h) => h.id)).toEqual(["3"]);
     expect(filterHotels(hotels, "lagos", "active")).toEqual([]);
+  });
+});
+
+describe("monthlyCounts", () => {
+  const now = new Date("2026-11-17T10:00:00Z");
+  it("gives the last six months oldest first, with zero for quiet months", () => {
+    const r = monthlyCounts(
+      [{ created_at: "2026-11-02T00:00:00Z" }, { created_at: "2026-11-30T23:00:00Z" }, { created_at: "2026-09-10T00:00:00Z" }],
+      now,
+    );
+    expect(r.map((m) => m.label)).toEqual(["Jun", "Jul", "Aug", "Sep", "Oct", "Nov"]);
+    expect(r.map((m) => m.count)).toEqual([0, 0, 0, 1, 0, 2]);
+  });
+  it("crosses a year boundary and ignores older rows", () => {
+    const r = monthlyCounts(
+      [{ created_at: "2025-12-15T00:00:00Z" }, { created_at: "2025-01-01T00:00:00Z" }],
+      new Date("2026-02-05T00:00:00Z"),
+    );
+    expect(r.map((m) => m.key)).toEqual(["2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02"]);
+    expect(r.map((m) => m.count)).toEqual([0, 0, 0, 1, 0, 0]);
   });
 });
 

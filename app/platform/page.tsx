@@ -11,7 +11,7 @@ import {
   thRowHead,
 } from "@/components/staff/ui";
 import { PlatformNotice } from "@/components/platform-notice";
-import { filterHotels, shortDate } from "@/lib/platform/hotel";
+import { filterHotels, monthlyCounts, shortDate } from "@/lib/platform/hotel";
 import { createClient } from "@/lib/supabase/server";
 import { PendingButton } from "@/components/ui/pending-button";
 
@@ -40,6 +40,8 @@ export default async function Hotels({ searchParams }: { searchParams: Promise<R
   const status = typeof search.status === "string" ? search.status : "";
   const rows = filterHotels(all, q, status);
   const statuses = [...new Set(all.map((r) => r.status))].sort();
+  const growth = monthlyCounts(all, new Date());
+  const peak = Math.max(1, ...growth.map((m) => m.count));
   // The overview tiles count every hotel, not just the ones a search shows.
   const tiles = [
     { label: "Total hotels", value: all.length },
@@ -64,6 +66,31 @@ export default async function Hotels({ searchParams }: { searchParams: Promise<R
             </div>
           ))}
         </dl>
+      )}
+      {!error && all.length > 0 && (
+        <section aria-labelledby="growth-title" className="mb-6 rounded-2xl border border-line bg-white p-5">
+          <h2 id="growth-title" className="font-display text-lg">
+            Hotels added per month
+          </h2>
+          <ul className="mt-4 grid grid-cols-6 items-end gap-3">
+            {growth.map((m) => (
+              <li key={m.key} className="flex flex-col items-center gap-1">
+                <span className="text-xs tabular-nums text-muted">{m.count}</span>
+                <span
+                  aria-hidden="true"
+                  className="block w-full rounded-t bg-navy-800"
+                  style={{ height: `${Math.max(4, Math.round((m.count / peak) * 96))}px` }}
+                />
+                <span className="text-xs text-muted">
+                  {m.label}
+                  <span className="sr-only">
+                    : {m.count} {m.count === 1 ? "hotel" : "hotels"} added
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
       {error && <ErrorBanner className="mb-5">The list could not be loaded. Reload the page.</ErrorBanner>}
       {level.data === "admin" && (

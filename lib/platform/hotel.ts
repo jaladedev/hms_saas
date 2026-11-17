@@ -365,6 +365,28 @@ export function filterHotels<T extends HotelListRow>(rows: T[], q: string | unde
   });
 }
 
+export type MonthCount = { key: string; label: string; count: number };
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** How many rows were created in each of the last `months` calendar months (UTC), oldest first, the current month last. Months with none show 0. */
+export function monthlyCounts(rows: { created_at: string }[], now: Date, months = 6): MonthCount[] {
+  const out: MonthCount[] = [];
+  for (let i = months - 1; i >= 0; i--) {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+    out.push({
+      key: `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`,
+      label: MONTHS[d.getUTCMonth()] as string,
+      count: 0,
+    });
+  }
+  for (const r of rows) {
+    const hit = out.find((m) => r.created_at.startsWith(m.key));
+    if (hit) hit.count += 1;
+  }
+  return out;
+}
+
 export type PropertyRow = {
   id: string;
   name: string;
