@@ -120,7 +120,7 @@ export default async function Dashboard() {
   const loadFailed = Boolean(propQ.error || desk.error || flaggedQ.error || refundQ.error || repairQ.error || roomQ.error);
 
   return (
-    <main className="max-w-4xl">
+    <main className="max-w-6xl">
       <PageTitle>Overview</PageTitle>
       <p className="mt-2 text-muted">{earliest ? `Today, ${formatDate(earliest)}.` : "No property is visible to this account."}</p>
 
@@ -132,7 +132,7 @@ export default async function Dashboard() {
 
       <section className="mt-8" aria-labelledby="today">
         <SectionTitle id="today">Today</SectionTitle>
-        <dl className="mt-3 flex flex-wrap border-y border-line">
+        <dl className="mt-3 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
           {(
             [
               ["Arriving", figures.arriving],
@@ -141,10 +141,10 @@ export default async function Dashboard() {
               ...(canSeeRepairs ? ([["Open repairs", repairs.open]] as const) : []),
               ...(canSeeCleaning ? ([["Rooms to clean", cleaning.total]] as const) : []),
             ] as readonly (readonly [string, number])[]
-          ).map(([label, n], i) => (
-            <div key={label} className={`min-w-32 flex-1 px-4 py-4 ${i > 0 ? "border-l border-line" : "pl-0"}`}>
-              <dt className="text-sm text-muted">{label}</dt>
-              <dd className="mt-1 text-3xl font-semibold tabular-nums">{n}</dd>
+          ).map(([label, n]) => (
+            <div key={label} className="rounded-2xl border border-line bg-white p-5">
+              <dt className="text-xs uppercase tracking-wide text-muted">{label}</dt>
+              <dd className="mt-2 text-3xl font-semibold tabular-nums">{n}</dd>
             </div>
           ))}
         </dl>
@@ -171,101 +171,106 @@ export default async function Dashboard() {
         </p>
       </section>
 
-      {week.length > 0 && (
-        <section className="mt-10" aria-labelledby="occupancy">
-          <SectionTitle id="occupancy">Occupancy</SectionTitle>
-          {week.map((w) => (
-            <div key={w.propertyId} className="mt-3">
-              {week.length > 1 && <p className="text-sm font-medium">{propertyName.get(w.propertyId)}</p>}
-              <p className="mt-1">
-                <span className="text-3xl font-semibold tabular-nums">{formatBp(w.today.bp)}</span>{" "}
-                <span className="text-sm text-muted">
-                  tonight: {w.today.sold} of {w.today.available} rooms sold, {w.today.free} free
-                </span>
+      <div className="mt-10 grid items-start gap-6 lg:grid-cols-3">
+        {recent.length > 0 && (
+          <section className="rounded-2xl border border-line bg-white p-5 lg:col-span-2" aria-labelledby="recent">
+            <SectionTitle id="recent">Recent reservations</SectionTitle>
+            <ul className="mt-3 border-t border-line">
+              {recent.map((r) => (
+                <li key={r.id} className="border-b border-line">
+                  <Link href={`/app/reservations/${r.id}`} className="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-3 hover:bg-paper">
+                    <span className="w-36 whitespace-nowrap font-medium">{r.booking_reference}</span>
+                    <span className="min-w-32 flex-1">{r.primary_guest_id ? (guestName.get(r.primary_guest_id) ?? "Guest") : "Guest"}</span>
+                    <span className="text-sm text-muted">
+                      {STATUS_LABEL[r.reservation_status] ?? r.reservation_status} · {PAYMENT_LABEL[r.payment_status] ?? r.payment_status}
+                    </span>
+                    <span className="tabular-nums">{formatMoney(r.total_minor, r.currency)}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-sm">
+              <Link href="/app/reservations" className={linkClass}>
+                All reservations
+              </Link>
+            </p>
+          </section>
+        )}
+
+        <div className="space-y-6">
+          <section className="rounded-2xl border border-line bg-white p-5" aria-labelledby="needs">
+            <SectionTitle id="needs">Needs a person</SectionTitle>
+            {tasks.length === 0 ? (
+              <p className="mt-3 rounded border border-line bg-white px-4 py-5 text-muted">
+                {loadFailed ? "Nothing could be confirmed." : "Nothing is waiting on anyone."}
               </p>
-              <ol aria-label="Occupancy for the next seven days" className="mt-3 flex h-20 items-end gap-2">
-                {w.days.map((d) => (
-                  <li key={d.date} className="flex h-full flex-1 flex-col justify-end text-center">
-                    <div
-                      className="rounded-t bg-primary/70"
-                      style={{ height: `${barPercent(d.bp)}%` }}
-                      title={`${formatDate(d.date)}: ${formatBp(d.bp)} (${d.sold} of ${d.available})`}
-                    />
+            ) : (
+              <ul className="mt-3 border-t border-line">
+                {tasks.map((t) => (
+                  <li key={t.key} className="border-b border-line">
+                    <Link
+                      href={t.href}
+                      className="flex items-baseline gap-4 py-3 hover:bg-white focus-visible:outline-2 focus-visible:outline-primary"
+                    >
+                      <span
+                        className={`w-10 text-right text-2xl font-semibold tabular-nums ${t.tone === "critical" ? "text-critical" : ""}`}
+                      >
+                        {t.count}
+                      </span>
+                      <span>{t.label}</span>
+                    </Link>
                   </li>
                 ))}
-              </ol>
-              <ol className="mt-1 flex gap-2 text-xs text-muted" aria-hidden="true">
-                {w.days.map((d) => (
-                  <li key={d.date} className="flex-1 text-center tabular-nums">
-                    {formatBp(d.bp)}
-                  </li>
-                ))}
-              </ol>
-            </div>
-          ))}
-          <p className="mt-2 text-sm">
-            <Link href="/app/reports/occupancy" className={linkClass}>
-              Open the occupancy report
-            </Link>
-          </p>
-        </section>
-      )}
-
-      {recent.length > 0 && (
-        <section className="mt-10" aria-labelledby="recent">
-          <SectionTitle id="recent">Recent reservations</SectionTitle>
-          <ul className="mt-3 border-t border-line">
-            {recent.map((r) => (
-              <li key={r.id} className="border-b border-line">
-                <Link href={`/app/reservations/${r.id}`} className="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-3 hover:bg-white">
-                  <span className="w-28 font-medium">{r.booking_reference}</span>
-                  <span className="min-w-32 flex-1">{r.primary_guest_id ? (guestName.get(r.primary_guest_id) ?? "Guest") : "Guest"}</span>
-                  <span className="text-sm text-muted">
-                    {STATUS_LABEL[r.reservation_status] ?? r.reservation_status} · {PAYMENT_LABEL[r.payment_status] ?? r.payment_status}
-                  </span>
-                  <span className="tabular-nums">{formatMoney(r.total_minor, r.currency)}</span>
+              </ul>
+            )}
+            {refunds.waitingOnOthers > 0 && (
+              <p className="mt-3 max-w-prose text-sm text-muted">
+                {refunds.waitingOnOthers} {refunds.waitingOnOthers === 1 ? "refund you requested is" : "refunds you requested are"} waiting
+                for a second person to approve.
+              </p>
+            )}
+          </section>
+          {week.length > 0 && (
+            <section className="rounded-2xl border border-line bg-white p-5" aria-labelledby="occupancy">
+              <SectionTitle id="occupancy">Occupancy</SectionTitle>
+              {week.map((w) => (
+                <div key={w.propertyId} className="mt-3">
+                  {week.length > 1 && <p className="text-sm font-medium">{propertyName.get(w.propertyId)}</p>}
+                  <p className="mt-1">
+                    <span className="text-3xl font-semibold tabular-nums">{formatBp(w.today.bp)}</span>{" "}
+                    <span className="text-sm text-muted">
+                      tonight: {w.today.sold} of {w.today.available} rooms sold, {w.today.free} free
+                    </span>
+                  </p>
+                  <ol aria-label="Occupancy for the next seven days" className="mt-3 flex h-20 items-end gap-2">
+                    {w.days.map((d) => (
+                      <li key={d.date} className="flex h-full flex-1 flex-col justify-end text-center">
+                        <div
+                          className="rounded-t bg-primary/70"
+                          style={{ height: `${barPercent(d.bp)}%` }}
+                          title={`${formatDate(d.date)}: ${formatBp(d.bp)} (${d.sold} of ${d.available})`}
+                        />
+                      </li>
+                    ))}
+                  </ol>
+                  <ol className="mt-1 flex gap-2 text-xs text-muted" aria-hidden="true">
+                    {w.days.map((d) => (
+                      <li key={d.date} className="flex-1 text-center tabular-nums">
+                        {new Date(`${d.date}T00:00:00Z`).toLocaleDateString("en-GB", { weekday: "short", timeZone: "UTC" })}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              ))}
+              <p className="mt-2 text-sm">
+                <Link href="/app/reports/occupancy" className={linkClass}>
+                  Open the occupancy report
                 </Link>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-2 text-sm">
-            <Link href="/app/reservations" className={linkClass}>
-              All reservations
-            </Link>
-          </p>
-        </section>
-      )}
-
-      <section className="mt-10" aria-labelledby="needs">
-        <SectionTitle id="needs">Needs a person</SectionTitle>
-        {tasks.length === 0 ? (
-          <p className="mt-3 rounded border border-line bg-white px-4 py-5 text-muted">
-            {loadFailed ? "Nothing could be confirmed." : "Nothing is waiting on anyone."}
-          </p>
-        ) : (
-          <ul className="mt-3 border-t border-line">
-            {tasks.map((t) => (
-              <li key={t.key} className="border-b border-line">
-                <Link
-                  href={t.href}
-                  className="flex items-baseline gap-4 py-3 hover:bg-white focus-visible:outline-2 focus-visible:outline-primary"
-                >
-                  <span className={`w-10 text-right text-2xl font-semibold tabular-nums ${t.tone === "critical" ? "text-critical" : ""}`}>
-                    {t.count}
-                  </span>
-                  <span>{t.label}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-        {refunds.waitingOnOthers > 0 && (
-          <p className="mt-3 max-w-prose text-sm text-muted">
-            {refunds.waitingOnOthers} {refunds.waitingOnOthers === 1 ? "refund you requested is" : "refunds you requested are"} waiting for
-            a second person to approve.
-          </p>
-        )}
-      </section>
+              </p>
+            </section>
+          )}
+        </div>
+      </div>
     </main>
   );
 }
