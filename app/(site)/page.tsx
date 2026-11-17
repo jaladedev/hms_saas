@@ -14,11 +14,9 @@ import { groupPlaces, safePlaceLink } from "@/lib/staff/hotel-places";
 import { facilityList, photoCountLabel, placeLine, socialLinks, timesLine } from "@/lib/guest-site/hotel";
 import {
   amenityHighlights,
-  capacityLabel,
   freeCancellationBadge,
   stayLimitProblem,
   stayRule,
-  fromPriceLabel,
   offerUntilLabel,
   onlyChosenType,
 } from "@/lib/guest-site/home";
@@ -34,6 +32,7 @@ import {
   searchAvailability,
 } from "@/lib/guest-site/server";
 import { PendingButton } from "@/components/ui/pending-button";
+import { RoomsBento } from "@/components/site/rooms-bento";
 
 export const dynamic = "force-dynamic";
 
@@ -74,7 +73,9 @@ export default async function GuestHome({ searchParams }: Props) {
       : [];
   const supa = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
   const highlights = amenityHighlights(types, 6);
-  const amenityCards = amenityHighlights(types, 9);
+  // The amenity cards list what the hotel says it has; a hotel that has not filled that in falls back to what its rooms share.
+  const facilities = hotel ? facilityList(hotel) : [];
+  const amenityCards = facilities.length > 0 ? facilities.slice(0, 9) : amenityHighlights(types, 9);
   const cancelBadge = policyResult.ok ? freeCancellationBadge(policyResult.data) : null;
   const stayLimit = policyResult.ok ? stayRule(policyResult.data) : null;
   const limitProblem = stay && result?.ok && policyResult.ok ? stayLimitProblem(policyResult.data, result.data.nights) : null;
@@ -85,7 +86,6 @@ export default async function GuestHome({ searchParams }: Props) {
   const reviews = reviewsResult.ok ? reviewsResult.data : null;
   const summary = reviews ? averageLabel(reviews.average, reviews.count) : null;
   const searching = Boolean(stay && result?.ok);
-  const anyPhoto = types.some((t) => t.photos.length > 0); // no empty grey blocks when the hotel has not added pictures yet
 
   return (
     <main>
@@ -451,58 +451,7 @@ export default async function GuestHome({ searchParams }: Props) {
           </section>
         ) : null}
 
-        {!searching && types.length > 0 ? (
-          <section id="rooms" aria-labelledby="rooms-title" className="scroll-mt-6 pt-6">
-            <h2 id="rooms-title" className="font-display text-3xl">
-              Rooms
-            </h2>
-            <ul className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {types.map((t) => {
-                const price = fromPriceLabel(t.from_rate_minor, currency);
-                const photo = t.photos[0];
-                return (
-                  <li key={t.room_type_id} className="flex flex-col overflow-hidden rounded-2xl border border-line bg-white">
-                    {photo ? (
-                      <PhotoFrame src={photoUrl(supa, photo.path)} alt={photo.caption ?? `${t.name}`} className="aspect-[4/3] w-full" />
-                    ) : anyPhoto ? (
-                      <div aria-hidden="true" className="aspect-[4/3] w-full bg-line/40" />
-                    ) : null}
-
-                    <div className="flex flex-1 flex-col p-5">
-                      <h3 className="font-display text-2xl">{t.name}</h3>
-                      {price ? <p className="mt-1 font-medium text-primary-strong">{price}</p> : null}
-                      {t.description ? <p className="mt-2 line-clamp-3 text-sm text-muted">{t.description}</p> : null}
-                      {t.amenities.length > 0 ? (
-                        <ul aria-label={`${t.name} amenities`} className="mt-3 flex flex-wrap gap-1.5">
-                          {t.amenities.slice(0, 4).map((a) => (
-                            <li key={a} className="rounded-full border border-line px-2.5 py-0.5 text-xs text-muted">
-                              {a}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : null}
-                      <p className="mt-3 text-sm text-muted">{capacityLabel(t.max_occupancy)}</p>
-                      <div className="mt-5 flex flex-wrap gap-2">
-                        <Link
-                          href={`/rooms/${t.room_type_id}`}
-                          className="inline-flex min-h-11 items-center justify-center rounded-full border border-ink px-5 text-sm hover:bg-ink hover:text-paper"
-                        >
-                          View room
-                        </Link>
-                        <a
-                          href="#search"
-                          className="inline-flex min-h-11 items-center justify-center rounded-full px-3 text-sm text-primary underline underline-offset-2"
-                        >
-                          Check dates
-                        </a>
-                      </div>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
-        ) : null}
+        {!searching && types.length > 0 ? <RoomsBento types={types} currency={currency} supa={supa} /> : null}
 
         {!searching && (offers.length > 0 || amenityCards.length > 0) ? (
           <div className="grid gap-8 pt-12 lg:grid-cols-2">

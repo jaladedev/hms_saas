@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   amenityHighlights,
+  bentoLayout,
   capacityLabel,
   freeCancellationBadge,
   fromPriceLabel,
@@ -138,5 +139,23 @@ describe("stayLimitProblem", () => {
   it("ignores a length that is not a whole number of nights", () => {
     expect(stayLimitProblem(rule, 0)).toBeNull();
     expect(stayLimitProblem(rule, 2.5)).toBeNull();
+  });
+});
+
+describe("bentoLayout", () => {
+  it("puts the first type wide, the second dark and the rest in the row, keeping the hotel's order", () => {
+    const l = bentoLayout(["a", "b", "c", "d", "e"]);
+    expect(l.featured).toBe("a");
+    expect(l.highlight).toBe("b");
+    expect(l.small).toEqual(["c", "d", "e"]);
+  });
+
+  it("handles one type, two types and none, never hiding a type", () => {
+    expect(bentoLayout(["a"])).toEqual({ featured: "a", highlight: null, small: [] });
+    expect(bentoLayout(["a", "b"])).toEqual({ featured: "a", highlight: "b", small: [] });
+    expect(bentoLayout([])).toEqual({ featured: null, highlight: null, small: [] });
+    const many = Array.from({ length: 9 }, (_, i) => i);
+    const l = bentoLayout(many);
+    expect([l.featured, l.highlight, ...l.small]).toEqual(many);
   });
 });

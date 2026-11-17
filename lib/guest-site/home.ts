@@ -104,3 +104,21 @@ export function nightDayLabel(isoDate: string): string {
   if (!y || !m || !d) return isoDate;
   return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(Date.UTC(y, m - 1, d)));
 }
+
+export type BentoLayout<T> = {
+  /** The wide card with the picture: the first room type. */
+  featured: T | null;
+  /** The dark card beside it: the second room type. */
+  highlight: T | null;
+  /** Compact cards in the row below: every other room type, so none is hidden. */
+  small: T[];
+};
+
+/**
+ * Splits a hotel's room types into the rooms layout: one wide card, one dark card, then a row of compact ones.
+ * With one type there is only the wide card; with two, the wide and the dark one. Order is kept as given, because the hotel
+ * chose it, and every type appears somewhere.
+ */
+export function bentoLayout<T>(types: T[]): BentoLayout<T> {
+  return { featured: types[0] ?? null, highlight: types[1] ?? null, small: types.slice(2) };
+}
