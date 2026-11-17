@@ -487,11 +487,14 @@ export default async function GuestHome({ searchParams }: Props) {
               </section>
             ) : null}
             {amenityCards.length > 0 ? (
-              <section aria-labelledby="amenities-title" className="rounded-2xl border border-line bg-white p-6 lg:col-start-2">
+              <section
+                aria-labelledby="amenities-title"
+                className={`rounded-2xl border border-line bg-white p-6 ${offers.length > 0 ? "lg:col-start-2" : "lg:col-span-2"}`}
+              >
                 <h2 id="amenities-title" className="font-display text-2xl">
                   Amenities
                 </h2>
-                <ul className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <ul className={`mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 ${offers.length > 0 ? "" : "lg:grid-cols-5"}`}>
                   {amenityCards.map((a) => (
                     <li key={a} className="flex flex-col items-center gap-2 rounded-xl border border-line p-4 text-center">
                       <span
