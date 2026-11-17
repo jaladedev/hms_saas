@@ -36,9 +36,12 @@ export default async function FrontDeskPage() {
   const showProperty = properties.length > 1;
   const propName = new Map(properties.map((p) => [p.id, p.name]));
 
-  function Section({ title, hint, items, tone }: { title: string; hint?: string; items: DeskRow[]; tone?: "warn" }) {
+  function Section({ title, hint, items, tone, card }: { title: string; hint?: string; items: DeskRow[]; tone?: "warn"; card?: boolean }) {
     return (
-      <section className="mt-10 first:mt-0" aria-labelledby={title.replace(/\W+/g, "-")}>
+      <section
+        className={card ? "rounded-2xl border border-line bg-white p-5" : "mt-10 first:mt-0"}
+        aria-labelledby={title.replace(/\W+/g, "-")}
+      >
         <h2
           id={title.replace(/\W+/g, "-")}
           className={`font-display text-xl ${tone === "warn" && items.length > 0 ? "text-critical" : ""}`}
@@ -57,17 +60,17 @@ export default async function FrontDeskPage() {
                 <li key={`${title}-${r.id}`} className="border-b border-line">
                   <Link
                     href={`/app/reservations/${r.id}`}
-                    className="grid gap-x-6 gap-y-1 py-3 hover:bg-white focus-visible:outline-2 focus-visible:outline-primary md:grid-cols-[minmax(0,1fr)_12rem_auto]"
+                    className={`gap-x-6 gap-y-1 py-3 focus-visible:outline-2 focus-visible:outline-primary ${card ? "flex flex-wrap items-center justify-between hover:bg-paper" : "grid hover:bg-white md:grid-cols-[minmax(0,1fr)_12rem_auto]"}`}
                   >
                     <div className="min-w-0">
                       <span className="font-medium">{r.booking_reference}</span>
                       <span className="ml-3 text-sm">{full ? (guests.get(full.primary_guest_id) ?? "") : ""}</span>
                       {showProperty && <span className="ml-3 text-xs text-muted">{propName.get(r.property_id)}</span>}
                     </div>
-                    <p className="text-sm text-muted md:text-right">
+                    <p className={`text-sm text-muted ${card ? "order-last w-full" : "md:text-right"}`}>
                       {formatDate(r.arrival_date)}, {nightsBetween(r.arrival_date, r.departure_date)} nights
                     </p>
-                    <p className="flex flex-wrap items-center gap-2 md:justify-end">
+                    <p className={`flex flex-wrap items-center gap-2 ${card ? "" : "md:justify-end"}`}>
                       <ReservationChip status={r.reservation_status} />
                       <PaymentChip status={r.payment_status} />
                       {flag === "Needs attention" && (
@@ -103,8 +106,10 @@ export default async function FrontDeskPage() {
           items={g.overdue}
           tone="warn"
         />
-        <Section title="Arriving today" items={g.arrivals} />
-        <Section title="Departing today" items={g.departures} />
+        <div className="mt-10 grid items-start gap-6 lg:grid-cols-2">
+          <Section title="Arriving today" items={g.arrivals} card />
+          <Section title="Departing today" items={g.departures} card />
+        </div>
         <Section
           title="Late arrivals"
           hint="Confirmed, expected before today, and not checked in yet."
