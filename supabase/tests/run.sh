@@ -947,4 +947,8 @@ CM="$(psql -f "$HERE/137_contact_messages.sql" 2>&1)" || { echo "$CM"; echo "CON
 echo "$CM" | grep -E 'PASS' || true
 if echo "$CM" | grep -qE 'FAIL|ERROR'; then echo "$CM"; echo "CONTACT MESSAGES TESTS FAILED"; exit 1; fi
 
+DM="$(psql -f "$HERE/138_digest_messages.sql" 2>&1)" || { echo "$DM"; echo "DIGEST MESSAGES TESTS FAILED"; exit 1; }
+echo "$DM" | grep -E 'PASS' || true
+if echo "$DM" | grep -qE 'FAIL|ERROR'; then echo "$DM"; echo "DIGEST MESSAGES TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

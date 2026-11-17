@@ -189,7 +189,7 @@ export default async function HotelDetailsPage({ searchParams }: { searchParams:
                 <h3 className="font-medium">Morning summary email</h3>
                 <p className="mt-1 text-sm text-muted">
                   {p.digest_email
-                    ? `Counts of today's arrivals, departures and guests in house are emailed to ${p.digest_email} each morning.`
+                    ? `Counts of today's arrivals, departures, guests in house, guest messages and waiting-list requests are emailed to ${p.digest_email} each morning.`
                     : "No morning summary is sent."}
                 </p>
                 <div className="mt-3 flex flex-wrap items-end gap-3">

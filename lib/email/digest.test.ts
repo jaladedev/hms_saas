@@ -1,7 +1,17 @@
 import { describe, expect, it, vi } from "vitest";
 import { digestPayload, drainDigests, renderDigest } from "./digest";
 
-const payload = { hotel: "Hotel A <Ibadan>", date: "2026-11-14", arrivals: 3, departures: 2, in_house: 7, tomorrow: 4, holds: 1 };
+const payload = {
+  hotel: "Hotel A <Ibadan>",
+  date: "2026-11-14",
+  arrivals: 3,
+  departures: 2,
+  in_house: 7,
+  tomorrow: 4,
+  holds: 1,
+  messages: 2,
+  waiting: 3,
+};
 
 describe("renderDigest", () => {
   it("lists the counts, escapes the hotel name and carries no guest details", () => {
@@ -9,6 +19,8 @@ describe("renderDigest", () => {
     expect(e.subject).toBe("Hotel A <Ibadan>: 3 arriving, 2 leaving today");
     expect(e.text).toContain("Guests in house: 7");
     expect(e.text).toContain("Holds waiting for payment: 1");
+    expect(e.text).toContain("Guest messages to answer: 2");
+    expect(e.text).toContain("Waiting-list requests: 3");
     expect(e.html).toContain("Hotel A &lt;Ibadan&gt;");
     expect(e.html).not.toContain("<Ibadan>");
   });
@@ -18,6 +30,8 @@ describe("renderDigest", () => {
       departures: 0,
       in_house: 2,
       hotel: "Your hotel",
+      messages: 0,
+      waiting: 0,
     });
   });
 });

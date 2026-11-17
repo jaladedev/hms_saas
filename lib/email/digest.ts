@@ -10,6 +10,8 @@ export type DigestPayload = {
   in_house: number;
   tomorrow: number;
   holds: number;
+  messages: number;
+  waiting: number;
 };
 export type ClaimedDigest = { id: string; to_email: string; payload: Record<string, unknown>; attempt: number };
 
@@ -24,6 +26,8 @@ export function digestPayload(raw: Record<string, unknown>): DigestPayload {
     in_house: n("in_house"),
     tomorrow: n("tomorrow"),
     holds: n("holds"),
+    messages: n("messages"),
+    waiting: n("waiting"),
   };
 }
 
@@ -37,6 +41,8 @@ export function renderDigest(raw: Record<string, unknown>): RenderedEmail {
     ["Guests in house", p.in_house],
     ["Arrivals tomorrow", p.tomorrow],
     ["Holds waiting for payment", p.holds],
+    ["Guest messages to answer", p.messages],
+    ["Waiting-list requests", p.waiting],
   ];
   const subject = `${p.hotel}: ${p.arrivals} arriving, ${p.departures} leaving today`;
   const text = [
