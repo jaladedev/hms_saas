@@ -1,6 +1,8 @@
 "use server";
 
+import { after } from "next/server";
 import { redirect } from "next/navigation";
+import { drainEventEmailsNow } from "@/lib/email/server";
 import { z } from "zod";
 import { createEventToken } from "@/lib/event-token";
 import { serverEnv } from "@/lib/env";
@@ -26,6 +28,9 @@ export async function venueRequestAction(formData: FormData): Promise<void> {
 
   const result = await requestVenue({ host: await requestHost(), ...v, key: key.data });
   if (!result.ok) redirect(`/venues?error=${result.error.code}`);
+  after(() => {
+    drainEventEmailsNow(5).catch(() => {});
+  });
   const token = createEventToken("v", result.data.booking_id, serverEnv().BOOKING_TOKEN_SECRET, SIXTY_DAYS);
   redirect(`/event-booking/${token}${v.mode === "enquiry" ? "?sent=1" : ""}`);
 }

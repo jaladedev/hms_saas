@@ -81,28 +81,38 @@ export default async function EventBookingPage({ params, searchParams }: Props) 
               {b.lines.map((l, i) => (
                 <tr key={i} className="border-b border-line">
                   <td className="py-1 pr-2">{l.description}</td>
-                  <td className="px-2 py-1 text-right">{l.quantity} × {money(l.unit_amount_minor)}</td>
+                  <td className="px-2 py-1 text-right">
+                    {l.quantity} × {money(l.unit_amount_minor)}
+                  </td>
                   <td className="py-1 pl-2 text-right tabular-nums">{money(l.line_total_minor)}</td>
                 </tr>
               ))}
               <tr>
-                <td colSpan={2} className="py-1 text-right text-muted">Subtotal</td>
+                <td colSpan={2} className="py-1 text-right text-muted">
+                  Subtotal
+                </td>
                 <td className="py-1 pl-2 text-right tabular-nums">{money(b.subtotal_minor)}</td>
               </tr>
               {b.service_minor > 0 ? (
                 <tr>
-                  <td colSpan={2} className="py-1 text-right text-muted">Service charge</td>
+                  <td colSpan={2} className="py-1 text-right text-muted">
+                    Service charge
+                  </td>
                   <td className="py-1 pl-2 text-right tabular-nums">{money(b.service_minor)}</td>
                 </tr>
               ) : null}
               {b.tax_minor > 0 ? (
                 <tr>
-                  <td colSpan={2} className="py-1 text-right text-muted">Tax</td>
+                  <td colSpan={2} className="py-1 text-right text-muted">
+                    Tax
+                  </td>
                   <td className="py-1 pl-2 text-right tabular-nums">{money(b.tax_minor)}</td>
                 </tr>
               ) : null}
               <tr className="font-semibold">
-                <td colSpan={2} className="py-1 text-right">Total</td>
+                <td colSpan={2} className="py-1 text-right">
+                  Total
+                </td>
                 <td className="py-1 pl-2 text-right tabular-nums">{money(b.total_minor)}</td>
               </tr>
             </tbody>

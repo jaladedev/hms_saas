@@ -65,6 +65,7 @@ describe("maintenance", () => {
       queueWaitlistNotices: async () => 1,
       drainWaitlistNotices: async () => ({ sent: 1 }),
       drainDigests: async () => ({ sent: 1 }),
+      drainEventEmails: async () => ({ sent: 1 }),
       drainEmails: async () => {
         throw new Error("mailer exploded");
       },

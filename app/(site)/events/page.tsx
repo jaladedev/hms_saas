@@ -54,11 +54,19 @@ export default async function EventsPage({ searchParams }: Props) {
                         <label key={t.id} className="block text-sm">
                           {t.name}: {t.price_minor ? formatMoney(t.price_minor, currency) : "Free"}
                           <span className="text-muted"> ({t.remaining} left)</span>
-                          <input name={`qty_${t.id}`} inputMode="numeric" defaultValue="0" aria-label={`Number of ${t.name} tickets`} className={field} />
+                          <input
+                            name={`qty_${t.id}`}
+                            inputMode="numeric"
+                            defaultValue="0"
+                            aria-label={`Number of ${t.name} tickets`}
+                            className={field}
+                          />
                         </label>
                       ))}
                     </div>
-                    <p className="text-xs text-muted">Up to {e.max_per_order} tickets in one order. Your tickets are held for 20 minutes while you pay.</p>
+                    <p className="text-xs text-muted">
+                      Up to {e.max_per_order} tickets in one order. Your tickets are held for 20 minutes while you pay.
+                    </p>
                     <div className="grid gap-3 sm:grid-cols-3">
                       <label className="block text-sm">
                         Your name

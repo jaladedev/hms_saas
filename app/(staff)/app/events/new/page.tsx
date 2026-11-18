@@ -17,7 +17,12 @@ export default async function NewBookingPage({ searchParams }: { searchParams: P
       </main>
     );
   }
-  const { data } = await supabase.from("hotel_venues").select("id, name, capacity").eq("property_id", chosen.id).eq("is_active", true).order("sort_order");
+  const { data } = await supabase
+    .from("hotel_venues")
+    .select("id, name, capacity")
+    .eq("property_id", chosen.id)
+    .eq("is_active", true)
+    .order("sort_order");
   const venues = (data ?? []) as { id: string; name: string; capacity: number }[];
   return (
     <main className="max-w-2xl">

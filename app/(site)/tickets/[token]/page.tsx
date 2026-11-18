@@ -47,7 +47,11 @@ export default async function TicketsPage({ params, searchParams }: Props) {
           {formatLocal(o.starts_at)} to {formatLocal(o.ends_at)}
           {o.venue ? ` · ${o.venue}` : ""}
         </p>
-        {o.event_status === "cancelled" ? <p className="mt-2 text-sm font-medium text-critical">This event has been cancelled. The hotel will contact you about a refund.</p> : null}
+        {o.event_status === "cancelled" ? (
+          <p className="mt-2 text-sm font-medium text-critical">
+            This event has been cancelled. The hotel will contact you about a refund.
+          </p>
+        ) : null}
         <ul className="mt-3 space-y-1 text-sm">
           {o.items.map((i, n) => (
             <li key={n}>
@@ -86,7 +90,9 @@ export default async function TicketsPage({ params, searchParams }: Props) {
           </PendingButton>
         </form>
       ) : null}
-      {o.status === "expired" ? <p className="mt-6 text-sm">The hold ran out and the tickets were released. Please order again from the events page.</p> : null}
+      {o.status === "expired" ? (
+        <p className="mt-6 text-sm">The hold ran out and the tickets were released. Please order again from the events page.</p>
+      ) : null}
       {o.status === "cancelled" ? <p className="mt-6 text-sm">This order was cancelled.</p> : null}
     </main>
   );

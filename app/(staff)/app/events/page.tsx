@@ -7,7 +7,13 @@ import { BOOKING_STATUS_LABEL, bookingNeed, EVENT_TYPE_LABEL, formatLocal, type 
 export const dynamic = "force-dynamic";
 type Search = Record<string, string | string[] | undefined>;
 const FILTERS = ["open", "enquiry", "tentative", "confirmed", "past"] as const;
-const FILTER_LABEL: Record<string, string> = { open: "Needs action", enquiry: "Enquiries", tentative: "On hold", confirmed: "Confirmed", past: "Past and closed" };
+const FILTER_LABEL: Record<string, string> = {
+  open: "Needs action",
+  enquiry: "Enquiries",
+  tentative: "On hold",
+  confirmed: "Confirmed",
+  past: "Past and closed",
+};
 
 /** Venue hire: enquiries, held slots and confirmed bookings for one hotel, soonest first. */
 export default async function EventBookingsPage({ searchParams }: { searchParams: Promise<Search> }) {
@@ -40,7 +46,9 @@ export default async function EventBookingsPage({ searchParams }: { searchParams
   const rows = (bookQ.data ?? []) as BookingRow[];
   const venueName = new Map(((venueQ.data ?? []) as { id: string; name: string }[]).map((v) => [v.id, v.name]));
   const ids = rows.map((r) => r.id);
-  const payQ = ids.length ? await supabase.from("event_payments").select("venue_booking_id, payment_kind, amount_minor").in("venue_booking_id", ids) : { data: [] };
+  const payQ = ids.length
+    ? await supabase.from("event_payments").select("venue_booking_id, payment_kind, amount_minor").in("venue_booking_id", ids)
+    : { data: [] };
   const paidBy = new Map<string, number>();
   for (const p of (payQ.data ?? []) as { venue_booking_id: string; payment_kind: string; amount_minor: number }[]) {
     paidBy.set(p.venue_booking_id, netPaid([p]) + (paidBy.get(p.venue_booking_id) ?? 0));
@@ -61,7 +69,9 @@ export default async function EventBookingsPage({ searchParams }: { searchParams
           Report
         </Link>
       </p>
-      <PageIntro>Halls and meeting rooms hired for weddings, conferences and parties. A held slot keeps the date for the client until its hold ends.</PageIntro>
+      <PageIntro>
+        Halls and meeting rooms hired for weddings, conferences and parties. A held slot keeps the date for the client until its hold ends.
+      </PageIntro>
       <div className="mt-4">
         <Notice search={search} currency={chosen.currency} />
       </div>

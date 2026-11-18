@@ -963,4 +963,8 @@ ET="$(psql -f "$HERE/141_ticketed_events.sql" 2>&1)" || { echo "$ET"; echo "TICK
 echo "$ET" | grep -E 'PASS' || true
 if echo "$ET" | grep -qE 'FAIL|ERROR'; then echo "$ET"; echo "TICKETED EVENTS TESTS FAILED"; exit 1; fi
 
+EM="$(psql -f "$HERE/142_event_emails.sql" 2>&1)" || { echo "$EM"; echo "EVENT EMAILS TESTS FAILED"; exit 1; }
+echo "$EM" | grep -E 'PASS' || true
+if echo "$EM" | grep -qE 'FAIL|ERROR'; then echo "$EM"; echo "EVENT EMAILS TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

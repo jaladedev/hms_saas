@@ -15,7 +15,11 @@ const MAX_VENUES = 12;
  * People who may change the hotel setup (property.configure) save; the database decides on every save. The tax and service
  * percentages start at 0: set them with the hotel's adviser before quoting anyone.
  */
-export default async function EventSettingsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+export default async function EventSettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const search = await searchParams;
   const supabase = await createClient();
   const [propQ, venueQ] = await Promise.all([
@@ -56,19 +60,47 @@ export default async function EventSettingsPage({ searchParams }: { searchParams
               <input type="hidden" name="propertyId" value={p.id} />
               <label className="block text-sm" htmlFor={`tax-${p.id}`}>
                 Tax %
-                <input id={`tax-${p.id}`} name="tax" required inputMode="decimal" defaultValue={String(t?.tax_percent ?? 0)} className={`${inputClass} mt-1`} />
+                <input
+                  id={`tax-${p.id}`}
+                  name="tax"
+                  required
+                  inputMode="decimal"
+                  defaultValue={String(t?.tax_percent ?? 0)}
+                  className={`${inputClass} mt-1`}
+                />
               </label>
               <label className="block text-sm" htmlFor={`svc-${p.id}`}>
                 Service charge %
-                <input id={`svc-${p.id}`} name="service" required inputMode="decimal" defaultValue={String(t?.service_percent ?? 0)} className={`${inputClass} mt-1`} />
+                <input
+                  id={`svc-${p.id}`}
+                  name="service"
+                  required
+                  inputMode="decimal"
+                  defaultValue={String(t?.service_percent ?? 0)}
+                  className={`${inputClass} mt-1`}
+                />
               </label>
               <label className="block text-sm" htmlFor={`dep-${p.id}`}>
                 Deposit %
-                <input id={`dep-${p.id}`} name="deposit" required inputMode="numeric" defaultValue={String(t?.deposit_percent ?? 30)} className={`${inputClass} mt-1`} />
+                <input
+                  id={`dep-${p.id}`}
+                  name="deposit"
+                  required
+                  inputMode="numeric"
+                  defaultValue={String(t?.deposit_percent ?? 30)}
+                  className={`${inputClass} mt-1`}
+                />
               </label>
               <label className="block text-sm" htmlFor={`hold-${p.id}`}>
                 Hold lasts (hours)
-                <input id={`hold-${p.id}`} name="holdHours" required inputMode="numeric" defaultValue={String(t?.hold_hours ?? 48)} className={`${inputClass} mt-1`} />
+                <input
+                  id={`hold-${p.id}`}
+                  name="holdHours"
+                  required
+                  inputMode="numeric"
+                  defaultValue={String(t?.hold_hours ?? 48)}
+                  className={`${inputClass} mt-1`}
+                />
               </label>
               <p className="text-xs text-muted sm:col-span-4">
                 Service charge is added to the price first, then tax is added to the price and the service charge together. Both start at 0.
@@ -123,7 +155,14 @@ function VenueForm({ propertyId, item }: { propertyId: string; item: VenueRow | 
       </label>
       <label className="block text-sm" htmlFor={`c-${id}`}>
         Capacity (people)
-        <input id={`c-${id}`} name="capacity" required inputMode="numeric" defaultValue={item ? String(item.capacity) : ""} className={`${inputClass} mt-1`} />
+        <input
+          id={`c-${id}`}
+          name="capacity"
+          required
+          inputMode="numeric"
+          defaultValue={item ? String(item.capacity) : ""}
+          className={`${inputClass} mt-1`}
+        />
       </label>
       <label className="block text-sm" htmlFor={`s-${id}`}>
         Order (lower first)
@@ -131,11 +170,23 @@ function VenueForm({ propertyId, item }: { propertyId: string; item: VenueRow | 
       </label>
       <label className="block text-sm" htmlFor={`h-${id}`}>
         Price an hour in naira (optional)
-        <input id={`h-${id}`} name="hourly" inputMode="decimal" defaultValue={item?.hourly_rate_minor ? String(item.hourly_rate_minor / 100) : ""} className={`${inputClass} mt-1`} />
+        <input
+          id={`h-${id}`}
+          name="hourly"
+          inputMode="decimal"
+          defaultValue={item?.hourly_rate_minor ? String(item.hourly_rate_minor / 100) : ""}
+          className={`${inputClass} mt-1`}
+        />
       </label>
       <label className="block text-sm" htmlFor={`d-${id}`}>
         Price a day in naira (optional)
-        <input id={`d-${id}`} name="day" inputMode="decimal" defaultValue={item?.day_rate_minor ? String(item.day_rate_minor / 100) : ""} className={`${inputClass} mt-1`} />
+        <input
+          id={`d-${id}`}
+          name="day"
+          inputMode="decimal"
+          defaultValue={item?.day_rate_minor ? String(item.day_rate_minor / 100) : ""}
+          className={`${inputClass} mt-1`}
+        />
       </label>
       <p className="text-xs text-muted sm:col-span-2">
         Give an hourly price, a daily price or both. When both are set, a booking is priced at whichever is cheaper for the time asked.

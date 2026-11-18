@@ -38,7 +38,10 @@ export default async function VenuesPage({ searchParams }: Props) {
       <h1 className="font-display text-3xl">Venues and events</h1>
       <p className="mt-2 text-sm text-muted">
         Hire a hall or meeting room for a wedding, a conference or a party. Send an enquiry and the hotel will send you a quote
-        {anyOnline ? `, or book a venue marked below online: the slot is held for ${holdHours} hours while you pay a ${depositPercent}% deposit` : ""}.
+        {anyOnline
+          ? `, or book a venue marked below online: the slot is held for ${holdHours} hours while you pay a ${depositPercent}% deposit`
+          : ""}
+        .
       </p>
       {notice ? (
         <p role="alert" className="mt-4 rounded border border-critical/40 bg-white p-3 text-critical">
@@ -142,11 +145,13 @@ export default async function VenuesPage({ searchParams }: Props) {
         <fieldset className="space-y-1 text-sm">
           <legend className="font-medium">What would you like to do?</legend>
           <label className="flex items-center gap-2">
-            <input type="radio" name="mode" value="enquiry" defaultChecked className="accent-primary" /> Send an enquiry (nothing is held; the hotel replies with a quote)
+            <input type="radio" name="mode" value="enquiry" defaultChecked className="accent-primary" /> Send an enquiry (nothing is held;
+            the hotel replies with a quote)
           </label>
           {anyOnline ? (
             <label className="flex items-center gap-2">
-              <input type="radio" name="mode" value="book" className="accent-primary" /> Book now (venues marked online booking only; at least 48 hours ahead)
+              <input type="radio" name="mode" value="book" className="accent-primary" /> Book now (venues marked online booking only; at
+              least 48 hours ahead)
             </label>
           ) : null}
         </fieldset>

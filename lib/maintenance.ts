@@ -13,6 +13,8 @@ export type MaintenanceDeps = {
   queueWaitlistNotices(): Promise<unknown>;
   drainWaitlistNotices(limit: number): Promise<unknown>;
   drainEmails(limit: number): Promise<unknown>;
+  /** Sends the emails to guests who booked a venue or bought tickets on the website (migration 144). */
+  drainEventEmails(limit: number): Promise<unknown>;
   purgeOldData(): Promise<unknown>;
   /** Raises overdue-repair notices and clears notifications older than 90 days. */
   sweepNotifications(): Promise<unknown>;
@@ -40,6 +42,7 @@ export async function runMaintenance(deps: MaintenanceDeps): Promise<Record<stri
     dailyDigests: await step(async () => ({ queued: await deps.queueDailyDigests(), sent: await deps.drainDigests(10) })),
     waitlistNotices: await step(async () => ({ queued: await deps.queueWaitlistNotices(), sent: await deps.drainWaitlistNotices(10) })),
     emails: await step(() => deps.drainEmails(25)),
+    eventEmails: await step(() => deps.drainEventEmails(25)),
     purge: await step(() => deps.purgeOldData()),
     photoFiles: await step(() => deps.cleanPhotoFiles()),
     notifications: await step(() => deps.sweepNotifications()),
