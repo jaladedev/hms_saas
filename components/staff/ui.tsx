@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { EVENT_OK_MESSAGES, type EventOkCode } from "@/lib/staff/event-messages";
+import { NIGHT_AUDIT_OK_MESSAGES, type NightAuditOkCode } from "@/lib/staff/night-audit-messages";
 import { errorMessage, OK_MESSAGES, type OkCode } from "@/lib/staff/refunds";
 import { formatMoney } from "@/lib/guest-site/format";
 import { PAYMENT_LABEL, STATUS_LABEL } from "@/lib/staff/reservations";
@@ -78,7 +79,13 @@ export function Notice({ search, currency }: { search: Search; currency: string 
     return <ErrorBanner className="mb-5">{errorMessage(err, refundable, (m) => formatMoney(m, currency))}</ErrorBanner>;
   }
   const text =
-    ok && ok in OK_MESSAGES ? OK_MESSAGES[ok as OkCode] : ok && ok in EVENT_OK_MESSAGES ? EVENT_OK_MESSAGES[ok as EventOkCode] : null;
+    ok && ok in OK_MESSAGES
+      ? OK_MESSAGES[ok as OkCode]
+      : ok && ok in EVENT_OK_MESSAGES
+        ? EVENT_OK_MESSAGES[ok as EventOkCode]
+        : ok && ok in NIGHT_AUDIT_OK_MESSAGES
+          ? NIGHT_AUDIT_OK_MESSAGES[ok as NightAuditOkCode]
+          : null;
   if (!text) return null;
   return (
     <p role="status" className="mb-5 border-l-4 border-primary bg-primary/5 px-4 py-3 text-sm text-primary-strong">

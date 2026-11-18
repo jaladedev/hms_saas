@@ -143,6 +143,42 @@ export type Database = {
           },
         ]
       }
+      day_closes: {
+        Row: {
+          business_date: string
+          closed_at: string
+          closed_by: string | null
+          figures: Json
+          id: string
+          open_items: Json
+          override_note: string | null
+          property_id: string
+          tenant_id: string
+        }
+        Insert: {
+          business_date: string
+          closed_at?: string
+          closed_by?: string | null
+          figures: Json
+          id?: string
+          open_items: Json
+          override_note?: string | null
+          property_id: string
+          tenant_id: string
+        }
+        Update: {
+          business_date?: string
+          closed_at?: string
+          closed_by?: string | null
+          figures?: Json
+          id?: string
+          open_items?: Json
+          override_note?: string | null
+          property_id?: string
+          tenant_id?: string
+        }
+        Relationships: []
+      }
       discount_cap_overrides: {
         Row: {
           max_percent: number
@@ -3804,6 +3840,22 @@ export type Database = {
           extras_tax_minor: number
           refunds_paid_minor: number
           room_revenue_minor: number
+          room_service_minor: number
+          room_tax_minor: number
+          rooms_available: number
+          rooms_sold: number
+        }[]
+      }
+      daily_report_figures: {
+        Args: { p_from: string; p_property: string; p_to: string }
+        Returns: {
+          cash_in_minor: number
+          day: string
+          extras_minor: number
+          extras_tax_minor: number
+          refunds_paid_minor: number
+          room_revenue_minor: number
+          room_service_minor: number
           room_tax_minor: number
           rooms_available: number
           rooms_sold: number
@@ -3904,6 +3956,10 @@ export type Database = {
       guest_send_message: { Args: { p_email: string; p_host: string; p_message: string; p_name: string }; Returns: Json }
       contact_messages_list: { Args: { p_property: string }; Returns: Json }
       contact_message_set_status: { Args: { p_id: string; p_status: string }; Returns: Json }
+      close_day: { Args: { p_day: string; p_idempotency_key: string; p_override_note: string; p_property: string }; Returns: Json }
+      night_audit_days: { Args: { p_days?: number; p_property: string }; Returns: Json }
+      night_audit_items: { Args: { p_day: string; p_property: string }; Returns: Json }
+      night_audit_preview: { Args: { p_day?: string; p_property: string }; Returns: Json }
       waitlist_list: { Args: { p_property: string }; Returns: Json }
       waitlist_set_status: { Args: { p_id: string; p_status: string }; Returns: Json }
       save_promo_code: {

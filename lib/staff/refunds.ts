@@ -1,5 +1,6 @@
 import { resetErrorMessage } from "./auth";
 import { EVENT_ERROR_MESSAGES, type EventErrorCode } from "./event-messages";
+import { NIGHT_AUDIT_ERROR_MESSAGES, type NightAuditErrorCode } from "./night-audit-messages";
 /** Shared types and rules for the staff refund screens. Pure functions only, so they can be tested. */
 
 export type RefundStatus = "requested" | "approved" | "rejected" | "processing" | "succeeded" | "failed";
@@ -534,6 +535,7 @@ export type OkCode = keyof typeof OK_MESSAGES;
 
 export function errorMessage(code: string, refundable: number | null, formatMinor: (minor: number) => string): string {
   if (code in EVENT_ERROR_MESSAGES) return EVENT_ERROR_MESSAGES[code as EventErrorCode];
+  if (code in NIGHT_AUDIT_ERROR_MESSAGES) return NIGHT_AUDIT_ERROR_MESSAGES[code as NightAuditErrorCode];
   switch (code as ErrorCode) {
     case "self_approval":
       return "You requested this refund, so someone else has to decide it.";
