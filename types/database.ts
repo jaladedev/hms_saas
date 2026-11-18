@@ -2864,6 +2864,664 @@ export type Database = {
         }
         Relationships: []
       }
+      event_payment_attempts: {
+        Row: {
+          id: string
+          tenant_id: string
+          property_id: string
+          venue_booking_id: string | null
+          ticket_order_id: string | null
+          provider: string
+          reference: string
+          amount_minor: number
+          currency: string
+          status: string
+          failure_reason: string | null
+          created_at: string
+          updated_at: string
+          completed_at: string | null
+        }
+        ComputedFields: never
+        Insert: {
+          id?: string
+          tenant_id: string
+          property_id: string
+          venue_booking_id?: string | null
+          ticket_order_id?: string | null
+          provider: string
+          reference: string
+          amount_minor: number
+          currency: string
+          status?: string
+          failure_reason?: string | null
+          created_at?: string
+          updated_at?: string
+          completed_at?: string | null
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          property_id?: string
+          venue_booking_id?: string | null
+          ticket_order_id?: string | null
+          provider?: string
+          reference?: string
+          amount_minor?: number
+          currency?: string
+          status?: string
+          failure_reason?: string | null
+          created_at?: string
+          updated_at?: string
+          completed_at?: string | null
+        }
+        Relationships: []
+      }
+      event_payments: {
+        Row: {
+          id: string
+          tenant_id: string
+          property_id: string
+          venue_booking_id: string | null
+          ticket_order_id: string | null
+          payment_kind: string
+          payment_provider: string
+          payment_method: string
+          provider_reference: string | null
+          internal_reference: string
+          amount_minor: number
+          currency: string
+          note: string | null
+          attempt_id: string | null
+          received_at: string
+          recorded_by: string | null
+          created_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          id?: string
+          tenant_id: string
+          property_id: string
+          venue_booking_id?: string | null
+          ticket_order_id?: string | null
+          payment_kind?: string
+          payment_provider?: string
+          payment_method: string
+          provider_reference?: string | null
+          internal_reference: string
+          amount_minor: number
+          currency: string
+          note?: string | null
+          attempt_id?: string | null
+          received_at?: string
+          recorded_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          property_id?: string
+          venue_booking_id?: string | null
+          ticket_order_id?: string | null
+          payment_kind?: string
+          payment_provider?: string
+          payment_method?: string
+          provider_reference?: string | null
+          internal_reference?: string
+          amount_minor?: number
+          currency?: string
+          note?: string | null
+          attempt_id?: string | null
+          received_at?: string
+          recorded_by?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      event_reservation_links: {
+        Row: {
+          booking_id: string
+          reservation_id: string
+          tenant_id: string
+          property_id: string
+          created_by: string | null
+          created_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          booking_id: string
+          reservation_id: string
+          tenant_id: string
+          property_id: string
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          booking_id?: string
+          reservation_id?: string
+          tenant_id?: string
+          property_id?: string
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      event_room_blocks: {
+        Row: {
+          id: string
+          tenant_id: string
+          property_id: string
+          booking_id: string
+          room_type_id: string
+          rooms: number
+          start_date: string
+          end_date: string
+          status: string
+          claim_ids: string[]
+          created_by: string | null
+          created_at: string
+          released_at: string | null
+        }
+        ComputedFields: never
+        Insert: {
+          id?: string
+          tenant_id: string
+          property_id: string
+          booking_id: string
+          room_type_id: string
+          rooms: number
+          start_date: string
+          end_date: string
+          status?: string
+          claim_ids: string[]
+          created_by?: string | null
+          created_at?: string
+          released_at?: string | null
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          property_id?: string
+          booking_id?: string
+          room_type_id?: string
+          rooms?: number
+          start_date?: string
+          end_date?: string
+          status?: string
+          claim_ids?: string[]
+          created_by?: string | null
+          created_at?: string
+          released_at?: string | null
+        }
+        Relationships: []
+      }
+      event_settings: {
+        Row: {
+          property_id: string
+          tenant_id: string
+          tax_percent: number
+          service_percent: number
+          deposit_percent: number
+          hold_hours: number
+          updated_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          property_id: string
+          tenant_id: string
+          tax_percent?: number
+          service_percent?: number
+          deposit_percent?: number
+          hold_hours?: number
+          updated_at?: string
+        }
+        Update: {
+          property_id?: string
+          tenant_id?: string
+          tax_percent?: number
+          service_percent?: number
+          deposit_percent?: number
+          hold_hours?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      event_ticket_types: {
+        Row: {
+          id: string
+          tenant_id: string
+          property_id: string
+          event_id: string
+          name: string
+          price_minor: number
+          quantity_total: number
+          is_active: boolean
+          sort_order: number
+          created_at: string
+          updated_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          id?: string
+          tenant_id: string
+          property_id: string
+          event_id: string
+          name: string
+          price_minor: number
+          quantity_total: number
+          is_active?: boolean
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          property_id?: string
+          event_id?: string
+          name?: string
+          price_minor?: number
+          quantity_total?: number
+          is_active?: boolean
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      hotel_events: {
+        Row: {
+          id: string
+          tenant_id: string
+          property_id: string
+          title: string
+          body: string
+          venue_id: string | null
+          venue_booking_id: string | null
+          starts_at: string
+          ends_at: string
+          status: string
+          sales_close_at: string | null
+          max_per_order: number
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          id?: string
+          tenant_id: string
+          property_id: string
+          title: string
+          body?: string
+          venue_id?: string | null
+          venue_booking_id?: string | null
+          starts_at: string
+          ends_at: string
+          status?: string
+          sales_close_at?: string | null
+          max_per_order?: number
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          property_id?: string
+          title?: string
+          body?: string
+          venue_id?: string | null
+          venue_booking_id?: string | null
+          starts_at?: string
+          ends_at?: string
+          status?: string
+          sales_close_at?: string | null
+          max_per_order?: number
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      hotel_venues: {
+        Row: {
+          id: string
+          tenant_id: string
+          property_id: string
+          name: string
+          body: string
+          capacity: number
+          hourly_rate_minor: number | null
+          day_rate_minor: number | null
+          bookable_online: boolean
+          is_active: boolean
+          sort_order: number
+          created_at: string
+          updated_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          id?: string
+          tenant_id: string
+          property_id: string
+          name: string
+          body?: string
+          capacity: number
+          hourly_rate_minor?: number | null
+          day_rate_minor?: number | null
+          bookable_online?: boolean
+          is_active?: boolean
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          property_id?: string
+          name?: string
+          body?: string
+          capacity?: number
+          hourly_rate_minor?: number | null
+          day_rate_minor?: number | null
+          bookable_online?: boolean
+          is_active?: boolean
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ticket_order_items: {
+        Row: {
+          id: string
+          tenant_id: string
+          property_id: string
+          order_id: string
+          ticket_type_id: string
+          quantity: number
+          unit_price_minor: number
+          name_at_order: string
+        }
+        ComputedFields: never
+        Insert: {
+          id?: string
+          tenant_id: string
+          property_id: string
+          order_id: string
+          ticket_type_id: string
+          quantity: number
+          unit_price_minor: number
+          name_at_order: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          property_id?: string
+          order_id?: string
+          ticket_type_id?: string
+          quantity?: number
+          unit_price_minor?: number
+          name_at_order?: string
+        }
+        Relationships: []
+      }
+      ticket_orders: {
+        Row: {
+          id: string
+          tenant_id: string
+          property_id: string
+          event_id: string
+          reference: string
+          status: string
+          source: string
+          buyer_name: string
+          buyer_email: string | null
+          buyer_phone: string | null
+          total_minor: number
+          currency: string
+          hold_expires_at: string | null
+          attention_reason: string | null
+          cancel_reason: string | null
+          paid_at: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          id?: string
+          tenant_id: string
+          property_id: string
+          event_id: string
+          reference: string
+          status?: string
+          source?: string
+          buyer_name: string
+          buyer_email?: string | null
+          buyer_phone?: string | null
+          total_minor: number
+          currency: string
+          hold_expires_at?: string | null
+          attention_reason?: string | null
+          cancel_reason?: string | null
+          paid_at?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          property_id?: string
+          event_id?: string
+          reference?: string
+          status?: string
+          source?: string
+          buyer_name?: string
+          buyer_email?: string | null
+          buyer_phone?: string | null
+          total_minor?: number
+          currency?: string
+          hold_expires_at?: string | null
+          attention_reason?: string | null
+          cancel_reason?: string | null
+          paid_at?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tickets: {
+        Row: {
+          id: string
+          tenant_id: string
+          property_id: string
+          event_id: string
+          order_id: string
+          ticket_type_id: string
+          code: string
+          status: string
+          used_at: string | null
+          used_by: string | null
+          created_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          id?: string
+          tenant_id: string
+          property_id: string
+          event_id: string
+          order_id: string
+          ticket_type_id: string
+          code: string
+          status?: string
+          used_at?: string | null
+          used_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          property_id?: string
+          event_id?: string
+          order_id?: string
+          ticket_type_id?: string
+          code?: string
+          status?: string
+          used_at?: string | null
+          used_by?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      venue_booking_lines: {
+        Row: {
+          id: string
+          tenant_id: string
+          property_id: string
+          booking_id: string
+          kind: string
+          description: string
+          quantity: number
+          unit_amount_minor: number
+          line_total_minor: number | null
+          sort_order: number
+        }
+        ComputedFields: never
+        Insert: {
+          id?: string
+          tenant_id: string
+          property_id: string
+          booking_id: string
+          kind: string
+          description: string
+          quantity: number
+          unit_amount_minor: number
+          line_total_minor?: never
+          sort_order?: number
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          property_id?: string
+          booking_id?: string
+          kind?: string
+          description?: string
+          quantity?: number
+          unit_amount_minor?: number
+          line_total_minor?: never
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      venue_bookings: {
+        Row: {
+          id: string
+          tenant_id: string
+          property_id: string
+          venue_id: string
+          reference: string
+          status: string
+          source: string
+          event_type: string
+          title: string
+          contact_name: string
+          contact_email: string | null
+          contact_phone: string | null
+          attendees: number
+          starts_at: string
+          ends_at: string
+          hold_expires_at: string | null
+          note: string | null
+          currency: string
+          tax_percent: number
+          service_percent: number
+          deposit_percent: number
+          subtotal_minor: number
+          service_minor: number
+          tax_minor: number
+          total_minor: number
+          deposit_minor: number
+          deposit_waived: boolean
+          attention_reason: string | null
+          cancel_reason: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          id?: string
+          tenant_id: string
+          property_id: string
+          venue_id: string
+          reference: string
+          status?: string
+          source?: string
+          event_type?: string
+          title?: string
+          contact_name: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          attendees: number
+          starts_at: string
+          ends_at: string
+          hold_expires_at?: string | null
+          note?: string | null
+          currency: string
+          tax_percent?: number
+          service_percent?: number
+          deposit_percent?: number
+          subtotal_minor?: number
+          service_minor?: number
+          tax_minor?: number
+          total_minor?: number
+          deposit_minor?: number
+          deposit_waived?: boolean
+          attention_reason?: string | null
+          cancel_reason?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          property_id?: string
+          venue_id?: string
+          reference?: string
+          status?: string
+          source?: string
+          event_type?: string
+          title?: string
+          contact_name?: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          attendees?: number
+          starts_at?: string
+          ends_at?: string
+          hold_expires_at?: string | null
+          note?: string | null
+          currency?: string
+          tax_percent?: number
+          service_percent?: number
+          deposit_percent?: number
+          subtotal_minor?: number
+          service_minor?: number
+          tax_minor?: number
+          total_minor?: number
+          deposit_minor?: number
+          deposit_waived?: boolean
+          attention_reason?: string | null
+          cancel_reason?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       room_board_claims_view: {
@@ -3949,6 +4607,55 @@ export type Database = {
         }
         Returns: undefined
       }
+      cancel_ticket_order: { Args: { p_order: string; p_reason: string }; Returns: Json }
+      cancel_venue_booking: { Args: { p_booking: string; p_reason: string }; Returns: Json }
+      complete_venue_booking: { Args: { p_booking: string }; Returns: Json }
+      confirm_event_payment: { Args: { p_amount_minor: number; p_channel: string; p_currency: string; p_event_id: string; p_event_type: string; p_payload?: Json; p_provider: string; p_reference: string; p_status: string; p_tenant_id?: string }; Returns: Json }
+      confirm_reservation_payment: { Args: { p_amount_minor: number; p_channel: string; p_currency: string; p_event_id: string; p_event_type: string; p_payload?: Json; p_provider: string; p_reference: string; p_status: string; p_tenant_id?: string }; Returns: Json }
+      confirm_venue_booking: { Args: { p_booking: string; p_waive_deposit?: boolean }; Returns: Json }
+      create_event_payment_attempt: { Args: { p_id: string; p_key: string; p_kind: string }; Returns: Json }
+      create_event_room_block: { Args: { p_booking: string; p_end: string; p_room_type: string; p_rooms: number; p_start: string }; Returns: Json }
+      create_venue_booking: { Args: { p_attendees: number; p_email: string; p_ends: string; p_event_type: string; p_hold: boolean; p_key: string; p_name: string; p_note: string; p_phone: string; p_property: string; p_starts: string; p_title: string; p_venue: string }; Returns: Json }
+      delete_hotel_event: { Args: { p_event: string }; Returns: undefined }
+      delete_ticket_type: { Args: { p_type: string }; Returns: undefined }
+      event_payment_start_context: { Args: { p_id: string; p_kind: string }; Returns: Json }
+      event_report: { Args: { p_from: string; p_property: string; p_to: string }; Returns: Json }
+      event_terms: { Args: { p_property: string }; Returns: Json }
+      event_terms_get: { Args: { p_property: string }; Returns: Json }
+      expire_lapsed_event_holds: { Args: Record<PropertyKey, never>; Returns: number }
+      guest_create_ticket_order: { Args: { p_email: string; p_event: string; p_host: string; p_items: Json; p_key: string; p_name: string; p_phone: string }; Returns: Json }
+      guest_events: { Args: { p_host: string }; Returns: Json }
+      guest_request_venue: { Args: { p_attendees: number; p_email: string; p_ends: string; p_event_type: string; p_host: string; p_key: string; p_mode: string; p_name: string; p_note: string; p_phone: string; p_starts: string; p_title: string; p_venue: string }; Returns: Json }
+      guest_ticket_order: { Args: { p_order: string }; Returns: Json }
+      guest_venue_booking: { Args: { p_booking: string }; Returns: Json }
+      guest_venue_busy: { Args: { p_from: string; p_host: string; p_to: string; p_venue: string }; Returns: Json }
+      guest_venues: { Args: { p_host: string }; Returns: Json }
+      hold_venue_booking: { Args: { p_booking: string }; Returns: Json }
+      issue_tickets: { Args: { p_order: string }; Returns: number }
+      property_local_now: { Args: { p_property: string }; Returns: string }
+      record_event_payment: { Args: { p_amount: number; p_booking: string; p_key: string; p_method: string; p_note: string; p_order: string; p_reference: string }; Returns: Json }
+      record_event_refund: { Args: { p_amount: number; p_booking: string; p_key: string; p_method: string; p_note: string; p_order: string; p_reference: string }; Returns: Json }
+      release_event_room_block: { Args: { p_block: string }; Returns: undefined }
+      release_expired_venue_holds: { Args: { p_venue: string }; Returns: number }
+      save_event_settings: { Args: { p_deposit: number; p_hold_hours: number; p_property: string; p_service: number; p_tax: number }; Returns: undefined }
+      save_hotel_event: { Args: { p_body: string; p_ends: string; p_event: string; p_max_per_order: number; p_property: string; p_sales_close: string; p_starts: string; p_title: string; p_venue: string }; Returns: Json }
+      save_hotel_venue: { Args: { p_active: boolean; p_body: string; p_capacity: number; p_day: number; p_hourly: number; p_name: string; p_online: boolean; p_property: string; p_sort?: number; p_venue: string }; Returns: Json }
+      save_ticket_type: { Args: { p_active: boolean; p_event: string; p_name: string; p_price: number; p_quantity: number; p_sort?: number; p_type: string }; Returns: Json }
+      set_event_reservation_link: { Args: { p_booking: string; p_linked: boolean; p_reservation: string }; Returns: undefined }
+      set_hotel_event_status: { Args: { p_event: string; p_status: string }; Returns: Json }
+      set_venue_booking_lines: { Args: { p_booking: string; p_lines: Json }; Returns: Json }
+      staff_sell_tickets: { Args: { p_email: string; p_event: string; p_items: Json; p_key: string; p_method: string; p_name: string; p_phone: string; p_property: string; p_reference: string }; Returns: Json }
+      ticket_check_in: { Args: { p_code: string; p_event?: string; p_property: string }; Returns: Json }
+      ticket_order_after_payment: { Args: { p_order: string }; Returns: string }
+      ticket_order_create_internal: { Args: { p_actor: string; p_email: string; p_event: string; p_items: Json; p_name: string; p_phone: string; p_source: string }; Returns: string }
+      ticket_order_paid: { Args: { p_order: string }; Returns: number }
+      ticket_type_taken: { Args: { p_type: string }; Returns: number }
+      venue_booking_after_payment: { Args: { p_booking: string }; Returns: string }
+      venue_booking_hold_internal: { Args: { p_booking: string; p_hours: number }; Returns: undefined }
+      venue_booking_new_reference: { Args: { p_property: string }; Returns: string }
+      venue_booking_paid: { Args: { p_booking: string }; Returns: number }
+      venue_booking_recalc: { Args: { p_booking: string }; Returns: undefined }
+      venue_hire_amount: { Args: { p_ends: string; p_starts: string; p_venue: string }; Returns: Json }
     }
     Enums: {
       [_ in never]: never

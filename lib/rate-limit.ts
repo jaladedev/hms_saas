@@ -19,6 +19,9 @@ export const RATE_RULES = {
   changeBooking: { limit: 10, windowSeconds: 3600 },
   link: { limit: 5, windowSeconds: 3600 },
   linkEmail: { limit: 3, windowSeconds: 3600 },
+  requestVenue: { limit: 6, windowSeconds: 3600 },
+  orderTickets: { limit: 10, windowSeconds: 3600 },
+  payEvent: { limit: 6, windowSeconds: 3600 },
 } as const satisfies Record<string, RateRule>;
 export type RateRuleName = keyof typeof RATE_RULES;
 

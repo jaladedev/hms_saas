@@ -5,6 +5,8 @@ import { readBookingToken } from "@/lib/booking-token";
 import { serverEnv } from "@/lib/env";
 import { createServiceClient } from "@/lib/supabase/service";
 import { friendlyError, type GuestError } from "@/lib/guest-site/errors";
+import { guestEventError } from "@/lib/guest-site/events";
+import { readEventToken, type EventTokenKind } from "@/lib/event-token";
 import type { StayParams } from "@/lib/guest-site/params";
 import type { GuestHotel } from "@/lib/guest-site/hotel";
 import type { Database } from "@/lib/supabase/database";
@@ -413,4 +415,165 @@ export function createPaymentAttempt(reservationId: string, idempotencyKey: stri
 
 export function requestBookingLink(host: string, reference: string, email: string) {
   return call<boolean>("request_booking_link", { p_host: host, p_reference: reference, p_email: email });
+}
+
+// ---- events: venue hire and tickets ---------------------------------------------------------------------------------------------------------
+async function callEvent<T>(fn: DbFunction, args: Record<string, unknown>): Promise<Result<T>> {
+  const { data, error } = await createServiceClient().rpc(fn, args as never);
+  if (error) return { ok: false, error: guestEventError(error.message) };
+  return { ok: true, data: data as T };
+}
+
+export type GuestVenue = {
+  id: string;
+  name: string;
+  body: string;
+  capacity: number;
+  hourly_rate_minor: number | null;
+  day_rate_minor: number | null;
+  bookable_online: boolean;
+};
+export type GuestVenues = { currency: string; deposit_percent: number; hold_hours: number; venues: GuestVenue[] };
+export const guestVenues = cache((host: string) => callEvent<GuestVenues>("guest_venues", { p_host: host }));
+
+export function guestVenueBusy(host: string, venueId: string, from: string, to: string) {
+  return callEvent<{ busy: { starts_at: string; ends_at: string }[] }>("guest_venue_busy", {
+    p_host: host,
+    p_venue: venueId,
+    p_from: from,
+    p_to: to,
+  });
+}
+
+export type GuestTicketType = { id: string; name: string; price_minor: number; remaining: number };
+export type GuestEvent = {
+  id: string;
+  title: string;
+  body: string;
+  starts_at: string;
+  ends_at: string;
+  max_per_order: number;
+  venue: string | null;
+  ticket_types: GuestTicketType[];
+};
+export const guestEvents = cache((host: string) => callEvent<{ currency: string; events: GuestEvent[] }>("guest_events", { p_host: host }));
+
+export function requestVenue(args: {
+  host: string;
+  venueId: string;
+  startsAt: string;
+  endsAt: string;
+  eventType: string;
+  title: string;
+  name: string;
+  email: string;
+  phone: string;
+  attendees: number;
+  note: string;
+  mode: "enquiry" | "book";
+  key: string;
+}) {
+  return callEvent<{ booking_id: string; reference: string; status: string }>("guest_request_venue", {
+    p_host: args.host,
+    p_venue: args.venueId,
+    p_starts: args.startsAt,
+    p_ends: args.endsAt,
+    p_event_type: args.eventType,
+    p_title: args.title,
+    p_name: args.name,
+    p_email: args.email,
+    p_phone: args.phone,
+    p_attendees: args.attendees,
+    p_note: args.note,
+    p_mode: args.mode,
+    p_key: args.key,
+  });
+}
+
+export function createTicketOrder(args: {
+  host: string;
+  eventId: string;
+  items: { ticket_type_id: string; quantity: number }[];
+  name: string;
+  email: string;
+  phone: string;
+  key: string;
+}) {
+  return callEvent<{ order_id: string; reference: string; status: string; total_minor: number }>("guest_create_ticket_order", {
+    p_host: args.host,
+    p_event: args.eventId,
+    p_items: args.items,
+    p_name: args.name,
+    p_email: args.email,
+    p_phone: args.phone,
+    p_key: args.key,
+  });
+}
+
+export type VenueBookingView = {
+  reference: string;
+  status: string;
+  venue: string;
+  hotel: string;
+  event_type: string;
+  title: string;
+  starts_at: string;
+  ends_at: string;
+  attendees: number;
+  contact_name: string;
+  currency: string;
+  subtotal_minor: number;
+  service_minor: number;
+  tax_minor: number;
+  total_minor: number;
+  deposit_minor: number;
+  paid_minor: number;
+  due_minor: number;
+  hold_expires_at: string | null;
+  lines: { description: string; quantity: number; unit_amount_minor: number; line_total_minor: number }[];
+};
+export function venueBookingView(id: string) {
+  return callEvent<VenueBookingView>("guest_venue_booking", { p_booking: id });
+}
+
+export type TicketOrderView = {
+  reference: string;
+  status: string;
+  hotel: string;
+  event: string;
+  event_status: string;
+  starts_at: string;
+  ends_at: string;
+  venue: string | null;
+  buyer_name: string;
+  currency: string;
+  total_minor: number;
+  paid_minor: number;
+  due_minor: number;
+  hold_expires_at: string | null;
+  items: { name: string; quantity: number; unit_price_minor: number }[];
+  tickets: { code: string; status: string; type: string }[];
+};
+export function ticketOrderView(id: string) {
+  return callEvent<TicketOrderView>("guest_ticket_order", { p_order: id });
+}
+
+/** The id behind an event link of the kind asked for, or null when it is forged, expired or for something else. */
+export function eventTokenId(token: string, kind: EventTokenKind): string | null {
+  return readEventToken(token, kind, serverEnv().BOOKING_TOKEN_SECRET);
+}
+
+export function eventPaymentContext(kind: "booking" | "ticket_order", id: string) {
+  return callEvent<{ account_id: string; secret_reference: string; mode: string; payer_email: string; reference: string }>(
+    "event_payment_start_context",
+    { p_kind: kind, p_id: id },
+  );
+}
+
+export function createEventPaymentAttempt(kind: "booking" | "ticket_order", id: string, key: string) {
+  return callEvent<{ attempt_id: string; reference: string; amount_minor: number; currency: string }>("create_event_payment_attempt", {
+    p_kind: kind,
+    p_id: id,
+    p_key: key,
+  });
 }

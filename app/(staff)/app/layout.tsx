@@ -26,6 +26,7 @@ const NAV: { label: string; href?: string; exact?: boolean; sub?: boolean }[] = 
   { label: "Waiting list", href: "/app/waitlist" },
   { label: "Guest messages", href: "/app/messages" },
   { label: "Experiences", href: "/app/experiences" },
+  { label: "Events", href: "/app/events" },
   { label: "Room Management", href: "/app/rooms" },
   { label: "Guests", href: "/app/guests" },
   { label: "Housekeeping", href: "/app/housekeeping" },

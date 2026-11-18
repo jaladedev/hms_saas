@@ -6,7 +6,7 @@ import { headerName, placeLine, timesLine } from "@/lib/guest-site/hotel";
 import { monogram } from "@/lib/guest-site/home";
 import { telHref } from "@/lib/staff/hotel-profile";
 import { photoUrl } from "@/lib/staff/room-photos";
-import { guestExperiences, guestHotel, guestOffers, requestHost } from "@/lib/guest-site/server";
+import { guestEvents, guestExperiences, guestHotel, guestOffers, guestVenues, requestHost } from "@/lib/guest-site/server";
 import { lookStyle, THEME_WRAPPER_CLASS } from "@/lib/theme";
 
 export const dynamic = "force-dynamic";
@@ -33,7 +33,11 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
   const year = new Date().getFullYear();
   // Header links to homepage sections only when the hotel has something to show there.
   const host = await requestHost();
-  const [offersResult, experiencesResult] = hotel ? await Promise.all([guestOffers(host), guestExperiences(host)]) : [null, null];
+  const [offersResult, experiencesResult, venuesResult, eventsResult] = hotel
+    ? await Promise.all([guestOffers(host), guestExperiences(host), guestVenues(host), guestEvents(host)])
+    : [null, null, null, null];
+  const hasVenues = !!venuesResult?.ok && venuesResult.data.venues.length > 0;
+  const hasEvents = !!eventsResult?.ok && eventsResult.data.events.length > 0;
   const hasOffers = !!offersResult?.ok && offersResult.data.offers.length > 0;
   const hasExperiences = !!experiencesResult?.ok && experiencesResult.data.experiences.length > 0;
   return (
@@ -74,7 +78,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
               </>
             )}
           </Link>
-          {hotel ? <SiteNav offers={hasOffers} experiences={hasExperiences} /> : null}
+          {hotel ? <SiteNav offers={hasOffers} experiences={hasExperiences} venues={hasVenues} events={hasEvents} /> : null}
           <Link
             href="/booking/find"
             className={`shrink-0 rounded-full border border-ink px-3 py-2 text-sm sm:px-4 hover:bg-ink hover:text-paper focus-visible:outline-2 focus-visible:outline-primary ${linkTap}`}

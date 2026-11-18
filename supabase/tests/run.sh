@@ -955,4 +955,12 @@ PD="$(psql -f "$HERE/139_platform_property_directory.sql" 2>&1)" || { echo "$PD"
 echo "$PD" | grep -E 'PASS' || true
 if echo "$PD" | grep -qE 'FAIL|ERROR'; then echo "$PD"; echo "PROPERTY DIRECTORY TESTS FAILED"; exit 1; fi
 
+EV="$(psql -f "$HERE/140_event_venues.sql" 2>&1)" || { echo "$EV"; echo "EVENT VENUES TESTS FAILED"; exit 1; }
+echo "$EV" | grep -E 'PASS' || true
+if echo "$EV" | grep -qE 'FAIL|ERROR'; then echo "$EV"; echo "EVENT VENUES TESTS FAILED"; exit 1; fi
+
+ET="$(psql -f "$HERE/141_ticketed_events.sql" 2>&1)" || { echo "$ET"; echo "TICKETED EVENTS TESTS FAILED"; exit 1; }
+echo "$ET" | grep -E 'PASS' || true
+if echo "$ET" | grep -qE 'FAIL|ERROR'; then echo "$ET"; echo "TICKETED EVENTS TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

@@ -66,6 +66,10 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           Occupancy
         </Link>
         <span aria-hidden="true"> · </span>
+        <Link href={`/app/reports/events?${new URLSearchParams({ property: property.id })}`} className={linkClass}>
+          Events
+        </Link>
+        <span aria-hidden="true"> · </span>
         <Link href={`/app/reports/channels?${new URLSearchParams({ property: property.id })}`} className={linkClass}>
           Channels and guests
         </Link>

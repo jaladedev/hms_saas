@@ -5,11 +5,13 @@ import { useEffect, useState } from "react";
 import { NavLink } from "@/components/ui/nav-link";
 
 /** Offers and Experiences only appear when the homepage has those sections. */
-function linksFor(offers: boolean, experiences: boolean) {
+function linksFor(offers: boolean, experiences: boolean, venues: boolean, events: boolean) {
   return [
     { href: "/#rooms", label: "Rooms" },
     ...(offers ? [{ href: "/#offers", label: "Offers" }] : []),
     ...(experiences ? [{ href: "/#experiences", label: "Experiences" }] : []),
+    ...(venues ? [{ href: "/venues", label: "Venues" }] : []),
+    ...(events ? [{ href: "/events", label: "Events" }] : []),
     { href: "/policies", label: "Policies" },
     { href: "/contact", label: "Contact" },
   ];
@@ -21,8 +23,18 @@ function linksFor(offers: boolean, experiences: boolean) {
  * the guest goes to another page (it remembers the page it was opened on, as the staff menu does). The header it hangs
  * from must be `relative`.
  */
-export function SiteNav({ offers = false, experiences = false }: { offers?: boolean; experiences?: boolean }) {
-  const LINKS = linksFor(offers, experiences);
+export function SiteNav({
+  offers = false,
+  experiences = false,
+  venues = false,
+  events = false,
+}: {
+  offers?: boolean;
+  experiences?: boolean;
+  venues?: boolean;
+  events?: boolean;
+}) {
+  const LINKS = linksFor(offers, experiences, venues, events);
   const here = usePathname() ?? "";
   const [openOn, setOpenOn] = useState<string | null>(null);
   const open = openOn !== null && openOn === here;

@@ -53,6 +53,11 @@ const SECTIONS = [
     text: "Your plan and the invoices from the platform. For the owner and general manager.",
   },
   {
+    href: "/app/settings/events",
+    title: "Events and venues",
+    text: "Halls and meeting rooms for hire, with a price by the hour or day, and the tax, service charge, deposit and hold time quoted on a hire. Up to 12 venues.",
+  },
+  {
     href: "/app/settings/experiences",
     title: "Experiences",
     text: "Tours, dinners and transfers a guest can ask for from their booking, with a price. Staff confirm each request and post it to the folio. Up to 12.",
