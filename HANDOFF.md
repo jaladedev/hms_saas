@@ -200,7 +200,7 @@ Not verified:
 - **Test harness quirk:** psql `:variables` do not expand inside `$$` blocks, so `02_claims.sql` uses literal
   UUIDs (see `01_seed.sql` for what they are). `run.sh` drops privileges to the `postgres` user when run as root.
 - **Seed data** in `01_seed.sql` is test-only. Real roles and permissions are seeded in migration 002.
-- **Versions installed:** Next 16, React 19, TypeScript 7, Tailwind 4, zod 4. No `middleware`/`proxy` file yet;
+- **Versions installed:** Next 16.4.6, React 19, TypeScript 7, Tailwind 4, zod 4. No `middleware`/`proxy` file yet;
   auth gating is in `app/(staff)/app/layout.tsx` for now. Fonts load from Google Fonts via `<link>`.
 - **Secrets:** `SUPABASE_SERVICE_ROLE_KEY` must only be used in server-only code and Edge Functions.
 - The user pushes to GitHub manually; Claude sessions may not have push access.
