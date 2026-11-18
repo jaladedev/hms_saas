@@ -971,4 +971,8 @@ DC="$(psql -f "$HERE/145_day_close.sql" 2>&1)" || { echo "$DC"; echo "DAY CLOSE 
 echo "$DC" | grep -E 'PASS' || true
 if echo "$DC" | grep -qE 'FAIL|ERROR'; then echo "$DC"; echo "DAY CLOSE TESTS FAILED"; exit 1; fi
 
+PR="$(psql -f "$HERE/146_pricing_rules.sql" 2>&1)" || { echo "$PR"; echo "PRICING RULES TESTS FAILED"; exit 1; }
+echo "$PR" | grep -E 'PASS' || true
+if echo "$PR" | grep -qE 'FAIL|ERROR'; then echo "$PR"; echo "PRICING RULES TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

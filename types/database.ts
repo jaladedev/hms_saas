@@ -3979,6 +3979,28 @@ export type Database = {
       }
       delete_promo_code: { Args: { p_promo: string }; Returns: undefined }
       promo_code_list: { Args: { p_property: string }; Returns: Json }
+      save_pricing_rule: {
+        Args: {
+          p_active: boolean
+          p_date_from: string
+          p_date_to: string
+          p_from: number
+          p_kind: string
+          p_name: string
+          p_percent: number
+          p_property: string
+          p_room_type: string
+          p_rule: string
+          p_to: number
+          p_weekdays: number[]
+        }
+        Returns: Json
+      }
+      delete_pricing_rule: { Args: { p_rule: string }; Returns: undefined }
+      set_pricing_limits: { Args: { p_ceiling: number; p_floor: number; p_property: string; p_room_type: string }; Returns: undefined }
+      pricing_rule_list: { Args: { p_property: string }; Returns: Json }
+      pricing_limits_list: { Args: { p_property: string }; Returns: Json }
+      pricing_suggestions: { Args: { p_days?: number; p_from: string; p_property: string }; Returns: Json }
       queue_waitlist_notices: { Args: { p_limit?: number }; Returns: number }
       claim_waitlist_notices: { Args: { p_limit?: number }; Returns: Json }
       mark_waitlist_notice_result: { Args: { p_error?: string; p_id: string; p_ok: boolean }; Returns: undefined }

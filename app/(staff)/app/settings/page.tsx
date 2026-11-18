@@ -22,6 +22,11 @@ const SECTIONS = [
     text: "Codes guests type on the booking form for a percentage or fixed amount off. Needs discounts to be switched on for your hotel group.",
   },
   {
+    href: "/app/settings/pricing",
+    title: "Pricing suggestions",
+    text: "Rules by occupancy, days before arrival, weekday and event dates, with a floor and ceiling. Shows suggested prices only; it never changes a real price.",
+  },
+  {
     href: "/app/settings/reviews",
     title: "Guest reviews",
     text: "Reviews guests wrote after their stay. Approve the ones you want on your website.",
