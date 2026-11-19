@@ -39,6 +39,7 @@ const NAV: { label: string; href?: string; exact?: boolean; sub?: boolean }[] = 
   { label: "Refunds", href: "/app/refunds", sub: true },
   { label: "Reconcile payments", href: "/app/reconciliation", sub: true },
   { label: "Guest emails", href: "/app/emails", sub: true },
+  { label: "Groups", href: "/app/groups" },
   { label: "Night audit", href: "/app/night-audit" },
   { label: "Reports", href: "/app/reports" },
   { label: "Staff & Permissions", href: "/app/staff" },

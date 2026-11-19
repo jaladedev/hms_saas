@@ -983,4 +983,8 @@ PO="$(psql -f "$HERE/148_restaurant_pos.sql" 2>&1)" || { echo "$PO"; echo "RESTA
 echo "$PO" | grep -E 'PASS' || true
 if echo "$PO" | grep -qE 'FAIL|ERROR'; then echo "$PO"; echo "RESTAURANT POS TESTS FAILED"; exit 1; fi
 
+GB="$(psql -f "$HERE/149_group_bookings.sql" 2>&1)" || { echo "$GB"; echo "GROUP BOOKINGS TESTS FAILED"; exit 1; }
+echo "$GB" | grep -E 'PASS' || true
+if echo "$GB" | grep -qE 'FAIL|ERROR'; then echo "$GB"; echo "GROUP BOOKINGS TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

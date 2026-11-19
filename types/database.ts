@@ -4017,6 +4017,34 @@ export type Database = {
       delete_pricing_rule: { Args: { p_rule: string }; Returns: undefined }
       set_pricing_limits: { Args: { p_ceiling: number; p_floor: number; p_property: string; p_room_type: string }; Returns: undefined }
       pricing_rule_list: { Args: { p_property: string }; Returns: Json }
+      create_group: {
+        Args: {
+          p_arrival: string
+          p_company: string
+          p_contact_email: string
+          p_contact_name: string
+          p_contact_phone: string
+          p_departure: string
+          p_key: string
+          p_name: string
+          p_notes: string
+          p_property: string
+          p_release: string
+          p_rooms: Json
+        }
+        Returns: Json
+      }
+      update_group: {
+        Args: { p_company: string; p_contact_email: string; p_contact_name: string; p_contact_phone: string; p_group: string; p_notes: string; p_release: string }
+        Returns: undefined
+      }
+      cancel_group: { Args: { p_group: string }; Returns: Json }
+      use_group_unit: { Args: { p_group: string; p_room_type: string }; Returns: Json }
+      add_rooming_entry: { Args: { p_group: string; p_guest: string; p_notes: string; p_room_type: string }; Returns: Json }
+      remove_rooming_entry: { Args: { p_entry: string }; Returns: undefined }
+      group_list: { Args: { p_property: string }; Returns: Json }
+      group_detail: { Args: { p_group: string }; Returns: Json }
+      release_due_group_blocks: { Args: Record<PropertyKey, never>; Returns: number }
       pricing_limits_list: { Args: { p_property: string }; Returns: Json }
       pricing_suggestions: { Args: { p_days?: number; p_from: string; p_property: string }; Returns: Json }
       pos_save_category: { Args: { p_active: boolean; p_category: string; p_name: string; p_property: string; p_sort: number }; Returns: Json }

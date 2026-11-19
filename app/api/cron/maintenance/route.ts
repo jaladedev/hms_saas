@@ -53,6 +53,11 @@ async function handle(request: Request) {
       return data;
     },
     drainSms: drainSmsNow,
+    async releaseGroupBlocks() {
+      const { data, error } = await db.rpc("release_due_group_blocks");
+      if (error) throw new Error(error.message);
+      return { released: data };
+    },
     drainEventEmails: drainEventEmailsNow,
     async staleRefunds() {
       const { data, error } = await db.rpc("stale_processing_refunds", { p_older_than_minutes: 120 });

@@ -34,6 +34,7 @@ const ENFORCED = [
   "branding",
   "dynamic_pricing",
   "sms_notifications",
+  "group_bookings",
   "restaurant_pos",
 ];
 
