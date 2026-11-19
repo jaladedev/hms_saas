@@ -226,6 +226,8 @@ export type ErrorCode =
   | "pricing_invalid"
   | "pricing_limit"
   | "pricing_flag"
+  | "sms_invalid"
+  | "sms_flag"
   | "review_invalid"
   | "offer_dates"
   | "offer_limit"
@@ -462,6 +464,10 @@ export const OK_MESSAGES = {
   review_rejected: "Review rejected. It is not shown on your website.",
   promo_saved: "Promo code saved. Guests can enter it on the booking form while it is switched on and inside its dates.",
   promo_deleted: "Promo code deleted.",
+  sms_saved:
+    "Text message settings saved. They apply to messages queued from now on; texts already waiting are not changed except that a hotel that switches texts off stops them being sent.",
+  guest_sms_opt_out_on: "This guest will no longer be sent text messages.",
+  guest_sms_opt_out_off: "This guest can be sent text messages again.",
   pricing_saved: "Pricing rule saved. It changes the suggested prices below; no real price has changed.",
   pricing_deleted: "Pricing rule deleted.",
   pricing_limits_saved: "Floor and ceiling saved. Suggested prices stay inside them.",
@@ -667,6 +673,10 @@ export function errorMessage(code: string, refundable: number | null, formatMino
       return "A hotel can have up to 40 pricing rules. Delete one you no longer need first.";
     case "pricing_flag":
       return "Dynamic pricing is switched off for your hotel group, so rules cannot be saved. Contact the platform.";
+    case "sms_invalid":
+      return "Check the text message settings. Pick only the kinds listed, a monthly limit from 0 to 100,000, and a reminder of 1 to 7 days.";
+    case "sms_flag":
+      return "Text messages are not included in your hotel group's plan. Contact the platform.";
     case "promo_flag":
       return "Discounts are switched off for your hotel group, so promo codes cannot be saved. Contact the platform.";
     case "offer_invalid":

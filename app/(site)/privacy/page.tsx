@@ -42,6 +42,17 @@ export default async function PrivacyPage() {
       body: <p>We email the address you give about your booking, for example a confirmation, or a new booking link if you ask for one.</p>,
     },
     {
+      title: "Text messages",
+      body: (
+        <p>
+          If the hotel uses text messages and you gave a mobile number, it may text you about your booking: that it is confirmed, a reminder
+          before you arrive, or a request to rate your stay. A text has your booking reference but never your private booking link. We pass
+          your number and the message to our messaging provider only to send it. You can stop texts from your booking page, or ask the hotel
+          to stop them.
+        </p>
+      ),
+    },
+    {
       title: "Your booking link",
       body: (
         <p>

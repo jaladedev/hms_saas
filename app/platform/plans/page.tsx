@@ -33,6 +33,7 @@ const ENFORCED = [
   "audit_log",
   "branding",
   "dynamic_pricing",
+  "sms_notifications",
 ];
 
 function PlanForm({ plan, admin }: { plan?: Plan; admin: boolean }) {

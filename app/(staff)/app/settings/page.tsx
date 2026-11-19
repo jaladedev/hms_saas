@@ -27,6 +27,11 @@ const SECTIONS = [
     text: "Rules by occupancy, days before arrival, weekday and event dates, with a floor and ceiling. Shows suggested prices only; it never changes a real price.",
   },
   {
+    href: "/app/settings/messages",
+    title: "Text messages",
+    text: "Texts to guests for a confirmed booking, before arrival and after check-out, with a monthly limit. Off until you switch it on; needs texts in your hotel group's plan.",
+  },
+  {
     href: "/app/settings/reviews",
     title: "Guest reviews",
     text: "Reviews guests wrote after their stay. Approve the ones you want on your website.",

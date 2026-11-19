@@ -4,7 +4,14 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { checkGuestLimits } from "@/lib/guest-site/limits";
 import { parseExperienceRequest } from "@/lib/guest-site/experiences";
-import { createPaymentAttempt, paymentStartContext, requestExperience, requestOrigin, verifiedBookingId } from "@/lib/guest-site/server";
+import {
+  createPaymentAttempt,
+  paymentStartContext,
+  requestExperience,
+  requestOrigin,
+  setGuestSmsOptOut,
+  verifiedBookingId,
+} from "@/lib/guest-site/server";
 import { initializeTransaction } from "@/lib/paystack";
 import { resolveProviderSecret } from "@/lib/provider-secret";
 
@@ -75,4 +82,23 @@ export async function experienceAction(formData: FormData): Promise<void> {
   const result = await requestExperience({ reservationId, ...form });
   if (!result.ok) redirect(`${back}?error=${result.error.code}#experiences`);
   redirect(`${back}?asked=1#experiences`);
+}
+
+/**
+ * The guest stops text messages from the hotel, or allows them again, from their own booking page. The link proves who they are;
+ * the database changes only this booking's guest and records that the guest did it.
+ */
+export async function smsOptOutAction(formData: FormData): Promise<void> {
+  const raw = Object.fromEntries(formData.entries());
+  const input = z.object({ token: z.string().min(10).max(512), optOut: z.enum(["0", "1"]) }).safeParse(raw);
+  if (!input.success) redirect("/?error=bad_request");
+  const { token, optOut } = input.data;
+  const reservationId = await verifiedBookingId(token);
+  if (!reservationId) redirect("/?error=bad_request");
+  const back = `/booking/${token}`;
+  const limit = await checkGuestLimits({ ip: ["pay"] });
+  if (!limit.allowed) redirect(`${back}?error=rate_limited#texts`);
+  const result = await setGuestSmsOptOut(reservationId, optOut === "1");
+  if (!result.ok) redirect(`${back}?error=${result.error.code}#texts`);
+  redirect(`${back}?texts=${optOut === "1" ? "off" : "on"}#texts`);
 }

@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
-import { buttonPrimary, inputClass, Notice, linkClass, PageTitle, SectionTitle } from "@/components/staff/ui";
+import { buttonPrimary, buttonQuiet, inputClass, Notice, linkClass, PageTitle, SectionTitle } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { saveGuestProfile, updateGuest } from "@/lib/staff/guest-actions";
+import { saveGuestSmsOptOut } from "@/lib/staff/sms-actions";
 import { MAX_NOTES } from "@/lib/staff/guests";
 import { createClient } from "@/lib/supabase/server";
 import { PendingButton } from "@/components/ui/pending-button";
@@ -20,6 +21,7 @@ type Guest = {
   country_code: string | null;
   created_at: string;
   vip: boolean;
+  sms_opt_out: boolean;
   notes: string | null;
 };
 type Stay = {
@@ -47,7 +49,7 @@ export default async function GuestPage({
 
   const { data } = await supabase
     .from("guests")
-    .select("id, tenant_id, full_name, email, phone, address, country_code, created_at, vip, notes")
+    .select("id, tenant_id, full_name, email, phone, address, country_code, created_at, vip, notes, sms_opt_out")
     .eq("id", id)
     .maybeSingle();
   if (!data) notFound();
@@ -205,6 +207,27 @@ export default async function GuestPage({
             <dd className="max-w-prose whitespace-pre-wrap break-words">{guest.notes ?? "None"}</dd>
           </dl>
         )}
+        {canEdit ? (
+          <form action={saveGuestSmsOptOut} className="mt-6 max-w-xl rounded border border-line bg-white p-4">
+            <input type="hidden" name="guestId" value={guest.id} />
+            <input type="hidden" name="returnTo" value={`/app/guests/${guest.id}`} />
+            <label className="flex items-start gap-3 text-sm">
+              <input type="checkbox" name="optOut" defaultChecked={guest.sms_opt_out} className="mt-1" />
+              <span>
+                <span className="font-medium">Do not send this guest text messages</span>
+                <span className="block text-xs text-muted">
+                  Tick this when a guest asks you to stop. It applies to every booking of this guest, and guests can also do it from their
+                  own booking page.
+                </span>
+              </span>
+            </label>
+            <div className="mt-3">
+              <PendingButton className={buttonQuiet} pendingLabel="Saving…">
+                Save
+              </PendingButton>
+            </div>
+          </form>
+        ) : null}
       </section>
 
       <section className="mt-10" aria-labelledby="stays">

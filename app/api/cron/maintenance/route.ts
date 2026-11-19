@@ -1,5 +1,6 @@
 import { drainDigestsNow, drainEventEmailsNow, drainNoticesNow, drainNow } from "@/lib/email/server";
 import { drainPhotoCleanup } from "@/lib/photo-cleanup";
+import { drainSmsNow } from "@/lib/sms/server";
 import { isAuthorizedCron, runMaintenance } from "@/lib/maintenance";
 import { PHOTO_BUCKET } from "@/lib/staff/room-photos";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -46,6 +47,12 @@ async function handle(request: Request) {
     },
     drainWaitlistNotices: drainNoticesNow,
     drainEmails: drainNow,
+    async queueSmsMessages() {
+      const { data, error } = await db.rpc("queue_sms_messages", { p_limit: 200 });
+      if (error) throw new Error(error.message);
+      return data;
+    },
+    drainSms: drainSmsNow,
     drainEventEmails: drainEventEmailsNow,
     async staleRefunds() {
       const { data, error } = await db.rpc("stale_processing_refunds", { p_older_than_minutes: 120 });

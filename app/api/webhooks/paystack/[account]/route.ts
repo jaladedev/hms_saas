@@ -1,6 +1,7 @@
 import { after } from "next/server";
 import { z } from "zod";
 import { drainEventEmailsNow, drainNow } from "@/lib/email/server";
+import { drainSmsNow } from "@/lib/sms/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { verifyTransaction } from "@/lib/paystack";
 import { resolveProviderSecret } from "@/lib/provider-secret";
@@ -96,6 +97,7 @@ export async function POST(request: Request, context: { params: Promise<{ accoun
     after(() => {
       drainNow(5).catch(() => {});
       drainEventEmailsNow(5).catch(() => {});
-    }); // confirmation and refund emails go out quickly
+      drainSmsNow(5).catch(() => {});
+    }); // confirmation and refund emails, and the confirmation text, go out quickly
   return Response.json(outcome.body, { status: outcome.status });
 }

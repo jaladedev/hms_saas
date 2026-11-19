@@ -14,13 +14,14 @@ import {
   changeOptions,
   guestExperiences,
   guestHotel,
+  guestSmsStatus,
   myExperienceRequests,
   requestHost,
   reviewState,
   verifiedBookingId,
 } from "@/lib/guest-site/server";
 import { experienceUnit, requestStatusLabel } from "@/lib/guest-site/experiences";
-import { experienceAction, payAction } from "./actions";
+import { experienceAction, payAction, smsOptOutAction } from "./actions";
 import { showsAmountDue } from "@/lib/guest-site/booking-summary";
 import { bookingTimeline } from "@/lib/guest-site/timeline";
 import { PendingButton } from "@/components/ui/pending-button";
@@ -58,6 +59,8 @@ export default async function BookingPage({ params, searchParams }: Props) {
   const [expResult, askedResult] = canAsk ? await Promise.all([guestExperiences(host), myExperienceRequests(reservationId)]) : [null, null];
   const experiences = expResult?.ok ? expResult.data.experiences : [];
   const asked = askedResult?.ok ? askedResult.data.requests : [];
+  const smsResult = await guestSmsStatus(reservationId);
+  const sms = smsResult.ok ? smsResult.data : null;
   const key = crypto.randomUUID();
 
   return (
@@ -374,6 +377,32 @@ export default async function BookingPage({ params, searchParams }: Props) {
               </a>
             ) : null}
           </p>
+        </section>
+      ) : null}
+      {sms && (sms.hotel_texts || sms.opt_out) ? (
+        <section id="texts" className="mt-8 rounded border border-line bg-white p-4 text-sm">
+          <h2 className="font-medium">Text messages</h2>
+          {raw.texts === "off" ? (
+            <p role="status" className="mt-2">
+              Done. The hotel will not text you again about this or any other booking.
+            </p>
+          ) : raw.texts === "on" ? (
+            <p role="status" className="mt-2">
+              Done. The hotel may text you about your booking.
+            </p>
+          ) : null}
+          <p className="mt-2 text-muted">
+            {sms.opt_out
+              ? "You have asked not to receive text messages from this hotel."
+              : "This hotel may text your mobile number about your booking, for example a reminder before you arrive."}
+          </p>
+          <form action={smsOptOutAction} className="mt-3">
+            <input type="hidden" name="token" value={token} />
+            <input type="hidden" name="optOut" value={sms.opt_out ? "0" : "1"} />
+            <PendingButton className="rounded border border-line px-3 py-1.5 text-sm">
+              {sms.opt_out ? "Allow text messages" : "Stop text messages"}
+            </PendingButton>
+          </form>
         </section>
       ) : null}
     </main>

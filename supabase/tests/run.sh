@@ -975,4 +975,8 @@ PR="$(psql -f "$HERE/146_pricing_rules.sql" 2>&1)" || { echo "$PR"; echo "PRICIN
 echo "$PR" | grep -E 'PASS' || true
 if echo "$PR" | grep -qE 'FAIL|ERROR'; then echo "$PR"; echo "PRICING RULES TESTS FAILED"; exit 1; fi
 
+SM="$(psql -f "$HERE/147_sms_notifications.sql" 2>&1)" || { echo "$SM"; echo "SMS NOTIFICATIONS TESTS FAILED"; exit 1; }
+echo "$SM" | grep -E 'PASS' || true
+if echo "$SM" | grep -qE 'FAIL|ERROR'; then echo "$SM"; echo "SMS NOTIFICATIONS TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

@@ -183,6 +183,18 @@ export function myExperienceRequests(reservationId: string) {
 }
 
 /** Sends a request for an experience. Staff confirm it; nothing is held or charged here (migration 134). */
+export type GuestSmsStatus = { hotel_texts: boolean; opt_out: boolean };
+
+/** Whether this hotel texts this guest and whether the guest has opted out (migration 147). */
+export function guestSmsStatus(reservationId: string) {
+  return call<GuestSmsStatus>("guest_sms_status", { p_reservation: reservationId });
+}
+
+/** The guest stops (or allows) text messages from their own booking page. The link has been checked by the caller. */
+export function setGuestSmsOptOut(reservationId: string, optOut: boolean) {
+  return call<{ changed: boolean; sms_opt_out: boolean }>("guest_set_sms_opt_out", { p_reservation: reservationId, p_opt_out: optOut });
+}
+
 export function requestExperience(args: {
   reservationId: string;
   experienceId: string;

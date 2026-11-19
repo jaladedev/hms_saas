@@ -66,6 +66,8 @@ describe("maintenance", () => {
       drainWaitlistNotices: async () => ({ sent: 1 }),
       drainDigests: async () => ({ sent: 1 }),
       drainEventEmails: async () => ({ sent: 1 }),
+      queueSmsMessages: async () => ({ arrival_reminder: 2, review_request: 0 }),
+      drainSms: async () => ({ claimed: 2, sent: 2, failed: 0 }),
       drainEmails: async () => {
         throw new Error("mailer exploded");
       },
@@ -78,6 +80,10 @@ describe("maintenance", () => {
     expect(out.expiredHolds).toEqual({ ok: true, result: 3 });
     expect(out.reviewRequests).toEqual({ ok: true, result: 1 });
     expect(out.emails).toEqual({ ok: false, error: "mailer exploded" });
+    expect(out.sms).toEqual({
+      ok: true,
+      result: { queued: { arrival_reminder: 2, review_request: 0 }, sent: { claimed: 2, sent: 2, failed: 0 } },
+    });
     expect(out.purge).toEqual({ ok: true, result: { rate_limit_rows: 1 } });
     expect(out.photoFiles).toEqual({ ok: true, result: { claimed: 1, cleared: 1, error: null } });
     expect(out.notifications).toEqual({ ok: true, result: { overdue_raised: 2, purged: 0 } });

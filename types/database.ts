@@ -686,6 +686,7 @@ export type Database = {
           updated_at: string
           notes: string | null
           vip: boolean
+          sms_opt_out: boolean
         }
         ComputedFields: never
         Insert: {
@@ -700,6 +701,7 @@ export type Database = {
           updated_at?: string
           notes?: string | null
           vip?: boolean
+          sms_opt_out?: boolean
         }
         Update: {
           address?: string | null
@@ -713,6 +715,7 @@ export type Database = {
           updated_at?: string
           notes?: string | null
           vip?: boolean
+          sms_opt_out?: boolean
         }
         Relationships: [
           {
@@ -1775,6 +1778,11 @@ export type Database = {
           review_request_enabled: boolean
           digest_email: string | null
           waitlist_email_enabled: boolean
+          sms_enabled: boolean
+          sms_kinds: string[]
+          sms_channel: string
+          sms_monthly_cap: number
+          sms_reminder_days: number
           social_instagram: string | null
         }
         ComputedFields: never
@@ -1809,6 +1817,11 @@ export type Database = {
           review_request_enabled?: boolean
           digest_email?: string | null
           waitlist_email_enabled?: boolean
+          sms_enabled?: boolean
+          sms_kinds?: string[]
+          sms_channel?: string
+          sms_monthly_cap?: number
+          sms_reminder_days?: number
           social_instagram?: string | null
         }
         Update: {
@@ -1842,6 +1855,11 @@ export type Database = {
           review_request_enabled?: boolean
           digest_email?: string | null
           waitlist_email_enabled?: boolean
+          sms_enabled?: boolean
+          sms_kinds?: string[]
+          sms_channel?: string
+          sms_monthly_cap?: number
+          sms_reminder_days?: number
           social_instagram?: string | null
         }
         Relationships: [
@@ -4005,6 +4023,18 @@ export type Database = {
       claim_waitlist_notices: { Args: { p_limit?: number }; Returns: Json }
       mark_waitlist_notice_result: { Args: { p_error?: string; p_id: string; p_ok: boolean }; Returns: undefined }
       set_waitlist_email: { Args: { p_enabled: boolean; p_property: string }; Returns: undefined }
+      queue_sms_messages: { Args: { p_limit?: number }; Returns: Json }
+      claim_sms: { Args: { p_limit?: number }; Returns: Json }
+      mark_sms_result: { Args: { p_error?: string; p_id: string; p_ok: boolean; p_permanent?: boolean; p_provider_id?: string }; Returns: undefined }
+      set_sms_settings: {
+        Args: { p_channel: string; p_enabled: boolean; p_kinds: string[]; p_monthly_cap: number; p_property: string; p_reminder_days: number }
+        Returns: undefined
+      }
+      set_guest_sms_opt_out: { Args: { p_guest: string; p_opt_out: boolean }; Returns: Json }
+      guest_set_sms_opt_out: { Args: { p_opt_out: boolean; p_reservation: string }; Returns: Json }
+      guest_sms_status: { Args: { p_reservation: string }; Returns: Json }
+      sms_usage: { Args: { p_property: string }; Returns: Json }
+      sms_recent_failures: { Args: { p_property: string }; Returns: Json }
       queue_daily_digests: { Args: Record<PropertyKey, never>; Returns: number }
       claim_digests: { Args: { p_limit?: number }; Returns: Json }
       mark_digest_result: { Args: { p_error?: string; p_id: string; p_ok: boolean }; Returns: undefined }
