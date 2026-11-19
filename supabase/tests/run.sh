@@ -979,4 +979,8 @@ SM="$(psql -f "$HERE/147_sms_notifications.sql" 2>&1)" || { echo "$SM"; echo "SM
 echo "$SM" | grep -E 'PASS' || true
 if echo "$SM" | grep -qE 'FAIL|ERROR'; then echo "$SM"; echo "SMS NOTIFICATIONS TESTS FAILED"; exit 1; fi
 
+PO="$(psql -f "$HERE/148_restaurant_pos.sql" 2>&1)" || { echo "$PO"; echo "RESTAURANT POS TESTS FAILED"; exit 1; }
+echo "$PO" | grep -E 'PASS' || true
+if echo "$PO" | grep -qE 'FAIL|ERROR'; then echo "$PO"; echo "RESTAURANT POS TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

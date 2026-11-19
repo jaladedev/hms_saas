@@ -34,6 +34,7 @@ const ENFORCED = [
   "branding",
   "dynamic_pricing",
   "sms_notifications",
+  "restaurant_pos",
 ];
 
 function PlanForm({ plan, admin }: { plan?: Plan; admin: boolean }) {
@@ -147,9 +148,9 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
         <PageTitle>Plans</PageTitle>
         <p className="mt-2 max-w-prose text-sm text-muted">
           What each plan is called, costs and includes. Nothing here charges a hotel: it records the plan. Putting a hotel group on a plan
-          (from the hotel&apos;s own page) sets its plan code and turns the eleven enforced flags on or off to match: {ENFORCED.join(", ")}.
-          Other feature keys are kept in the list but switch nothing. Prices marked placeholder were set when the catalog was created and
-          are not decided: save the plan to confirm one.
+          (from the hotel&apos;s own page) sets its plan code and turns the enforced flags on or off to match: {ENFORCED.join(", ")}. Other
+          feature keys are kept in the list but switch nothing. Prices marked placeholder were set when the catalog was created and are not
+          decided: save the plan to confirm one.
         </p>
       </div>
       <PlatformNotice search={search} />

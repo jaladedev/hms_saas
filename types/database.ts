@@ -4019,6 +4019,24 @@ export type Database = {
       pricing_rule_list: { Args: { p_property: string }; Returns: Json }
       pricing_limits_list: { Args: { p_property: string }; Returns: Json }
       pricing_suggestions: { Args: { p_days?: number; p_from: string; p_property: string }; Returns: Json }
+      pos_save_category: { Args: { p_active: boolean; p_category: string; p_name: string; p_property: string; p_sort: number }; Returns: Json }
+      pos_save_item: {
+        Args: { p_active: boolean; p_category: string; p_item: string; p_name: string; p_price: number; p_property: string; p_sort: number }
+        Returns: Json
+      }
+      pos_save_place: { Args: { p_active: boolean; p_kind: string; p_name: string; p_place: string; p_property: string }; Returns: Json }
+      pos_open_order: { Args: { p_guest_label: string; p_key: string; p_place: string; p_property: string }; Returns: Json }
+      pos_add_line: { Args: { p_item: string; p_key: string; p_note: string; p_order: string; p_quantity: number }; Returns: Json }
+      pos_set_line_status: { Args: { p_line: string; p_status: string }; Returns: Json }
+      pos_void_order: { Args: { p_order: string; p_reason: string }; Returns: Json }
+      pos_pay_order: { Args: { p_key: string; p_method: string; p_order: string; p_reference: string }; Returns: Json }
+      pos_post_to_room: { Args: { p_key: string; p_order: string; p_reservation: string }; Returns: Json }
+      pos_can_read: { Args: { p_property: string }; Returns: boolean }
+      pos_menu: { Args: { p_property: string }; Returns: Json }
+      pos_open_orders: { Args: { p_property: string }; Returns: Json }
+      pos_order_detail: { Args: { p_order: string }; Returns: Json }
+      pos_kitchen_queue: { Args: { p_property: string }; Returns: Json }
+      pos_sales_report: { Args: { p_from: string; p_property: string; p_to: string }; Returns: Json }
       queue_waitlist_notices: { Args: { p_limit?: number }; Returns: number }
       claim_waitlist_notices: { Args: { p_limit?: number }; Returns: Json }
       mark_waitlist_notice_result: { Args: { p_error?: string; p_id: string; p_ok: boolean }; Returns: undefined }
