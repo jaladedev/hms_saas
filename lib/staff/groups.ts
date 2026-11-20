@@ -46,6 +46,8 @@ export const GROUP_ERROR_MESSAGES = {
     "The shares do not add up, or a share is for a booking that is not linked to this group or cannot take payment. Nothing was recorded.",
   group_pay_reversed: "Every payment on that company payment is already reversed.",
   group_pay_refunds: "A payment on it has a refund, so it cannot be reversed here.",
+  group_credit_limit:
+    "That would take the company above its credit limit. Collect payment on its open invoices first, or ask an owner or general manager to raise the limit.",
   group_limit: "A rooming list holds at most 200 names.",
   group_reused: "That form was already sent with other details. Reload the page and try again.",
   group_failed: "That did not work. Reload the page and try again.",
@@ -88,6 +90,7 @@ export function classifyGroupError(message: string): GroupErrorCode {
   if (/POLICY_VIOLATION: (amount|method)/.test(message)) return "group_pay_invalid";
   if (/INVALID_STATE: reversed/.test(message)) return "group_pay_reversed";
   if (/INVALID_STATE: payment has refunds/.test(message)) return "group_pay_refunds";
+  if (/POLICY_VIOLATION: credit limit/.test(message)) return "group_credit_limit";
   if (/INVALID_STATE: nothing to invoice/.test(message)) return "group_nothing_to_invoice";
   if (/INVALID_STATE: (paid|void)/.test(message)) return "group_invoice_final";
   if (/INVALID_STATE/.test(message)) return "group_closed";
@@ -281,6 +284,7 @@ export type CompanyForm = {
   creditDays: number;
   percent: number;
   notes: string | null;
+  creditLimitMinor: number | null;
 };
 function companyFields(raw: Raw): Omit<CompanyForm, "propertyId" | "name"> | null {
   const contact = text(raw.contact);
@@ -294,7 +298,18 @@ function companyFields(raw: Raw): Omit<CompanyForm, "propertyId" | "name"> | nul
   if (phone && (phone.length < 3 || phone.length > 30)) return null;
   if (!/^\d{1,2}$/.test(days) || Number(days) > 90) return null;
   if (pct === null || pct > 50) return null;
-  return { contact, email: email || null, phone: phone || null, creditDays: Number(days), percent: pct, notes: notes || null };
+  const limitText = text(raw.creditLimit);
+  const limit = limitText === "" ? null : parseAmountToMinor(limitText);
+  if (limitText !== "" && limit === null) return null;
+  return {
+    contact,
+    email: email || null,
+    phone: phone || null,
+    creditDays: Number(days),
+    percent: pct,
+    notes: notes || null,
+    creditLimitMinor: limit,
+  };
 }
 export function parseCompanyCreateForm(raw: Raw): { ok: true; value: CompanyForm } | { ok: false; code: GroupErrorCode } {
   const propertyId = text(raw.propertyId);
@@ -629,6 +644,9 @@ export type CompanyAccount = {
   status: "active" | "archived";
   notes: string | null;
   groups: number;
+  creditLimitMinor: number | null;
+  exposureMinor: number;
+  overdueMinor: number;
 };
 export function parseCompanies(data: unknown): CompanyAccount[] {
   return arr(data)
@@ -643,6 +661,9 @@ export function parseCompanies(data: unknown): CompanyAccount[] {
       status: (c.status === "archived" ? "archived" : "active") as CompanyAccount["status"],
       notes: strOrNull(c.notes),
       groups: num(c.groups),
+      creditLimitMinor: c.credit_limit_minor === null || c.credit_limit_minor === undefined ? null : num(c.credit_limit_minor),
+      exposureMinor: num(c.exposure_minor),
+      overdueMinor: num(c.overdue_minor),
     }))
     .filter((c) => c.id !== "");
 }
@@ -683,4 +704,31 @@ export function parseGroupPayments(data: unknown): GroupPayment[] {
       })),
     }))
     .filter((p) => p.id !== "");
+}
+
+export type OverdueInvoice = {
+  invoiceId: string;
+  number: string;
+  groupId: string;
+  groupName: string;
+  billTo: string;
+  currency: string;
+  totalMinor: number;
+  dueDate: string;
+  daysOverdue: number;
+};
+export function parseOverdue(data: unknown): OverdueInvoice[] {
+  return arr(data)
+    .map((i) => ({
+      invoiceId: str(i.invoice_id),
+      number: str(i.invoice_number),
+      groupId: str(i.group_id),
+      groupName: str(i.group_name),
+      billTo: str(i.bill_to),
+      currency: str(i.currency) || "NGN",
+      totalMinor: num(i.total_minor),
+      dueDate: str(i.due_date),
+      daysOverdue: num(i.days_overdue),
+    }))
+    .filter((i) => i.invoiceId !== "");
 }

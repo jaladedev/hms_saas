@@ -4393,14 +4393,15 @@ export type Database = {
       reverse_group_payment: { Args: { p_group_payment: string; p_key: string; p_reason: string }; Returns: Json }
       group_payment_list: { Args: { p_group: string }; Returns: Json }
       company_create: {
-        Args: { p_contact: string; p_credit_days: number; p_email: string; p_name: string; p_notes: string; p_percent: number; p_phone: string; p_property: string }
+        Args: { p_contact: string; p_credit_days: number; p_credit_limit_minor: number; p_email: string; p_name: string; p_notes: string; p_percent: number; p_phone: string; p_property: string }
         Returns: Json
       }
       company_update: {
-        Args: { p_company: string; p_contact: string; p_credit_days: number; p_email: string; p_notes: string; p_percent: number; p_phone: string; p_status: string }
+        Args: { p_company: string; p_contact: string; p_credit_days: number; p_credit_limit_minor: number; p_email: string; p_notes: string; p_percent: number; p_phone: string; p_status: string }
         Returns: undefined
       }
       company_list: { Args: { p_property: string }; Returns: Json }
+      group_invoice_overdue: { Args: { p_property: string }; Returns: Json }
       set_group_company: { Args: { p_company: string; p_group: string }; Returns: undefined }
       apply_company_rate_to_group: { Args: { p_group: string; p_key: string }; Returns: Json }
       issue_group_invoice: { Args: { p_due: string; p_group: string; p_key: string }; Returns: Json }

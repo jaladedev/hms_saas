@@ -11,6 +11,7 @@ import {
   parseGroupPayments,
   parseGroupPaymentForm,
   parseLinkForm,
+  parseOverdue,
   suggestedDueDate,
   parseCreateGroupForm,
   parseGroupDetail,
@@ -196,5 +197,25 @@ describe("step six", () => {
     ]);
     expect(p).toMatchObject({ state: "partly_reversed", amountMinor: 100 });
     expect(p?.lines[0]?.reference).toBe("B");
+  });
+});
+
+describe("step seven", () => {
+  const co = { propertyId: P, name: "Globex", contact: "Tola", creditDays: "30", percent: "0" };
+  it("reads an optional credit limit in naira", () => {
+    const a = parseCompanyCreateForm({ ...co, creditLimit: "5,000,000" });
+    expect(a.ok && a.value.creditLimitMinor).toBe(500000000);
+    const b = parseCompanyCreateForm({ ...co, creditLimit: "" });
+    expect(b.ok && b.value.creditLimitMinor).toBeNull();
+    expect(parseCompanyCreateForm({ ...co, creditLimit: "abc" }).ok).toBe(false);
+    expect(parseCompanyCreateForm({ ...co, creditLimit: "0" }).ok).toBe(false);
+  });
+  it("maps the refusal and reads companies and the overdue list", () => {
+    expect(classifyGroupError("POLICY_VIOLATION: credit limit 0")).toBe("group_credit_limit");
+    const [c] = parseCompanies([{ id: "c1", name: "G", credit_limit_minor: 1000, exposure_minor: 400, overdue_minor: 100 }]);
+    expect(c).toMatchObject({ creditLimitMinor: 1000, exposureMinor: 400, overdueMinor: 100 });
+    expect(parseCompanies([{ id: "c2", name: "H" }])[0]?.creditLimitMinor).toBeNull();
+    const [o] = parseOverdue([{ invoice_id: "i1", invoice_number: "INV-X", group_name: "W", total_minor: 50, days_overdue: 4 }]);
+    expect(o).toMatchObject({ daysOverdue: 4, totalMinor: 50 });
   });
 });

@@ -202,6 +202,7 @@ export async function createCompany(formData: FormData) {
     p_credit_days: f.creditDays,
     p_percent: f.percent,
     p_notes: f.notes as string,
+    p_credit_limit_minor: f.creditLimitMinor as number,
   });
   if (error) return fail(COMPANIES, error.message.includes("NOT_FOUND") ? "company_forbidden" : classifyGroupError(error.message));
   revalidatePath(COMPANIES);
@@ -222,6 +223,7 @@ export async function updateCompany(formData: FormData) {
     p_percent: f.percent,
     p_notes: f.notes as string,
     p_status: f.status,
+    p_credit_limit_minor: f.creditLimitMinor as number,
   });
   if (error) return fail(COMPANIES, error.message.includes("NOT_FOUND") ? "company_forbidden" : classifyGroupError(error.message));
   revalidatePath(COMPANIES);

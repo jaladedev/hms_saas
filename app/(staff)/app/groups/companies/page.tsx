@@ -13,6 +13,8 @@ import {
 } from "@/components/staff/ui";
 import { PendingButton } from "@/components/ui/pending-button";
 import { createCompany, updateCompany } from "@/lib/staff/group-actions";
+import { formatMoney } from "@/lib/guest-site/format";
+import { minorToInput } from "@/lib/staff/money-input";
 import { parseCompanies } from "@/lib/staff/groups";
 import { createClient } from "@/lib/supabase/server";
 
@@ -38,8 +40,9 @@ export default async function CompaniesPage({ searchParams }: { searchParams: Pr
       <PageIntro>
         A company account holds who to bill, the days the company has to pay (credit days) and an agreed discount. Attach one to a group:
         the group invoice is made out to the company and suggests a due date from the credit days, and the agreed discount can be applied to
-        the group&rsquo;s linked bookings. Credit days only suggest a due date; nothing is blocked when a company is late. Changing a
-        discount later does not change bookings that already have it.
+        the group&rsquo;s linked bookings. Credit days only suggest a due date. An optional credit limit stops a new group invoice that
+        would take the company\u2019s unpaid invoices above it; nothing else is blocked when a company is late. Changing a discount later
+        does not change bookings that already have it.
       </PageIntro>
       <div className="mt-6">
         <GroupNotice search={search} />
@@ -61,6 +64,9 @@ export default async function CompaniesPage({ searchParams }: { searchParams: Pr
                   <input type="hidden" name="companyId" value={c.id} />
                   <p className="text-sm md:col-span-3">
                     <strong>{c.name}</strong> · {c.groups} group(s){c.status === "archived" ? " · archived" : ""}
+                    {" · "}Owes on open invoices {formatMoney(c.exposureMinor, "NGN")}
+                    {c.creditLimitMinor !== null ? ` of ${formatMoney(c.creditLimitMinor, "NGN")} limit` : ""}
+                    {c.overdueMinor > 0 ? ` · ${formatMoney(c.overdueMinor, "NGN")} overdue` : ""}
                   </p>
                   <label className="block text-sm">
                     Billing contact
@@ -87,6 +93,15 @@ export default async function CompaniesPage({ searchParams }: { searchParams: Pr
                       max={50}
                       step="0.01"
                       defaultValue={c.percent}
+                      className={`${inputClass} mt-1`}
+                    />
+                  </label>
+                  <label className="block text-sm">
+                    Credit limit in naira (empty for none)
+                    <input
+                      name="creditLimit"
+                      inputMode="decimal"
+                      defaultValue={c.creditLimitMinor === null ? "" : minorToInput(c.creditLimitMinor)}
                       className={`${inputClass} mt-1`}
                     />
                   </label>
@@ -136,6 +151,10 @@ export default async function CompaniesPage({ searchParams }: { searchParams: Pr
               <label className="block text-sm">
                 Agreed discount % (0 to 50)
                 <input name="percent" type="number" min={0} max={50} step="0.01" defaultValue={0} className={`${inputClass} mt-1`} />
+              </label>
+              <label className="block text-sm">
+                Credit limit in naira (empty for none)
+                <input name="creditLimit" inputMode="decimal" className={`${inputClass} mt-1`} />
               </label>
               <label className="block text-sm md:col-span-3">
                 Notes (optional)

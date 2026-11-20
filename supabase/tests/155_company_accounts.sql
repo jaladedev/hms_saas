@@ -4,17 +4,17 @@
 do $$ declare v_p constant uuid := '00000000-0000-0000-0000-0000000000a2'; c jsonb; v_c uuid; v_c2 uuid; v_g uuid; v_g2 uuid; e jsonb; ra text; rb text; rc text; rd text; res jsonb; inv jsonb; l jsonb; v_sub bigint; v_tax bigint; v_tot bigint; begin
   -- who may
   perform t_as('00000000-0000-0000-0000-00000000aa04');
-  perform t_expect(format('select company_create(%L, ''Acme'', ''Ada'', null, null, 30, 10, null)', v_p), 'NOT_FOUND');
+  perform t_expect(format('select company_create(%L, ''Acme'', ''Ada'', null, null, 30, 10, null, null)', v_p), 'NOT_FOUND');
   perform t_as('00000000-0000-0000-0000-00000000bb01');
   perform t_expect(format('select company_list(%L)', v_p), 'NOT_FOUND');
   perform t_as('00000000-0000-0000-0000-00000000aa01');
-  perform t_expect(format('select company_create(%L, '''', ''Ada'', null, null, 30, 10, null)', v_p), 'POLICY_VIOLATION: details');
-  perform t_expect(format('select company_create(%L, ''X'', ''Ada'', null, null, 91, 10, null)', v_p), 'POLICY_VIOLATION: details');
-  perform t_expect(format('select company_create(%L, ''X'', ''Ada'', null, null, 30, 51, null)', v_p), 'POLICY_VIOLATION: details');
-  perform t_expect(format('select company_create(%L, ''X'', ''Ada'', ''nope'', null, 30, 10, null)', v_p), 'POLICY_VIOLATION: details');
-  v_c := (company_create(v_p, '  Globex Nigeria ', 'Tola Bank', 'ap@globex.example', '08011112222', 30, 12.5, 'Net 30')::jsonb ->> 'company_id')::uuid;
-  perform t_expect(format('select company_create(%L, ''GLOBEX nigeria'', ''x'', null, null, 0, 0, null)', v_p), 'POLICY_VIOLATION: name taken');
-  v_c2 := (company_create(v_p, 'No Rate Co', 'Ngozi', null, null, 0, 0, null)::jsonb ->> 'company_id')::uuid;
+  perform t_expect(format('select company_create(%L, '''', ''Ada'', null, null, 30, 10, null, null)', v_p), 'POLICY_VIOLATION: details');
+  perform t_expect(format('select company_create(%L, ''X'', ''Ada'', null, null, 91, 10, null, null)', v_p), 'POLICY_VIOLATION: details');
+  perform t_expect(format('select company_create(%L, ''X'', ''Ada'', null, null, 30, 51, null, null)', v_p), 'POLICY_VIOLATION: details');
+  perform t_expect(format('select company_create(%L, ''X'', ''Ada'', ''nope'', null, 30, 10, null, null)', v_p), 'POLICY_VIOLATION: details');
+  v_c := (company_create(v_p, '  Globex Nigeria ', 'Tola Bank', 'ap@globex.example', '08011112222', 30, 12.5, 'Net 30', null)::jsonb ->> 'company_id')::uuid;
+  perform t_expect(format('select company_create(%L, ''GLOBEX nigeria'', ''x'', null, null, 0, 0, null, null)', v_p), 'POLICY_VIOLATION: name taken');
+  v_c2 := (company_create(v_p, 'No Rate Co', 'Ngozi', null, null, 0, 0, null, null)::jsonb ->> 'company_id')::uuid;
   c := company_list(v_p);
   if jsonb_array_length(c) <> 2 or c -> 0 ->> 'name' <> 'Globex Nigeria' then raise exception 'FAIL list %', c; end if;
 
@@ -59,7 +59,7 @@ do $$ declare v_p constant uuid := '00000000-0000-0000-0000-0000000000a2'; c jso
   res := apply_company_rate_to_group(v_g, 'cr-2');
   if (res ->> 'applied')::int <> 0 or (res ->> 'skipped')::int <> 4 then raise exception 'FAIL second apply %', res; end if;
   -- a later change of the rate leaves applied discounts alone
-  perform company_update(v_c, 'Tola Bank', 'ap@globex.example', '08011112222', 45, 20, 'Net 45', 'active');
+  perform company_update(v_c, 'Tola Bank', 'ap@globex.example', '08011112222', 45, 20, 'Net 45', 'active', null);
   if (select discount_percent from reservations where booking_reference = ra) <> 12.5 then raise exception 'FAIL rate change touched booking'; end if;
 
   -- invoice: bills the company account, suggests nothing else, and copes with the 95% booking
@@ -72,7 +72,7 @@ do $$ declare v_p constant uuid := '00000000-0000-0000-0000-0000000000a2'; c jso
   if exists (select 1 from jsonb_array_elements(l -> 0 -> 'lines') x where (x ->> 'net_minor')::bigint < 0 or (x ->> 'tax_minor')::bigint < 0) then raise exception 'FAIL negative line'; end if;
 
   -- archived companies cannot be attached; the audit trail is there
-  perform company_update(v_c2, 'Ngozi', null, null, 0, 0, null, 'archived');
+  perform company_update(v_c2, 'Ngozi', null, null, 0, 0, null, 'archived', null);
   perform t_expect(format('select set_group_company(%L, %L)', v_g, v_c2), 'POLICY_VIOLATION: company');
   if (select count(*) from audit_logs where action in ('company.created', 'company.updated', 'group.company_set', 'group.company_rate_applied', 'reservation.company_rate_applied')
         and (entity_id = v_g or entity_id in (v_c, v_c2) or entity_id in (select id from reservations where booking_reference in (ra, rb, rc, rd)))) <> 8 then raise exception 'FAIL audit rows'; end if;

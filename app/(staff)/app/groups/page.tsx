@@ -49,7 +49,11 @@ export default async function GroupsPage({ searchParams }: { searchParams: Promi
         <Link href="/app/groups/companies" className={linkClass}>
           Company accounts
         </Link>{" "}
-        hold credit days and an agreed discount.
+        hold credit days, an agreed discount and a credit limit.{" "}
+        <Link href="/app/groups/overdue" className={linkClass}>
+          Overdue invoices
+        </Link>
+        .
       </p>
       <div className="mt-6">
         <GroupNotice search={search} />
