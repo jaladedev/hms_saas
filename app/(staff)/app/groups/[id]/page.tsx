@@ -330,7 +330,12 @@ export default async function GroupPage({
           {invoices.map((i) => (
             <div key={i.id} className="mt-4 border border-line p-4 text-sm">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <strong>{i.number}</strong>
+                <span className="flex flex-wrap items-baseline gap-3">
+                  <strong>{i.number}</strong>
+                  <Link href={`/app/groups/${g.id}/invoice/${i.id}`} className={linkClass}>
+                    Open to print
+                  </Link>
+                </span>
                 <span className="text-muted">
                   {i.status === "paid"
                     ? `Paid ${i.paidAt ? formatDate(i.paidAt.slice(0, 10)) : ""} · ${PAY_METHOD_LABEL[i.paidMethod ?? ""] ?? ""}${i.paidReference ? ` · ${i.paidReference}` : ""}`
