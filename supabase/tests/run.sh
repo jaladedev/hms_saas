@@ -1003,4 +1003,8 @@ GR="$(psql -f "$HERE/153_group_reservations.sql" 2>&1)" || { echo "$GR"; echo "G
 echo "$GR" | grep -E 'PASS' || true
 if echo "$GR" | grep -qE 'FAIL|ERROR'; then echo "$GR"; echo "GROUP RESERVATIONS TESTS FAILED"; exit 1; fi
 
+GI="$(psql -f "$HERE/154_group_invoices.sql" 2>&1)" || { echo "$GI"; echo "GROUP INVOICES TESTS FAILED"; exit 1; }
+echo "$GI" | grep -E 'PASS' || true
+if echo "$GI" | grep -qE 'FAIL|ERROR'; then echo "$GI"; echo "GROUP INVOICES TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

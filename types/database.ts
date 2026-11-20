@@ -4386,6 +4386,10 @@ export type Database = {
       group_list: { Args: { p_property: string }; Returns: Json }
       group_detail: { Args: { p_group: string }; Returns: Json }
       group_statement: { Args: { p_group: string }; Returns: Json }
+      issue_group_invoice: { Args: { p_due: string; p_group: string; p_key: string }; Returns: Json }
+      void_group_invoice: { Args: { p_invoice: string; p_reason: string }; Returns: undefined }
+      mark_group_invoice_paid: { Args: { p_invoice: string; p_method: string; p_reference: string }; Returns: undefined }
+      group_invoice_list: { Args: { p_group: string }; Returns: Json }
       link_rooming_reservation: { Args: { p_entry: string; p_reference: string }; Returns: undefined }
       unlink_rooming_reservation: { Args: { p_entry: string }; Returns: undefined }
       release_due_group_blocks: { Args: Record<PropertyKey, never>; Returns: number }

@@ -3,6 +3,9 @@ import {
   classifyGroupError,
   heldSummary,
   parseGroupStatement,
+  parseGroupInvoices,
+  parseIssueInvoiceForm,
+  parsePaidInvoiceForm,
   parseLinkForm,
   parseCreateGroupForm,
   parseGroupDetail,
@@ -106,5 +109,31 @@ describe("step two", () => {
     const shown = parseGroupStatement({ money_visible: true, currency: "NGN", total_minor: 500000, extras_minor: 0, bookings: [] });
     expect(shown).toMatchObject({ moneyVisible: true, totalMinor: 500000, extrasMinor: 0 });
     expect(parseGroupStatement("x")).toBeNull();
+  });
+});
+
+describe("step three", () => {
+  it("checks the invoice forms and maps refusals", () => {
+    expect(parseIssueInvoiceForm({ groupId: P, due: "2027-01-31", key: "abcdefgh12" }).ok).toBe(true);
+    expect(parseIssueInvoiceForm({ groupId: P, due: "2027-02-31", key: "abcdefgh12" }).ok).toBe(false);
+    expect(parsePaidInvoiceForm({ groupId: P, invoiceId: T1, method: "cheque" }).ok).toBe(false);
+    expect(parsePaidInvoiceForm({ groupId: P, invoiceId: T1, method: "cash", reference: "R1" }).ok).toBe(true);
+    expect(classifyGroupError("INVALID_STATE: nothing to invoice")).toBe("group_nothing_to_invoice");
+    expect(classifyGroupError("INVALID_STATE: paid")).toBe("group_invoice_final");
+    expect(classifyGroupError("POLICY_VIOLATION: due date")).toBe("group_due_date");
+  });
+  it("reads invoices", () => {
+    const [i] = parseGroupInvoices([
+      {
+        id: "i1",
+        invoice_number: "INV-X-2026-000001",
+        status: "paid",
+        total_minor: 100,
+        lines: [{ booking_reference: "B1", line_total_minor: 100 }],
+      },
+    ]);
+    expect(i).toMatchObject({ status: "paid", totalMinor: 100 });
+    expect(i?.lines[0]?.reference).toBe("B1");
+    expect(parseGroupInvoices("x")).toEqual([]);
   });
 });

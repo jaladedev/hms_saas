@@ -26,6 +26,11 @@ export const GROUP_ERROR_MESSAGES = {
   group_booking_missing: "No booking at this hotel has that reference, or it is cancelled, expired or a no-show.",
   group_booking_dates: "That booking's stay is outside the group's dates. Link a booking that arrives and leaves within them.",
   group_booking_taken: "That booking is already linked to a name on a rooming list.",
+  group_due_date: "Choose a due date from today up to a year ahead.",
+  group_reason: "Give a reason of up to 200 characters.",
+  group_nothing_to_invoice:
+    "There is nothing to invoice. Link confirmed, checked-in or checked-out bookings to the rooming list first; a booking already on a live group invoice is skipped.",
+  group_invoice_final: "That invoice is already paid or void and cannot change.",
   group_limit: "A rooming list holds at most 200 names.",
   group_reused: "That form was already sent with other details. Reload the page and try again.",
   group_failed: "That did not work. Reload the page and try again.",
@@ -39,6 +44,9 @@ export const GROUP_OK_MESSAGES = {
   group_unit_used: "One held room was freed so you can book it for a guest. Make that booking now from Reservations.",
   group_rooming_added: "Name added to the rooming list.",
   group_rooming_removed: "Name removed from the rooming list.",
+  group_invoice_issued: "Invoice issued to the company.",
+  group_invoice_voided: "Invoice voided. Its bookings can be invoiced again.",
+  group_invoice_paid: "Marked as paid by the company. The bookings' own payment status is not changed.",
   group_booking_linked: "Booking linked to that name. It keeps its own bill and payments.",
   group_booking_unlinked: "Booking unlinked from that name. The booking itself is unchanged.",
 } as const;
@@ -50,7 +58,11 @@ export function classifyGroupError(message: string): GroupErrorCode {
   if (/NOT_FOUND/.test(message)) return "group_forbidden";
   if (/group bookings off/.test(message)) return "group_off";
   if (/ROOMS_UNAVAILABLE/.test(message)) return "group_unavailable";
+  if (/INVALID_STATE: nothing to invoice/.test(message)) return "group_nothing_to_invoice";
+  if (/INVALID_STATE: (paid|void)/.test(message)) return "group_invoice_final";
   if (/INVALID_STATE/.test(message)) return "group_closed";
+  if (/POLICY_VIOLATION: due date/.test(message)) return "group_due_date";
+  if (/POLICY_VIOLATION: reason/.test(message)) return "group_reason";
   if (/POLICY_VIOLATION: booking not found/.test(message)) return "group_booking_missing";
   if (/POLICY_VIOLATION: booking dates/.test(message)) return "group_booking_dates";
   if (/POLICY_VIOLATION: already linked/.test(message)) return "group_booking_taken";
@@ -199,6 +211,33 @@ export function parseLinkForm(raw: Raw): Parsed<{ groupId: string; entryId: stri
   const reference = text(raw.reference);
   if (!UUID.test(groupId) || !UUID.test(entryId) || reference.length < 3 || reference.length > 40) return bad;
   return { ok: true, value: { groupId, entryId, reference } };
+}
+
+export const PAY_METHODS = ["bank_transfer", "cash", "pos", "other"] as const;
+export const PAY_METHOD_LABEL: Record<string, string> = { bank_transfer: "Bank transfer", cash: "Cash", pos: "POS", other: "Other" };
+
+export function parseIssueInvoiceForm(raw: Raw): Parsed<{ groupId: string; due: string; key: string }> {
+  const groupId = text(raw.groupId);
+  const due = text(raw.due);
+  const key = text(raw.key);
+  if (!UUID.test(groupId) || !realDate(due) || !KEY.test(key)) return bad;
+  return { ok: true, value: { groupId, due, key } };
+}
+export function parseVoidInvoiceForm(raw: Raw): Parsed<{ groupId: string; invoiceId: string; reason: string }> {
+  const groupId = text(raw.groupId);
+  const invoiceId = text(raw.invoiceId);
+  const reason = text(raw.reason);
+  if (!UUID.test(groupId) || !UUID.test(invoiceId) || reason.length < 1 || reason.length > 200) return bad;
+  return { ok: true, value: { groupId, invoiceId, reason } };
+}
+export function parsePaidInvoiceForm(raw: Raw): Parsed<{ groupId: string; invoiceId: string; method: string; reference: string | null }> {
+  const groupId = text(raw.groupId);
+  const invoiceId = text(raw.invoiceId);
+  const method = text(raw.method);
+  const reference = text(raw.reference);
+  if (!UUID.test(groupId) || !UUID.test(invoiceId) || !(PAY_METHODS as readonly string[]).includes(method) || reference.length > 60)
+    return bad;
+  return { ok: true, value: { groupId, invoiceId, method, reference: reference || null } };
 }
 
 export function parseRoomingRemoveForm(raw: Raw): Parsed<{ groupId: string; entryId: string }> {
@@ -366,4 +405,51 @@ export function parseGroupStatement(data: unknown): GroupStatement | null {
       extrasPaidMinor: numOrNull(b.extras_paid_minor),
     })),
   };
+}
+
+export type GroupInvoice = {
+  id: string;
+  number: string;
+  status: "issued" | "paid" | "void";
+  billTo: string;
+  currency: string;
+  subtotalMinor: number;
+  taxMinor: number;
+  totalMinor: number;
+  dueDate: string;
+  issuedAt: string;
+  paidAt: string | null;
+  paidMethod: string | null;
+  paidReference: string | null;
+  voidReason: string | null;
+  lines: { reference: string; guest: string; arrival: string; departure: string; netMinor: number; taxMinor: number; totalMinor: number }[];
+};
+export function parseGroupInvoices(data: unknown): GroupInvoice[] {
+  return arr(data)
+    .map((i) => ({
+      id: str(i.id),
+      number: str(i.invoice_number),
+      status: (i.status === "paid" || i.status === "void" ? i.status : "issued") as GroupInvoice["status"],
+      billTo: str(i.bill_to),
+      currency: str(i.currency) || "NGN",
+      subtotalMinor: num(i.subtotal_minor),
+      taxMinor: num(i.tax_minor),
+      totalMinor: num(i.total_minor),
+      dueDate: str(i.due_date),
+      issuedAt: str(i.issued_at),
+      paidAt: strOrNull(i.paid_at),
+      paidMethod: strOrNull(i.paid_method),
+      paidReference: strOrNull(i.paid_reference),
+      voidReason: strOrNull(i.void_reason),
+      lines: arr(i.lines).map((l) => ({
+        reference: str(l.booking_reference),
+        guest: str(l.guest_name),
+        arrival: str(l.arrival_date),
+        departure: str(l.departure_date),
+        netMinor: num(l.net_minor),
+        taxMinor: num(l.tax_minor),
+        totalMinor: num(l.line_total_minor),
+      })),
+    }))
+    .filter((i) => i.id !== "");
 }

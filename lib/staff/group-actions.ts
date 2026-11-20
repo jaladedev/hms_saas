@@ -6,7 +6,10 @@ import {
   classifyGroupError,
   parseCreateGroupForm,
   parseGroupId,
+  parseIssueInvoiceForm,
   parseLinkForm,
+  parsePaidInvoiceForm,
+  parseVoidInvoiceForm,
   parseRoomingForm,
   parseRoomingRemoveForm,
   parseUnitForm,
@@ -139,4 +142,41 @@ export async function unlinkRoomingBooking(formData: FormData) {
   if (error) return fail(path, classifyGroupError(error.message));
   revalidatePath(path);
   return done(path, "group_booking_unlinked");
+}
+
+export async function issueGroupInvoice(formData: FormData) {
+  const v = parseIssueInvoiceForm(Object.fromEntries(formData));
+  if (!v.ok) return fail(LIST, v.code);
+  const path = detail(v.value.groupId);
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("issue_group_invoice", { p_group: v.value.groupId, p_due: v.value.due, p_key: v.value.key });
+  if (error) return fail(path, classifyGroupError(error.message));
+  revalidatePath(path);
+  return done(path, "group_invoice_issued");
+}
+
+export async function voidGroupInvoice(formData: FormData) {
+  const v = parseVoidInvoiceForm(Object.fromEntries(formData));
+  if (!v.ok) return fail(LIST, v.code);
+  const path = detail(v.value.groupId);
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("void_group_invoice", { p_invoice: v.value.invoiceId, p_reason: v.value.reason });
+  if (error) return fail(path, classifyGroupError(error.message));
+  revalidatePath(path);
+  return done(path, "group_invoice_voided");
+}
+
+export async function markGroupInvoicePaid(formData: FormData) {
+  const v = parsePaidInvoiceForm(Object.fromEntries(formData));
+  if (!v.ok) return fail(LIST, v.code);
+  const path = detail(v.value.groupId);
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("mark_group_invoice_paid", {
+    p_invoice: v.value.invoiceId,
+    p_method: v.value.method,
+    p_reference: v.value.reference as string,
+  });
+  if (error) return fail(path, classifyGroupError(error.message));
+  revalidatePath(path);
+  return done(path, "group_invoice_paid");
 }

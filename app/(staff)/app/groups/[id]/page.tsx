@@ -18,13 +18,24 @@ import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import {
   addRoomingEntry,
   cancelGroup,
+  issueGroupInvoice,
+  markGroupInvoicePaid,
+  voidGroupInvoice,
   linkRoomingBooking,
   removeRoomingEntry,
   unlinkRoomingBooking,
   updateGroup,
   useGroupRoom,
 } from "@/lib/staff/group-actions";
-import { GROUP_STATUS_LABEL, heldSummary, parseGroupDetail, parseGroupStatement } from "@/lib/staff/groups";
+import {
+  GROUP_STATUS_LABEL,
+  heldSummary,
+  PAY_METHODS,
+  PAY_METHOD_LABEL,
+  parseGroupDetail,
+  parseGroupInvoices,
+  parseGroupStatement,
+} from "@/lib/staff/groups";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -51,6 +62,9 @@ export default async function GroupPage({
     );
   }
   const st = parseGroupStatement((await supabase.rpc("group_statement", { p_group: id })).data);
+  const invQ = await supabase.rpc("group_invoice_list", { p_group: id });
+  const seeInvoices = !invQ.error;
+  const invoices = parseGroupInvoices(invQ.data);
   const open = g.status === "open";
   const held = heldSummary(g.rooms);
   const { data: types } = await supabase
@@ -259,6 +273,98 @@ export default async function GroupPage({
             {st.namesWithoutBooking > 0 ? `${st.namesWithoutBooking} name(s) have no booking yet. ` : ""}A shared company bill is not part
             of this step.
           </p>
+        </>
+      )}
+
+      {seeInvoices && (
+        <>
+          <SectionTitle>Company invoice</SectionTitle>
+          <p className="mt-2 text-xs text-muted">
+            A numbered invoice to {g.company ?? g.contactName} for the linked bookings that are confirmed, checked in or checked out, one
+            line per booking at its total. Extras keep their own invoices. &ldquo;Mark paid&rdquo; only records that the company paid this
+            invoice; it does not post a payment to the bookings.
+          </p>
+          {invoices.map((i) => (
+            <div key={i.id} className="mt-4 border border-line p-4 text-sm">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <strong>{i.number}</strong>
+                <span className="text-muted">
+                  {i.status === "paid"
+                    ? `Paid ${i.paidAt ? formatDate(i.paidAt.slice(0, 10)) : ""} · ${PAY_METHOD_LABEL[i.paidMethod ?? ""] ?? ""}${i.paidReference ? ` · ${i.paidReference}` : ""}`
+                    : i.status === "void"
+                      ? `Void · ${i.voidReason ?? ""}`
+                      : `Due ${formatDate(i.dueDate)}`}
+                </span>
+              </div>
+              <p className="mt-1 text-muted">
+                To {i.billTo} · {formatMoney(i.totalMinor, i.currency)} ({formatMoney(i.subtotalMinor, i.currency)} +{" "}
+                {formatMoney(i.taxMinor, i.currency)} tax)
+              </p>
+              <ul className="mt-2 divide-y divide-line border-y border-line">
+                {i.lines.map((l) => (
+                  <li key={l.reference} className="flex flex-wrap justify-between gap-2 py-1.5">
+                    <span>
+                      {l.guest} · {l.reference} · {formatDate(l.arrival)} to {formatDate(l.departure)}
+                    </span>
+                    <span>{formatMoney(l.totalMinor, i.currency)}</span>
+                  </li>
+                ))}
+              </ul>
+              {i.status === "issued" && (
+                <div className="mt-3 flex flex-wrap gap-4">
+                  <form action={markGroupInvoicePaid} className="flex flex-wrap items-center gap-2">
+                    <input type="hidden" name="groupId" value={g.id} />
+                    <input type="hidden" name="invoiceId" value={i.id} />
+                    <select name="method" aria-label="How it was paid" className={`${inputClass} w-40`} defaultValue="bank_transfer">
+                      {PAY_METHODS.map((m) => (
+                        <option key={m} value={m}>
+                          {PAY_METHOD_LABEL[m]}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      name="reference"
+                      maxLength={60}
+                      placeholder="Reference (optional)"
+                      aria-label="Payment reference"
+                      className={`${inputClass} w-44`}
+                    />
+                    <PendingButton className={buttonQuiet} pendingLabel="Saving...">
+                      Mark paid
+                    </PendingButton>
+                  </form>
+                  <form action={voidGroupInvoice} className="flex flex-wrap items-center gap-2">
+                    <input type="hidden" name="groupId" value={g.id} />
+                    <input type="hidden" name="invoiceId" value={i.id} />
+                    <input
+                      name="reason"
+                      required
+                      maxLength={200}
+                      placeholder="Reason to void"
+                      aria-label="Reason to void"
+                      className={`${inputClass} w-52`}
+                    />
+                    <PendingButton className={buttonDanger} pendingLabel="Voiding...">
+                      Void
+                    </PendingButton>
+                  </form>
+                </div>
+              )}
+            </div>
+          ))}
+          {g.status !== "cancelled" && (
+            <form action={issueGroupInvoice} className="mt-4 flex flex-wrap items-end gap-3">
+              <input type="hidden" name="groupId" value={g.id} />
+              <input type="hidden" name="key" value={crypto.randomUUID()} />
+              <label className="block text-sm">
+                Due date
+                <input name="due" type="date" required min={new Date().toISOString().slice(0, 10)} className={`${inputClass} mt-1`} />
+              </label>
+              <PendingButton className={buttonPrimary} pendingLabel="Issuing...">
+                Issue invoice for linked bookings
+              </PendingButton>
+            </form>
+          )}
         </>
       )}
 
