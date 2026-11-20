@@ -1023,4 +1023,8 @@ AP="$(psql -f "$HERE/158_api_access.sql" 2>&1)" || { echo "$AP"; echo "API ACCES
 echo "$AP" | grep -E 'PASS' || true
 if echo "$AP" | grep -qE 'FAIL|ERROR'; then echo "$AP"; echo "API ACCESS TESTS FAILED"; exit 1; fi
 
+LY="$(psql -f "$HERE/159_loyalty_points.sql" 2>&1)" || { echo "$LY"; echo "LOYALTY TESTS FAILED"; exit 1; }
+echo "$LY" | grep -E 'PASS' || true
+if echo "$LY" | grep -qE 'FAIL|ERROR'; then echo "$LY"; echo "LOYALTY TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

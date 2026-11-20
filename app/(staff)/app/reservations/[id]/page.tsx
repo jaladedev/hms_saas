@@ -4,8 +4,10 @@ import { z } from "zod";
 import { FolioSection } from "@/components/staff/folio";
 import { StayEdit } from "@/components/staff/stay-edit";
 import { Discount } from "@/components/staff/discount";
+import { LoyaltyPoints } from "@/components/staff/loyalty-points";
 import { GuestLinkReset } from "@/components/staff/guest-link";
 import { discountView } from "@/lib/staff/discount";
+import { parseBookingLoyalty } from "@/lib/staff/loyalty";
 import {
   buttonDanger,
   buttonPrimary,
@@ -369,6 +371,8 @@ export default async function ReservationPage({
           ? { kind: "percent", percent: Number(res.discount_percent) }
           : { kind: "none" },
   });
+  // Loyalty points (migration 159): anyone who can see the booking sees the balance; the card is left out when points are off.
+  const loyalty = parseBookingLoyalty((await supabase.rpc("loyalty_booking", { p_reservation: res.id })).data);
   const stayRooms = resRooms.map((rr, i) => {
     const t = typeRows.find((x) => x.id === rr.room_type_id);
     return {
@@ -788,6 +792,17 @@ export default async function ReservationPage({
           <p className="mt-1 max-w-md text-sm text-muted">Discount reason: {res.discount_reason}</p>
         )}
         {discountState.kind !== "hidden" && <Discount reservationId={res.id} view={discountState} />}
+        {loyalty.enabled && (
+          <LoyaltyPoints
+            reservationId={res.id}
+            loyalty={loyalty}
+            canApply={cDiscount?.data === true}
+            confirmed={res.reservation_status === "confirmed"}
+            hasOtherDiscount={res.discount_minor > 0 && loyalty.redeemedPoints === 0}
+            invoiced={liveInvoices > 0}
+            currency={res.currency}
+          />
+        )}
         {cModify?.data === true && <GuestLinkReset reservationId={res.id} />}
         {held === null && <p className="mt-2 text-sm text-muted">You do not have access to this reservation's payments.</p>}
         {held !== null && (

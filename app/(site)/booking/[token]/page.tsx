@@ -14,6 +14,7 @@ import {
   changeOptions,
   guestExperiences,
   guestHotel,
+  guestLoyaltyBalance,
   guestSmsStatus,
   myExperienceRequests,
   requestHost,
@@ -61,6 +62,9 @@ export default async function BookingPage({ params, searchParams }: Props) {
   const asked = askedResult?.ok ? askedResult.data.requests : [];
   const smsResult = await guestSmsStatus(reservationId);
   const sms = smsResult.ok ? smsResult.data : null;
+  const loyaltyResult = await guestLoyaltyBalance(reservationId);
+  const loyalty =
+    loyaltyResult.ok && loyaltyResult.data.enabled && b.status !== "cancelled" && b.status !== "expired" ? loyaltyResult.data : null;
   const key = crypto.randomUUID();
 
   return (
@@ -348,6 +352,21 @@ export default async function BookingPage({ params, searchParams }: Props) {
               Pay the balance of {formatMoney(b.outstanding_minor, b.currency)}
             </PendingButton>
           </form>
+        </section>
+      ) : null}
+      {loyalty ? (
+        <section aria-labelledby="points-title" className="mt-6 rounded border border-line bg-white p-4 print:hidden">
+          <h2 id="points-title" className="font-medium">
+            Your points
+          </h2>
+          <p className="mt-2 text-sm">
+            You have {loyalty.balance.toLocaleString("en-GB")} {loyalty.balance === 1 ? "point" : "points"}, worth{" "}
+            {formatMoney(loyalty.balance * loyalty.point_value_minor, b.currency)} on a later stay.
+          </p>
+          <p className="mt-1 text-sm text-muted">
+            You earn points on the room price after you check out. To use them, ask the hotel when you book. Points are tied to the e-mail
+            address on your booking.
+          </p>
         </section>
       ) : null}
       {hotel && (hotel.phone || hotel.email) ? (

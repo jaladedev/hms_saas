@@ -4521,6 +4521,17 @@ export type Database = {
         }
         Returns: Json
       }
+      save_loyalty_settings: {
+        Args: { p_earn: number; p_enabled: boolean; p_min: number; p_property: string; p_value: number }
+        Returns: undefined
+      }
+      loyalty_settings_get: { Args: { p_property: string }; Returns: Json }
+      loyalty_booking: { Args: { p_reservation: string }; Returns: Json }
+      loyalty_redeem: { Args: { p_idempotency_key: string; p_points: number; p_reservation: string }; Returns: Json }
+      loyalty_release: { Args: { p_idempotency_key: string; p_reservation: string }; Returns: Json }
+      loyalty_adjust: { Args: { p_email: string; p_points: number; p_property: string; p_reason: string }; Returns: Json }
+      loyalty_ledger_list: { Args: { p_email?: string; p_limit?: number; p_property: string }; Returns: Json }
+      guest_loyalty_balance: { Args: { p_reservation: string }; Returns: Json }
       delete_pricing_rule: { Args: { p_rule: string }; Returns: undefined }
       set_pricing_limits: { Args: { p_ceiling: number; p_floor: number; p_property: string; p_room_type: string }; Returns: undefined }
       pricing_rule_list: { Args: { p_property: string }; Returns: Json }

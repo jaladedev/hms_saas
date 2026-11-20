@@ -190,6 +190,13 @@ export function guestSmsStatus(reservationId: string) {
   return call<GuestSmsStatus>("guest_sms_status", { p_reservation: reservationId });
 }
 
+export type GuestLoyalty = { enabled: false } | { enabled: true; balance: number; point_value_minor: number };
+
+/** The guest's loyalty points for this booking's e-mail address, or { enabled: false } (migration 159). The link has been checked by the caller. */
+export function guestLoyaltyBalance(reservationId: string) {
+  return call<GuestLoyalty>("guest_loyalty_balance", { p_reservation: reservationId });
+}
+
 /** The guest stops (or allows) text messages from their own booking page. The link has been checked by the caller. */
 export function setGuestSmsOptOut(reservationId: string, optOut: boolean) {
   return call<{ changed: boolean; sms_opt_out: boolean }>("guest_set_sms_opt_out", { p_reservation: reservationId, p_opt_out: optOut });

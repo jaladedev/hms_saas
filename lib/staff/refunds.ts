@@ -229,6 +229,13 @@ export type ErrorCode =
   | "pricing_auto_needed"
   | "sms_invalid"
   | "sms_flag"
+  | "loyalty_invalid"
+  | "loyalty_flag"
+  | "loyalty_off"
+  | "loyalty_balance"
+  | "loyalty_no_email"
+  | "loyalty_discount"
+  | "loyalty_state"
   | "review_invalid"
   | "offer_dates"
   | "offer_limit"
@@ -471,6 +478,10 @@ export const OK_MESSAGES = {
   guest_sms_opt_out_off: "This guest can be sent text messages again.",
   pricing_saved: "Pricing rule saved. It changes the suggested prices below; no real price has changed.",
   pricing_deleted: "Pricing rule deleted.",
+  loyalty_saved: "Loyalty settings saved.",
+  loyalty_redeemed: "Points applied as a discount on this booking.",
+  loyalty_released: "The points were given back and the discount removed.",
+  loyalty_adjusted: "Points adjusted.",
   pricing_limits_saved: "Floor and ceiling saved. Suggested prices stay inside them.",
   pricing_auto_on: "Automatic pricing is on. The next 60 nights now carry the suggested prices, and the rules are applied again every day.",
   pricing_auto_off: "Automatic pricing is off. Every night it had changed is back to the price it had before.",
@@ -679,6 +690,20 @@ export function errorMessage(code: string, refundable: number | null, formatMino
       return "Switch automatic pricing on first.";
     case "pricing_flag":
       return "Dynamic pricing is switched off for your hotel group, so rules cannot be saved. Contact the platform.";
+    case "loyalty_invalid":
+      return "Check the figures. Points earned are 1 to 50 for every 100 naira, a point is worth 0.10 to 100 naira, and the least that can be spent is 1 to 10,000 points. An adjustment is 1 to 100,000 points, up or down, with a reason, for a valid e-mail address.";
+    case "loyalty_flag":
+      return "Loyalty points are not included in your hotel group's plan. Contact the platform.";
+    case "loyalty_off":
+      return "Loyalty points are switched off for this hotel. Switch them on under Settings, Loyalty points.";
+    case "loyalty_balance":
+      return "The guest does not have enough points for that.";
+    case "loyalty_no_email":
+      return "Points need an e-mail address on the booking to know whose they are. Add the guest's e-mail first.";
+    case "loyalty_discount":
+      return "This booking already has a discount. A booking can have only one: remove it first to use points.";
+    case "loyalty_state":
+      return "Points can only be used on a confirmed booking that has no payment, no invoice and no payment in progress.";
     case "sms_invalid":
       return "Check the text message settings. Pick only the kinds listed, a monthly limit from 0 to 100,000, and a reminder of 1 to 7 days.";
     case "sms_flag":

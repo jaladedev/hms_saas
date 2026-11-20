@@ -27,6 +27,11 @@ const SECTIONS = [
     text: "Rules by occupancy, days before arrival, weekday and event dates, with a floor and ceiling. Shows suggested prices only; it never changes a real price.",
   },
   {
+    href: "/app/settings/loyalty",
+    title: "Loyalty points",
+    text: "Guests earn points on the room price of a stay and staff spend them as a discount on a later booking. Off until you switch it on; needs loyalty points in your hotel group's plan.",
+  },
+  {
     href: "/app/settings/pos",
     title: "Restaurant menu and places",
     text: "Tables, the bar and room service, and the menu with prices. Orders are taken under Restaurant & bar. Needs restaurant and bar in your hotel group's plan.",
