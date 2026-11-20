@@ -12,6 +12,11 @@ do $$ declare v_g uuid; e jsonb; ra text; rb text; rc text; v_a uuid; v_b uuid; 
   e := add_rooming_entry(v_g, 'C', null, null); perform link_rooming_reservation((e ->> 'entry_id')::uuid, rc);
   perform t_sys();
   update reservations set reservation_status = 'confirmed' where booking_reference in (ra, rb, rc);
+  -- references are random: fix them so the arrival order the auto split depends on (A, then B, then C) is what the test says it is
+  update reservations set booking_reference = 'BK-156AAAA1' where booking_reference = ra;
+  update reservations set booking_reference = 'BK-156AAAA2' where booking_reference = rb;
+  update reservations set booking_reference = 'BK-156AAAA3' where booking_reference = rc;
+  ra := 'BK-156AAAA1'; rb := 'BK-156AAAA2'; rc := 'BK-156AAAA3';
   select id, total_minor into v_a, ta from reservations where booking_reference = ra;
   select id, total_minor into v_b, tb from reservations where booking_reference = rb;
   select id, total_minor into v_c, tc from reservations where booking_reference = rc;

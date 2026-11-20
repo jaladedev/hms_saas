@@ -4,10 +4,12 @@ import { z } from "zod";
 import { FolioSection } from "@/components/staff/folio";
 import { StayEdit } from "@/components/staff/stay-edit";
 import { Discount } from "@/components/staff/discount";
+import { BookingVoucherCard } from "@/components/staff/booking-voucher";
 import { LoyaltyPoints } from "@/components/staff/loyalty-points";
 import { GuestLinkReset } from "@/components/staff/guest-link";
 import { discountView } from "@/lib/staff/discount";
 import { parseBookingLoyalty } from "@/lib/staff/loyalty";
+import { parseBookingVoucher } from "@/lib/staff/vouchers";
 import {
   buttonDanger,
   buttonPrimary,
@@ -373,6 +375,8 @@ export default async function ReservationPage({
   });
   // Loyalty points (migration 159): anyone who can see the booking sees the balance; the card is left out when points are off.
   const loyalty = parseBookingLoyalty((await supabase.rpc("loyalty_booking", { p_reservation: res.id })).data);
+  // Vouchers (migration 161): the card shows only when a voucher is on the booking or staff may apply one.
+  const voucher = parseBookingVoucher((await supabase.rpc("voucher_booking", { p_reservation: res.id })).data);
   const stayRooms = resRooms.map((rr, i) => {
     const t = typeRows.find((x) => x.id === rr.room_type_id);
     return {
@@ -799,6 +803,17 @@ export default async function ReservationPage({
             canApply={cDiscount?.data === true}
             confirmed={res.reservation_status === "confirmed"}
             hasOtherDiscount={res.discount_minor > 0 && loyalty.redeemedPoints === 0}
+            invoiced={liveInvoices > 0}
+            currency={res.currency}
+          />
+        )}
+        {voucher.enabled && (
+          <BookingVoucherCard
+            reservationId={res.id}
+            voucher={voucher}
+            canApply={cDiscount?.data === true}
+            confirmed={res.reservation_status === "confirmed"}
+            hasOtherDiscount={res.discount_minor > 0 && !voucher.applied}
             invoiced={liveInvoices > 0}
             currency={res.currency}
           />

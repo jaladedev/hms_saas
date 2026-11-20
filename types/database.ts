@@ -4527,6 +4527,16 @@ export type Database = {
       }
       loyalty_settings_get: { Args: { p_property: string }; Returns: Json }
       loyalty_booking: { Args: { p_reservation: string }; Returns: Json }
+      voucher_issue: {
+        Args: { p_amount_minor: number; p_expires_on: string; p_idempotency_key: string; p_kind: string; p_note: string; p_property: string }
+        Returns: Json
+      }
+      voucher_void: { Args: { p_reason: string; p_voucher: string }; Returns: Json }
+      voucher_list: { Args: { p_limit?: number; p_property: string }; Returns: Json }
+      voucher_ledger_list: { Args: { p_voucher: string }; Returns: Json }
+      voucher_booking: { Args: { p_reservation: string }; Returns: Json }
+      voucher_redeem: { Args: { p_code: string; p_idempotency_key: string; p_reservation: string }; Returns: Json }
+      voucher_release: { Args: { p_idempotency_key: string; p_reservation: string }; Returns: Json }
       loyalty_redeem: { Args: { p_idempotency_key: string; p_points: number; p_reservation: string }; Returns: Json }
       loyalty_release: { Args: { p_idempotency_key: string; p_reservation: string }; Returns: Json }
       loyalty_adjust: { Args: { p_email: string; p_points: number; p_property: string; p_reason: string }; Returns: Json }

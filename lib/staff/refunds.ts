@@ -236,6 +236,14 @@ export type ErrorCode =
   | "loyalty_no_email"
   | "loyalty_discount"
   | "loyalty_state"
+  | "voucher_invalid"
+  | "voucher_flag"
+  | "voucher_unknown"
+  | "voucher_expired"
+  | "voucher_used"
+  | "voucher_void"
+  | "voucher_discount"
+  | "voucher_state"
   | "review_invalid"
   | "offer_dates"
   | "offer_limit"
@@ -482,6 +490,10 @@ export const OK_MESSAGES = {
   loyalty_redeemed: "Points applied as a discount on this booking.",
   loyalty_released: "The points were given back and the discount removed.",
   loyalty_adjusted: "Points adjusted.",
+  voucher_issued: "Voucher issued. Its code is shown below; give it to the guest.",
+  voucher_voided: "Voucher voided. Its remaining value is written off.",
+  voucher_redeemed: "Voucher applied as the discount on this booking.",
+  voucher_released: "The voucher was given back and the discount removed.",
   pricing_limits_saved: "Floor and ceiling saved. Suggested prices stay inside them.",
   pricing_auto_on: "Automatic pricing is on. The next 60 nights now carry the suggested prices, and the rules are applied again every day.",
   pricing_auto_off: "Automatic pricing is off. Every night it had changed is back to the price it had before.",
@@ -702,6 +714,22 @@ export function errorMessage(code: string, refundable: number | null, formatMino
       return "Points need an e-mail address on the booking to know whose they are. Add the guest's e-mail first.";
     case "loyalty_discount":
       return "This booking already has a discount. A booking can have only one: remove it first to use points.";
+    case "voucher_invalid":
+      return "Check the voucher. It needs a kind, an amount from 100 to 1,000,000 naira, an expiry date in the future (optional, within 5 years) and a note of up to 200 characters (optional).";
+    case "voucher_flag":
+      return "Vouchers are not included in your hotel group's plan (they come with loyalty points). Contact the platform.";
+    case "voucher_unknown":
+      return "No voucher with that code at this hotel. Check the code and try again.";
+    case "voucher_expired":
+      return "That voucher has expired.";
+    case "voucher_used":
+      return "That voucher has been used up.";
+    case "voucher_void":
+      return "That voucher has been voided.";
+    case "voucher_discount":
+      return "This booking already has a discount. A booking can have only one: remove it first to use a voucher.";
+    case "voucher_state":
+      return "A voucher can only be used on a confirmed booking that has no payment, no invoice and no payment in progress. It cannot be voided once it is used up or already voided.";
     case "loyalty_state":
       return "Points can only be used on a confirmed booking that has no payment, no invoice and no payment in progress.";
     case "sms_invalid":

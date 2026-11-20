@@ -1031,4 +1031,8 @@ PC="$(psql -f "$HERE/160_pricing_pace.sql" 2>&1)" || { echo "$PC"; echo "PRICING
 echo "$PC" | grep -E 'PASS' || true
 if echo "$PC" | grep -qE 'FAIL|ERROR'; then echo "$PC"; echo "PRICING PACE TESTS FAILED"; exit 1; fi
 
+VC="$(psql -f "$HERE/161_vouchers.sql" 2>&1)" || { echo "$VC"; echo "VOUCHERS TESTS FAILED"; exit 1; }
+echo "$VC" | grep -E 'PASS' || true
+if echo "$VC" | grep -qE 'FAIL|ERROR'; then echo "$VC"; echo "VOUCHERS TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

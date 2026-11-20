@@ -32,6 +32,11 @@ const SECTIONS = [
     text: "Guests earn points on the room price of a stay and staff spend them as a discount on a later booking. Off until you switch it on; needs loyalty points in your hotel group's plan.",
   },
   {
+    href: "/app/settings/vouchers",
+    title: "Vouchers",
+    text: "Gift vouchers with a stored value and one-use discount vouchers, each with a code staff enter on a booking. Come with loyalty points in your hotel group's plan.",
+  },
+  {
     href: "/app/settings/pos",
     title: "Restaurant menu and places",
     text: "Tables, the bar and room service, and the menu with prices. Orders are taken under Restaurant & bar. Needs restaurant and bar in your hotel group's plan.",
