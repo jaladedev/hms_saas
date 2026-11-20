@@ -3627,6 +3627,172 @@ export type Database = {
         }
         Relationships: []
       }
+      api_keys: {
+        Row: {
+          id: string
+          tenant_id: string
+          property_id: string
+          name: string
+          prefix: string
+          key_hash: string
+          scopes: string[]
+          rate_limit_per_minute: number
+          created_by: string | null
+          created_at: string
+          last_used_at: string | null
+          revoked_at: string | null
+        }
+        ComputedFields: never
+        Insert: {
+          id?: string
+          tenant_id: string
+          property_id: string
+          name: string
+          prefix: string
+          key_hash: string
+          scopes: string[]
+          rate_limit_per_minute?: number
+          created_by?: string | null
+          created_at?: string
+          last_used_at?: string | null
+          revoked_at?: string | null
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          property_id?: string
+          name?: string
+          prefix?: string
+          key_hash?: string
+          scopes?: string[]
+          rate_limit_per_minute?: number
+          created_by?: string | null
+          created_at?: string
+          last_used_at?: string | null
+          revoked_at?: string | null
+        }
+        Relationships: []
+      }
+      api_calls: {
+        Row: {
+          id: number
+          key_id: string
+          property_id: string
+          at: string
+          method: string
+          path: string
+          status: number
+        }
+        ComputedFields: never
+        Insert: {
+          id?: number
+          key_id: string
+          property_id: string
+          at?: string
+          method: string
+          path: string
+          status: number
+        }
+        Update: {
+          id?: number
+          key_id?: string
+          property_id?: string
+          at?: string
+          method?: string
+          path?: string
+          status?: number
+        }
+        Relationships: []
+      }
+      webhook_endpoints: {
+        Row: {
+          id: string
+          tenant_id: string
+          property_id: string
+          url: string
+          events: string[]
+          secret: string
+          is_active: boolean
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          id?: string
+          tenant_id: string
+          property_id: string
+          url: string
+          events: string[]
+          secret: string
+          is_active?: boolean
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          property_id?: string
+          url?: string
+          events?: string[]
+          secret?: string
+          is_active?: boolean
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      webhook_deliveries: {
+        Row: {
+          id: string
+          endpoint_id: string
+          tenant_id: string
+          property_id: string
+          event: string
+          payload: Json
+          status: string
+          attempts: number
+          next_attempt_at: string
+          last_error: string | null
+          response_code: number | null
+          created_at: string
+          sent_at: string | null
+        }
+        ComputedFields: never
+        Insert: {
+          id?: string
+          endpoint_id: string
+          tenant_id: string
+          property_id: string
+          event: string
+          payload: Json
+          status?: string
+          attempts?: number
+          next_attempt_at?: string
+          last_error?: string | null
+          response_code?: number | null
+          created_at?: string
+          sent_at?: string | null
+        }
+        Update: {
+          id?: string
+          endpoint_id?: string
+          tenant_id?: string
+          property_id?: string
+          event?: string
+          payload?: Json
+          status?: string
+          attempts?: number
+          next_attempt_at?: string
+          last_error?: string | null
+          response_code?: number | null
+          created_at?: string
+          sent_at?: string | null
+        }
+        Relationships: []
+      }
       ticket_order_items: {
         Row: {
           id: string
@@ -4455,6 +4621,19 @@ export type Database = {
       }
       stock_count: { Args: { p_counts: Json; p_key: string; p_note: string; p_property: string }; Returns: Json }
       stock_report: { Args: { p_from: string; p_property: string; p_to: string }; Returns: Json }
+      api_key_create: { Args: { p_limit?: number; p_name: string; p_property: string; p_scopes: string[] }; Returns: Json }
+      api_key_revoke: { Args: { p_key: string }; Returns: undefined }
+      api_key_authenticate: { Args: { p_hash: string }; Returns: Json }
+      api_log_call: { Args: { p_key: string; p_method: string; p_path: string; p_status: number }; Returns: undefined }
+      api_availability: { Args: { p_adults: number; p_arrival: string; p_children?: number; p_departure: string; p_property: string }; Returns: Json }
+      api_bookings: { Args: { p_from: string; p_guest: boolean; p_limit: number; p_property: string; p_status: string; p_to: string }; Returns: Json }
+      api_booking: { Args: { p_guest: boolean; p_property: string; p_reference: string }; Returns: Json }
+      webhook_save: { Args: { p_active: boolean; p_endpoint: string; p_events: string[]; p_property: string; p_url: string }; Returns: Json }
+      claim_webhook_deliveries: {
+        Args: { p_limit?: number }
+        Returns: { attempts: number; event: string; id: string; payload: Json; secret: string; url: string }[]
+      }
+      mark_webhook_delivery: { Args: { p_code: number; p_error: string; p_id: string; p_ok: boolean }; Returns: undefined }
       svc_can_read: { Args: { p_property: string }; Returns: boolean }
       service_save: {
         Args: { p_active: boolean; p_capacity: number; p_duration: number; p_kind: string; p_name: string; p_price: number; p_property: string; p_service: string; p_sort?: number }

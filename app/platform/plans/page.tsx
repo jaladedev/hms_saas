@@ -38,6 +38,7 @@ const ENFORCED = [
   "restaurant_pos",
   "inventory",
   "guest_services",
+  "api_access",
 ];
 
 function PlanForm({ plan, admin }: { plan?: Plan; admin: boolean }) {

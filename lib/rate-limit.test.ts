@@ -66,6 +66,7 @@ describe("maintenance", () => {
       drainWaitlistNotices: async () => ({ sent: 1 }),
       drainDigests: async () => ({ sent: 1 }),
       drainEventEmails: async () => ({ sent: 1 }),
+      drainWebhooks: async () => ({ claimed: 0, sent: 0, failed: 0 }),
       releaseGroupBlocks: async () => ({ released: 0 }),
       applyDuePricing: async () => ({ hotels: 0 }),
       queueSmsMessages: async () => ({ arrival_reminder: 2, review_request: 0 }),

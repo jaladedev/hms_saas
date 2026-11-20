@@ -1019,4 +1019,8 @@ CL="$(psql -f "$HERE/157_credit_limit.sql" 2>&1)" || { echo "$CL"; echo "CREDIT 
 echo "$CL" | grep -E 'PASS' || true
 if echo "$CL" | grep -qE 'FAIL|ERROR'; then echo "$CL"; echo "CREDIT LIMIT TESTS FAILED"; exit 1; fi
 
+AP="$(psql -f "$HERE/158_api_access.sql" 2>&1)" || { echo "$AP"; echo "API ACCESS TESTS FAILED"; exit 1; }
+echo "$AP" | grep -E 'PASS' || true
+if echo "$AP" | grep -qE 'FAIL|ERROR'; then echo "$AP"; echo "API ACCESS TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

@@ -1,6 +1,7 @@
 import { drainDigestsNow, drainEventEmailsNow, drainNoticesNow, drainNow } from "@/lib/email/server";
 import { drainPhotoCleanup } from "@/lib/photo-cleanup";
 import { drainSmsNow } from "@/lib/sms/server";
+import { drainWebhooks, type Delivery } from "@/lib/api/webhook-send";
 import { isAuthorizedCron, runMaintenance } from "@/lib/maintenance";
 import { PHOTO_BUCKET } from "@/lib/staff/room-photos";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -64,6 +65,26 @@ async function handle(request: Request) {
       return { hotels: data };
     },
     drainEventEmails: drainEventEmailsNow,
+    drainWebhooks: (limit) =>
+      drainWebhooks(
+        {
+          async claim(n) {
+            const { data, error } = await db.rpc("claim_webhook_deliveries", { p_limit: n });
+            if (error) throw new Error(error.message);
+            return (data ?? []) as Delivery[];
+          },
+          async mark(id, outcome) {
+            const { error } = await db.rpc("mark_webhook_delivery", {
+              p_id: id,
+              p_ok: outcome.ok,
+              p_code: outcome.code as number,
+              p_error: outcome.error as string,
+            });
+            if (error) throw new Error(error.message);
+          },
+        },
+        limit,
+      ),
     async staleRefunds() {
       const { data, error } = await db.rpc("stale_processing_refunds", { p_older_than_minutes: 120 });
       if (error) throw new Error(error.message);

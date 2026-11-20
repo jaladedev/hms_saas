@@ -42,6 +42,11 @@ const SECTIONS = [
     text: "The services sold to guests with a price, an optional length in minutes and how many can be booked at once. Bookings are made under Spa, gym & laundry. Needs guest services in your hotel group's plan.",
   },
   {
+    href: "/app/settings/api",
+    title: "API keys and webhooks",
+    text: "Let your own website or another system read availability and bookings, and be told when a booking changes. Keys are shown once and can be revoked at once. Needs API access in your hotel group's plan.",
+  },
+  {
     href: "/app/settings/messages",
     title: "Text messages",
     text: "Texts to guests for a confirmed booking, before arrival and after check-out, with a monthly limit. Off until you switch it on; needs texts in your hotel group's plan.",
