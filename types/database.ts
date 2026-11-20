@@ -4388,6 +4388,10 @@ export type Database = {
       release_due_group_blocks: { Args: Record<PropertyKey, never>; Returns: number }
       pricing_limits_list: { Args: { p_property: string }; Returns: Json }
       pricing_suggestions: { Args: { p_days?: number; p_from: string; p_property: string }; Returns: Json }
+      pricing_settings_get: { Args: { p_property: string }; Returns: Json }
+      set_pricing_auto_apply: { Args: { p_on: boolean; p_property: string }; Returns: Json }
+      pricing_apply_now: { Args: { p_property: string }; Returns: Json }
+      apply_due_pricing: { Args: Record<PropertyKey, never>; Returns: number }
       pos_save_category: { Args: { p_active: boolean; p_category: string; p_name: string; p_property: string; p_sort: number }; Returns: Json }
       pos_save_item: {
         Args: { p_active: boolean; p_category: string; p_item: string; p_name: string; p_price: number; p_property: string; p_sort: number }

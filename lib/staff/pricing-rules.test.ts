@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  parseAutoSettings,
   parseLimitsForm,
   parseLimitsList,
   parseRuleForm,
@@ -200,6 +201,8 @@ describe("reading database answers", () => {
     const n = (cur: number, sug: number) => ({
       night: "d",
       current_minor: cur,
+      base_minor: cur,
+      auto: false,
       suggested_minor: sug,
       change_percent: 0,
       occupancy_percent: null,
@@ -209,5 +212,44 @@ describe("reading database answers", () => {
     });
     expect(suggestionSummary([n(1000, 1000), n(1000, 1150), n(1000, 900), n(1000, 1100)])).toEqual({ changed: 3, up: 15, down: -10 });
     expect(suggestionSummary([])).toEqual({ changed: 0, up: 0, down: 0 });
+  });
+});
+
+describe("parseAutoSettings", () => {
+  it("reads the switch, the counts and the last run", () => {
+    expect(
+      parseAutoSettings({
+        auto_apply: true,
+        last_applied_at: "2026-11-20T03:00:00Z",
+        nights_managed: 12,
+        nights_by_hand: "2",
+        last_summary: { nights_set: 5 },
+      }),
+    ).toEqual({ auto_apply: true, last_applied_at: "2026-11-20T03:00:00Z", nights_managed: 12, nights_by_hand: 2, last_set: 5 });
+  });
+  it("reads anything unusable as switched off", () => {
+    expect(parseAutoSettings(null)).toEqual({
+      auto_apply: false,
+      last_applied_at: null,
+      nights_managed: 0,
+      nights_by_hand: 0,
+      last_set: null,
+    });
+    expect(parseAutoSettings({ auto_apply: "yes", nights_managed: -3 }).auto_apply).toBe(false);
+    expect(parseAutoSettings({ nights_managed: -3 }).nights_managed).toBe(0);
+  });
+});
+
+describe("parseSuggestions with automatic pricing", () => {
+  it("keeps the base price and the automatic mark, defaulting the base to the current price", () => {
+    const row = (extra: object) => [
+      {
+        room_type_id: "t",
+        room_type_name: "Standard",
+        nights: [{ night: "2026-12-01", current_minor: 1100000, suggested_minor: 1100000, ...extra }],
+      },
+    ];
+    expect(parseSuggestions(row({ base_minor: 1000000, auto: true }))[0]?.nights[0]).toMatchObject({ base_minor: 1000000, auto: true });
+    expect(parseSuggestions(row({}))[0]?.nights[0]).toMatchObject({ base_minor: 1100000, auto: false });
   });
 });

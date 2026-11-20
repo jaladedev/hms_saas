@@ -7,17 +7,24 @@ import { classifySetupError } from "./room-setup";
 
 /**
  * Pricing rule actions (migration 146). They run as the signed-in person; the database requires rate.manage at that hotel and the
- * dynamic_pricing flag, and answers NOT_FOUND to anyone else, shown as a permission refusal. Nothing here changes a real price.
+ * dynamic_pricing flag, and answers NOT_FOUND to anyone else, shown as a permission refusal. The rule and limit actions change no real price; the automatic pricing switch does (see below).
  */
 const PAGE = "/app/settings/pricing";
 
 function pricingError(
   message: string,
   code?: string,
-): "setup_forbidden" | "pricing_invalid" | "pricing_limit" | "pricing_flag" | ReturnType<typeof classifySetupError> {
+):
+  | "setup_forbidden"
+  | "pricing_invalid"
+  | "pricing_limit"
+  | "pricing_flag"
+  | "pricing_auto_needed"
+  | ReturnType<typeof classifySetupError> {
   if (/NOT_FOUND/.test(message)) return "setup_forbidden";
   if (/POLICY_VIOLATION: limit/.test(message)) return "pricing_limit";
   if (/POLICY_VIOLATION: dynamic pricing off/.test(message)) return "pricing_flag";
+  if (/POLICY_VIOLATION: auto apply off/.test(message)) return "pricing_auto_needed";
   if (/POLICY_VIOLATION: (name|kind|percent|band|weekdays|dates|room type|limits)/.test(message)) return "pricing_invalid";
   return classifySetupError({ message, code });
 }
@@ -70,4 +77,30 @@ export async function savePricingLimits(formData: FormData) {
   if (error) return back(PAGE, { err: pricingError(error.message, error.code) });
   revalidatePath(PAGE);
   return ok(PAGE, "pricing_limits_saved");
+}
+
+/**
+ * Switches automatic pricing on or off for a hotel (migration 152). On: the next 60 nights are priced from the rules at once and again
+ * every day. Off: every night it changed goes back to the price it had. Existing bookings and holds keep the price they were made at.
+ */
+export async function setPricingAutoApply(formData: FormData) {
+  const id = String(formData.get("propertyId") ?? "");
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return back(PAGE, { err: "pricing_invalid" });
+  const on = formData.get("on") === "1";
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("set_pricing_auto_apply", { p_property: id, p_on: on });
+  if (error) return back(PAGE, { err: pricingError(error.message, error.code) });
+  revalidatePath(PAGE);
+  return ok(PAGE, on ? "pricing_auto_on" : "pricing_auto_off");
+}
+
+/** Runs the automatic pricing now, for after the rules or limits changed. */
+export async function applyPricingNow(formData: FormData) {
+  const id = String(formData.get("propertyId") ?? "");
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return back(PAGE, { err: "pricing_invalid" });
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("pricing_apply_now", { p_property: id });
+  if (error) return back(PAGE, { err: pricingError(error.message, error.code) });
+  revalidatePath(PAGE);
+  return ok(PAGE, "pricing_applied");
 }

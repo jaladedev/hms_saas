@@ -241,6 +241,10 @@ export function parseLimitsList(data: unknown): LimitRow[] {
 export type SuggestedNight = {
   night: string;
   current_minor: number;
+  /** The price the rules start from (the price before automatic pricing touched the night). */
+  base_minor: number;
+  /** True when automatic pricing set the current price. */
+  auto: boolean;
   suggested_minor: number;
   change_percent: number;
   occupancy_percent: number | null;
@@ -273,6 +277,8 @@ export function parseSuggestions(data: unknown): SuggestionType[] {
       nights.push({
         night: n.night,
         current_minor: cur,
+        base_minor: num(n.base_minor) ?? cur,
+        auto: n.auto === true,
         suggested_minor: sug,
         change_percent: num(n.change_percent) ?? 0,
         occupancy_percent: num(n.occupancy_percent),
@@ -299,4 +305,27 @@ export function suggestionSummary(nights: SuggestedNight[]): { changed: number; 
     if (pct < down) down = pct;
   }
   return { changed, up: Math.round(up * 10) / 10, down: Math.round(down * 10) / 10 };
+}
+
+export type AutoApplySettings = {
+  auto_apply: boolean;
+  last_applied_at: string | null;
+  nights_managed: number;
+  nights_by_hand: number;
+  last_set: number | null;
+};
+
+/** The automatic-pricing switch and its last run (pricing_settings_get). Anything unreadable reads as switched off. */
+export function parseAutoSettings(data: unknown): AutoApplySettings {
+  const o = data && typeof data === "object" ? (data as Record<string, unknown>) : {};
+  const count = (v: unknown) =>
+    typeof v === "number" && Number.isFinite(v) && v >= 0 ? Math.floor(v) : typeof v === "string" && /^\d+$/.test(v) ? Number(v) : 0;
+  const sum = o.last_summary && typeof o.last_summary === "object" ? (o.last_summary as Record<string, unknown>) : null;
+  return {
+    auto_apply: o.auto_apply === true,
+    last_applied_at: typeof o.last_applied_at === "string" ? o.last_applied_at : null,
+    nights_managed: count(o.nights_managed),
+    nights_by_hand: count(o.nights_by_hand),
+    last_set: sum ? count(sum.nights_set) : null,
+  };
 }

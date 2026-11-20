@@ -1,9 +1,10 @@
 import { buttonPrimary, buttonQuiet, ErrorBanner, inputClass, Notice, PageIntro, PageTitle } from "@/components/staff/ui";
 import { PendingButton } from "@/components/ui/pending-button";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
-import { deletePricingRule, savePricingLimits, savePricingRule } from "@/lib/staff/pricing-actions";
+import { applyPricingNow, deletePricingRule, savePricingLimits, savePricingRule, setPricingAutoApply } from "@/lib/staff/pricing-actions";
 import {
   MAX_PRICING_RULES,
+  parseAutoSettings,
   parseLimitsList,
   parseRuleList,
   parseSuggestions,
@@ -23,8 +24,10 @@ export const dynamic = "force-dynamic";
 const DAY_CHOICES = [7, 14, 30];
 
 /**
- * Suggested prices from the hotel's pricing rules (migration 146). It only SUGGESTS: nothing here changes a real price, a quote or a
- * booking. People with rate.view see it; rate.manage writes the rules and the floor and ceiling. The database decides on every save.
+ * Suggested prices from the hotel's pricing rules (migration 146), and the automatic pricing switch (migration 152). The suggestions only
+ * suggest. With automatic pricing on, the maintenance job writes the suggested price of the next 60 nights into the daily rates; bookings and
+ * holds already made keep their price. People with rate.view see it; rate.manage writes the rules, the limits and the switch. The database
+ * decides on every save.
  */
 export default async function PricingPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const search = await searchParams;
@@ -41,13 +44,16 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
     properties.map(async (p) => ({
       rules: await supabase.rpc("pricing_rule_list", { p_property: p.id }),
       limits: await supabase.rpc("pricing_limits_list", { p_property: p.id }),
+      settings: await supabase.rpc("pricing_settings_get", { p_property: p.id }),
       suggestions: await supabase.rpc("pricing_suggestions", { p_property: p.id, p_from: from, p_days: days }),
     })),
   );
   // A hotel the person may not see answers NOT_FOUND and is left out; a flag that is off only hides the suggestions; any other failure is shown.
   const failed =
     Boolean(propError) ||
-    results.some((r) => [r.rules, r.limits, r.suggestions].some((x) => x.error && !/NOT_FOUND|dynamic pricing off/.test(x.error.message)));
+    results.some((r) =>
+      [r.rules, r.limits, r.suggestions, r.settings].some((x) => x.error && !/NOT_FOUND|dynamic pricing off/.test(x.error.message)),
+    );
   const many = properties.length > 1;
 
   return (
@@ -56,8 +62,8 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
       <PageIntro>
         Rules change a night&rsquo;s current price by a percentage when the hotel is busy, when the night is close, on certain weekdays or
         during an event. Rules that match the same night add up, the result is rounded to the nearest 100 naira and then kept between the
-        floor and ceiling you set for that room type. This page only suggests: no real price, quote or booking changes. You set the real
-        price on the rates page.
+        floor and ceiling you set for that room type. The table only suggests. Real prices change only if you switch automatic pricing on
+        below; you can always set a price by hand on the rates page, and a night you set by hand is left alone.
       </PageIntro>
       <div className="mt-6">
         <Notice search={search} currency="NGN" />
@@ -70,6 +76,7 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
         const rules = parseRuleList(r.rules.data);
         const limits = parseLimitsList(r.limits.data);
         const suggestions = parseSuggestions(r.suggestions.data);
+        const auto = parseAutoSettings(r.settings.data);
         const flagOff = Boolean(r.suggestions.error && /dynamic pricing off/.test(r.suggestions.error.message));
         const money = (m: number) => formatMoney(m, p.currency);
         return (
@@ -82,7 +89,43 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
             )}
 
             {!flagOff && (
-              <div className="mt-4">
+              <div className="mt-4 rounded border border-line bg-white p-4">
+                <h3 className="font-display text-xl">Automatic pricing</h3>
+                <p className="mt-1 text-sm">
+                  <strong>{auto.auto_apply ? "On" : "Off"}</strong>
+                  {auto.auto_apply
+                    ? `. The next 60 nights are priced from your rules every day. ${auto.nights_managed} nights carry an automatic price${auto.nights_by_hand > 0 ? `; ${auto.nights_by_hand} you set by hand are left alone` : ""}.`
+                    : ". Prices stay as you set them."}
+                </p>
+                {auto.auto_apply && auto.last_applied_at && (
+                  <p className="mt-1 text-sm text-muted">Last applied {formatDate(auto.last_applied_at.slice(0, 10))}.</p>
+                )}
+                <p className="mt-1 text-sm text-muted">
+                  Guests and staff see the automatic price on new quotes and bookings. A booking or hold already made keeps the price it was
+                  made at. Switching off puts every night it changed back to the price it had.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-3">
+                  <form action={setPricingAutoApply}>
+                    <input type="hidden" name="propertyId" value={p.id} />
+                    <input type="hidden" name="on" value={auto.auto_apply ? "0" : "1"} />
+                    <PendingButton className={auto.auto_apply ? buttonQuiet : buttonPrimary} pendingLabel="Working…">
+                      {auto.auto_apply ? "Switch off" : "Switch on"}
+                    </PendingButton>
+                  </form>
+                  {auto.auto_apply && (
+                    <form action={applyPricingNow}>
+                      <input type="hidden" name="propertyId" value={p.id} />
+                      <PendingButton className={buttonQuiet} pendingLabel="Applying…">
+                        Apply my rules now
+                      </PendingButton>
+                    </form>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {!flagOff && (
+              <div className="mt-8">
                 <h3 className="font-display text-xl">Suggested prices</h3>
                 <form method="get" className="mt-3 flex flex-wrap items-end gap-3">
                   <label className="block text-sm" htmlFor={`from-${p.id}`}>
@@ -152,7 +195,10 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
                                     <th scope="row" className="py-2 pr-3 text-left font-normal">
                                       {formatDate(n.night)}
                                     </th>
-                                    <td className="py-2 pr-3 text-right tabular-nums">{money(n.current_minor)}</td>
+                                    <td className="py-2 pr-3 text-right tabular-nums">
+                                      {money(n.current_minor)}
+                                      {n.auto && <span className="block text-xs text-muted">automatic, was {money(n.base_minor)}</span>}
+                                    </td>
                                     <td className={`py-2 pr-3 text-right tabular-nums ${changed ? "font-medium" : "text-muted"}`}>
                                       {money(n.suggested_minor)}
                                     </td>

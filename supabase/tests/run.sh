@@ -995,4 +995,8 @@ GS="$(psql -f "$HERE/151_guest_services.sql" 2>&1)" || { echo "$GS"; echo "GUEST
 echo "$GS" | grep -E 'PASS' || true
 if echo "$GS" | grep -qE 'FAIL|ERROR'; then echo "$GS"; echo "GUEST SERVICES TESTS FAILED"; exit 1; fi
 
+PA="$(psql -f "$HERE/152_pricing_auto_apply.sql" 2>&1)" || { echo "$PA"; echo "PRICING AUTO APPLY TESTS FAILED"; exit 1; }
+echo "$PA" | grep -E 'PASS' || true
+if echo "$PA" | grep -qE 'FAIL|ERROR'; then echo "$PA"; echo "PRICING AUTO APPLY TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

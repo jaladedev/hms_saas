@@ -226,6 +226,7 @@ export type ErrorCode =
   | "pricing_invalid"
   | "pricing_limit"
   | "pricing_flag"
+  | "pricing_auto_needed"
   | "sms_invalid"
   | "sms_flag"
   | "review_invalid"
@@ -471,6 +472,9 @@ export const OK_MESSAGES = {
   pricing_saved: "Pricing rule saved. It changes the suggested prices below; no real price has changed.",
   pricing_deleted: "Pricing rule deleted.",
   pricing_limits_saved: "Floor and ceiling saved. Suggested prices stay inside them.",
+  pricing_auto_on: "Automatic pricing is on. The next 60 nights now carry the suggested prices, and the rules are applied again every day.",
+  pricing_auto_off: "Automatic pricing is off. Every night it had changed is back to the price it had before.",
+  pricing_applied: "Prices applied again with your current rules.",
   offer_saved: "Offer saved. Guests see it on the homepage while it is switched on and inside its dates.",
   offer_deleted: "Offer deleted.",
   place_saved: "Place saved. Guests see it on the homepage while it is switched on.",
@@ -671,6 +675,8 @@ export function errorMessage(code: string, refundable: number | null, formatMino
       return "Check the rule. It needs a name (up to 60 characters), a change of -50 to 100 percent that is not 0, and the fields of its kind: a band from 0 to 100 for occupancy, 0 to 365 for days before arrival, at least one weekday, or real event dates with the end on or after the start. A floor cannot be above the ceiling.";
     case "pricing_limit":
       return "A hotel can have up to 40 pricing rules. Delete one you no longer need first.";
+    case "pricing_auto_needed":
+      return "Switch automatic pricing on first.";
     case "pricing_flag":
       return "Dynamic pricing is switched off for your hotel group, so rules cannot be saved. Contact the platform.";
     case "sms_invalid":

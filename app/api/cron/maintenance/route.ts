@@ -58,6 +58,11 @@ async function handle(request: Request) {
       if (error) throw new Error(error.message);
       return { released: data };
     },
+    async applyDuePricing() {
+      const { data, error } = await db.rpc("apply_due_pricing");
+      if (error) throw new Error(error.message);
+      return { hotels: data };
+    },
     drainEventEmails: drainEventEmailsNow,
     async staleRefunds() {
       const { data, error } = await db.rpc("stale_processing_refunds", { p_older_than_minutes: 120 });
