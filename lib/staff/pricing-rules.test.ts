@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   parseAutoSettings,
   parseLimitsForm,
+  PACE_LABEL,
   parseLimitsList,
+  parsePace,
   parseRuleForm,
   parseRuleList,
   parseSignedPercent,
@@ -77,6 +79,50 @@ describe("parseRuleForm", () => {
     const r = parseRuleForm({ ...base, kind: "weekday", day1: "on", roomTypeId: T, active: undefined });
     expect(r.ok && r.value.roomTypeId).toBe(T);
     expect(r.ok && r.value.active).toBe(false);
+  });
+});
+
+describe("pace rules and the pace table", () => {
+  it("reads a pace band from -100 to 300 and refuses anything outside it or reversed", () => {
+    expect(parseRuleForm({ ...base, kind: "pace", from: "20", to: "300" })).toMatchObject({
+      ok: true,
+      value: { kind: "pace", from: 20, to: 300 },
+    });
+    expect(parseRuleForm({ ...base, kind: "pace", percent: "-10", from: "-100", to: "-20" })).toMatchObject({
+      ok: true,
+      value: { from: -100, to: -20, percent: -10 },
+    });
+    for (const [from, to] of [
+      ["-101", "0"],
+      ["0", "301"],
+      ["30", "20"],
+      ["", "20"],
+      ["x", "20"],
+    ]) {
+      expect(parseRuleForm({ ...base, kind: "pace", from, to }).ok).toBe(false);
+    }
+  });
+  it("still refuses a negative band for occupancy and days before arrival", () => {
+    expect(parseRuleForm({ ...base, kind: "occupancy", from: "-5", to: "50" }).ok).toBe(false);
+    expect(parseRuleForm({ ...base, kind: "lead_time", from: "-1", to: "5" }).ok).toBe(false);
+  });
+  it("words a pace rule", () => {
+    const r = { kind: "pace" as const, band_from: 20, band_to: 300, weekdays: [], date_from: null, date_to: null };
+    expect(ruleWhenText(r, (d) => d)).toBe("Bookings 20 to 300% against your usual pace");
+  });
+  it("reads the pace table and drops rows that do not look right", () => {
+    const rows = parsePace([
+      { night: "2026-12-03", lead_days: 13, booked: 30, usual: 20, pace_percent: 50, status: "ahead" },
+      { night: "2026-12-04", lead_days: 14, booked: 0, usual: null, pace_percent: null, status: "no_history" },
+      { night: "2026-12-05", lead_days: 15, booked: 1, usual: 2, pace_percent: -50, status: "sideways" },
+      { lead_days: 1, status: "ahead" },
+      null,
+    ]);
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toMatchObject({ booked: 30, usual: 20, pace_percent: 50, status: "ahead" });
+    expect(rows[1]).toMatchObject({ usual: null, pace_percent: null, status: "no_history" });
+    expect(PACE_LABEL.behind).toBe("Behind usual");
+    expect(parsePace("nope")).toEqual([]);
   });
 });
 

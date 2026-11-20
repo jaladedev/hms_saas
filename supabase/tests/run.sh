@@ -1027,4 +1027,8 @@ LY="$(psql -f "$HERE/159_loyalty_points.sql" 2>&1)" || { echo "$LY"; echo "LOYAL
 echo "$LY" | grep -E 'PASS' || true
 if echo "$LY" | grep -qE 'FAIL|ERROR'; then echo "$LY"; echo "LOYALTY TESTS FAILED"; exit 1; fi
 
+PC="$(psql -f "$HERE/160_pricing_pace.sql" 2>&1)" || { echo "$PC"; echo "PRICING PACE TESTS FAILED"; exit 1; }
+echo "$PC" | grep -E 'PASS' || true
+if echo "$PC" | grep -qE 'FAIL|ERROR'; then echo "$PC"; echo "PRICING PACE TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

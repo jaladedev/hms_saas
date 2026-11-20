@@ -5,7 +5,9 @@ import { applyPricingNow, deletePricingRule, savePricingLimits, savePricingRule,
 import {
   MAX_PRICING_RULES,
   parseAutoSettings,
+  PACE_LABEL,
   parseLimitsList,
+  parsePace,
   parseRuleList,
   parseSuggestions,
   percentText,
@@ -46,13 +48,14 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
       limits: await supabase.rpc("pricing_limits_list", { p_property: p.id }),
       settings: await supabase.rpc("pricing_settings_get", { p_property: p.id }),
       suggestions: await supabase.rpc("pricing_suggestions", { p_property: p.id, p_from: from, p_days: days }),
+      pace: await supabase.rpc("pricing_pace", { p_property: p.id, p_from: from, p_days: Math.min(days, 21) }),
     })),
   );
   // A hotel the person may not see answers NOT_FOUND and is left out; a flag that is off only hides the suggestions; any other failure is shown.
   const failed =
     Boolean(propError) ||
     results.some((r) =>
-      [r.rules, r.limits, r.suggestions, r.settings].some((x) => x.error && !/NOT_FOUND|dynamic pricing off/.test(x.error.message)),
+      [r.rules, r.limits, r.suggestions, r.settings, r.pace].some((x) => x.error && !/NOT_FOUND|dynamic pricing off/.test(x.error.message)),
     );
   const many = properties.length > 1;
 
@@ -77,6 +80,7 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
         const limits = parseLimitsList(r.limits.data);
         const suggestions = parseSuggestions(r.suggestions.data);
         const auto = parseAutoSettings(r.settings.data);
+        const pace = parsePace(r.pace.data);
         const flagOff = Boolean(r.suggestions.error && /dynamic pricing off/.test(r.suggestions.error.message));
         const money = (m: number) => formatMoney(m, p.currency);
         return (
@@ -120,6 +124,58 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
                       </PendingButton>
                     </form>
                   )}
+                </div>
+              </div>
+            )}
+
+            {!flagOff && pace.length > 0 && (
+              <div className="mt-8">
+                <h3 className="font-display text-xl">Booking pace</h3>
+                <p className="mt-1 text-sm text-muted">
+                  Rooms booked for each coming night, against how many this hotel usually had booked for a night of the same weekday this
+                  far ahead (from its own stays in the last 90 days; bookings cancelled later are not counted). A &ldquo;Booking pace&rdquo;
+                  rule can raise or lower the price when a night is ahead of or behind its usual. Hotels with under 28 days of stays show no
+                  pace yet.
+                </p>
+                <div className="mt-2 overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <caption className="sr-only">Booking pace of the coming nights</caption>
+                    <thead>
+                      <tr className="border-b border-line text-left">
+                        <th scope="col" className="py-2 pr-3 font-medium">
+                          Night
+                        </th>
+                        <th scope="col" className="py-2 pr-3 text-right font-medium">
+                          Days ahead
+                        </th>
+                        <th scope="col" className="py-2 pr-3 text-right font-medium">
+                          Rooms booked
+                        </th>
+                        <th scope="col" className="py-2 pr-3 text-right font-medium">
+                          Usual
+                        </th>
+                        <th scope="col" className="py-2 font-medium">
+                          Pace
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pace.map((n) => (
+                        <tr key={n.night} className="border-b border-line">
+                          <th scope="row" className="py-2 pr-3 text-left font-normal">
+                            {formatDate(n.night)}
+                          </th>
+                          <td className="py-2 pr-3 text-right tabular-nums">{n.lead_days}</td>
+                          <td className="py-2 pr-3 text-right tabular-nums">{n.booked}</td>
+                          <td className="py-2 pr-3 text-right tabular-nums">{n.usual === null ? "–" : n.usual}</td>
+                          <td className="py-2">
+                            {PACE_LABEL[n.status]}
+                            {n.pace_percent !== null && ` (${percentText(n.pace_percent)})`}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}
@@ -371,12 +427,12 @@ function RuleForm({ propertyId, rule, limits }: { propertyId: string; rule: Rule
         <div className="mt-2 grid gap-3 sm:grid-cols-2">
           <div className="flex items-end gap-2">
             <label className="block" htmlFor={`bf-${id}`}>
-              From (percent taken, or days)
+              From (percent taken, days, or pace %)
               <input
                 id={`bf-${id}`}
                 name="from"
                 type="number"
-                min={0}
+                min={-100}
                 max={365}
                 step={1}
                 defaultValue={rule?.band_from ?? ""}
@@ -389,7 +445,7 @@ function RuleForm({ propertyId, rule, limits }: { propertyId: string; rule: Rule
                 id={`bt-${id}`}
                 name="to"
                 type="number"
-                min={0}
+                min={-100}
                 max={365}
                 step={1}
                 defaultValue={rule?.band_to ?? ""}

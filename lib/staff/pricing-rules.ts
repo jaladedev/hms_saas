@@ -2,12 +2,13 @@ import { parseAmountToMinor } from "@/lib/staff/money-input";
 
 export const MAX_PRICING_RULES = 40;
 export const WEEKDAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
-export type RuleKind = "occupancy" | "lead_time" | "weekday" | "event";
+export type RuleKind = "occupancy" | "lead_time" | "weekday" | "event" | "pace";
 export const RULE_KINDS: { kind: RuleKind; label: string }[] = [
   { kind: "occupancy", label: "Occupancy (share of rooms taken)" },
   { kind: "lead_time", label: "Days before arrival" },
   { kind: "weekday", label: "Day of the week" },
   { kind: "event", label: "Event dates" },
+  { kind: "pace", label: "Booking pace (ahead or behind your usual)" },
 ];
 
 export type RuleForm = {
@@ -38,7 +39,7 @@ function realDate(v: string): boolean {
 }
 
 function wholeNumber(v: string, min: number, max: number): number | null {
-  if (!/^\d{1,3}$/.test(v)) return null;
+  if (!/^-?\d{1,3}$/.test(v)) return null;
   const n = Number(v);
   return n >= min && n <= max ? n : null;
 }
@@ -72,10 +73,12 @@ export function parseRuleForm(raw: Record<string, unknown>): RuleCheck {
   let weekdays: number[] = [];
   let dateFrom: string | null = null;
   let dateTo: string | null = null;
-  if (kind === "occupancy" || kind === "lead_time") {
-    const max = kind === "occupancy" ? 100 : 365;
-    from = wholeNumber(text(raw.from), 0, max);
-    to = wholeNumber(text(raw.to), 0, max);
+  if (kind === "occupancy" || kind === "lead_time" || kind === "pace") {
+    // pace is a percent ahead (+) or behind (-) the hotel's usual booking pace: -100 to 300
+    const min = kind === "pace" ? -100 : 0;
+    const max = kind === "occupancy" ? 100 : kind === "pace" ? 300 : 365;
+    from = wholeNumber(text(raw.from), min, max);
+    to = wholeNumber(text(raw.to), min, max);
     if (from === null || to === null || to < from) return bad;
   } else if (kind === "weekday") {
     weekdays = [1, 2, 3, 4, 5, 6, 7].filter((d) => raw[`day${d}`] === "on");
@@ -200,6 +203,8 @@ export function ruleWhenText(
       return `Occupancy ${r.band_from ?? 0} to ${r.band_to ?? 0}%`;
     case "lead_time":
       return `${r.band_from ?? 0} to ${r.band_to ?? 0} days before arrival`;
+    case "pace":
+      return `Bookings ${r.band_from ?? 0} to ${r.band_to ?? 0}% against your usual pace`;
     case "weekday":
       return weekdaysText(r.weekdays);
     case "event":
@@ -328,4 +333,42 @@ export function parseAutoSettings(data: unknown): AutoApplySettings {
     nights_by_hand: count(o.nights_by_hand),
     last_set: sum ? count(sum.nights_set) : null,
   };
+}
+
+export type PaceStatus = "ahead" | "on_pace" | "behind" | "no_history";
+export const PACE_LABEL: Record<PaceStatus, string> = {
+  ahead: "Ahead of usual",
+  on_pace: "On pace",
+  behind: "Behind usual",
+  no_history: "Not enough history",
+};
+export type PaceNight = {
+  night: string;
+  lead_days: number;
+  booked: number;
+  usual: number | null;
+  pace_percent: number | null;
+  status: PaceStatus;
+};
+
+/** The booking pace of the next nights (migration 160). Rows that do not look right are dropped; a night with no history carries no numbers. */
+export function parsePace(data: unknown): PaceNight[] {
+  if (!Array.isArray(data)) return [];
+  const out: PaceNight[] = [];
+  for (const raw of data) {
+    if (!raw || typeof raw !== "object") continue;
+    const o = raw as Record<string, unknown>;
+    const status = (["ahead", "on_pace", "behind", "no_history"] as const).find((s) => s === o.status);
+    if (typeof o.night !== "string" || !status) continue;
+    const n = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
+    out.push({
+      night: o.night,
+      lead_days: n(o.lead_days) ?? 0,
+      booked: n(o.booked) ?? 0,
+      usual: n(o.usual),
+      pace_percent: n(o.pace_percent),
+      status,
+    });
+  }
+  return out;
 }
