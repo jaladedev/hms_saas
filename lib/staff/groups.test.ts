@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   classifyGroupError,
   heldSummary,
+  parseGroupStatement,
+  parseLinkForm,
   parseCreateGroupForm,
   parseGroupDetail,
   parseGroupList,
@@ -82,5 +84,27 @@ describe("reading", () => {
     });
     expect(d && heldSummary(d.rooms)).toBe("2 Standard");
     expect(parseGroupDetail(null)).toBeNull();
+  });
+});
+
+describe("step two", () => {
+  it("checks the link form and maps its refusals", () => {
+    expect(parseLinkForm({ groupId: P, entryId: T1, reference: "HMS-1234" }).ok).toBe(true);
+    expect(parseLinkForm({ groupId: P, entryId: T1, reference: "x" }).ok).toBe(false);
+    expect(classifyGroupError("POLICY_VIOLATION: booking not found")).toBe("group_booking_missing");
+    expect(classifyGroupError("POLICY_VIOLATION: booking dates")).toBe("group_booking_dates");
+    expect(classifyGroupError("POLICY_VIOLATION: already linked")).toBe("group_booking_taken");
+  });
+  it("reads a statement with and without money", () => {
+    const hidden = parseGroupStatement({
+      money_visible: false,
+      bookings: [{ entry_id: "e", guest_name: "A", total_minor: null }],
+      total_minor: null,
+    });
+    expect(hidden?.moneyVisible).toBe(false);
+    expect(hidden?.bookings[0]?.totalMinor).toBeNull();
+    const shown = parseGroupStatement({ money_visible: true, currency: "NGN", total_minor: 500000, extras_minor: 0, bookings: [] });
+    expect(shown).toMatchObject({ moneyVisible: true, totalMinor: 500000, extrasMinor: 0 });
+    expect(parseGroupStatement("x")).toBeNull();
   });
 });

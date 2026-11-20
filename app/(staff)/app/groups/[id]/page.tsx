@@ -14,9 +14,17 @@ import {
   thRowHead,
 } from "@/components/staff/ui";
 import { PendingButton } from "@/components/ui/pending-button";
-import { formatDate } from "@/lib/guest-site/format";
-import { addRoomingEntry, cancelGroup, removeRoomingEntry, updateGroup, useGroupRoom } from "@/lib/staff/group-actions";
-import { GROUP_STATUS_LABEL, heldSummary, parseGroupDetail } from "@/lib/staff/groups";
+import { formatDate, formatMoney } from "@/lib/guest-site/format";
+import {
+  addRoomingEntry,
+  cancelGroup,
+  linkRoomingBooking,
+  removeRoomingEntry,
+  unlinkRoomingBooking,
+  updateGroup,
+  useGroupRoom,
+} from "@/lib/staff/group-actions";
+import { GROUP_STATUS_LABEL, heldSummary, parseGroupDetail, parseGroupStatement } from "@/lib/staff/groups";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -42,6 +50,7 @@ export default async function GroupPage({
       </main>
     );
   }
+  const st = parseGroupStatement((await supabase.rpc("group_statement", { p_group: id })).data);
   const open = g.status === "open";
   const held = heldSummary(g.rooms);
   const { data: types } = await supabase
@@ -123,14 +132,51 @@ export default async function GroupPage({
                 {r.guest}
                 {r.roomTypeName ? ` · ${r.roomTypeName}` : ""}
                 {r.notes ? <span className="text-muted"> · {r.notes}</span> : null}
+                {r.bookingId ? (
+                  <>
+                    {" · "}
+                    <Link href={`/app/reservations/${r.bookingId}`} className={linkClass}>
+                      {r.bookingReference}
+                    </Link>
+                  </>
+                ) : null}
               </span>
-              <form action={removeRoomingEntry}>
-                <input type="hidden" name="groupId" value={g.id} />
-                <input type="hidden" name="entryId" value={r.id} />
-                <PendingButton className={buttonQuiet} pendingLabel="Removing...">
-                  Remove
-                </PendingButton>
-              </form>
+              <span className="flex flex-wrap items-center gap-2">
+                {g.status !== "cancelled" && !r.bookingId && (
+                  <form action={linkRoomingBooking} className="flex items-center gap-2">
+                    <input type="hidden" name="groupId" value={g.id} />
+                    <input type="hidden" name="entryId" value={r.id} />
+                    <input
+                      name="reference"
+                      required
+                      minLength={3}
+                      maxLength={40}
+                      placeholder="Booking reference"
+                      aria-label={`Booking reference for ${r.guest}`}
+                      className={`${inputClass} w-44`}
+                    />
+                    <PendingButton className={buttonQuiet} pendingLabel="Linking...">
+                      Link booking
+                    </PendingButton>
+                  </form>
+                )}
+                {r.bookingId && (
+                  <form action={unlinkRoomingBooking}>
+                    <input type="hidden" name="groupId" value={g.id} />
+                    <input type="hidden" name="entryId" value={r.id} />
+                    <PendingButton className={buttonQuiet} pendingLabel="Unlinking...">
+                      Unlink
+                    </PendingButton>
+                  </form>
+                )}
+                <form action={removeRoomingEntry}>
+                  <input type="hidden" name="groupId" value={g.id} />
+                  <input type="hidden" name="entryId" value={r.id} />
+                  <PendingButton className={buttonQuiet} pendingLabel="Removing...">
+                    Remove
+                  </PendingButton>
+                </form>
+              </span>
             </li>
           ))}
         </ul>
@@ -163,6 +209,57 @@ export default async function GroupPage({
             </PendingButton>
           </div>
         </form>
+      )}
+
+      <SectionTitle>Statement</SectionTitle>
+      {!st || st.bookings.length === 0 ? (
+        <p className="mt-3 text-sm text-muted">
+          No bookings linked yet. Book a freed room from Reservations, then link its reference to the guest&rsquo;s name above.
+        </p>
+      ) : (
+        <>
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className={headRow}>
+                  <th className={thRowHead}>Guest</th>
+                  <th className={thRowHead}>Booking</th>
+                  <th className={thRowHead}>Status</th>
+                  <th className={thRowHead}>Payment</th>
+                  {st.moneyVisible && <th className={thRowHead}>Booking total</th>}
+                  {st.moneyVisible && <th className={thRowHead}>Extras</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {st.bookings.map((b) => (
+                  <tr key={b.entryId} className="border-b border-line">
+                    <td className="py-2 pr-3">{b.guest}</td>
+                    <td className="py-2 pr-3">
+                      <Link href={`/app/reservations/${b.bookingId}`} className={linkClass}>
+                        {b.reference}
+                      </Link>
+                    </td>
+                    <td className="py-2 pr-3">{b.status.replace("_", " ")}</td>
+                    <td className="py-2 pr-3">{b.paymentStatus.replace("_", " ")}</td>
+                    {st.moneyVisible && <td className="py-2 pr-3">{formatMoney(b.totalMinor ?? 0, st.currency)}</td>}
+                    {st.moneyVisible && <td className="py-2 pr-3">{formatMoney(b.extrasMinor ?? 0, st.currency)}</td>}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {st.moneyVisible && (
+            <p className="mt-3 text-sm">
+              Bookings that are not cancelled: <strong>{formatMoney(st.totalMinor ?? 0, st.currency)}</strong> in booking totals and{" "}
+              <strong>{formatMoney(st.extrasMinor ?? 0, st.currency)}</strong> in extras.
+            </p>
+          )}
+          <p className="mt-2 text-xs text-muted">
+            Each booking keeps its own bill and payments; this page only adds them up.{" "}
+            {st.namesWithoutBooking > 0 ? `${st.namesWithoutBooking} name(s) have no booking yet. ` : ""}A shared company bill is not part
+            of this step.
+          </p>
+        </>
       )}
 
       <SectionTitle>Contact and release date</SectionTitle>

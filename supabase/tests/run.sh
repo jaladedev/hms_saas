@@ -999,4 +999,8 @@ PA="$(psql -f "$HERE/152_pricing_auto_apply.sql" 2>&1)" || { echo "$PA"; echo "P
 echo "$PA" | grep -E 'PASS' || true
 if echo "$PA" | grep -qE 'FAIL|ERROR'; then echo "$PA"; echo "PRICING AUTO APPLY TESTS FAILED"; exit 1; fi
 
+GR="$(psql -f "$HERE/153_group_reservations.sql" 2>&1)" || { echo "$GR"; echo "GROUP RESERVATIONS TESTS FAILED"; exit 1; }
+echo "$GR" | grep -E 'PASS' || true
+if echo "$GR" | grep -qE 'FAIL|ERROR'; then echo "$GR"; echo "GROUP RESERVATIONS TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

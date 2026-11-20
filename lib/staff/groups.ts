@@ -23,6 +23,9 @@ export const GROUP_ERROR_MESSAGES = {
     "There are not enough free rooms of that type for those dates. Nothing was held. Ask for fewer rooms or change the dates.",
   group_closed: "That group is already cancelled or released, so it cannot be changed. Create a new group if the rooms are needed again.",
   group_no_unit: "No room of that type is still held for this group.",
+  group_booking_missing: "No booking at this hotel has that reference, or it is cancelled, expired or a no-show.",
+  group_booking_dates: "That booking's stay is outside the group's dates. Link a booking that arrives and leaves within them.",
+  group_booking_taken: "That booking is already linked to a name on a rooming list.",
   group_limit: "A rooming list holds at most 200 names.",
   group_reused: "That form was already sent with other details. Reload the page and try again.",
   group_failed: "That did not work. Reload the page and try again.",
@@ -36,6 +39,8 @@ export const GROUP_OK_MESSAGES = {
   group_unit_used: "One held room was freed so you can book it for a guest. Make that booking now from Reservations.",
   group_rooming_added: "Name added to the rooming list.",
   group_rooming_removed: "Name removed from the rooming list.",
+  group_booking_linked: "Booking linked to that name. It keeps its own bill and payments.",
+  group_booking_unlinked: "Booking unlinked from that name. The booking itself is unchanged.",
 } as const;
 export type GroupOkCode = keyof typeof GROUP_OK_MESSAGES;
 
@@ -46,6 +51,9 @@ export function classifyGroupError(message: string): GroupErrorCode {
   if (/group bookings off/.test(message)) return "group_off";
   if (/ROOMS_UNAVAILABLE/.test(message)) return "group_unavailable";
   if (/INVALID_STATE/.test(message)) return "group_closed";
+  if (/POLICY_VIOLATION: booking not found/.test(message)) return "group_booking_missing";
+  if (/POLICY_VIOLATION: booking dates/.test(message)) return "group_booking_dates";
+  if (/POLICY_VIOLATION: already linked/.test(message)) return "group_booking_taken";
   if (/POLICY_VIOLATION: no held room/.test(message)) return "group_no_unit";
   if (/POLICY_VIOLATION: limit/.test(message)) return "group_limit";
   if (/POLICY_VIOLATION/.test(message)) return "group_invalid";
@@ -185,6 +193,14 @@ export function parseRoomingForm(raw: Raw): Parsed<{ groupId: string; guest: str
   return { ok: true, value: { groupId, guest, roomTypeId: roomTypeId || null, notes: notes || null } };
 }
 
+export function parseLinkForm(raw: Raw): Parsed<{ groupId: string; entryId: string; reference: string }> {
+  const groupId = text(raw.groupId);
+  const entryId = text(raw.entryId);
+  const reference = text(raw.reference);
+  if (!UUID.test(groupId) || !UUID.test(entryId) || reference.length < 3 || reference.length > 40) return bad;
+  return { ok: true, value: { groupId, entryId, reference } };
+}
+
 export function parseRoomingRemoveForm(raw: Raw): Parsed<{ groupId: string; entryId: string }> {
   const groupId = text(raw.groupId);
   const entryId = text(raw.entryId);
@@ -252,7 +268,14 @@ export type GroupDetail = {
   status: GroupStatus;
   notes: string | null;
   rooms: { roomTypeId: string; name: string; held: number; used: number; released: number }[];
-  rooming: { id: string; guest: string; roomTypeName: string | null; notes: string | null }[];
+  rooming: {
+    id: string;
+    guest: string;
+    roomTypeName: string | null;
+    notes: string | null;
+    bookingId: string | null;
+    bookingReference: string | null;
+  }[];
 };
 
 export function parseGroupDetail(data: unknown): GroupDetail | null {
@@ -283,6 +306,8 @@ export function parseGroupDetail(data: unknown): GroupDetail | null {
       guest: str(r.guest_name),
       roomTypeName: strOrNull(r.room_type_name),
       notes: strOrNull(r.notes),
+      bookingId: strOrNull(r.reservation_id),
+      bookingReference: strOrNull(r.booking_reference),
     })),
   };
 }
@@ -293,4 +318,52 @@ export function heldSummary(rooms: GroupDetail["rooms"]): string {
     .filter((r) => r.held > 0)
     .map((r) => `${r.held} ${r.name}`)
     .join(", ");
+}
+
+export type StatementBooking = {
+  entryId: string;
+  guest: string;
+  bookingId: string;
+  reference: string;
+  status: string;
+  paymentStatus: string;
+  arrival: string;
+  departure: string;
+  totalMinor: number | null;
+  extrasMinor: number | null;
+  extrasPaidMinor: number | null;
+};
+export type GroupStatement = {
+  moneyVisible: boolean;
+  currency: string;
+  bookings: StatementBooking[];
+  namesWithoutBooking: number;
+  totalMinor: number | null;
+  extrasMinor: number | null;
+};
+const numOrNull = (v: unknown): number | null => (v === null || v === undefined ? null : num(v));
+
+export function parseGroupStatement(data: unknown): GroupStatement | null {
+  const d = rec(data);
+  if (!d) return null;
+  return {
+    moneyVisible: d.money_visible === true,
+    currency: str(d.currency) || "NGN",
+    namesWithoutBooking: num(d.names_without_booking),
+    totalMinor: numOrNull(d.total_minor),
+    extrasMinor: numOrNull(d.extras_minor),
+    bookings: arr(d.bookings).map((b) => ({
+      entryId: str(b.entry_id),
+      guest: str(b.guest_name),
+      bookingId: str(b.reservation_id),
+      reference: str(b.booking_reference),
+      status: str(b.reservation_status),
+      paymentStatus: str(b.payment_status),
+      arrival: str(b.arrival_date),
+      departure: str(b.departure_date),
+      totalMinor: numOrNull(b.total_minor),
+      extrasMinor: numOrNull(b.extras_minor),
+      extrasPaidMinor: numOrNull(b.extras_paid_minor),
+    })),
+  };
 }

@@ -6,6 +6,7 @@ import {
   classifyGroupError,
   parseCreateGroupForm,
   parseGroupId,
+  parseLinkForm,
   parseRoomingForm,
   parseRoomingRemoveForm,
   parseUnitForm,
@@ -116,4 +117,26 @@ export async function removeRoomingEntry(formData: FormData) {
   if (error) return fail(path, classifyGroupError(error.message));
   revalidatePath(path);
   return done(path, "group_rooming_removed");
+}
+
+export async function linkRoomingBooking(formData: FormData) {
+  const v = parseLinkForm(Object.fromEntries(formData));
+  if (!v.ok) return fail(LIST, v.code);
+  const path = detail(v.value.groupId);
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("link_rooming_reservation", { p_entry: v.value.entryId, p_reference: v.value.reference });
+  if (error) return fail(path, classifyGroupError(error.message));
+  revalidatePath(path);
+  return done(path, "group_booking_linked");
+}
+
+export async function unlinkRoomingBooking(formData: FormData) {
+  const v = parseRoomingRemoveForm(Object.fromEntries(formData));
+  if (!v.ok) return fail(LIST, v.code);
+  const path = detail(v.value.groupId);
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("unlink_rooming_reservation", { p_entry: v.value.entryId });
+  if (error) return fail(path, classifyGroupError(error.message));
+  revalidatePath(path);
+  return done(path, "group_booking_unlinked");
 }

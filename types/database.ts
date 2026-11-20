@@ -4385,6 +4385,9 @@ export type Database = {
       remove_rooming_entry: { Args: { p_entry: string }; Returns: undefined }
       group_list: { Args: { p_property: string }; Returns: Json }
       group_detail: { Args: { p_group: string }; Returns: Json }
+      group_statement: { Args: { p_group: string }; Returns: Json }
+      link_rooming_reservation: { Args: { p_entry: string; p_reference: string }; Returns: undefined }
+      unlink_rooming_reservation: { Args: { p_entry: string }; Returns: undefined }
       release_due_group_blocks: { Args: Record<PropertyKey, never>; Returns: number }
       pricing_limits_list: { Args: { p_property: string }; Returns: Json }
       pricing_suggestions: { Args: { p_days?: number; p_from: string; p_property: string }; Returns: Json }
