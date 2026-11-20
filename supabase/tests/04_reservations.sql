@@ -9,7 +9,7 @@ insert into tax_rules (tenant_id, property_id, name, basis, rate_value, effectiv
 values ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000a2', 'Test VAT', 'percent', 7.5, '2027-01-01');
 insert into daily_rates (tenant_id, property_id, room_type_id, rate_plan_id, business_date, amount_minor)
 values ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000a2',
-        '00000000-0000-0000-0000-0000000000a3', '00000000-0000-0000-0000-0000000000a6', '2027-12-02', 3000000);
+        '00000000-0000-0000-0000-0000000000a3', '00000000-0000-0000-0000-0000000000a6', '2038-12-02', 3000000);
 insert into room_types (id, tenant_id, property_id, name, code, slug, max_adults, max_occupancy, base_rate_minor)
 values ('00000000-0000-0000-0000-0000000000a7', '00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000a2', 'Unpriced', 'FREE', 'unpriced', 2, 2, 0);
 insert into rooms (tenant_id, property_id, room_type_id, room_number)
@@ -17,8 +17,8 @@ values ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000
 
 -- Tax rounding: 1,234,567 x 7.5% = 92,592.525 rounds half up to 92,593
 do $$ begin
-  if calc_night_tax('00000000-0000-0000-0000-0000000000a2', '2027-12-01', 1234567) <> 92593 then
-    raise exception 'FAIL tax rounding got %', calc_night_tax('00000000-0000-0000-0000-0000000000a2', '2027-12-01', 1234567);
+  if calc_night_tax('00000000-0000-0000-0000-0000000000a2', '2038-12-01', 1234567) <> 92593 then
+    raise exception 'FAIL tax rounding got %', calc_night_tax('00000000-0000-0000-0000-0000000000a2', '2038-12-01', 1234567);
   end if;
   if calc_night_tax('00000000-0000-0000-0000-0000000000a2', '2026-12-01', 1000000) <> 0 then
     raise exception 'FAIL tax applied before effective date';
@@ -32,7 +32,7 @@ set local role authenticated;
 set local request.jwt.claim.sub = '00000000-0000-0000-0000-00000000aa01';
 do $$ declare r jsonb; v_res uuid; begin
   r := create_reservation('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a5', 'staff_entry',
-        '2027-12-01', '2027-12-04',
+        '2038-12-01', '2038-12-04',
         '[{"room_type_id":"00000000-0000-0000-0000-0000000000a3","adults":2,"children":0}]'::jsonb, 'key-single-0001');
   v_res := (r ->> 'reservation_id')::uuid;
   if (r ->> 'subtotal_minor')::bigint <> 8000000 or (r ->> 'tax_minor')::bigint <> 600000 or (r ->> 'total_minor')::bigint <> 8600000
@@ -55,13 +55,13 @@ set local request.jwt.claim.sub = '00000000-0000-0000-0000-00000000aa01';
 do $$ declare r jsonb; before_count int; begin
   select count(*) into before_count from reservations;
   r := create_reservation('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a5', 'staff_entry',
-        '2027-12-01', '2027-12-04',
+        '2038-12-01', '2038-12-04',
         '[{"room_type_id":"00000000-0000-0000-0000-0000000000a3","adults":2,"children":0}]'::jsonb, 'key-single-0001');
   if (select count(*) from reservations) <> before_count then raise exception 'FAIL retry created a second reservation'; end if;
   if (r ->> 'total_minor')::bigint <> 8600000 then raise exception 'FAIL retry result differs'; end if;
   begin
     perform create_reservation('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a5', 'staff_entry',
-        '2027-12-01', '2027-12-05',
+        '2038-12-01', '2038-12-05',
         '[{"room_type_id":"00000000-0000-0000-0000-0000000000a3","adults":2,"children":0}]'::jsonb, 'key-single-0001');
     raise exception 'FAIL key reuse with different request accepted';
   exception when sqlstate 'P0001' then
@@ -77,7 +77,7 @@ set local role authenticated;
 set local request.jwt.claim.sub = '00000000-0000-0000-0000-00000000aa01';
 do $$ declare r jsonb; begin
   r := create_reservation('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a5', 'phone',
-        '2027-12-10', '2027-12-12',
+        '2038-12-10', '2038-12-12',
         '[{"room_type_id":"00000000-0000-0000-0000-0000000000a3","adults":2},
           {"room_type_id":"00000000-0000-0000-0000-0000000000a3","adults":1},
           {"room_type_id":"00000000-0000-0000-0000-0000000000a3","adults":2,"children":0}]'::jsonb, 'key-multi-0001');
@@ -94,7 +94,7 @@ do $$ declare c_res int; c_claims int; begin
   select count(*) into c_claims from room_inventory_claims;
   begin
     perform create_reservation('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a5', 'phone',
-        '2027-12-10', '2027-12-12',
+        '2038-12-10', '2038-12-12',
         '[{"room_type_id":"00000000-0000-0000-0000-0000000000a3","adults":2},
           {"room_type_id":"00000000-0000-0000-0000-0000000000a3","adults":2},
           {"room_type_id":"00000000-0000-0000-0000-0000000000a3","adults":2}]'::jsonb, 'key-multi-0002');
@@ -112,12 +112,12 @@ end $$;
 do $$ declare v_room uuid; begin
   select id into v_room from rooms where property_id = '00000000-0000-0000-0000-0000000000a2' and room_number = '101';
   perform create_reservation('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a5', 'staff_entry',
-    '2027-12-20', '2027-12-22',
+    '2038-12-20', '2038-12-22',
     jsonb_build_array(jsonb_build_object('room_type_id','00000000-0000-0000-0000-0000000000a3','requested_room_id',v_room,'adults',2)),
     'key-specific-01');
   begin
     perform create_reservation('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a5', 'staff_entry',
-      '2027-12-21', '2027-12-23',
+      '2038-12-21', '2038-12-23',
       jsonb_build_array(jsonb_build_object('room_type_id','00000000-0000-0000-0000-0000000000a3','requested_room_id',v_room,'adults',2)),
       'key-specific-02');
     raise exception 'FAIL requested room double booked';
@@ -201,7 +201,7 @@ do $$ begin
   begin
     update room_inventory_claims set end_date = end_date - 1
      where reservation_room_id in (select rr.id from reservation_rooms rr join reservations r on r.id = rr.reservation_id
-                                    where r.arrival_date = '2027-12-01' and r.departure_date = '2027-12-04');
+                                    where r.arrival_date = '2038-12-01' and r.departure_date = '2038-12-04');
     set constraints claims_tiling immediate;
     raise exception 'FAIL partial coverage accepted';
   exception when check_violation then
