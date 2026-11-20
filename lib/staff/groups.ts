@@ -1,5 +1,5 @@
 /**
- * Group bookings, step one (migration 149): reading what the database returns, checking what a form sends, and the words the screens use.
+ * Group bookings, step one (migration 150): reading what the database returns, checking what a form sends, and the words the screens use.
  * Pure, so it is tested without a server. The database checks everything again; nothing here is trusted for permission.
  */
 type Raw = Record<string, unknown>;

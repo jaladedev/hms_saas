@@ -32,6 +32,16 @@ const SECTIONS = [
     text: "Tables, the bar and room service, and the menu with prices. Orders are taken under Restaurant & bar. Needs restaurant and bar in your hotel group's plan.",
   },
   {
+    href: "/app/settings/inventory",
+    title: "Stock items, suppliers and recipes",
+    text: "What the hotel keeps in stock, who it buys from, and how much of each item a menu portion uses. Purchases and counts are under Stock. Needs stock and purchasing in your hotel group's plan.",
+  },
+  {
+    href: "/app/settings/services",
+    title: "Spa, gym and laundry services",
+    text: "The services sold to guests with a price, an optional length in minutes and how many can be booked at once. Bookings are made under Spa, gym & laundry. Needs guest services in your hotel group's plan.",
+  },
+  {
     href: "/app/settings/messages",
     title: "Text messages",
     text: "Texts to guests for a confirmed booking, before arrival and after check-out, with a monthly limit. Off until you switch it on; needs texts in your hotel group's plan.",

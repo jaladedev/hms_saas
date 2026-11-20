@@ -18,7 +18,7 @@ export type MaintenanceDeps = {
   drainSms(limit: number): Promise<unknown>;
   /** Sends the emails to guests who booked a venue or bought tickets on the website (migration 144). */
   drainEventEmails(limit: number): Promise<unknown>;
-  /** Frees the rooms of group bookings whose release date has passed (migration 149). */
+  /** Frees the rooms of group bookings whose release date has passed (migration 150). */
   releaseGroupBlocks(): Promise<unknown>;
   purgeOldData(): Promise<unknown>;
   /** Raises overdue-repair notices and clears notifications older than 90 days. */

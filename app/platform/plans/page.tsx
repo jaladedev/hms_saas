@@ -36,6 +36,8 @@ const ENFORCED = [
   "sms_notifications",
   "group_bookings",
   "restaurant_pos",
+  "inventory",
+  "guest_services",
 ];
 
 function PlanForm({ plan, admin }: { plan?: Plan; admin: boolean }) {

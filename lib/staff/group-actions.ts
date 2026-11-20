@@ -15,7 +15,7 @@ import {
 } from "./groups";
 
 /**
- * Group booking actions (migration 149). Each runs as the signed-in person; the database requires group.manage at that hotel and the
+ * Group booking actions (migration 150). Each runs as the signed-in person; the database requires group.manage at that hotel and the
  * group_bookings flag, holds the rooms all or nothing, and answers with a refusal shown as a short code, never as database text.
  * The create form carries a key made when the page was drawn, so a double tap repeats the first answer.
  */

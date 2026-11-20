@@ -987,4 +987,12 @@ GB="$(psql -f "$HERE/149_group_bookings.sql" 2>&1)" || { echo "$GB"; echo "GROUP
 echo "$GB" | grep -E 'PASS' || true
 if echo "$GB" | grep -qE 'FAIL|ERROR'; then echo "$GB"; echo "GROUP BOOKINGS TESTS FAILED"; exit 1; fi
 
+IN="$(psql -f "$HERE/150_inventory.sql" 2>&1)" || { echo "$IN"; echo "INVENTORY TESTS FAILED"; exit 1; }
+echo "$IN" | grep -E 'PASS' || true
+if echo "$IN" | grep -qE 'FAIL|ERROR'; then echo "$IN"; echo "INVENTORY TESTS FAILED"; exit 1; fi
+
+GS="$(psql -f "$HERE/151_guest_services.sql" 2>&1)" || { echo "$GS"; echo "GUEST SERVICES TESTS FAILED"; exit 1; }
+echo "$GS" | grep -E 'PASS' || true
+if echo "$GS" | grep -qE 'FAIL|ERROR'; then echo "$GS"; echo "GUEST SERVICES TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

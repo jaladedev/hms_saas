@@ -21,7 +21,7 @@ import { createClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 /**
- * Group bookings, step one (migration 149): a group with a contact, rooms held by room type until a release date, and a rooming list.
+ * Group bookings, step one (migration 150): a group with a contact, rooms held by room type until a release date, and a rooming list.
  * No money here yet. People with group.manage see it; a hotel the person may not manage answers NOT_FOUND and is left out.
  */
 export default async function GroupsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {

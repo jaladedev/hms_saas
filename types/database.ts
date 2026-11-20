@@ -3286,6 +3286,347 @@ export type Database = {
         }
         Relationships: []
       }
+      stock_items: {
+        Row: {
+          id: string
+          tenant_id: string
+          property_id: string
+          name: string
+          unit: string
+          kind: string
+          low_level: number
+          quantity: number
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          id?: string
+          tenant_id: string
+          property_id: string
+          name: string
+          unit: string
+          kind?: string
+          low_level?: number
+          quantity?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          property_id?: string
+          name?: string
+          unit?: string
+          kind?: string
+          low_level?: number
+          quantity?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      stock_suppliers: {
+        Row: {
+          id: string
+          tenant_id: string
+          property_id: string
+          name: string
+          phone: string | null
+          note: string | null
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          id?: string
+          tenant_id: string
+          property_id: string
+          name: string
+          phone?: string | null
+          note?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          property_id?: string
+          name?: string
+          phone?: string | null
+          note?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      stock_purchases: {
+        Row: {
+          id: string
+          tenant_id: string
+          property_id: string
+          supplier_id: string | null
+          reference: string | null
+          note: string | null
+          purchased_on: string
+          total_minor: number
+          currency: string
+          created_by: string | null
+          created_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          id?: string
+          tenant_id: string
+          property_id: string
+          supplier_id?: string | null
+          reference?: string | null
+          note?: string | null
+          purchased_on: string
+          total_minor: number
+          currency: string
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          property_id?: string
+          supplier_id?: string | null
+          reference?: string | null
+          note?: string | null
+          purchased_on?: string
+          total_minor?: number
+          currency?: string
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      stock_purchase_lines: {
+        Row: {
+          id: string
+          tenant_id: string
+          property_id: string
+          purchase_id: string
+          item_id: string
+          quantity: number
+          unit_cost_minor: number
+          line_total_minor: number
+        }
+        ComputedFields: never
+        Insert: {
+          id?: string
+          tenant_id: string
+          property_id: string
+          purchase_id: string
+          item_id: string
+          quantity: number
+          unit_cost_minor: number
+          line_total_minor: number
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          property_id?: string
+          purchase_id?: string
+          item_id?: string
+          quantity?: number
+          unit_cost_minor?: number
+          line_total_minor?: number
+        }
+        Relationships: []
+      }
+      stock_movements: {
+        Row: {
+          id: string
+          tenant_id: string
+          property_id: string
+          item_id: string
+          kind: string
+          change: number
+          balance_after: number
+          reason: string | null
+          note: string | null
+          purchase_id: string | null
+          order_id: string | null
+          created_by: string | null
+          created_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          id?: string
+          tenant_id: string
+          property_id: string
+          item_id: string
+          kind: string
+          change: number
+          balance_after: number
+          reason?: string | null
+          note?: string | null
+          purchase_id?: string | null
+          order_id?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          property_id?: string
+          item_id?: string
+          kind?: string
+          change?: number
+          balance_after?: number
+          reason?: string | null
+          note?: string | null
+          purchase_id?: string | null
+          order_id?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      pos_item_stock: {
+        Row: {
+          tenant_id: string
+          property_id: string
+          pos_item_id: string
+          stock_item_id: string
+          quantity: number
+        }
+        ComputedFields: never
+        Insert: {
+          tenant_id: string
+          property_id: string
+          pos_item_id: string
+          stock_item_id: string
+          quantity: number
+        }
+        Update: {
+          tenant_id?: string
+          property_id?: string
+          pos_item_id?: string
+          stock_item_id?: string
+          quantity?: number
+        }
+        Relationships: []
+      }
+      hotel_services: {
+        Row: {
+          id: string
+          tenant_id: string
+          property_id: string
+          name: string
+          kind: string
+          price_minor: number
+          duration_minutes: number | null
+          capacity: number
+          is_active: boolean
+          sort_order: number
+          created_at: string
+          updated_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          id?: string
+          tenant_id: string
+          property_id: string
+          name: string
+          kind?: string
+          price_minor: number
+          duration_minutes?: number | null
+          capacity?: number
+          is_active?: boolean
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          property_id?: string
+          name?: string
+          kind?: string
+          price_minor?: number
+          duration_minutes?: number | null
+          capacity?: number
+          is_active?: boolean
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      service_bookings: {
+        Row: {
+          id: string
+          tenant_id: string
+          property_id: string
+          service_id: string
+          reservation_id: string | null
+          guest_label: string | null
+          starts_at: string | null
+          ends_at: string | null
+          quantity: number
+          note: string | null
+          name_at_booking: string
+          kind_at_booking: string
+          unit_price_minor: number
+          status: string
+          folio_charge_id: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          id?: string
+          tenant_id: string
+          property_id: string
+          service_id: string
+          reservation_id?: string | null
+          guest_label?: string | null
+          starts_at?: string | null
+          ends_at?: string | null
+          quantity: number
+          note?: string | null
+          name_at_booking: string
+          kind_at_booking: string
+          unit_price_minor: number
+          status?: string
+          folio_charge_id?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          property_id?: string
+          service_id?: string
+          reservation_id?: string | null
+          guest_label?: string | null
+          starts_at?: string | null
+          ends_at?: string | null
+          quantity?: number
+          note?: string | null
+          name_at_booking?: string
+          kind_at_booking?: string
+          unit_price_minor?: number
+          status?: string
+          folio_charge_id?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ticket_order_items: {
         Row: {
           id: string
@@ -4065,6 +4406,37 @@ export type Database = {
       pos_order_detail: { Args: { p_order: string }; Returns: Json }
       pos_kitchen_queue: { Args: { p_property: string }; Returns: Json }
       pos_sales_report: { Args: { p_from: string; p_property: string; p_to: string }; Returns: Json }
+      inv_can_read: { Args: { p_property: string }; Returns: boolean }
+      stock_save_item: {
+        Args: { p_active: boolean; p_item: string; p_kind: string; p_low: number; p_name: string; p_property: string; p_unit: string }
+        Returns: Json
+      }
+      stock_save_supplier: {
+        Args: { p_active: boolean; p_name: string; p_note: string; p_phone: string; p_property: string; p_supplier: string }
+        Returns: Json
+      }
+      stock_set_recipe: { Args: { p_lines: Json; p_pos_item: string }; Returns: Json }
+      stock_record_purchase: {
+        Args: { p_key: string; p_lines: Json; p_note: string; p_property: string; p_reference: string; p_supplier: string }
+        Returns: Json
+      }
+      stock_record_out: {
+        Args: { p_item: string; p_key: string; p_kind: string; p_note: string; p_quantity: number; p_reason: string }
+        Returns: Json
+      }
+      stock_count: { Args: { p_counts: Json; p_key: string; p_note: string; p_property: string }; Returns: Json }
+      stock_report: { Args: { p_from: string; p_property: string; p_to: string }; Returns: Json }
+      svc_can_read: { Args: { p_property: string }; Returns: boolean }
+      service_save: {
+        Args: { p_active: boolean; p_capacity: number; p_duration: number; p_kind: string; p_name: string; p_price: number; p_property: string; p_service: string; p_sort?: number }
+        Returns: Json
+      }
+      service_book: {
+        Args: { p_guest_label: string; p_key: string; p_note: string; p_property: string; p_quantity: number; p_reservation: string; p_service: string; p_starts: string }
+        Returns: Json
+      }
+      service_booking_set: { Args: { p_action: string; p_booking: string; p_key: string }; Returns: Json }
+      service_report: { Args: { p_from: string; p_property: string; p_to: string }; Returns: Json }
       queue_waitlist_notices: { Args: { p_limit?: number }; Returns: number }
       claim_waitlist_notices: { Args: { p_limit?: number }; Returns: Json }
       mark_waitlist_notice_result: { Args: { p_error?: string; p_id: string; p_ok: boolean }; Returns: undefined }
