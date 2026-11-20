@@ -2,6 +2,8 @@
  * Group bookings, step one (migration 150): reading what the database returns, checking what a form sends, and the words the screens use.
  * Pure, so it is tested without a server. The database checks everything again; nothing here is trusted for permission.
  */
+import { parseAmountToMinor } from "./money-input";
+
 type Raw = Record<string, unknown>;
 type Parsed<T> = { ok: true; value: T } | { ok: false; code: GroupErrorCode };
 
@@ -37,6 +39,13 @@ export const GROUP_ERROR_MESSAGES = {
   company_forbidden: "Only an owner or general manager can create or change company accounts.",
   group_company_missing: "That company is archived or not found.",
   group_no_rate: "Attach a company with an agreed discount above 0 first.",
+  group_pay_invalid: "Check the payment: an amount (or shares) above 0, how it was paid, and a reference of up to 60 characters.",
+  group_pay_exceeds: "That is more than the group still owes. Nothing was recorded.",
+  group_pay_overpay: "A share is more than that booking still owes. Nothing was recorded.",
+  group_pay_alloc:
+    "The shares do not add up, or a share is for a booking that is not linked to this group or cannot take payment. Nothing was recorded.",
+  group_pay_reversed: "Every payment on that company payment is already reversed.",
+  group_pay_refunds: "A payment on it has a refund, so it cannot be reversed here.",
   group_limit: "A rooming list holds at most 200 names.",
   group_reused: "That form was already sent with other details. Reload the page and try again.",
   group_failed: "That did not work. Reload the page and try again.",
@@ -57,6 +66,8 @@ export const GROUP_OK_MESSAGES = {
   company_updated: "Company account saved. Discounts already applied to bookings are not changed.",
   group_company_set: "Company changed for this group.",
   group_rate_applied: "Company rate applied.",
+  group_payment_recorded: "Company payment recorded and split across the bookings.",
+  group_payment_reversed: "Company payment reversed on every booking.",
   group_booking_linked: "Booking linked to that name. It keeps its own bill and payments.",
   group_booking_unlinked: "Booking unlinked from that name. The booking itself is unchanged.",
 } as const;
@@ -71,6 +82,12 @@ export function classifyGroupError(message: string): GroupErrorCode {
   if (/POLICY_VIOLATION: name taken/.test(message)) return "company_taken";
   if (/POLICY_VIOLATION: company/.test(message)) return "group_company_missing";
   if (/POLICY_VIOLATION: no company rate/.test(message)) return "group_no_rate";
+  if (/POLICY_VIOLATION: exceeds outstanding/.test(message)) return "group_pay_exceeds";
+  if (/POLICY_VIOLATION: OVERPAYMENT/.test(message)) return "group_pay_overpay";
+  if (/POLICY_VIOLATION: allocation/.test(message)) return "group_pay_alloc";
+  if (/POLICY_VIOLATION: (amount|method)/.test(message)) return "group_pay_invalid";
+  if (/INVALID_STATE: reversed/.test(message)) return "group_pay_reversed";
+  if (/INVALID_STATE: payment has refunds/.test(message)) return "group_pay_refunds";
   if (/INVALID_STATE: nothing to invoice/.test(message)) return "group_nothing_to_invoice";
   if (/INVALID_STATE: (paid|void)/.test(message)) return "group_invoice_final";
   if (/INVALID_STATE/.test(message)) return "group_closed";
@@ -310,6 +327,71 @@ export function parseApplyRateForm(raw: Raw): Parsed<{ groupId: string; key: str
   return { ok: true, value: { groupId, key } };
 }
 
+export type GroupPaymentForm = {
+  groupId: string;
+  amountMinor: number;
+  method: string;
+  reference: string | null;
+  note: string | null;
+  allocations: { reservation_id: string; amount_minor: number }[] | null;
+  key: string;
+};
+/**
+ * Shares come as fields named share_<booking id> (in naira). If any share is filled in, those shares are the split and their sum is the
+ * amount; otherwise the amount field is used and the money fills the bookings' outstanding amounts in arrival order.
+ */
+export function parseGroupPaymentForm(raw: Raw): Parsed<GroupPaymentForm> {
+  const groupId = text(raw.groupId);
+  const method = text(raw.method);
+  const reference = text(raw.reference);
+  const note = text(raw.note);
+  const key = text(raw.key);
+  const bad2 = { ok: false, code: "group_pay_invalid" } as const;
+  if (
+    !UUID.test(groupId) ||
+    !KEY.test(key) ||
+    !(PAY_METHODS as readonly string[]).includes(method) ||
+    reference.length > 60 ||
+    note.length > 200
+  )
+    return bad2;
+  const shares: { reservation_id: string; amount_minor: number }[] = [];
+  for (const [k, v] of Object.entries(raw)) {
+    if (!k.startsWith("share_")) continue;
+    const id = k.slice(6);
+    const t = text(v);
+    if (t === "") continue;
+    const minor = parseAmountToMinor(t);
+    if (!UUID.test(id) || minor === null) return bad2;
+    shares.push({ reservation_id: id, amount_minor: minor });
+  }
+  if (shares.length > 50) return bad2;
+  const amount = shares.length > 0 ? shares.reduce((n, x) => n + x.amount_minor, 0) : parseAmountToMinor(text(raw.amount));
+  if (amount === null || amount <= 0 || amount > 1_000_000_000_000) return bad2;
+  return {
+    ok: true,
+    value: {
+      groupId,
+      amountMinor: amount,
+      method,
+      reference: reference || null,
+      note: note || null,
+      allocations: shares.length ? shares : null,
+      key,
+    },
+  };
+}
+
+export function parseReverseGroupPaymentForm(raw: Raw): Parsed<{ groupId: string; paymentId: string; reason: string; key: string }> {
+  const groupId = text(raw.groupId);
+  const paymentId = text(raw.paymentId);
+  const reason = text(raw.reason);
+  const key = text(raw.key);
+  if (!UUID.test(groupId) || !UUID.test(paymentId) || !KEY.test(key)) return bad;
+  if (reason.length < 1 || reason.length > 200) return { ok: false, code: "group_reason" };
+  return { ok: true, value: { groupId, paymentId, reason, key } };
+}
+
 export function parseRoomingRemoveForm(raw: Raw): Parsed<{ groupId: string; entryId: string }> {
   const groupId = text(raw.groupId);
   const entryId = text(raw.entryId);
@@ -445,6 +527,8 @@ export type StatementBooking = {
   totalMinor: number | null;
   extrasMinor: number | null;
   extrasPaidMinor: number | null;
+  heldMinor: number | null;
+  outstandingMinor: number | null;
 };
 export type GroupStatement = {
   moneyVisible: boolean;
@@ -453,6 +537,8 @@ export type GroupStatement = {
   namesWithoutBooking: number;
   totalMinor: number | null;
   extrasMinor: number | null;
+  heldMinor: number | null;
+  outstandingMinor: number | null;
 };
 const numOrNull = (v: unknown): number | null => (v === null || v === undefined ? null : num(v));
 
@@ -465,6 +551,8 @@ export function parseGroupStatement(data: unknown): GroupStatement | null {
     namesWithoutBooking: num(d.names_without_booking),
     totalMinor: numOrNull(d.total_minor),
     extrasMinor: numOrNull(d.extras_minor),
+    heldMinor: numOrNull(d.held_minor),
+    outstandingMinor: numOrNull(d.outstanding_minor),
     bookings: arr(d.bookings).map((b) => ({
       entryId: str(b.entry_id),
       guest: str(b.guest_name),
@@ -477,6 +565,8 @@ export function parseGroupStatement(data: unknown): GroupStatement | null {
       totalMinor: numOrNull(b.total_minor),
       extrasMinor: numOrNull(b.extras_minor),
       extrasPaidMinor: numOrNull(b.extras_paid_minor),
+      heldMinor: numOrNull(b.held_minor),
+      outstandingMinor: numOrNull(b.outstanding_minor),
     })),
   };
 }
@@ -562,4 +652,35 @@ export function suggestedDueDate(today: string, creditDays: number): string {
   const d = new Date(`${today}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + Math.max(0, Math.min(90, creditDays)));
   return d.toISOString().slice(0, 10);
+}
+
+export type GroupPayment = {
+  id: string;
+  amountMinor: number;
+  method: string;
+  reference: string | null;
+  note: string | null;
+  receivedAt: string;
+  state: "recorded" | "partly_reversed" | "reversed";
+  lines: { reservationId: string; reference: string; guest: string; amountMinor: number; paymentStatus: string }[];
+};
+export function parseGroupPayments(data: unknown): GroupPayment[] {
+  return arr(data)
+    .map((p) => ({
+      id: str(p.id),
+      amountMinor: num(p.amount_minor),
+      method: str(p.method),
+      reference: strOrNull(p.reference),
+      note: strOrNull(p.note),
+      receivedAt: str(p.received_at),
+      state: (p.state === "reversed" || p.state === "partly_reversed" ? p.state : "recorded") as GroupPayment["state"],
+      lines: arr(p.lines).map((l) => ({
+        reservationId: str(l.reservation_id),
+        reference: str(l.booking_reference),
+        guest: str(l.guest_name),
+        amountMinor: num(l.amount_minor),
+        paymentStatus: str(l.payment_status),
+      })),
+    }))
+    .filter((p) => p.id !== "");
 }

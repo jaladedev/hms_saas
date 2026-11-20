@@ -19,6 +19,8 @@ import {
   addRoomingEntry,
   applyCompanyRate,
   cancelGroup,
+  recordGroupPayment,
+  reverseGroupPayment,
   setGroupCompany,
   issueGroupInvoice,
   markGroupInvoicePaid,
@@ -37,6 +39,7 @@ import {
   suggestedDueDate,
   parseCompanies,
   parseGroupDetail,
+  parseGroupPayments,
   parseGroupInvoices,
   parseGroupStatement,
 } from "@/lib/staff/groups";
@@ -73,6 +76,10 @@ export default async function GroupPage({
   const companies = parseCompanies(coQ.data).filter((c) => c.status === "active" || c.id === g.companyId);
   const company = companies.find((c) => c.id === g.companyId) ?? null;
   const today = new Date().toISOString().slice(0, 10);
+  const payQ = await supabase.rpc("group_payment_list", { p_group: id });
+  const seePayments = !payQ.error;
+  const payments = parseGroupPayments(payQ.data);
+  const owing = (st?.bookings ?? []).filter((b) => (b.outstandingMinor ?? 0) > 0);
   const open = g.status === "open";
   const held = heldSummary(g.rooms);
   const { data: types } = await supabase
@@ -285,6 +292,8 @@ export default async function GroupPage({
                   <th className={thRowHead}>Payment</th>
                   {st.moneyVisible && <th className={thRowHead}>Booking total</th>}
                   {st.moneyVisible && <th className={thRowHead}>Extras</th>}
+                  {st.moneyVisible && <th className={thRowHead}>Paid</th>}
+                  {st.moneyVisible && <th className={thRowHead}>Owes</th>}
                 </tr>
               </thead>
               <tbody>
@@ -300,6 +309,10 @@ export default async function GroupPage({
                     <td className="py-2 pr-3">{b.paymentStatus.replace("_", " ")}</td>
                     {st.moneyVisible && <td className="py-2 pr-3">{formatMoney(b.totalMinor ?? 0, st.currency)}</td>}
                     {st.moneyVisible && <td className="py-2 pr-3">{formatMoney(b.extrasMinor ?? 0, st.currency)}</td>}
+                    {st.moneyVisible && <td className="py-2 pr-3">{formatMoney(b.heldMinor ?? 0, st.currency)}</td>}
+                    {st.moneyVisible && (
+                      <td className="py-2 pr-3">{b.outstandingMinor === null ? "–" : formatMoney(b.outstandingMinor, st.currency)}</td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -419,6 +432,111 @@ export default async function GroupPage({
                 Issue invoice for linked bookings
               </PendingButton>
             </form>
+          )}
+        </>
+      )}
+
+      {seePayments && (
+        <>
+          <SectionTitle>Company payment</SectionTitle>
+          <p className="mt-2 text-xs text-muted">
+            Record one payment from the company. It is split into ordinary payments on the linked bookings, so each booking&rsquo;s own
+            bill, invoice and reports stay correct. Leave the shares empty to fill what each booking owes in arrival order, or enter a share
+            per booking. Marking the company invoice paid is separate.
+          </p>
+          {payments.map((p) => (
+            <div key={p.id} className="mt-4 border border-line p-4 text-sm">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <strong>{formatMoney(p.amountMinor, st?.currency ?? "NGN")}</strong>
+                <span className="text-muted">
+                  {formatDate(p.receivedAt.slice(0, 10))} · {PAY_METHOD_LABEL[p.method] ?? p.method}
+                  {p.reference ? ` · ${p.reference}` : ""}
+                  {p.state === "reversed" ? " · reversed" : p.state === "partly_reversed" ? " · partly reversed" : ""}
+                </span>
+              </div>
+              <ul className="mt-2 divide-y divide-line border-y border-line">
+                {p.lines.map((l) => (
+                  <li key={l.reservationId} className="flex flex-wrap justify-between gap-2 py-1.5">
+                    <span>
+                      {l.guest} · {l.reference}
+                      {l.paymentStatus === "reversed" ? " · reversed" : ""}
+                    </span>
+                    <span>{formatMoney(l.amountMinor, st?.currency ?? "NGN")}</span>
+                  </li>
+                ))}
+              </ul>
+              {p.state !== "reversed" && (
+                <form action={reverseGroupPayment} className="mt-3 flex flex-wrap items-center gap-2">
+                  <input type="hidden" name="groupId" value={g.id} />
+                  <input type="hidden" name="paymentId" value={p.id} />
+                  <input type="hidden" name="key" value={crypto.randomUUID()} />
+                  <input
+                    name="reason"
+                    required
+                    maxLength={200}
+                    placeholder="Reason to reverse"
+                    aria-label="Reason to reverse"
+                    className={`${inputClass} w-56`}
+                  />
+                  <PendingButton className={buttonDanger} pendingLabel="Reversing...">
+                    Reverse on every booking
+                  </PendingButton>
+                </form>
+              )}
+            </div>
+          ))}
+          {owing.length > 0 ? (
+            <form action={recordGroupPayment} className="mt-4 grid gap-3 md:grid-cols-3">
+              <input type="hidden" name="groupId" value={g.id} />
+              <input type="hidden" name="key" value={crypto.randomUUID()} />
+              <label className="block text-sm">
+                Amount (naira)
+                <input name="amount" inputMode="decimal" placeholder="Fills what is owed" className={`${inputClass} mt-1`} />
+              </label>
+              <label className="block text-sm">
+                How paid
+                <select name="method" defaultValue="bank_transfer" className={`${inputClass} mt-1`}>
+                  {PAY_METHODS.map((m) => (
+                    <option key={m} value={m}>
+                      {PAY_METHOD_LABEL[m]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block text-sm">
+                Reference (optional)
+                <input name="reference" maxLength={60} className={`${inputClass} mt-1`} />
+              </label>
+              <fieldset className="md:col-span-3">
+                <legend className="text-sm">Shares per booking (optional; if used, their sum is the amount)</legend>
+                <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                  {owing.map((b) => (
+                    <label key={b.bookingId} className="flex items-center justify-between gap-3 text-sm">
+                      <span>
+                        {b.guest} · {b.reference} · owes {formatMoney(b.outstandingMinor ?? 0, st?.currency ?? "NGN")}
+                      </span>
+                      <input
+                        name={`share_${b.bookingId}`}
+                        inputMode="decimal"
+                        aria-label={`Share for ${b.reference}`}
+                        className={`${inputClass} w-32`}
+                      />
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+              <label className="block text-sm md:col-span-3">
+                Note (optional)
+                <input name="note" maxLength={200} className={`${inputClass} mt-1`} />
+              </label>
+              <div className="md:col-span-3">
+                <PendingButton className={buttonPrimary} pendingLabel="Recording...">
+                  Record company payment
+                </PendingButton>
+              </div>
+            </form>
+          ) : (
+            <p className="mt-3 text-sm text-muted">No linked booking owes anything right now.</p>
           )}
         </>
       )}

@@ -10,7 +10,9 @@ import {
   parseApplyRateForm,
   parseCompanyCreateForm,
   parseCompanyUpdateForm,
+  parseGroupPaymentForm,
   parseLinkForm,
+  parseReverseGroupPaymentForm,
   parseSetCompanyForm,
   parsePaidInvoiceForm,
   parseVoidInvoiceForm,
@@ -247,4 +249,39 @@ export async function applyCompanyRate(formData: FormData) {
   revalidatePath(path);
   const r = (data ?? {}) as { applied?: unknown; skipped?: unknown };
   return back(path, { group: "group_rate_applied", applied: String(Number(r.applied) || 0), skipped: String(Number(r.skipped) || 0) });
+}
+
+export async function recordGroupPayment(formData: FormData) {
+  const v = parseGroupPaymentForm(Object.fromEntries(formData));
+  if (!v.ok) return fail(LIST, v.code);
+  const f = v.value;
+  const path = detail(f.groupId);
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("record_group_payment", {
+    p_group: f.groupId,
+    p_amount_minor: f.amountMinor,
+    p_method: f.method,
+    p_reference: f.reference as string,
+    p_note: f.note as string,
+    p_allocations: (f.allocations ?? null) as never,
+    p_key: f.key,
+  });
+  if (error) return fail(path, classifyGroupError(error.message));
+  revalidatePath(path);
+  return done(path, "group_payment_recorded");
+}
+
+export async function reverseGroupPayment(formData: FormData) {
+  const v = parseReverseGroupPaymentForm(Object.fromEntries(formData));
+  if (!v.ok) return fail(LIST, v.code);
+  const path = detail(v.value.groupId);
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("reverse_group_payment", {
+    p_group_payment: v.value.paymentId,
+    p_reason: v.value.reason,
+    p_key: v.value.key,
+  });
+  if (error) return fail(path, classifyGroupError(error.message));
+  revalidatePath(path);
+  return done(path, "group_payment_reversed");
 }

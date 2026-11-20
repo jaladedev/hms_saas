@@ -8,6 +8,8 @@ import {
   parsePaidInvoiceForm,
   parseCompanies,
   parseCompanyCreateForm,
+  parseGroupPayments,
+  parseGroupPaymentForm,
   parseLinkForm,
   suggestedDueDate,
   parseCreateGroupForm,
@@ -161,5 +163,38 @@ describe("step four", () => {
     });
     expect(suggestedDueDate("2026-12-20", 30)).toBe("2027-01-19");
     expect(suggestedDueDate("2026-12-20", 500)).toBe("2027-03-20");
+  });
+});
+
+describe("step six", () => {
+  const pay = { groupId: P, method: "bank_transfer", key: "abcdefgh12", amount: "150,000.50" };
+  it("reads the amount, or the shares when there are any", () => {
+    const a = parseGroupPaymentForm(pay);
+    expect(a.ok && a.value).toMatchObject({ amountMinor: 15000050, allocations: null });
+    const s = parseGroupPaymentForm({ ...pay, amount: "1", [`share_${T1}`]: "1,000", [`share_${T2}`]: "500.50" });
+    expect(s.ok && s.value.amountMinor).toBe(150050);
+    expect(s.ok && s.value.allocations).toHaveLength(2);
+  });
+  it("refuses bad payments and maps refusals", () => {
+    expect(parseGroupPaymentForm({ ...pay, amount: "0" }).ok).toBe(false);
+    expect(parseGroupPaymentForm({ ...pay, amount: "" }).ok).toBe(false);
+    expect(parseGroupPaymentForm({ ...pay, method: "cheque" }).ok).toBe(false);
+    expect(parseGroupPaymentForm({ ...pay, [`share_${T1}`]: "abc" }).ok).toBe(false);
+    expect(classifyGroupError("POLICY_VIOLATION: exceeds outstanding")).toBe("group_pay_exceeds");
+    expect(classifyGroupError("POLICY_VIOLATION: OVERPAYMENT outstanding 5")).toBe("group_pay_overpay");
+    expect(classifyGroupError("POLICY_VIOLATION: allocation total")).toBe("group_pay_alloc");
+    expect(classifyGroupError("INVALID_STATE: reversed")).toBe("group_pay_reversed");
+  });
+  it("reads payments", () => {
+    const [p] = parseGroupPayments([
+      {
+        id: "p1",
+        amount_minor: 100,
+        state: "partly_reversed",
+        lines: [{ reservation_id: "r", booking_reference: "B", amount_minor: 100 }],
+      },
+    ]);
+    expect(p).toMatchObject({ state: "partly_reversed", amountMinor: 100 });
+    expect(p?.lines[0]?.reference).toBe("B");
   });
 });

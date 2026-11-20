@@ -1011,4 +1011,8 @@ CA="$(psql -f "$HERE/155_company_accounts.sql" 2>&1)" || { echo "$CA"; echo "COM
 echo "$CA" | grep -E 'PASS' || true
 if echo "$CA" | grep -qE 'FAIL|ERROR'; then echo "$CA"; echo "COMPANY ACCOUNTS TESTS FAILED"; exit 1; fi
 
+GPY="$(psql -f "$HERE/156_group_payments.sql" 2>&1)" || { echo "$GPY"; echo "GROUP PAYMENTS TESTS FAILED"; exit 1; }
+echo "$GPY" | grep -E 'PASS' || true
+if echo "$GPY" | grep -qE 'FAIL|ERROR'; then echo "$GPY"; echo "GROUP PAYMENTS TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

@@ -4386,6 +4386,12 @@ export type Database = {
       group_list: { Args: { p_property: string }; Returns: Json }
       group_detail: { Args: { p_group: string }; Returns: Json }
       group_statement: { Args: { p_group: string }; Returns: Json }
+      record_group_payment: {
+        Args: { p_allocations: Json; p_amount_minor: number; p_group: string; p_key: string; p_method: string; p_note: string; p_reference: string }
+        Returns: Json
+      }
+      reverse_group_payment: { Args: { p_group_payment: string; p_key: string; p_reason: string }; Returns: Json }
+      group_payment_list: { Args: { p_group: string }; Returns: Json }
       company_create: {
         Args: { p_contact: string; p_credit_days: number; p_email: string; p_name: string; p_notes: string; p_percent: number; p_phone: string; p_property: string }
         Returns: Json
