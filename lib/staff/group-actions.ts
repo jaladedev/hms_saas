@@ -7,7 +7,11 @@ import {
   parseCreateGroupForm,
   parseGroupId,
   parseIssueInvoiceForm,
+  parseApplyRateForm,
+  parseCompanyCreateForm,
+  parseCompanyUpdateForm,
   parseLinkForm,
+  parseSetCompanyForm,
   parsePaidInvoiceForm,
   parseVoidInvoiceForm,
   parseRoomingForm,
@@ -24,6 +28,7 @@ import {
  * The create form carries a key made when the page was drawn, so a double tap repeats the first answer.
  */
 const LIST = "/app/groups";
+const COMPANIES = "/app/groups/companies";
 const detail = (id: string) => `${LIST}/${id}`;
 const fail = (path: string, code: GroupErrorCode): never => back(path, { grouperr: code });
 const done = (path: string, code: GroupOkCode): never => back(path, { group: code });
@@ -179,4 +184,67 @@ export async function markGroupInvoicePaid(formData: FormData) {
   if (error) return fail(path, classifyGroupError(error.message));
   revalidatePath(path);
   return done(path, "group_invoice_paid");
+}
+
+export async function createCompany(formData: FormData) {
+  const v = parseCompanyCreateForm(Object.fromEntries(formData));
+  if (!v.ok) return fail(COMPANIES, v.code);
+  const f = v.value;
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("company_create", {
+    p_property: f.propertyId,
+    p_name: f.name,
+    p_contact: f.contact,
+    p_email: f.email as string,
+    p_phone: f.phone as string,
+    p_credit_days: f.creditDays,
+    p_percent: f.percent,
+    p_notes: f.notes as string,
+  });
+  if (error) return fail(COMPANIES, error.message.includes("NOT_FOUND") ? "company_forbidden" : classifyGroupError(error.message));
+  revalidatePath(COMPANIES);
+  return done(COMPANIES, "company_created");
+}
+
+export async function updateCompany(formData: FormData) {
+  const v = parseCompanyUpdateForm(Object.fromEntries(formData));
+  if (!v.ok) return fail(COMPANIES, v.code);
+  const f = v.value;
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("company_update", {
+    p_company: f.companyId,
+    p_contact: f.contact,
+    p_email: f.email as string,
+    p_phone: f.phone as string,
+    p_credit_days: f.creditDays,
+    p_percent: f.percent,
+    p_notes: f.notes as string,
+    p_status: f.status,
+  });
+  if (error) return fail(COMPANIES, error.message.includes("NOT_FOUND") ? "company_forbidden" : classifyGroupError(error.message));
+  revalidatePath(COMPANIES);
+  return done(COMPANIES, "company_updated");
+}
+
+export async function setGroupCompany(formData: FormData) {
+  const v = parseSetCompanyForm(Object.fromEntries(formData));
+  if (!v.ok) return fail(LIST, v.code);
+  const path = detail(v.value.groupId);
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("set_group_company", { p_group: v.value.groupId, p_company: v.value.companyId as string });
+  if (error) return fail(path, classifyGroupError(error.message));
+  revalidatePath(path);
+  return done(path, "group_company_set");
+}
+
+export async function applyCompanyRate(formData: FormData) {
+  const v = parseApplyRateForm(Object.fromEntries(formData));
+  if (!v.ok) return fail(LIST, v.code);
+  const path = detail(v.value.groupId);
+  const supabase = await staffClient();
+  const { data, error } = await supabase.rpc("apply_company_rate_to_group", { p_group: v.value.groupId, p_key: v.value.key });
+  if (error) return fail(path, classifyGroupError(error.message));
+  revalidatePath(path);
+  const r = (data ?? {}) as { applied?: unknown; skipped?: unknown };
+  return back(path, { group: "group_rate_applied", applied: String(Number(r.applied) || 0), skipped: String(Number(r.skipped) || 0) });
 }

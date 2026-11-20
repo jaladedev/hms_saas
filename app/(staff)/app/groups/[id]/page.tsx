@@ -17,7 +17,9 @@ import { PendingButton } from "@/components/ui/pending-button";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import {
   addRoomingEntry,
+  applyCompanyRate,
   cancelGroup,
+  setGroupCompany,
   issueGroupInvoice,
   markGroupInvoicePaid,
   voidGroupInvoice,
@@ -32,6 +34,8 @@ import {
   heldSummary,
   PAY_METHODS,
   PAY_METHOD_LABEL,
+  suggestedDueDate,
+  parseCompanies,
   parseGroupDetail,
   parseGroupInvoices,
   parseGroupStatement,
@@ -65,6 +69,10 @@ export default async function GroupPage({
   const invQ = await supabase.rpc("group_invoice_list", { p_group: id });
   const seeInvoices = !invQ.error;
   const invoices = parseGroupInvoices(invQ.data);
+  const coQ = await supabase.rpc("company_list", { p_property: g.propertyId });
+  const companies = parseCompanies(coQ.data).filter((c) => c.status === "active" || c.id === g.companyId);
+  const company = companies.find((c) => c.id === g.companyId) ?? null;
+  const today = new Date().toISOString().slice(0, 10);
   const open = g.status === "open";
   const held = heldSummary(g.rooms);
   const { data: types } = await supabase
@@ -225,6 +233,41 @@ export default async function GroupPage({
         </form>
       )}
 
+      <SectionTitle>Company account</SectionTitle>
+      <form action={setGroupCompany} className="mt-3 flex flex-wrap items-end gap-3">
+        <input type="hidden" name="groupId" value={g.id} />
+        <label className="block text-sm">
+          Company
+          <select name="companyId" defaultValue={g.companyId ?? ""} className={`${inputClass} mt-1 w-64`}>
+            <option value="">None</option>
+            {companies.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+                {c.percent > 0 ? ` (${c.percent}% off)` : ""}
+              </option>
+            ))}
+          </select>
+        </label>
+        <PendingButton className={buttonQuiet} pendingLabel="Saving...">
+          Save company
+        </PendingButton>
+        <Link href="/app/groups/companies" className={linkClass}>
+          Company accounts
+        </Link>
+      </form>
+      {company && company.percent > 0 && g.status !== "cancelled" && (
+        <form action={applyCompanyRate} className="mt-3">
+          <input type="hidden" name="groupId" value={g.id} />
+          <input type="hidden" name="key" value={crypto.randomUUID()} />
+          <PendingButton className={buttonQuiet} pendingLabel="Applying...">
+            Apply the {company.percent}% company rate to linked bookings
+          </PendingButton>
+          <p className="mt-1 text-xs text-muted">
+            Only confirmed bookings with no discount, payment or invoice yet. Others are skipped, never changed.
+          </p>
+        </form>
+      )}
+
       <SectionTitle>Statement</SectionTitle>
       {!st || st.bookings.length === 0 ? (
         <p className="mt-3 text-sm text-muted">
@@ -280,9 +323,9 @@ export default async function GroupPage({
         <>
           <SectionTitle>Company invoice</SectionTitle>
           <p className="mt-2 text-xs text-muted">
-            A numbered invoice to {g.company ?? g.contactName} for the linked bookings that are confirmed, checked in or checked out, one
-            line per booking at its total. Extras keep their own invoices. &ldquo;Mark paid&rdquo; only records that the company paid this
-            invoice; it does not post a payment to the bookings.
+            A numbered invoice to {g.companyAccount ?? g.company ?? g.contactName} for the linked bookings that are confirmed, checked in or
+            checked out, one line per booking at its total. Extras keep their own invoices. &ldquo;Mark paid&rdquo; only records that the
+            company paid this invoice; it does not post a payment to the bookings.
           </p>
           {invoices.map((i) => (
             <div key={i.id} className="mt-4 border border-line p-4 text-sm">
@@ -358,7 +401,14 @@ export default async function GroupPage({
               <input type="hidden" name="key" value={crypto.randomUUID()} />
               <label className="block text-sm">
                 Due date
-                <input name="due" type="date" required min={new Date().toISOString().slice(0, 10)} className={`${inputClass} mt-1`} />
+                <input
+                  name="due"
+                  type="date"
+                  required
+                  min={today}
+                  defaultValue={suggestedDueDate(today, company?.creditDays ?? 0)}
+                  className={`${inputClass} mt-1`}
+                />
               </label>
               <PendingButton className={buttonPrimary} pendingLabel="Issuing...">
                 Issue invoice for linked bookings

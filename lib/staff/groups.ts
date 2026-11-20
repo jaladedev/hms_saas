@@ -31,6 +31,12 @@ export const GROUP_ERROR_MESSAGES = {
   group_nothing_to_invoice:
     "There is nothing to invoice. Link confirmed, checked-in or checked-out bookings to the rooming list first; a booking already on a live group invoice is skipped.",
   group_invoice_final: "That invoice is already paid or void and cannot change.",
+  company_invalid:
+    "Check the company details: a name and billing contact (up to 80 characters each), credit days from 0 to 90, and an agreed discount from 0 to 50 percent.",
+  company_taken: "A company with that name already exists at this hotel.",
+  company_forbidden: "Only an owner or general manager can create or change company accounts.",
+  group_company_missing: "That company is archived or not found.",
+  group_no_rate: "Attach a company with an agreed discount above 0 first.",
   group_limit: "A rooming list holds at most 200 names.",
   group_reused: "That form was already sent with other details. Reload the page and try again.",
   group_failed: "That did not work. Reload the page and try again.",
@@ -47,6 +53,10 @@ export const GROUP_OK_MESSAGES = {
   group_invoice_issued: "Invoice issued to the company.",
   group_invoice_voided: "Invoice voided. Its bookings can be invoiced again.",
   group_invoice_paid: "Marked as paid by the company. The bookings' own payment status is not changed.",
+  company_created: "Company account created.",
+  company_updated: "Company account saved. Discounts already applied to bookings are not changed.",
+  group_company_set: "Company changed for this group.",
+  group_rate_applied: "Company rate applied.",
   group_booking_linked: "Booking linked to that name. It keeps its own bill and payments.",
   group_booking_unlinked: "Booking unlinked from that name. The booking itself is unchanged.",
 } as const;
@@ -58,6 +68,9 @@ export function classifyGroupError(message: string): GroupErrorCode {
   if (/NOT_FOUND/.test(message)) return "group_forbidden";
   if (/group bookings off/.test(message)) return "group_off";
   if (/ROOMS_UNAVAILABLE/.test(message)) return "group_unavailable";
+  if (/POLICY_VIOLATION: name taken/.test(message)) return "company_taken";
+  if (/POLICY_VIOLATION: company/.test(message)) return "group_company_missing";
+  if (/POLICY_VIOLATION: no company rate/.test(message)) return "group_no_rate";
   if (/INVALID_STATE: nothing to invoice/.test(message)) return "group_nothing_to_invoice";
   if (/INVALID_STATE: (paid|void)/.test(message)) return "group_invoice_final";
   if (/INVALID_STATE/.test(message)) return "group_closed";
@@ -240,6 +253,63 @@ export function parsePaidInvoiceForm(raw: Raw): Parsed<{ groupId: string; invoic
   return { ok: true, value: { groupId, invoiceId, method, reference: reference || null } };
 }
 
+const num2 = (v: string): number | null => (/^\d{1,2}(\.\d{1,2})?$/.test(v) ? Number(v) : null);
+
+export type CompanyForm = {
+  propertyId: string;
+  name: string;
+  contact: string;
+  email: string | null;
+  phone: string | null;
+  creditDays: number;
+  percent: number;
+  notes: string | null;
+};
+function companyFields(raw: Raw): Omit<CompanyForm, "propertyId" | "name"> | null {
+  const contact = text(raw.contact);
+  const email = text(raw.email);
+  const phone = text(raw.phone);
+  const notes = text(raw.notes);
+  const days = text(raw.creditDays) || "0";
+  const pct = num2(text(raw.percent) || "0");
+  if (contact.length < 1 || contact.length > 80 || notes.length > 500) return null;
+  if (email && (email.length > 120 || !/^[^\s@]+@[^\s@]+$/.test(email))) return null;
+  if (phone && (phone.length < 3 || phone.length > 30)) return null;
+  if (!/^\d{1,2}$/.test(days) || Number(days) > 90) return null;
+  if (pct === null || pct > 50) return null;
+  return { contact, email: email || null, phone: phone || null, creditDays: Number(days), percent: pct, notes: notes || null };
+}
+export function parseCompanyCreateForm(raw: Raw): { ok: true; value: CompanyForm } | { ok: false; code: GroupErrorCode } {
+  const propertyId = text(raw.propertyId);
+  const name = text(raw.name);
+  const f = companyFields(raw);
+  if (!UUID.test(propertyId) || name.length < 1 || name.length > 80 || !f) return { ok: false, code: "company_invalid" };
+  return { ok: true, value: { propertyId, name, ...f } };
+}
+export function parseCompanyUpdateForm(
+  raw: Raw,
+):
+  | { ok: true; value: Omit<CompanyForm, "propertyId" | "name"> & { companyId: string; status: string } }
+  | { ok: false; code: GroupErrorCode } {
+  const companyId = text(raw.companyId);
+  const status = text(raw.status) || "active";
+  const f = companyFields(raw);
+  if (!UUID.test(companyId) || !f || (status !== "active" && status !== "archived")) return { ok: false, code: "company_invalid" };
+  return { ok: true, value: { companyId, status, ...f } };
+}
+export function parseSetCompanyForm(raw: Raw): Parsed<{ groupId: string; companyId: string | null }> {
+  const groupId = text(raw.groupId);
+  const companyId = text(raw.companyId);
+  if (!UUID.test(groupId) || (companyId && !UUID.test(companyId))) return bad;
+  return { ok: true, value: { groupId, companyId: companyId || null } };
+}
+export function parseApplyRateForm(raw: Raw): Parsed<{ groupId: string; key: string }> {
+  const groupId = text(raw.groupId);
+  const key = text(raw.key);
+  if (!UUID.test(groupId) || !KEY.test(key)) return bad;
+  return { ok: true, value: { groupId, key } };
+}
+
 export function parseRoomingRemoveForm(raw: Raw): Parsed<{ groupId: string; entryId: string }> {
   const groupId = text(raw.groupId);
   const entryId = text(raw.entryId);
@@ -306,6 +376,8 @@ export type GroupDetail = {
   release: string;
   status: GroupStatus;
   notes: string | null;
+  companyId: string | null;
+  companyAccount: string | null;
   rooms: { roomTypeId: string; name: string; held: number; used: number; released: number }[];
   rooming: {
     id: string;
@@ -333,6 +405,8 @@ export function parseGroupDetail(data: unknown): GroupDetail | null {
     release: str(d.release_date),
     status: status(d.status),
     notes: strOrNull(d.notes),
+    companyId: strOrNull(d.company_id),
+    companyAccount: strOrNull(d.company_account),
     rooms: arr(d.rooms).map((r) => ({
       roomTypeId: str(r.room_type_id),
       name: str(r.room_type_name),
@@ -452,4 +526,40 @@ export function parseGroupInvoices(data: unknown): GroupInvoice[] {
       })),
     }))
     .filter((i) => i.id !== "");
+}
+
+export type CompanyAccount = {
+  id: string;
+  name: string;
+  contact: string;
+  email: string | null;
+  phone: string | null;
+  creditDays: number;
+  percent: number;
+  status: "active" | "archived";
+  notes: string | null;
+  groups: number;
+};
+export function parseCompanies(data: unknown): CompanyAccount[] {
+  return arr(data)
+    .map((c) => ({
+      id: str(c.id),
+      name: str(c.name),
+      contact: str(c.billing_contact),
+      email: strOrNull(c.billing_email),
+      phone: strOrNull(c.billing_phone),
+      creditDays: num(c.credit_days),
+      percent: typeof c.discount_percent === "number" ? c.discount_percent : Number(c.discount_percent) || 0,
+      status: (c.status === "archived" ? "archived" : "active") as CompanyAccount["status"],
+      notes: strOrNull(c.notes),
+      groups: num(c.groups),
+    }))
+    .filter((c) => c.id !== "");
+}
+
+/** Today plus the company's credit days, as YYYY-MM-DD, for suggesting an invoice due date. */
+export function suggestedDueDate(today: string, creditDays: number): string {
+  const d = new Date(`${today}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + Math.max(0, Math.min(90, creditDays)));
+  return d.toISOString().slice(0, 10);
 }

@@ -4386,6 +4386,17 @@ export type Database = {
       group_list: { Args: { p_property: string }; Returns: Json }
       group_detail: { Args: { p_group: string }; Returns: Json }
       group_statement: { Args: { p_group: string }; Returns: Json }
+      company_create: {
+        Args: { p_contact: string; p_credit_days: number; p_email: string; p_name: string; p_notes: string; p_percent: number; p_phone: string; p_property: string }
+        Returns: Json
+      }
+      company_update: {
+        Args: { p_company: string; p_contact: string; p_credit_days: number; p_email: string; p_notes: string; p_percent: number; p_phone: string; p_status: string }
+        Returns: undefined
+      }
+      company_list: { Args: { p_property: string }; Returns: Json }
+      set_group_company: { Args: { p_company: string; p_group: string }; Returns: undefined }
+      apply_company_rate_to_group: { Args: { p_group: string; p_key: string }; Returns: Json }
       issue_group_invoice: { Args: { p_due: string; p_group: string; p_key: string }; Returns: Json }
       void_group_invoice: { Args: { p_invoice: string; p_reason: string }; Returns: undefined }
       mark_group_invoice_paid: { Args: { p_invoice: string; p_method: string; p_reference: string }; Returns: undefined }

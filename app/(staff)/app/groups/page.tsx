@@ -45,6 +45,12 @@ export default async function GroupsPage({ searchParams }: { searchParams: Promi
         claimed are freed automatically. Names for the rooming list can be added any time. Prices, a shared bill and company invoices are
         not part of this step.
       </PageIntro>
+      <p className="mt-3 text-sm">
+        <Link href="/app/groups/companies" className={linkClass}>
+          Company accounts
+        </Link>{" "}
+        hold credit days and an agreed discount.
+      </p>
       <div className="mt-6">
         <GroupNotice search={search} />
       </div>

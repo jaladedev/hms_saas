@@ -6,7 +6,10 @@ import {
   parseGroupInvoices,
   parseIssueInvoiceForm,
   parsePaidInvoiceForm,
+  parseCompanies,
+  parseCompanyCreateForm,
   parseLinkForm,
+  suggestedDueDate,
   parseCreateGroupForm,
   parseGroupDetail,
   parseGroupList,
@@ -135,5 +138,28 @@ describe("step three", () => {
     expect(i).toMatchObject({ status: "paid", totalMinor: 100 });
     expect(i?.lines[0]?.reference).toBe("B1");
     expect(parseGroupInvoices("x")).toEqual([]);
+  });
+});
+
+describe("step four", () => {
+  const co = { propertyId: P, name: "Globex", contact: "Tola", creditDays: "30", percent: "12.5" };
+  it("checks company forms", () => {
+    expect(parseCompanyCreateForm(co).ok).toBe(true);
+    expect(parseCompanyCreateForm({ ...co, percent: "51" }).ok).toBe(false);
+    expect(parseCompanyCreateForm({ ...co, percent: "12.555" }).ok).toBe(false);
+    expect(parseCompanyCreateForm({ ...co, creditDays: "91" }).ok).toBe(false);
+    expect(parseCompanyCreateForm({ ...co, email: "nope" }).ok).toBe(false);
+    expect(parseCompanyCreateForm({ ...co, name: "" }).ok).toBe(false);
+  });
+  it("maps refusals, reads accounts and suggests a due date", () => {
+    expect(classifyGroupError("POLICY_VIOLATION: name taken")).toBe("company_taken");
+    expect(classifyGroupError("POLICY_VIOLATION: company")).toBe("group_company_missing");
+    expect(classifyGroupError("POLICY_VIOLATION: no company rate")).toBe("group_no_rate");
+    expect(parseCompanies([{ id: "c1", name: "G", discount_percent: "12.50", status: "archived" }])[0]).toMatchObject({
+      percent: 12.5,
+      status: "archived",
+    });
+    expect(suggestedDueDate("2026-12-20", 30)).toBe("2027-01-19");
+    expect(suggestedDueDate("2026-12-20", 500)).toBe("2027-03-20");
   });
 });
