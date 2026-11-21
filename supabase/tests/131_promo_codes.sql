@@ -64,7 +64,7 @@ begin
   a := t131_hold('p-a@example.test');
   v_base := (a ->> 'subtotal_minor')::bigint + (a ->> 'tax_minor')::bigint;
   if (a ->> 'discount_minor')::bigint <> 0 or (a ->> 'promo_code') is not null then raise exception 'FAIL discount without a code: %', a; end if;
-  b := t131_hold('p-b@example.test', ' spring10 ', 40);
+  b := t131_hold('p-b@example.test', ' spring10 ', 20);   -- the same nights as the hold above: test 04's Test VAT rule starts on 2027-01-01, so a price can differ between dates either side of it
   v_d := round(v_base * 10 / 100.0)::bigint;
   if (b ->> 'discount_minor')::bigint <> v_d or (b ->> 'total_minor')::bigint <> v_base - v_d or b ->> 'promo_code' <> 'SPRING10' then
     raise exception 'FAIL discount % expected %, response %', b ->> 'discount_minor', v_d, b; end if;
@@ -95,7 +95,7 @@ do $$ declare a jsonb; b jsonb; v_base bigint; begin
   b := t131_hold('p-e@example.test', 'flat500', 100);
   if (b ->> 'discount_minor')::bigint <> 50000 or (select discount_amount_minor from reservations where id = (b ->> 'reservation_id')::uuid) <> 50000
      or (select discount_percent from reservations where id = (b ->> 'reservation_id')::uuid) is not null then raise exception 'FAIL amount code %', b; end if;
-  b := t131_hold('p-f@example.test', 'HUGE', 120);
+  b := t131_hold('p-f@example.test', 'HUGE', 80);    -- the same nights as the base hold, for the same reason
   if (b ->> 'discount_minor')::bigint <> (v_base * 90 / 100) or (b ->> 'total_minor')::bigint <= 0 then raise exception 'FAIL 90 percent cap %', b; end if;
   raise notice 'PASS promo codes: fixed amounts work and no booking is ever more than 90 percent off';
 end $$;

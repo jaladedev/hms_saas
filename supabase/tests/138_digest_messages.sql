@@ -31,3 +31,7 @@ begin
   delete from digest_outbox where property_id = v_p; delete from contact_messages; delete from waitlist_requests;
   raise notice 'PASS digest: counts new guest messages and still-waiting requests, no details';
 end $$;
+
+-- Leave hotel A as the seed made it. This test moves it to a zone where the local hour suits the summary, and every later test that
+-- compares current_date (Lagos) with property_today() would otherwise run against that zone, and fail for part of each day.
+update properties set timezone = 'Africa/Lagos', digest_email = null where id = '00000000-0000-0000-0000-0000000000a2';
