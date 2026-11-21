@@ -12,7 +12,7 @@ Status: **built**, **partial** (part of the job is done, or only another role ca
 
 | Prototype screen | Status | Where |
 | --- | --- | --- |
-| Sign-in | built | `/login` |
+| Sign-in | built | `/login`: shows the hotel's name, logo and look when opened on a hotel's own address, and has "Keep me signed in" (2026-11-21, no migration) |
 | Forgot Password | built | `/forgot-password` |
 | Reset Password | built | `/reset-password` |
 | Hotel Setup Wizard | built | `/app/setup` (owner guide over the five setup steps); `/platform/new` for a platform admin to onboard a hotel |

@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { publicEnv } from "@/lib/env";
 import { safeNext } from "@/lib/staff/auth";
+import { SESSION_ONLY_COOKIE, sessionCookieOptions } from "@/lib/supabase/session-policy";
 
 /**
  * Keeps the staff session alive and is the first gate for /app.
@@ -22,7 +23,8 @@ export async function proxy(request: NextRequest) {
       setAll(list) {
         list.forEach(({ name, value }) => request.cookies.set(name, value));
         response = NextResponse.next({ request });
-        list.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+        const sessionOnly = request.cookies.get(SESSION_ONLY_COOKIE) !== undefined;
+        list.forEach(({ name, value, options }) => response.cookies.set(name, value, sessionCookieOptions(options, sessionOnly)));
       },
     },
   });

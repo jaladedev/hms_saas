@@ -1,9 +1,10 @@
 "use server";
 
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { SESSION_ONLY_COOKIE, sessionOnlyFlagOptions, wantsRemember } from "@/lib/supabase/session-policy";
 import { afterSignIn, classifyAuthError, classifyUpdateError, safeNext, siteOrigin, validateNewPassword } from "./auth";
 
 function toLogin(code: string, next: string | undefined): never {
@@ -27,9 +28,14 @@ export async function signIn(formData: FormData) {
   });
   if (!parsed.success) return toLogin("invalid", next);
 
-  const supabase = await createClient();
+  // "Keep me signed in" unticked: a flag cookie makes every session cookie last only until the browser closes (session-policy.ts).
+  const sessionOnly = !wantsRemember(raw.remember);
+  const supabase = await createClient({ sessionOnly });
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error) return toLogin(classifyAuthError(error), next);
+  const jar = await cookies();
+  if (sessionOnly) jar.set(SESSION_ONLY_COOKIE, "1", sessionOnlyFlagOptions(process.env.NODE_ENV === "production"));
+  else jar.delete(SESSION_ONLY_COOKIE);
 
   // Access is an active place at a hotel, or a platform admin login (no hotel of their own; they run /platform).
   const [{ data: memberships, error: memberError }, level] = await Promise.all([
@@ -51,6 +57,7 @@ export async function signIn(formData: FormData) {
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
+  (await cookies()).delete(SESSION_ONLY_COOKIE);
   redirect("/login");
 }
 
