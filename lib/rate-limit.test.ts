@@ -107,3 +107,11 @@ describe("maintenance", () => {
     expect(isAuthorizedCron(`Bearer ${secret}`, undefined)).toBe(false);
   });
 });
+
+describe("channel limits", () => {
+  it("has a per-minute rule for the inbound and feed endpoints, the feed being the tighter one", () => {
+    expect(RATE_RULES.channelInbound.windowSeconds).toBe(60);
+    expect(RATE_RULES.channelFeed.windowSeconds).toBe(60);
+    expect(RATE_RULES.channelFeed.limit).toBeLessThan(RATE_RULES.channelInbound.limit);
+  });
+});

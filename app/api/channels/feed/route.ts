@@ -1,5 +1,6 @@
 import { channelBearerKey, inboundErrorStatus, parseFeedQuery } from "@/lib/channels/inbound";
 import { hashApiKey } from "@/lib/api/keys";
+import { checkChannelLimit } from "@/lib/channels/limits";
 import { createServiceClient } from "@/lib/supabase/service";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +21,9 @@ export async function GET(request: Request) {
   const a = auth.data && typeof auth.data === "object" ? (auth.data as Record<string, unknown>) : {};
   if (auth.error) return json(500, { error: "server_error" });
   if (a.ok !== true || typeof a.connection_id !== "string") return json(401, { error: "unauthorized" }, { "www-authenticate": "Bearer" });
+  const limit = await checkChannelLimit("channelFeed", a.connection_id).catch(() => null);
+  if (!limit) return json(500, { error: "server_error" });
+  if (!limit.allowed) return json(429, { error: "rate_limited" }, { "retry-after": String(limit.retryAfterSeconds) });
   const q = parseFeedQuery(new URL(request.url).searchParams);
   if (!q.ok) return json(400, { error: "invalid_request", message: "from and to must be dates, to after from, at most 90 nights" });
   const { data, error } = await db.rpc("channel_feed", { p_connection: a.connection_id, p_from: q.from, p_to: q.to });

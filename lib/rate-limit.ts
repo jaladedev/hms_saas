@@ -22,6 +22,9 @@ export const RATE_RULES = {
   requestVenue: { limit: 6, windowSeconds: 3600 },
   orderTickets: { limit: 10, windowSeconds: 3600 },
   payEvent: { limit: 6, windowSeconds: 3600 },
+  /** Channel connections, counted per connection after the key is checked (migrations 171 and 175). */
+  channelInbound: { limit: 300, windowSeconds: 60 },
+  channelFeed: { limit: 30, windowSeconds: 60 },
 } as const satisfies Record<string, RateRule>;
 export type RateRuleName = keyof typeof RATE_RULES;
 
