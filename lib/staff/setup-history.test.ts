@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   actionsFor,
   actorName,
+  AUDIT_COLUMNS,
   collectIds,
   describeEvent,
   entityName,
@@ -11,6 +12,7 @@ import {
   fieldLabel,
   formatValue,
   historyQuery,
+  ipLabel,
   parseHistoryFilters,
   type AuditRow,
   type Format,
@@ -467,5 +469,37 @@ describe("policy versions", () => {
     expect(
       describeEvent(row({ action: "property_policy.created", entity_type: "property_policy", metadata: null }), lookup(), fmt).summary,
     ).toBe("Published a new policy version");
+  });
+});
+
+describe("the address on a history line (migration 170)", () => {
+  it("is asked for with the other columns", () => {
+    expect(AUDIT_COLUMNS.split(", ")).toContain("client_ip");
+  });
+
+  it("prints a real address, a host mask dropped", () => {
+    expect(ipLabel("203.0.113.9")).toBe("203.0.113.9");
+    expect(ipLabel("  203.0.113.9 ")).toBe("203.0.113.9");
+    expect(ipLabel("203.0.113.9/32")).toBe("203.0.113.9");
+    expect(ipLabel("2001:db8::1")).toBe("2001:db8::1");
+    expect(ipLabel("2001:db8::1/128")).toBe("2001:db8::1");
+  });
+
+  it("prints nothing for old rows, system work or anything that is not an address", () => {
+    for (const v of [
+      null,
+      undefined,
+      "",
+      "unknown",
+      "10.0.0.0/8",
+      "203.0.113.9/24",
+      "<script>alert(1)</script>",
+      "1.2.3.4; x",
+      5,
+      {},
+      [],
+    ]) {
+      expect(ipLabel(v)).toBeNull();
+    }
   });
 });

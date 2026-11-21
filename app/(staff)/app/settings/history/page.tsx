@@ -10,6 +10,7 @@ import {
   describeEvent,
   HISTORY_FILTERS,
   historyQuery,
+  ipLabel,
   PAGE_SIZE,
   parseHistoryFilters,
   type AuditRow,
@@ -112,7 +113,8 @@ export default async function SetupHistoryPage({ searchParams }: { searchParams:
       <PageTitle>Setup history</PageTitle>
       <PageIntro>
         Who changed the hotel&apos;s room types, rooms, rates, tax rules, policies, staff access and the hotel's own details, newest first.
-        Each line says who made the change and what it was; edits show the old and the new value. Nothing here can be changed or deleted.
+        Each line says who made the change, where it came from when that is known, and what it was; edits show the old and the new value.
+        Nothing here can be changed or deleted.
       </PageIntro>
 
       <form method="get" className="mt-6 flex flex-wrap items-end gap-4" aria-label="Filter the history">
@@ -167,6 +169,7 @@ export default async function SetupHistoryPage({ searchParams }: { searchParams:
           {rows.map((r) => {
             const { summary, details } = describeEvent(r, lookup, fmt);
             const where = r.property_id ? lookup.properties.get(r.property_id) : null;
+            const ip = ipLabel(r.client_ip);
             return (
               <li key={r.id} className="py-4">
                 <p className="font-medium">{summary}</p>
@@ -177,6 +180,7 @@ export default async function SetupHistoryPage({ searchParams }: { searchParams:
                   {" \u00b7 "}
                   {actorName(r, lookup.people)}
                   {many && where ? ` \u00b7 ${where}` : ""}
+                  {ip ? ` \u00b7 from ${ip}` : ""}
                 </p>
                 {details.length > 0 && (
                   <ul className="mt-2 space-y-0.5 text-sm">

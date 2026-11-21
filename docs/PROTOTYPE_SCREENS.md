@@ -110,7 +110,7 @@ Status: **built**, **partial** (part of the job is done, or only another role ca
 | Branding & Theme Editor | built | `/app/settings/hotel`: logo and room photos, and the hotel's look (Standard, Luxury, Modern or Classic; migration 093) for the guest site and the staff screens, plus an optional main colour over it (migration 099; refused if white text on it or links on the page fall below WCAG AA 4.5:1). heading and body fonts over it (migration 100), corner style (sharp or round, migration 118), and a live preview of the choices before saving. Not built: other colours (secondary, accent, background), draft versus published |
 | Staff Management | built | `/app/staff` |
 | Staff Permissions | built | `/app/staff/roles` (custom roles) |
-| Audit Log | built | `/app/settings/history` (Setup history) |
+| Audit Log | built | `/app/settings/history` (Setup history); each line shows the address the change came from when known (2026-11-21, migration 170) |
 | Reports & Analytics | built | `/app/reports`, `/app/reports/occupancy`, `/app/reports/channels` |
 
 ## Built, but not in the prototype

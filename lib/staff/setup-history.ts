@@ -8,6 +8,7 @@
  * words them. Names are looked up from the live tables by id, because an update row records the changed columns and
  * not the thing's name; a deleted thing falls back to the name stored with the row.
  */
+import { isIP } from "node:net";
 import { guestSummary, readConfig } from "./policies";
 import type { TaxRuleRow } from "./tax-rules";
 
@@ -19,10 +20,21 @@ export type AuditRow = {
   entity_type: string;
   entity_id: string | null;
   metadata: Record<string, unknown> | null;
+  client_ip?: string | null; // the address the change came from (migration 170); null for rows older than it and for system work
   created_at: string;
 };
 
-export const AUDIT_COLUMNS = "id, property_id, actor_user_id, action, entity_type, entity_id, metadata, created_at";
+export const AUDIT_COLUMNS = "id, property_id, actor_user_id, action, entity_type, entity_id, metadata, client_ip, created_at";
+
+/**
+ * The address to print after a history line: the stored one when it really is an IP address, nothing otherwise (older rows,
+ * work done by the system, or anything odd). A host address is kept as a single address, so a trailing /32 or /128 is dropped.
+ */
+export function ipLabel(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const t = value.trim().replace(/\/(32|128)$/, "");
+  return isIP(t) ? t : null;
+}
 export const PAGE_SIZE = 50;
 
 export const HISTORY_FILTERS = [

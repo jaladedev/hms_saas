@@ -13,6 +13,7 @@ export type Database = {
         Row: {
           action: string
           actor_user_id: string | null
+          client_ip: unknown
           created_at: string
           entity_id: string | null
           entity_type: string
@@ -26,6 +27,7 @@ export type Database = {
         Insert: {
           action: string
           actor_user_id?: string | null
+          client_ip?: unknown
           created_at?: string
           entity_id?: string | null
           entity_type: string
@@ -38,6 +40,7 @@ export type Database = {
         Update: {
           action?: string
           actor_user_id?: string | null
+          client_ip?: unknown
           created_at?: string
           entity_id?: string | null
           entity_type?: string

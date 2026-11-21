@@ -210,6 +210,8 @@ webhook is set up: step 9 covers those.
 The app must sit behind something that sets `X-Forwarded-For` and `X-Forwarded-Host` (Vercel, Cloudflare, a load
 balancer). Without it the per-address rate limits can be dodged and host-based hotel lookup fails.
 
+The same address is recorded on the audit log (`audit_logs.client_ip`, shown on Setup history) for signed-in staff requests, so the host must also **overwrite** `X-Forwarded-For` with the address it saw rather than append to what the visitor sent; otherwise a person could choose what their history line says. Guests and webhooks are not recorded.
+
 ## 7. Staff sign-in, in a real browser
 
 This is the first check of the real Supabase sign-in. Open `https://<staging-host>/login`.

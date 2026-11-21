@@ -1,7 +1,8 @@
 import "server-only";
 import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { publicEnv } from "@/lib/env";
+import { clientIp } from "@/lib/rate-limit";
 import type { Database } from "@/lib/supabase/database";
 import { SESSION_ONLY_COOKIE, sessionCookieOptions } from "@/lib/supabase/session-policy";
 
@@ -12,7 +13,10 @@ import { SESSION_ONLY_COOKIE, sessionCookieOptions } from "@/lib/supabase/sessio
 export async function createClient(opts: { sessionOnly?: boolean } = {}) {
   const env = publicEnv();
   const cookieStore = await cookies();
+  // The address the person's request came from, passed on so the audit log can record it (migration 170). Nothing when unknown.
+  const ip = clientIp(await headers());
   return createServerClient<Database>(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, {
+    global: { headers: ip === "unknown" ? {} : { "x-client-ip": ip } },
     cookies: {
       getAll: () => cookieStore.getAll(),
       setAll: (list) => {
