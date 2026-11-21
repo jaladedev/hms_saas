@@ -1057,4 +1057,8 @@ GS="$(psql -f "$HERE/167_group_reminder_status.sql" 2>&1)" || { echo "$GS"; echo
 echo "$GS" | grep -E 'PASS' || true
 if echo "$GS" | grep -qE 'FAIL|ERROR'; then echo "$GS"; echo "GROUP REMINDER STATUS TESTS FAILED"; exit 1; fi
 
+CC="$(psql -f "$HERE/168_company_credit.sql" 2>&1)" || { echo "$CC"; echo "COMPANY CREDIT TESTS FAILED"; exit 1; }
+echo "$CC" | grep -E 'PASS' || true
+if echo "$CC" | grep -qE 'FAIL|ERROR'; then echo "$CC"; echo "COMPANY CREDIT TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

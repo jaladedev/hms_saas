@@ -14,11 +14,14 @@ import {
   thRowHead,
 } from "@/components/staff/ui";
 import { PendingButton } from "@/components/ui/pending-button";
+import { parseCreditBalances } from "@/lib/staff/company-credit";
+import { minorToInput } from "@/lib/staff/money-input";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import {
   addRoomingEntry,
   applyCompanyRate,
   cancelGroup,
+  applyCompanyCredit,
   recordGroupPayment,
   reverseGroupPayment,
   setGroupCompany,
@@ -75,6 +78,9 @@ export default async function GroupPage({
   const coQ = await supabase.rpc("company_list", { p_property: g.propertyId });
   const companies = parseCompanies(coQ.data).filter((c) => c.status === "active" || c.id === g.companyId);
   const company = companies.find((c) => c.id === g.companyId) ?? null;
+  // The company's credit balance, for people who may see money (a failed read shows no credit form).
+  const creditQ = company ? await supabase.rpc("company_credit_balances", { p_property: g.propertyId }) : null;
+  const credit = company && creditQ && !creditQ.error ? (parseCreditBalances(creditQ.data)[company.id] ?? 0) : 0;
   const today = new Date().toISOString().slice(0, 10);
   const payQ = await supabase.rpc("group_payment_list", { p_group: id });
   const seePayments = !payQ.error;
@@ -485,6 +491,34 @@ export default async function GroupPage({
               )}
             </div>
           ))}
+          {owing.length > 0 && credit > 0 && (
+            <form action={applyCompanyCredit} className="mt-4 flex flex-wrap items-end gap-3 border border-dashed border-line p-3">
+              <input type="hidden" name="groupId" value={g.id} />
+              <input type="hidden" name="key" value={crypto.randomUUID()} />
+              <p className="w-full text-sm">
+                {company?.name} has {formatMoney(credit, st?.currency ?? "NGN")} in credit. Use it to pay this group; it is split across the
+                bookings in arrival order like any company payment.
+              </p>
+              <label className="block text-sm">
+                Amount from credit ({st?.currency ?? "NGN"})
+                <input
+                  name="amount"
+                  required
+                  inputMode="decimal"
+                  defaultValue={minorToInput(
+                    Math.min(
+                      credit,
+                      owing.reduce((n, b) => n + (b.outstandingMinor ?? 0), 0),
+                    ),
+                  )}
+                  className={`${inputClass} mt-1`}
+                />
+              </label>
+              <PendingButton className={buttonQuiet} pendingLabel="Paying...">
+                Pay from credit
+              </PendingButton>
+            </form>
+          )}
           {owing.length > 0 ? (
             <form action={recordGroupPayment} className="mt-4 grid gap-3 md:grid-cols-3">
               <input type="hidden" name="groupId" value={g.id} />

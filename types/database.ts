@@ -4693,6 +4693,14 @@ export type Database = {
       }
       loyalty_settings_get: { Args: { p_property: string }; Returns: Json }
       loyalty_booking: { Args: { p_reservation: string }; Returns: Json }
+      company_credit_deposit: {
+        Args: { p_amount_minor: number; p_company: string; p_key: string; p_method: string; p_note: string; p_reference: string }
+        Returns: Json
+      }
+      company_credit_apply: { Args: { p_amount_minor: number; p_group: string; p_key: string }; Returns: Json }
+      company_credit_withdraw: { Args: { p_amount_minor: number; p_company: string; p_key: string; p_reason: string }; Returns: Json }
+      company_credit_balances: { Args: { p_property: string }; Returns: Json }
+      company_credit_ledger_list: { Args: { p_company: string; p_limit?: number }; Returns: Json }
       voucher_issue: {
         Args: { p_amount_minor: number; p_expires_on: string; p_idempotency_key: string; p_kind: string; p_note: string; p_property: string }
         Returns: Json

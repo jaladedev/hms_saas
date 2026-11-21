@@ -12,8 +12,11 @@ import {
   SectionTitle,
 } from "@/components/staff/ui";
 import { PendingButton } from "@/components/ui/pending-button";
+import { CREDIT_KIND_LABEL, parseCreditBalances, parseCreditLedger } from "@/lib/staff/company-credit";
 import {
   createCompany,
+  depositCompanyCredit,
+  withdrawCompanyCredit,
   removeCompanyRate,
   setCompanyAutoRate,
   setCompanyReminders,
@@ -23,6 +26,7 @@ import {
 import { formatMoney } from "@/lib/guest-site/format";
 import { minorToInput } from "@/lib/staff/money-input";
 import { parseCompanies } from "@/lib/staff/groups";
+import { PAY_METHODS, PAY_METHOD_LABEL } from "@/lib/staff/groups";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -34,6 +38,20 @@ export default async function CompaniesPage({ searchParams }: { searchParams: Pr
   const { data: props, error: propError } = await supabase.from("properties").select("id, name, currency").order("name");
   const properties = (props ?? []) as { id: string; name: string; currency: string }[];
   const lists = await Promise.all(properties.map((p) => supabase.rpc("company_list", { p_property: p.id })));
+  // Credit balances need the right to see money; a person without it simply sees no balance.
+  const balanceQs = await Promise.all(properties.map((p) => supabase.rpc("company_credit_balances", { p_property: p.id })));
+  const creditLedgers = new Map<string, ReturnType<typeof parseCreditLedger>>();
+  for (const [i, q] of balanceQs.entries()) {
+    const l = lists[i];
+    if (!l || l.error || q.error) continue;
+    const bal = parseCreditBalances(q.data);
+    for (const c of parseCompanies(l.data)) {
+      if ((bal[c.id] ?? 0) !== 0) {
+        const led = await supabase.rpc("company_credit_ledger_list", { p_company: c.id, p_limit: 10 });
+        creditLedgers.set(c.id, led.error ? [] : parseCreditLedger(led.data));
+      }
+    }
+  }
   const { data: types } = await supabase.from("room_types").select("id, name, property_id").eq("status", "active").order("name");
   const roomTypes = (types ?? []) as { id: string; name: string; property_id: string }[];
   const many = properties.length > 1;
@@ -62,6 +80,7 @@ export default async function CompaniesPage({ searchParams }: { searchParams: Pr
         const l = lists[i];
         if (!l || l.error) return null;
         const companies = parseCompanies(l.data);
+        const balances = balanceQs[i]?.error ? null : parseCreditBalances(balanceQs[i]?.data);
         const ptypes = roomTypes.filter((t) => t.property_id === p.id);
         return (
           <section key={p.id} className="mt-10 first:mt-0" aria-label={p.name}>
@@ -141,6 +160,77 @@ export default async function CompaniesPage({ searchParams }: { searchParams: Pr
                     </div>
                   </form>
                   <div className="border border-t-0 border-line p-4 text-sm">
+                    {balances && (
+                      <div className="mb-4 border-b border-line pb-4">
+                        <p>
+                          <strong>Credit balance: {formatMoney(balances[c.id] ?? 0, p.currency)}</strong>
+                          <span className="text-muted">
+                            {" "}
+                            Money the hotel holds for this company. Use it on the group page; it is not counted as income until it pays a
+                            booking.
+                          </span>
+                        </p>
+                        <form action={depositCompanyCredit} className="mt-2 flex flex-wrap items-end gap-3">
+                          <input type="hidden" name="companyId" value={c.id} />
+                          <input type="hidden" name="key" value={crypto.randomUUID()} />
+                          <label className="block">
+                            Amount received ({p.currency})
+                            <input name="amount" required inputMode="decimal" className={`${inputClass} mt-1 w-36`} />
+                          </label>
+                          <label className="block">
+                            How paid
+                            <select name="method" defaultValue="bank_transfer" className={`${inputClass} mt-1`}>
+                              {PAY_METHODS.map((m) => (
+                                <option key={m} value={m}>
+                                  {PAY_METHOD_LABEL[m]}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <label className="block">
+                            Reference
+                            <input name="reference" maxLength={60} className={`${inputClass} mt-1 w-36`} />
+                          </label>
+                          <PendingButton className={buttonQuiet} pendingLabel="Saving...">
+                            Add to credit
+                          </PendingButton>
+                        </form>
+                        {(balances[c.id] ?? 0) > 0 && (
+                          <form action={withdrawCompanyCredit} className="mt-2 flex flex-wrap items-end gap-3">
+                            <input type="hidden" name="companyId" value={c.id} />
+                            <input type="hidden" name="key" value={crypto.randomUUID()} />
+                            <label className="block">
+                              Pay back or write off ({p.currency})
+                              <input name="amount" required inputMode="decimal" className={`${inputClass} mt-1 w-36`} />
+                            </label>
+                            <label className="block">
+                              Reason
+                              <input name="reason" required maxLength={200} className={`${inputClass} mt-1 w-64`} />
+                            </label>
+                            <PendingButton className={buttonQuiet} pendingLabel="Saving...">
+                              Take out
+                            </PendingButton>
+                          </form>
+                        )}
+                        {(creditLedgers.get(c.id) ?? []).length > 0 && (
+                          <ul className="mt-3 divide-y divide-line text-xs">
+                            {(creditLedgers.get(c.id) ?? []).map((e, n) => (
+                              <li key={n} className="flex flex-wrap justify-between gap-2 py-1">
+                                <span>
+                                  {e.createdAt.slice(0, 10)} · {CREDIT_KIND_LABEL[e.kind]}
+                                  {e.groupName ? ` · ${e.groupName}` : ""}
+                                  {e.reference ? ` · ${e.reference}` : ""}
+                                </span>
+                                <span className="tabular-nums">
+                                  {e.amountMinor > 0 ? "+" : ""}
+                                  {formatMoney(e.amountMinor, p.currency)}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    )}
                     <p className="text-muted">Agreed rates by room type (a room type without one uses the discount above).</p>
                     <ul className="mt-2 divide-y divide-line">
                       {c.rates.map((r) => (

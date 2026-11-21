@@ -17,6 +17,7 @@ export const MAX_GROUP_ROOMS = 100;
 export const MAX_GROUP_NIGHTS = 60;
 
 export const GROUP_ERROR_MESSAGES = {
+  credit_short: "The company does not have that much credit. Check the balance, or record the money it paid first.",
   group_forbidden: "You do not have permission to manage group bookings here.",
   group_off: "Group bookings are switched off for your hotel group. Your groups are kept. Contact the platform.",
   group_invalid:
@@ -56,6 +57,9 @@ export const GROUP_ERROR_MESSAGES = {
 export type GroupErrorCode = keyof typeof GROUP_ERROR_MESSAGES;
 
 export const GROUP_OK_MESSAGES = {
+  credit_deposited: "Money added to the company's credit balance.",
+  credit_applied: "Paid from the company's credit balance. It is split across the bookings like any company payment.",
+  credit_withdrawn: "Credit paid back or written off.",
   group_created: "Group created. The rooms are held and cannot be sold until the release date.",
   group_updated: "Group saved.",
   group_cancelled: "Group cancelled. The held rooms are free again.",
@@ -91,6 +95,7 @@ export function classifyGroupError(message: string): GroupErrorCode {
   if (/POLICY_VIOLATION: name taken/.test(message)) return "company_taken";
   if (/POLICY_VIOLATION: company/.test(message)) return "group_company_missing";
   if (/POLICY_VIOLATION: no company rate/.test(message)) return "group_no_rate";
+  if (/POLICY_VIOLATION: credit balance/.test(message)) return "credit_short";
   if (/POLICY_VIOLATION: exceeds outstanding/.test(message)) return "group_pay_exceeds";
   if (/POLICY_VIOLATION: OVERPAYMENT/.test(message)) return "group_pay_overpay";
   if (/POLICY_VIOLATION: allocation/.test(message)) return "group_pay_alloc";

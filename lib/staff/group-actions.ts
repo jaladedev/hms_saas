@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { back, staffClient } from "./action-helpers";
+import { parseCreditApplyForm, parseCreditDepositForm, parseCreditWithdrawForm } from "./company-credit";
 import {
   classifyGroupError,
   parseCreateGroupForm,
@@ -342,4 +343,56 @@ export async function setCompanyAutoRate(formData: FormData) {
   if (error) return fail(COMPANIES, error.message.includes("NOT_FOUND") ? "company_forbidden" : classifyGroupError(error.message));
   revalidatePath(COMPANIES);
   return done(COMPANIES, v.value.on ? "company_auto_on" : "company_auto_off");
+}
+
+/** Money received from a company with no booking to pay yet; kept as its credit balance (migration 168). */
+export async function depositCompanyCredit(formData: FormData) {
+  const v = parseCreditDepositForm(Object.fromEntries(formData));
+  if (!v.ok) return fail(COMPANIES, v.code);
+  const f = v.value;
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("company_credit_deposit", {
+    p_company: f.companyId,
+    p_amount_minor: f.amountMinor,
+    p_method: f.method,
+    p_reference: f.reference as string,
+    p_note: f.note as string,
+    p_key: f.key,
+  });
+  if (error) return fail(COMPANIES, classifyGroupError(error.message));
+  revalidatePath(COMPANIES);
+  return done(COMPANIES, "credit_deposited");
+}
+
+/** Gives credit back to the company, or writes it off, with a reason. */
+export async function withdrawCompanyCredit(formData: FormData) {
+  const v = parseCreditWithdrawForm(Object.fromEntries(formData));
+  if (!v.ok) return fail(COMPANIES, v.code);
+  const f = v.value;
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("company_credit_withdraw", {
+    p_company: f.companyId,
+    p_amount_minor: f.amountMinor,
+    p_reason: f.reason,
+    p_key: f.key,
+  });
+  if (error) return fail(COMPANIES, classifyGroupError(error.message));
+  revalidatePath(COMPANIES);
+  return done(COMPANIES, "credit_withdrawn");
+}
+
+/** Pays part of a group's bill from its company's credit balance. */
+export async function applyCompanyCredit(formData: FormData) {
+  const v = parseCreditApplyForm(Object.fromEntries(formData));
+  if (!v.ok) return fail(LIST, v.code);
+  const path = detail(v.value.groupId);
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("company_credit_apply", {
+    p_group: v.value.groupId,
+    p_amount_minor: v.value.amountMinor,
+    p_key: v.value.key,
+  });
+  if (error) return fail(path, classifyGroupError(error.message));
+  revalidatePath(path);
+  return done(path, "credit_applied");
 }
