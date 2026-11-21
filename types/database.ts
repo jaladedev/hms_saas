@@ -5205,6 +5205,14 @@ export type Database = {
         Args: { p_tenant: string; p_user: string }
         Returns: undefined
       }
+      platform_log_provider_check: {
+        Args: { p_account: string; p_key_mode: string; p_outcome: string; p_tenant: string }
+        Returns: undefined
+      }
+      platform_provider_check_context: {
+        Args: { p_account: string; p_tenant: string }
+        Returns: Json
+      }
       platform_owner_invite_check: {
         Args: { p_tenant: string; p_user: string }
         Returns: Json

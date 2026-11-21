@@ -23,6 +23,7 @@ import {
   setDomainVerified,
   setEntitlement,
   setProviderStatus,
+  testProviderConnection,
   setSubscription,
   setTenantStatus,
 } from "@/lib/platform/actions";
@@ -288,6 +289,15 @@ export default async function HotelDetail({
                     </select>
                     <PendingButton className={buttonQuiet} pendingLabel="Saving…">
                       Save
+                    </PendingButton>
+                  </form>
+                )}
+                {admin && (
+                  <form action={testProviderConnection}>
+                    <input type="hidden" name="tenantId" value={t.id} />
+                    <input type="hidden" name="accountId" value={a.id} />
+                    <PendingButton className={buttonQuiet} pendingLabel="Testing…">
+                      Test connection
                     </PendingButton>
                   </form>
                 )}

@@ -201,6 +201,12 @@ Deploy this commit to the staging host and set these variables there (see `.env.
 
 Leave these unset: `PAYSTACK_API_BASE_URL`, `RESEND_API_BASE_URL`, `EMAIL_TRANSPORT`, `EMAIL_LINK_SCHEME` (test-only).
 
+Once the app is up, sign in as a platform admin, open the hotel at `/platform/<hotel id>` and press **Test connection** beside its
+Paystack account (it works while the account is still inactive). It makes one read-only call to Paystack and says whether the key
+is set, is a Paystack secret key of the account's mode, and is accepted. Nothing is charged or changed, and each press is
+recorded in the platform audit log (outcome only, never the key). It does not prove the hotel can take live payments or that the
+webhook is set up: step 9 covers those.
+
 The app must sit behind something that sets `X-Forwarded-For` and `X-Forwarded-Host` (Vercel, Cloudflare, a load
 balancer). Without it the per-address rate limits can be dodged and host-based hotel lookup fails.
 

@@ -160,6 +160,12 @@ export type PlatformCode =
   | "access_own"
   | "subscription_status"
   | "feature_key"
+  | "check_no_secret"
+  | "check_bad_key"
+  | "check_mode"
+  | "check_rejected"
+  | "check_unreachable"
+  | "check_unexpected"
   | "bad_request"
   | "unavailable";
 
@@ -227,6 +233,7 @@ export function classifyPlatformError(err: { code?: string; message?: string } |
       return "feature_key";
     case "verified":
     case "enabled":
+    case "check outcome":
       return "bad_request";
     default:
       break;
@@ -271,6 +278,15 @@ export const ERROR_MESSAGES: Record<PlatformCode, string> = {
   subscription_status: "Choose trial, active, past due or cancelled.",
   feature_key: "The feature key must be 2 to 60 characters: lowercase letters, digits, dots or underscores, starting with a letter.",
   invite_failed: "The owner's invitation could not be sent. Nothing was set up. Try again in a moment.",
+  check_no_secret:
+    "The server has no usable key for this account. Set the environment variable named in the account's secret reference, redeploy, and test again.",
+  check_bad_key: "The environment variable is set, but its value is not a Paystack secret key (it should start with sk_test_ or sk_live_).",
+  check_mode:
+    "The key and the account disagree: a test key on a live account, or a live key on a test account. Nothing was sent to Paystack.",
+  check_rejected: "Paystack refused the key. It may be wrong, revoked or from another Paystack account.",
+  check_unreachable: "Paystack could not be reached, or it was too busy. Nothing is known about the key yet: try again in a moment.",
+  check_unexpected:
+    "Paystack answered, but not in the form the app expects. Do not take payments yet: check lib/paystack.ts against Paystack's current docs.",
   bad_request: "That request was not valid. Check the form and try again.",
   unavailable: "That could not be done right now. Try again in a moment.",
 };
@@ -297,6 +313,7 @@ export type PlatformOk =
   | "access_denied"
   | "access_ended"
   | "feature_set"
+  | "check_ok"
   | "unchanged";
 export const OK_MESSAGES: Record<PlatformOk, string> = {
   created: "Hotel group created. Its domain is not verified yet, so guests cannot reach it until you verify the address.",
@@ -320,6 +337,7 @@ export const OK_MESSAGES: Record<PlatformOk, string> = {
   access_ended: "Access ended.",
   plan_applied: "Plan applied: the group's plan and its feature flags now follow it.",
   feature_set: "Feature flag saved.",
+  check_ok: "Paystack accepted the key. Nothing was charged and nothing was changed.",
   unchanged: "Nothing changed: it was already like that.",
 };
 

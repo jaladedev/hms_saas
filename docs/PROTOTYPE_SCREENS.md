@@ -96,7 +96,7 @@ Status: **built**, **partial** (part of the job is done, or only another role ca
 | Rate Calendar | built | `/app/settings/rates` (nightly prices) |
 | Booking & Cancellation | built | `/app/settings/policies` |
 | Payment Settings | built | `/app/settings/policies` (full payment or a deposit percent); Paystack accounts are set by the platform admin by design |
-| Paystack Settings | partial | set by the platform admin on `/platform/[tenantId]`; the secret lives in the environment by design |
+| Paystack Settings | partial | set by the platform admin on `/platform/[tenantId]`, with a Test connection button (2026-11-21, migration 169); the secret lives in the environment by design, so keys are not typed into the screen |
 
 ## Property & System
 

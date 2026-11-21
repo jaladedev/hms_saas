@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { siteOrigin } from "@/lib/staff/auth";
 import { parseAccessDecision, parseAccessRequest } from "./access";
+import { checkPaystackAccount, outcomeNotice } from "./provider-check";
 import { parseNewTicket, parseNote, isTicketStatus } from "./tickets";
 import { classifyPlatformError, normalizeHost, parseNairaToKobo, validateNewHotel, type PlatformCode, type PlatformOk } from "./hotel";
 
@@ -152,6 +153,34 @@ export async function setProviderStatus(formData: FormData) {
   if (error) return fail(page, classifyPlatformError(error));
   revalidatePath(page);
   return done(page, (data as { changed?: boolean } | null)?.changed === false ? "unchanged" : "provider");
+}
+
+/**
+ * Tests a payment account's connection: the app resolves the account's secret pointer itself (the browser sends only ids), makes one
+ * read-only call to Paystack and reports the outcome, then records it. Admin only, like every other change to a payment account.
+ * The key, Paystack's reply and any error text are never shown, logged or stored.
+ */
+export async function testProviderConnection(formData: FormData) {
+  const p = z.object({ tenantId: uuid, accountId: uuid }).safeParse(Object.fromEntries(formData));
+  if (!p.success) return fail(LIST, "bad_request");
+  const page = `/platform/${p.data.tenantId}`;
+  const supabase = await adminClient(page);
+  const ctx = await supabase.rpc("platform_provider_check_context", { p_tenant: p.data.tenantId, p_account: p.data.accountId });
+  if (ctx.error) return fail(page, classifyPlatformError(ctx.error));
+  const account = ctx.data as { provider?: string; mode?: string; secret_reference?: string } | null;
+  if (account?.provider !== "paystack" || !account.mode || !account.secret_reference) return fail(page, "bad_request");
+
+  const result = await checkPaystackAccount({ mode: account.mode, secretReference: account.secret_reference });
+  const logged = await supabase.rpc("platform_log_provider_check", {
+    p_tenant: p.data.tenantId,
+    p_account: p.data.accountId,
+    p_outcome: result.outcome,
+    p_key_mode: result.keyMode,
+  });
+  if (logged.error) return fail(page, classifyPlatformError(logged.error));
+  revalidatePath(page);
+  const notice = outcomeNotice(result.outcome);
+  return "ok" in notice ? done(page, notice.ok) : fail(page, notice.err);
 }
 
 export async function setSubscription(formData: FormData) {

@@ -56,6 +56,7 @@ const KNOWN: Record<string, string> = {
   "platform.domain_unverified": "Web address unverified",
   "platform.payment_account_status_changed": "Payment account status changed",
   "platform.owner_invite_resent": "Owner invitation resent",
+  "platform.payment_account_checked": "Payment account connection tested",
 };
 const ENTITY: Record<string, string> = {
   platform_invoice: "invoice",
