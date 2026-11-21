@@ -7,7 +7,7 @@ import {
   parseConnectionForm,
   parseResolveForm,
 } from "@/lib/staff/channel-sync";
-import { channelBearerKey, inboundErrorStatus, MAX_BODY_BYTES, parseInbound } from "./inbound";
+import { channelBearerKey, inboundErrorStatus, MAX_BODY_BYTES, parseFeedQuery, parseInbound } from "./inbound";
 
 const KEY = "chn_0123abcd_" + "a".repeat(48);
 const P = "00000000-0000-0000-0000-0000000000a2";
@@ -78,5 +78,26 @@ describe("screens", () => {
     expect(r?.counts).toEqual({ imported: 2 });
     expect(r?.priceDifferences[0]?.currency).toBe("NGN");
     expect(parseChannelReport(null)).toBeNull();
+  });
+});
+
+describe("feed query", () => {
+  const q = (s: string) => parseFeedQuery(new URLSearchParams(s));
+  it("accepts real dates up to 90 nights", () => {
+    expect(q("from=2026-12-01&to=2026-12-15")).toEqual({ ok: true, from: "2026-12-01", to: "2026-12-15" });
+    expect(q("from=2026-12-01&to=2027-03-01").ok).toBe(true);
+  });
+  it("refuses anything else", () => {
+    for (const s of [
+      "",
+      "from=2026-12-01",
+      "from=2026-12-01&to=2026-12-01",
+      "from=2026-12-05&to=2026-12-01",
+      "from=2026-12-01&to=2027-03-02",
+      "from=2026-02-30&to=2026-03-05",
+      "from=x&to=y",
+      "from=2026-12-01&to=2026-12-0",
+    ])
+      expect(q(s).ok).toBe(false);
   });
 });

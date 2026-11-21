@@ -65,6 +65,11 @@ async function handle(request: Request) {
       return data as number;
     },
     drainInvoiceReminders: drainInvoiceRemindersNow,
+    async retryChannelImports() {
+      const { data, error } = await db.rpc("channel_retry_due", { p_limit: 20 });
+      if (error) throw new Error(error.message);
+      return { retried: data };
+    },
     async queueInvoiceSms() {
       const { data, error } = await db.rpc("queue_group_invoice_sms", { p_limit: 100 });
       if (error) throw new Error(error.message);

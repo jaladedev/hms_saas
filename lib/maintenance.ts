@@ -26,6 +26,8 @@ export type MaintenanceDeps = {
   /** The same overdue reminders by text (migration 173): queues them, then sends the ones that are due. */
   queueInvoiceSms(): Promise<unknown>;
   drainInvoiceSms(limit: number): Promise<unknown>;
+  /** Tries failed channel bookings again, up to 5 attempts, waiting longer each time (migration 175). */
+  retryChannelImports(): Promise<unknown>;
   /** Re-prices the next 60 nights for hotels with automatic pricing on, and switches it off where the plan lost the feature (migration 152). */
   applyDuePricing(): Promise<unknown>;
   /** Sends the webhooks that are due, with back-off between tries (migration 158). */
@@ -62,6 +64,7 @@ export async function runMaintenance(deps: MaintenanceDeps): Promise<Record<stri
     groupBlocks: await step(() => deps.releaseGroupBlocks()),
     invoiceReminders: await step(async () => ({ queued: await deps.queueInvoiceReminders(), sent: await deps.drainInvoiceReminders(10) })),
     invoiceSms: await step(async () => ({ queued: await deps.queueInvoiceSms(), sent: await deps.drainInvoiceSms(10) })),
+    channelRetries: await step(() => deps.retryChannelImports()),
     pricing: await step(() => deps.applyDuePricing()),
     webhooks: await step(() => deps.drainWebhooks(25)),
     purge: await step(() => deps.purgeOldData()),

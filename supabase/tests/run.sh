@@ -1083,4 +1083,8 @@ GH="$(psql -f "$HERE/174_company_hold.sql" 2>&1)" || { echo "$GH"; echo "COMPANY
 echo "$GH" | grep -E 'PASS' || true
 if echo "$GH" | grep -qE 'FAIL|ERROR'; then echo "$GH"; echo "COMPANY HOLD TESTS FAILED"; exit 1; fi
 
+CF="$(psql -f "$HERE/175_channel_feed.sql" 2>&1)" || { echo "$CF"; echo "CHANNEL FEED TESTS FAILED"; exit 1; }
+echo "$CF" | grep -E 'PASS' || true
+if echo "$CF" | grep -qE 'FAIL|ERROR'; then echo "$CF"; echo "CHANNEL FEED TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

@@ -3805,6 +3805,7 @@ export type Database = {
           prefix: string
           key_hash: string
           last_inbound_at: string | null
+          last_feed_at: string | null
           created_by: string | null
           created_at: string
         }
@@ -3820,6 +3821,7 @@ export type Database = {
           prefix: string
           key_hash: string
           last_inbound_at?: string | null
+          last_feed_at?: string | null
           created_by?: string | null
           created_at?: string
         }
@@ -3834,6 +3836,7 @@ export type Database = {
           prefix?: string
           key_hash?: string
           last_inbound_at?: string | null
+          last_feed_at?: string | null
           created_by?: string | null
           created_at?: string
         }
@@ -5016,6 +5019,9 @@ export type Database = {
       channel_retry: { Args: { p_id: string }; Returns: Json }
       channel_resolve: { Args: { p_id: string; p_note: string }; Returns: undefined }
       channel_sync_report: { Args: { p_property: string }; Returns: Json }
+      channel_feed_auth: { Args: { p_hash: string }; Returns: Json }
+      channel_feed: { Args: { p_connection: string; p_from: string; p_to: string }; Returns: Json }
+      channel_retry_due: { Args: { p_limit?: number }; Returns: number }
       channel_authenticate: { Args: { p_hash: string }; Returns: Json }
       channel_receive: { Args: { p_connection: string; p_event: string; p_external: string; p_payload: Json }; Returns: Json }
       service_save: {

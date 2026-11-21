@@ -53,7 +53,7 @@ export default async function ChannelsPage({ searchParams }: { searchParams: Pro
   const [connQ, mapQ, bookQ, typeQ, repQ] = await Promise.all([
     supabase
       .from("channel_connections")
-      .select("id, channel, label, collects, status, prefix, last_inbound_at")
+      .select("id, channel, label, collects, status, prefix, last_inbound_at, last_feed_at")
       .eq("property_id", property.id)
       .order("created_at"),
     supabase.from("channel_room_map").select("connection_id, external_room_id, room_type_id"),
@@ -211,6 +211,7 @@ export default async function ChannelsPage({ searchParams }: { searchParams: Pro
                     <strong>{c.status === "active" ? "Active" : c.status === "paused" ? "Paused" : "Revoked"}</strong> ·{" "}
                     {COLLECTS_LABEL[c.collects]}
                     {c.lastInboundAt ? ` · last heard ${when(c.lastInboundAt)}` : " · never heard from"}
+                    {c.lastFeedAt ? ` · feed last read ${when(c.lastFeedAt)}` : ""}
                   </p>
                 </div>
                 {c.status !== "revoked" && (

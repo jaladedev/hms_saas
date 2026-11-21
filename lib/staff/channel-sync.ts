@@ -78,6 +78,7 @@ export type Connection = {
   status: "active" | "paused" | "revoked";
   prefix: string;
   lastInboundAt: string | null;
+  lastFeedAt: string | null;
 };
 export function parseConnections(raw: unknown): Connection[] {
   return arr(raw).map((r) => ({
@@ -88,6 +89,7 @@ export function parseConnections(raw: unknown): Connection[] {
     status: r.status === "paused" || r.status === "revoked" ? r.status : "active",
     prefix: str(r.prefix),
     lastInboundAt: strOrNull(r.last_inbound_at),
+    lastFeedAt: strOrNull(r.last_feed_at),
   }));
 }
 export type MapRow = { connectionId: string; externalRoomId: string; roomTypeId: string };

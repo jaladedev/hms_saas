@@ -70,6 +70,7 @@ describe("maintenance", () => {
       releaseGroupBlocks: async () => ({ released: 0 }),
       queueInvoiceReminders: async () => 0,
       drainInvoiceReminders: async () => ({ claimed: 0, sent: 0, failed: 0 }),
+      retryChannelImports: async () => 0,
       queueInvoiceSms: async () => 0,
       drainInvoiceSms: async () => ({ claimed: 0, sent: 0, failed: 0 }),
       applyDuePricing: async () => ({ hotels: 0 }),

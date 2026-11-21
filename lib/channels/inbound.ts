@@ -39,6 +39,28 @@ export function parseInbound(bodyText: string): InboundParsed {
   return { ok: true, event: event as ChannelEvent, bookingId, payload };
 }
 
+export const MAX_FEED_NIGHTS = 90;
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** The feed's query: `from` and `to` as real calendar dates, `to` after `from`, at most 90 nights. The database checks "not in the past" in the hotel's own day. */
+export function parseFeedQuery(params: URLSearchParams): { ok: true; from: string; to: string } | { ok: false } {
+  const from = params.get("from") ?? "";
+  const to = params.get("to") ?? "";
+  if (!ISO_DATE.test(from) || !ISO_DATE.test(to)) return { ok: false };
+  const a = Date.parse(`${from}T00:00:00Z`);
+  const b = Date.parse(`${to}T00:00:00Z`);
+  if (
+    Number.isNaN(a) ||
+    Number.isNaN(b) ||
+    new Date(a).toISOString().slice(0, 10) !== from ||
+    new Date(b).toISOString().slice(0, 10) !== to
+  )
+    return { ok: false };
+  const nights = (b - a) / 86_400_000;
+  if (nights < 1 || nights > MAX_FEED_NIGHTS) return { ok: false };
+  return { ok: true, from, to };
+}
+
 /** Maps a database refusal to an HTTP answer. Raw database text is never returned. */
 export function inboundErrorStatus(message: string): { status: number; error: string } {
   if (/NOT_FOUND/.test(message)) return { status: 401, error: "unauthorized" };
