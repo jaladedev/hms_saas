@@ -4755,6 +4755,7 @@ export type Database = {
       }
       company_list: { Args: { p_property: string }; Returns: Json }
       company_rate_set: { Args: { p_company: string; p_mode: string; p_room_type: string; p_value: number }; Returns: undefined }
+      company_set_reminders: { Args: { p_company: string; p_on: boolean }; Returns: undefined }
       company_set_auto_rate: { Args: { p_company: string; p_on: boolean }; Returns: undefined }
       company_rate_remove: { Args: { p_company: string; p_room_type: string }; Returns: undefined }
       group_invoice_overdue: { Args: { p_property: string }; Returns: Json }
@@ -4859,6 +4860,9 @@ export type Database = {
       queue_waitlist_notices: { Args: { p_limit?: number }; Returns: number }
       claim_waitlist_notices: { Args: { p_limit?: number }; Returns: Json }
       mark_waitlist_notice_result: { Args: { p_error?: string; p_id: string; p_ok: boolean }; Returns: undefined }
+      queue_group_invoice_reminders: { Args: { p_limit?: number }; Returns: number }
+      claim_group_invoice_reminders: { Args: { p_limit?: number }; Returns: Json }
+      mark_group_invoice_reminder_result: { Args: { p_error?: string; p_id: string; p_ok: boolean }; Returns: undefined }
       set_waitlist_email: { Args: { p_enabled: boolean; p_property: string }; Returns: undefined }
       queue_sms_messages: { Args: { p_limit?: number }; Returns: Json }
       claim_sms: { Args: { p_limit?: number }; Returns: Json }

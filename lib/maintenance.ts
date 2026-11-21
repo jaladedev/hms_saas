@@ -20,6 +20,9 @@ export type MaintenanceDeps = {
   drainEventEmails(limit: number): Promise<unknown>;
   /** Frees the rooms of group bookings whose release date has passed (migration 150). */
   releaseGroupBlocks(): Promise<unknown>;
+  /** Queues the overdue group invoice reminders (migration 166), then sends the ones that are due. */
+  queueInvoiceReminders(): Promise<unknown>;
+  drainInvoiceReminders(limit: number): Promise<unknown>;
   /** Re-prices the next 60 nights for hotels with automatic pricing on, and switches it off where the plan lost the feature (migration 152). */
   applyDuePricing(): Promise<unknown>;
   /** Sends the webhooks that are due, with back-off between tries (migration 158). */
@@ -54,6 +57,7 @@ export async function runMaintenance(deps: MaintenanceDeps): Promise<Record<stri
     sms: await step(async () => ({ queued: await deps.queueSmsMessages(), sent: await deps.drainSms(25) })),
     eventEmails: await step(() => deps.drainEventEmails(25)),
     groupBlocks: await step(() => deps.releaseGroupBlocks()),
+    invoiceReminders: await step(async () => ({ queued: await deps.queueInvoiceReminders(), sent: await deps.drainInvoiceReminders(10) })),
     pricing: await step(() => deps.applyDuePricing()),
     webhooks: await step(() => deps.drainWebhooks(25)),
     purge: await step(() => deps.purgeOldData()),

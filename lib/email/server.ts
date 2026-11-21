@@ -5,6 +5,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { createMailer } from "@/lib/email/mailer";
 import { drainDigests, type ClaimedDigest } from "@/lib/email/digest";
 import { drainNotices, type ClaimedNotice } from "@/lib/email/waitlist-notice";
+import { drainReminders, type ClaimedReminder } from "@/lib/email/group-invoice-reminder";
 import { createEventToken } from "@/lib/event-token";
 import { drainEventEmails, type ClaimedEventEmail } from "@/lib/email/event-emails";
 import { drainOutbox, type ClaimedEmail, type DrainResult } from "@/lib/email/outbox";
@@ -26,6 +27,31 @@ export async function drainDigestsNow(limit: number): Promise<{ claimed: number;
       },
       async mark(id, ok, errorText) {
         const { error } = await db.rpc("mark_digest_result", { p_id: id, p_ok: ok, p_error: errorText ?? null });
+        if (error) throw new Error(error.message);
+      },
+      mailer,
+      log: (level, message, context) => console[level === "info" ? "log" : level](`[email] ${message}`, context ?? {}),
+    },
+    limit,
+  );
+}
+
+/** Sends the overdue group invoice reminders that are due (migration 166). Same rules as drainNow. */
+export async function drainInvoiceRemindersNow(
+  limit: number,
+): Promise<{ claimed: number; sent: number; failed: number } | { skipped: string }> {
+  const mailer = createMailer();
+  if (!mailer) return { skipped: "email not configured" };
+  const db = createServiceClient();
+  return drainReminders(
+    {
+      async claim(n) {
+        const { data, error } = await db.rpc("claim_group_invoice_reminders", { p_limit: n });
+        if (error) throw new Error(error.message);
+        return (data ?? []) as ClaimedReminder[];
+      },
+      async mark(id, ok, errorText) {
+        const { error } = await db.rpc("mark_group_invoice_reminder_result", { p_id: id, p_ok: ok, p_error: errorText ?? null });
         if (error) throw new Error(error.message);
       },
       mailer,

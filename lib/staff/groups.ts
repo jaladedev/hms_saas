@@ -74,6 +74,8 @@ export const GROUP_OK_MESSAGES = {
   company_rate_saved: "Room type rate saved. Bookings that already have a discount are not changed.",
   company_rate_removed: "Room type rate removed.",
   company_auto_on: "Company rate will now be applied when a booking is linked to the company's groups.",
+  company_reminders_on: "Overdue invoice reminders are on for this company.",
+  company_reminders_off: "Overdue invoice reminders are off for this company.",
   company_auto_off: "Company rate is no longer applied automatically.",
   group_booking_linked: "Booking linked to that name. It keeps its own bill and payments.",
   group_booking_unlinked: "Booking unlinked from that name. The booking itself is unchanged.",
@@ -686,6 +688,7 @@ export type CompanyAccount = {
   exposureMinor: number;
   overdueMinor: number;
   autoApplyRate: boolean;
+  remindOverdue: boolean;
   rates: { roomTypeId: string; roomTypeName: string; mode: "fixed" | "percent"; nightlyRateMinor: number | null; percent: number | null }[];
 };
 export function parseCompanies(data: unknown): CompanyAccount[] {
@@ -705,6 +708,7 @@ export function parseCompanies(data: unknown): CompanyAccount[] {
       exposureMinor: num(c.exposure_minor),
       overdueMinor: num(c.overdue_minor),
       autoApplyRate: c.auto_apply_rate === true,
+      remindOverdue: c.remind_overdue === true,
       rates: arr(c.rates).map((r) => ({
         roomTypeId: str(r.room_type_id),
         roomTypeName: str(r.room_type_name),

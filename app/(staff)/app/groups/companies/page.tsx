@@ -12,7 +12,14 @@ import {
   SectionTitle,
 } from "@/components/staff/ui";
 import { PendingButton } from "@/components/ui/pending-button";
-import { createCompany, removeCompanyRate, setCompanyAutoRate, setCompanyRate, updateCompany } from "@/lib/staff/group-actions";
+import {
+  createCompany,
+  removeCompanyRate,
+  setCompanyAutoRate,
+  setCompanyReminders,
+  setCompanyRate,
+  updateCompany,
+} from "@/lib/staff/group-actions";
 import { formatMoney } from "@/lib/guest-site/format";
 import { minorToInput } from "@/lib/staff/money-input";
 import { parseCompanies } from "@/lib/staff/groups";
@@ -162,6 +169,17 @@ export default async function CompaniesPage({ searchParams }: { searchParams: Pr
                       </span>
                       <PendingButton className={buttonQuiet} pendingLabel="Saving...">
                         {c.autoApplyRate ? "Turn off" : "Turn on"}
+                      </PendingButton>
+                    </form>
+                    <form action={setCompanyReminders} className="mt-3 flex flex-wrap items-center gap-3">
+                      <input type="hidden" name="companyId" value={c.id} />
+                      <input type="hidden" name="on" value={c.remindOverdue ? "false" : "true"} />
+                      <span>
+                        Email overdue invoice reminders (up to 3, a week apart, to the email on the invoice):{" "}
+                        <strong>{c.remindOverdue ? "on" : "off"}</strong>
+                      </span>
+                      <PendingButton className={buttonQuiet} pendingLabel="Saving...">
+                        {c.remindOverdue ? "Turn off" : "Turn on"}
                       </PendingButton>
                     </form>
                     <form action={setCompanyRate} className="mt-3 flex flex-wrap items-end gap-3">

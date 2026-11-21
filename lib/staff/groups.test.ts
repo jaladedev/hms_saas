@@ -254,5 +254,6 @@ describe("step eight", () => {
     expect(parseAutoRateForm({ companyId: P, on: "yes" }).ok).toBe(false);
     expect(parseAutoRateForm({ companyId: "x", on: "true" }).ok).toBe(false);
     expect(parseCompanies([{ id: P, name: "A", auto_apply_rate: true }])[0]?.autoApplyRate).toBe(true);
+    expect(parseCompanies([{ id: P, name: "A", remind_overdue: true }])[0]?.remindOverdue).toBe(true);
   });
 });

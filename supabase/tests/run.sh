@@ -1049,5 +1049,8 @@ if echo "$CR" | grep -qE 'FAIL|ERROR'; then echo "$CR"; echo "COMPANY RATES TEST
 CA="$(psql -f "$HERE/165_company_auto_rate.sql" 2>&1)" || { echo "$CA"; echo "COMPANY AUTO RATE TESTS FAILED"; exit 1; }
 echo "$CA" | grep -E 'PASS' || true
 if echo "$CA" | grep -qE 'FAIL|ERROR'; then echo "$CA"; echo "COMPANY AUTO RATE TESTS FAILED"; exit 1; fi
+GR="$(psql -f "$HERE/166_group_invoice_reminders.sql" 2>&1)" || { echo "$GR"; echo "GROUP INVOICE REMINDER TESTS FAILED"; exit 1; }
+echo "$GR" | grep -E 'PASS' || true
+if echo "$GR" | grep -qE 'FAIL|ERROR'; then echo "$GR"; echo "GROUP INVOICE REMINDER TESTS FAILED"; exit 1; fi
 
 echo "ALL TESTS PASSED"
