@@ -15,12 +15,13 @@ export function hashApiKey(key: string): string {
   return createHash("sha256").update(key, "utf8").digest("hex");
 }
 
-export const API_SCOPES = ["availability.read", "bookings.read", "guests.read"] as const;
+export const API_SCOPES = ["availability.read", "bookings.read", "guests.read", "bookings.write"] as const;
 export type ApiScope = (typeof API_SCOPES)[number];
 export const API_SCOPE_LABEL: Record<ApiScope, string> = {
   "availability.read": "Read availability and prices",
   "bookings.read": "Read bookings",
   "guests.read": "Include guest name and email in bookings",
+  "bookings.write": "Create bookings that wait for payment",
 };
 export const WEBHOOK_EVENTS = [
   "booking.created",

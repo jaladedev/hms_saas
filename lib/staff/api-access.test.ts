@@ -41,7 +41,10 @@ describe("key form", () => {
       ["name", "Widget"],
     ];
     expect(parseKeyForm(form(base)).ok).toBe(false);
-    expect(parseKeyForm(form([...base, ["scope", "bookings.write"]])).ok).toBe(false);
+    expect(parseKeyForm(form([...base, ["scope", "bookings.delete"]])).ok).toBe(false);
+    // bookings.write (migration 172) is a scope of its own: it needs neither bookings.read nor guests.read
+    expect(parseKeyForm(form([...base, ["scope", "bookings.write"]])).ok).toBe(true);
+    expect(parseKeyForm(form([...base, ["scope", "bookings.write"], ["scope", "guests.read"]])).ok).toBe(false);
     expect(parseKeyForm(form([...base, ["scope", "guests.read"]])).ok).toBe(false);
     expect(parseKeyForm(form([...base, ["scope", "bookings.read"], ["limit", "0"]])).ok).toBe(false);
     expect(parseKeyForm(form([...base, ["scope", "bookings.read"], ["limit", "601"]])).ok).toBe(false);

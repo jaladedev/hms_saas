@@ -31,7 +31,7 @@ begin
   perform t_as('00000000-0000-0000-0000-00000000aa01');
   perform t_expect(format('select api_key_create(%L, '''', array[''availability.read''], 60)', v_p), 'POLICY_VIOLATION: name');
   perform t_expect(format('select api_key_create(%L, ''Site'', array[]::text[], 60)', v_p), 'POLICY_VIOLATION: scopes');
-  perform t_expect(format('select api_key_create(%L, ''Site'', array[''bookings.write''], 60)', v_p), 'POLICY_VIOLATION: scopes');
+  perform t_expect(format('select api_key_create(%L, ''Site'', array[''bookings.delete''], 60)', v_p), 'POLICY_VIOLATION: scopes');
   perform t_expect(format('select api_key_create(%L, ''Site'', array[''guests.read''], 60)', v_p), 'POLICY_VIOLATION: scopes');   -- guests need bookings
   perform t_expect(format('select api_key_create(%L, ''Site'', array[''availability.read''], 0)', v_p), 'POLICY_VIOLATION: limit');
   r := api_key_create(v_p, 'Booking widget', array['availability.read', 'bookings.read', 'guests.read', 'bookings.read'], 60);

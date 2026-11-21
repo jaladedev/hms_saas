@@ -4961,6 +4961,22 @@ export type Database = {
       api_availability: { Args: { p_adults: number; p_arrival: string; p_children?: number; p_departure: string; p_property: string }; Returns: Json }
       api_bookings: { Args: { p_from: string; p_guest: boolean; p_limit: number; p_property: string; p_status: string; p_to: string }; Returns: Json }
       api_booking: { Args: { p_guest: boolean; p_property: string; p_reference: string }; Returns: Json }
+      api_create_booking: {
+        Args: {
+          p_adults: number
+          p_arrival: string
+          p_children: number
+          p_departure: string
+          p_guest: Json
+          p_idempotency: string
+          p_key: string
+          p_promo?: string
+          p_property: string
+          p_quantity: number
+          p_room_type: string
+        }
+        Returns: Json
+      }
       webhook_save: { Args: { p_active: boolean; p_endpoint: string; p_events: string[]; p_property: string; p_url: string }; Returns: Json }
       claim_webhook_deliveries: {
         Args: { p_limit?: number }

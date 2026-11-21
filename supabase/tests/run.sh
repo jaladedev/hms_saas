@@ -1071,4 +1071,8 @@ CM="$(psql -f "$HERE/171_channel_manager.sql" 2>&1)" || { echo "$CM"; echo "CHAN
 echo "$CM" | grep -E 'PASS' || true
 if echo "$CM" | grep -qE 'FAIL|ERROR'; then echo "$CM"; echo "CHANNEL MANAGER TESTS FAILED"; exit 1; fi
 
+AB="$(psql -f "$HERE/172_api_booking_create.sql" 2>&1)" || { echo "$AB"; echo "API BOOKING TESTS FAILED"; exit 1; }
+echo "$AB" | grep -E 'PASS' || true
+if echo "$AB" | grep -qE 'FAIL|ERROR'; then echo "$AB"; echo "API BOOKING TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

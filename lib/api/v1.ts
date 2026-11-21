@@ -16,6 +16,15 @@ export function apiErrorFor(message: string): Response {
       error: "no_booking_site",
       message: "This hotel has no verified booking website, so availability cannot be answered.",
     });
+  if (/IDEMPOTENCY_MISMATCH/.test(message))
+    return json(409, { error: "idempotency_mismatch", message: "This Idempotency-Key was already used for a different request." });
+  if (/POLICY_VIOLATION: too many (unpaid|active) holds/.test(message))
+    return json(429, {
+      error: "too_many_holds",
+      message: "Too many unpaid holds. Wait for payment or for holds to lapse, then try again.",
+    });
+  if (/ROOM_UNAVAILABLE|POLICY_VIOLATION: (no availability|sold out)/.test(message))
+    return json(409, { error: "unavailable", message: "Those rooms are not available for those dates." });
   if (/POLICY_VIOLATION/.test(message))
     return json(400, { error: "invalid_request", message: message.replace(/^.*POLICY_VIOLATION: /s, "").slice(0, 120) });
   return json(500, { error: "server_error" });
