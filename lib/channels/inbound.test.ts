@@ -101,3 +101,16 @@ describe("feed query", () => {
       expect(q(s).ok).toBe(false);
   });
 });
+
+describe("channel payment report", () => {
+  it("reads the bookings that still owe money", () => {
+    const r = parseChannelReport({
+      counts: {},
+      price_differences: [],
+      cancelled_here: [],
+      awaiting_payment: [{ id: "b1", external_id: "X-1", reference: "BK-1", owed_minor: 2500000, currency: "NGN" }, "junk"],
+    });
+    expect(r?.awaitingPayment).toEqual([{ id: "b1", externalId: "X-1", reference: "BK-1", owedMinor: 2500000, currency: "NGN" }]);
+    expect(parseChannelReport({ counts: {} })?.awaitingPayment).toEqual([]);
+  });
+});

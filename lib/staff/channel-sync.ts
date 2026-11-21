@@ -38,6 +38,7 @@ export const CHANNEL_OK_MESSAGES = {
   ch_retry_imported: "Imported.",
   ch_retry_failed: "Tried again; it still cannot be imported. The reason is shown on the booking.",
   ch_resolved: "Marked as handled.",
+  ch_paid: "Payment recorded. The booking now shows what the channel paid.",
 } as const;
 export type ChannelOkCode = keyof typeof CHANNEL_OK_MESSAGES;
 
@@ -140,6 +141,7 @@ export type ChannelReport = {
     currency: string;
   }[];
   cancelledHere: { id: string; externalId: string; reference: string }[];
+  awaitingPayment: { id: string; externalId: string; reference: string; owedMinor: number; currency: string }[];
 };
 export function parseChannelReport(raw: unknown): ChannelReport | null {
   const r = rec(raw);
@@ -157,6 +159,13 @@ export function parseChannelReport(raw: unknown): ChannelReport | null {
       currency: str(p.currency) || "NGN",
     })),
     cancelledHere: arr(r.cancelled_here).map((p) => ({ id: str(p.id), externalId: str(p.external_id), reference: str(p.reference) })),
+    awaitingPayment: arr(r.awaiting_payment).map((p) => ({
+      id: str(p.id),
+      externalId: str(p.external_id),
+      reference: str(p.reference),
+      owedMinor: num(p.owed_minor),
+      currency: str(p.currency) || "NGN",
+    })),
   };
 }
 

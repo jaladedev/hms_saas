@@ -84,6 +84,15 @@ export async function retryBooking(formData: FormData) {
   return done(status === "imported" ? "ch_retry_imported" : "ch_retry_failed");
 }
 
+export async function recordChannelPayment(formData: FormData) {
+  const v = parseBookingIdForm(Object.fromEntries(formData));
+  if (!v.ok) return fail(v.code);
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("channel_record_payment", { p_id: v.value });
+  if (error) return fail(classifyChannelError(error.message));
+  return done("ch_paid");
+}
+
 export async function resolveBooking(formData: FormData) {
   const v = parseResolveForm(Object.fromEntries(formData));
   if (!v.ok) return fail(v.code);

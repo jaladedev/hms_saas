@@ -1087,4 +1087,8 @@ CF="$(psql -f "$HERE/175_channel_feed.sql" 2>&1)" || { echo "$CF"; echo "CHANNEL
 echo "$CF" | grep -E 'PASS' || true
 if echo "$CF" | grep -qE 'FAIL|ERROR'; then echo "$CF"; echo "CHANNEL FEED TESTS FAILED"; exit 1; fi
 
+CP="$(psql -f "$HERE/176_channel_payment.sql" 2>&1)" || { echo "$CP"; echo "CHANNEL PAYMENT TESTS FAILED"; exit 1; }
+echo "$CP" | grep -E 'PASS' || true
+if echo "$CP" | grep -qE 'FAIL|ERROR'; then echo "$CP"; echo "CHANNEL PAYMENT TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

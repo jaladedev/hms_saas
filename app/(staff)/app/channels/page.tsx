@@ -27,7 +27,14 @@ import {
   type BookingStatus,
 } from "@/lib/staff/channel-sync";
 import { loadChannelsContext } from "@/lib/staff/channel-sync-access";
-import { removeMapping, resolveBooking, retryBooking, saveMapping, setConnectionStatus } from "@/lib/staff/channel-sync-actions";
+import {
+  recordChannelPayment,
+  removeMapping,
+  resolveBooking,
+  retryBooking,
+  saveMapping,
+  setConnectionStatus,
+} from "@/lib/staff/channel-sync-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -111,6 +118,26 @@ export default async function ChannelsPage({ searchParams }: { searchParams: Pro
                   <li key={p.id}>
                     {p.reference}: channel {formatMoney(p.channelTotalMinor, p.currency)}, our price{" "}
                     {formatMoney(p.ourTotalMinor, p.currency)}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {report.awaitingPayment.length > 0 && (
+            <div className="mt-3 text-sm">
+              <p className="font-medium">The channel collected the payment: record it here once the channel has paid you</p>
+              <ul className="mt-1 grid gap-2">
+                {report.awaitingPayment.map((p) => (
+                  <li key={p.id} className="flex flex-wrap items-center gap-3">
+                    <span>
+                      {p.reference} (channel booking {p.externalId}): owed at our price {formatMoney(p.owedMinor, p.currency)}
+                    </span>
+                    <form action={recordChannelPayment}>
+                      <input type="hidden" name="bookingId" value={p.id} />
+                      <PendingButton className={buttonQuiet} pendingLabel="Recording...">
+                        Record channel payment
+                      </PendingButton>
+                    </form>
                   </li>
                 ))}
               </ul>
