@@ -1053,4 +1053,8 @@ GR="$(psql -f "$HERE/166_group_invoice_reminders.sql" 2>&1)" || { echo "$GR"; ec
 echo "$GR" | grep -E 'PASS' || true
 if echo "$GR" | grep -qE 'FAIL|ERROR'; then echo "$GR"; echo "GROUP INVOICE REMINDER TESTS FAILED"; exit 1; fi
 
+GS="$(psql -f "$HERE/167_group_reminder_status.sql" 2>&1)" || { echo "$GS"; echo "GROUP REMINDER STATUS TESTS FAILED"; exit 1; }
+echo "$GS" | grep -E 'PASS' || true
+if echo "$GS" | grep -qE 'FAIL|ERROR'; then echo "$GS"; echo "GROUP REMINDER STATUS TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

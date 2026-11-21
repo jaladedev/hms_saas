@@ -4,7 +4,15 @@ import { z } from "zod";
 import { PrintButton } from "@/components/staff/print-button";
 import { linkClass, PageTitle } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
-import { PAY_METHOD_LABEL, parseCompanies, parseGroupDetail, parseGroupInvoices } from "@/lib/staff/groups";
+import {
+  PAY_METHOD_LABEL,
+  parseCompanies,
+  parseGroupDetail,
+  parseGroupInvoices,
+  parseReminderInfo,
+  REMINDER_OUTCOME_LABEL,
+  reminderSummary,
+} from "@/lib/staff/groups";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -28,10 +36,12 @@ export default async function GroupInvoicePage({ params }: { params: Promise<{ i
   const group = parseGroupDetail((await supabase.rpc("group_detail", { p_group: id })).data);
   if (!group) notFound();
 
-  const [propQ, coQ] = await Promise.all([
+  const [propQ, coQ, reminderQ] = await Promise.all([
     supabase.from("properties").select("name, address, city, state").eq("id", group.propertyId).maybeSingle(),
     group.companyId ? supabase.rpc("company_list", { p_property: group.propertyId }) : Promise.resolve({ data: null }),
+    supabase.rpc("group_invoice_reminders", { p_invoice: invoiceId }),
   ]);
+  const reminder = reminderQ.error || !group.companyId ? null : parseReminderInfo(reminderQ.data);
   const prop = (propQ.data ?? { name: "", address: null, city: "", state: "" }) as Prop;
   const company = parseCompanies(coQ.data).find((c) => c.id === group.companyId) ?? null;
   const money = (m: number) => formatMoney(m, invoice.currency);
@@ -169,6 +179,23 @@ export default async function GroupInvoicePage({ params }: { params: Promise<{ i
           <dd>{money(invoice.totalMinor)}</dd>
         </div>
       </dl>
+
+      {reminder && (invoice.status === "issued" || reminder.reminders.length > 0) && (
+        <section className="mt-8 print:hidden" aria-label="Reminders">
+          <h2 className="font-display text-lg">Overdue reminders</h2>
+          <p className="mt-1 text-sm">{reminderSummary(reminder, formatDate)}.</p>
+          {reminder.reminders.length > 0 && (
+            <ul className="mt-2 grid gap-1 text-sm">
+              {reminder.reminders.map((r) => (
+                <li key={r.no}>
+                  Reminder {r.no}: {REMINDER_OUTCOME_LABEL[r.outcome]}
+                  {r.outcome === "sent" && r.sentAt ? ` on ${formatDate(r.sentAt.slice(0, 10))}` : ""}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
 
       <p className="mt-8 max-w-prose text-xs text-muted">
         This is a copy of the booking totals as they were when the invoice was issued. Extras charged during the stays are on each

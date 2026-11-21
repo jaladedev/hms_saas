@@ -14,6 +14,8 @@ import {
   parseAutoRateForm,
   parseLinkForm,
   parseOverdue,
+  parseReminderInfo,
+  reminderSummary,
   suggestedDueDate,
   parseCreateGroupForm,
   parseGroupDetail,
@@ -255,5 +257,56 @@ describe("step eight", () => {
     expect(parseAutoRateForm({ companyId: "x", on: "true" }).ok).toBe(false);
     expect(parseCompanies([{ id: P, name: "A", auto_apply_rate: true }])[0]?.autoApplyRate).toBe(true);
     expect(parseCompanies([{ id: P, name: "A", remind_overdue: true }])[0]?.remindOverdue).toBe(true);
+  });
+});
+
+describe("step eleven: reminder status", () => {
+  const date = (iso: string) => `D(${iso})`;
+  const info = (over: Record<string, unknown>) =>
+    parseReminderInfo({ reminders_on: true, has_email: true, next_reminder_date: null, reminders: [], ...over });
+
+  it("reads the status and drops reminders with an unknown outcome", () => {
+    const i = info({
+      next_reminder_date: "2026-12-01",
+      reminders: [
+        { no: 1, outcome: "sent", queued_at: "2026-11-20T08:00:00Z", sent_at: "2026-11-20T08:01:00Z" },
+        { no: 2, outcome: "queued", queued_at: "2026-11-27T08:00:00Z", sent_at: null },
+        { no: 3, outcome: "weird", queued_at: "x" },
+      ],
+    });
+    expect(i?.reminders).toHaveLength(2);
+    expect(i?.reminders[0]).toMatchObject({ no: 1, outcome: "sent", sentAt: "2026-11-20T08:01:00Z" });
+    expect(i?.nextReminderDate).toBe("2026-12-01");
+    expect(parseReminderInfo(null)).toBeNull();
+    expect(parseReminderInfo("x")).toBeNull();
+  });
+
+  it("words the summary for each state", () => {
+    expect(reminderSummary(null, date)).toBe("");
+    expect(reminderSummary(info({ reminders_on: false }), date)).toBe("Reminders are off for this company");
+    expect(reminderSummary(info({ has_email: false }), date)).toBe("No email on the invoice, so none are sent");
+    expect(reminderSummary(info({ next_reminder_date: "2026-11-21" }), date)).toBe("none yet, next D(2026-11-21)");
+    expect(
+      reminderSummary(
+        info({
+          next_reminder_date: "2026-12-01",
+          reminders: [
+            { no: 1, outcome: "sent", queued_at: "a", sent_at: "b" },
+            { no: 2, outcome: "queued", queued_at: "a", sent_at: null },
+            { no: 3, outcome: "failed", queued_at: "a", sent_at: null },
+          ],
+        }),
+        date,
+      ),
+    ).toBe("1 sent, 1 on the way, 1 not delivered, next D(2026-12-01)");
+    expect(reminderSummary(info({ reminders: [{ no: 1, outcome: "sent", queued_at: "a", sent_at: "b" }] }), date)).toBe("1 sent");
+  });
+
+  it("carries the reminder info on an overdue row", () => {
+    const [o] = parseOverdue([
+      { invoice_id: "i1", invoice_number: "INV-X", group_name: "W", reminder_info: { reminders_on: true, has_email: true, reminders: [] } },
+    ]);
+    expect(o?.reminder).toMatchObject({ remindersOn: true, hasEmail: true });
+    expect(parseOverdue([{ invoice_id: "i2" }])[0]?.reminder).toBeNull();
   });
 });

@@ -768,6 +768,7 @@ export type OverdueInvoice = {
   totalMinor: number;
   dueDate: string;
   daysOverdue: number;
+  reminder: ReminderInfo | null;
 };
 export function parseOverdue(data: unknown): OverdueInvoice[] {
   return arr(data)
@@ -781,6 +782,55 @@ export function parseOverdue(data: unknown): OverdueInvoice[] {
       totalMinor: num(i.total_minor),
       dueDate: str(i.due_date),
       daysOverdue: num(i.days_overdue),
+      reminder: parseReminderInfo(i.reminder_info),
     }))
     .filter((i) => i.invoiceId !== "");
+}
+
+export type ReminderOutcome = "queued" | "sending" | "sent" | "closed" | "failed";
+export const REMINDER_OUTCOME_LABEL: Record<ReminderOutcome, string> = {
+  queued: "Waiting to be sent",
+  sending: "Being sent",
+  sent: "Sent",
+  closed: "Not sent: the invoice was paid or voided first",
+  failed: "Could not be delivered",
+};
+export type ReminderInfo = {
+  remindersOn: boolean;
+  hasEmail: boolean;
+  nextReminderDate: string | null;
+  reminders: { no: number; outcome: ReminderOutcome; queuedAt: string; sentAt: string | null }[];
+};
+
+/** The reminder status of one group invoice (migration 167). Null when the data does not look right. */
+export function parseReminderInfo(data: unknown): ReminderInfo | null {
+  const d = rec(data);
+  if (!d) return null;
+  const reminders: ReminderInfo["reminders"] = [];
+  for (const r of arr(d.reminders)) {
+    const outcome = (["queued", "sending", "sent", "closed", "failed"] as const).find((o) => o === r.outcome);
+    if (!outcome) continue;
+    reminders.push({ no: num(r.no), outcome, queuedAt: str(r.queued_at), sentAt: typeof r.sent_at === "string" ? r.sent_at : null });
+  }
+  return {
+    remindersOn: d.reminders_on === true,
+    hasEmail: d.has_email === true,
+    nextReminderDate: typeof d.next_reminder_date === "string" ? d.next_reminder_date : null,
+    reminders,
+  };
+}
+
+/** One line for the overdue list: "1 sent, next 21 Nov". The caller formats the date. */
+export function reminderSummary(info: ReminderInfo | null, date: (iso: string) => string): string {
+  if (!info) return "";
+  if (!info.remindersOn) return "Reminders are off for this company";
+  if (!info.hasEmail) return "No email on the invoice, so none are sent";
+  const count = (o: ReminderOutcome[]) => info.reminders.filter((r) => o.includes(r.outcome)).length;
+  const parts: string[] = [];
+  if (count(["sent"]) > 0) parts.push(`${count(["sent"])} sent`);
+  if (count(["queued", "sending"]) > 0) parts.push(`${count(["queued", "sending"])} on the way`);
+  if (count(["failed"]) > 0) parts.push(`${count(["failed"])} not delivered`);
+  if (parts.length === 0) parts.push("none yet");
+  if (info.nextReminderDate) parts.push(`next ${date(info.nextReminderDate)}`);
+  return parts.join(", ");
 }
