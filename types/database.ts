@@ -3732,6 +3732,135 @@ export type Database = {
         }
         Relationships: []
       }
+      channel_bookings: {
+        Row: {
+          id: string
+          tenant_id: string
+          property_id: string
+          connection_id: string
+          external_id: string
+          status: string
+          guest_label: string | null
+          arrival_date: string | null
+          departure_date: string | null
+          summary: Json
+          channel_total_minor: number | null
+          reservation_id: string | null
+          error: string | null
+          note: string | null
+          attempts: number
+          created_at: string
+          updated_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          id?: string
+          tenant_id: string
+          property_id: string
+          connection_id: string
+          external_id: string
+          status?: string
+          guest_label?: string | null
+          arrival_date?: string | null
+          departure_date?: string | null
+          summary?: Json
+          channel_total_minor?: number | null
+          reservation_id?: string | null
+          error?: string | null
+          note?: string | null
+          attempts?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          property_id?: string
+          connection_id?: string
+          external_id?: string
+          status?: string
+          guest_label?: string | null
+          arrival_date?: string | null
+          departure_date?: string | null
+          summary?: Json
+          channel_total_minor?: number | null
+          reservation_id?: string | null
+          error?: string | null
+          note?: string | null
+          attempts?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      channel_connections: {
+        Row: {
+          id: string
+          tenant_id: string
+          property_id: string
+          channel: string
+          label: string
+          collects: string
+          status: string
+          prefix: string
+          key_hash: string
+          last_inbound_at: string | null
+          created_by: string | null
+          created_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          id?: string
+          tenant_id: string
+          property_id: string
+          channel: string
+          label: string
+          collects?: string
+          status?: string
+          prefix: string
+          key_hash: string
+          last_inbound_at?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          property_id?: string
+          channel?: string
+          label?: string
+          collects?: string
+          status?: string
+          prefix?: string
+          key_hash?: string
+          last_inbound_at?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      channel_room_map: {
+        Row: {
+          connection_id: string
+          external_room_id: string
+          room_type_id: string
+          created_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          connection_id: string
+          external_room_id: string
+          room_type_id: string
+          created_at?: string
+        }
+        Update: {
+          connection_id?: string
+          external_room_id?: string
+          room_type_id?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       service_bookings: {
         Row: {
           id: string
@@ -4859,6 +4988,15 @@ export type Database = {
       supported_currencies: { Args: Record<PropertyKey, never>; Returns: string[] }
       fx_rate_set: { Args: { p_date: string; p_from: string; p_note: string; p_property: string; p_rate: number; p_to: string }; Returns: Json }
       fx_rate_get: { Args: { p_date: string; p_from: string; p_property: string; p_to: string }; Returns: Json }
+      channel_connection_create: { Args: { p_channel: string; p_collects: string; p_label: string; p_property: string }; Returns: Json }
+      channel_connection_set: { Args: { p_connection: string; p_status: string }; Returns: undefined }
+      channel_map_set: { Args: { p_connection: string; p_external: string; p_room_type: string }; Returns: undefined }
+      channel_map_remove: { Args: { p_connection: string; p_external: string }; Returns: undefined }
+      channel_retry: { Args: { p_id: string }; Returns: Json }
+      channel_resolve: { Args: { p_id: string; p_note: string }; Returns: undefined }
+      channel_sync_report: { Args: { p_property: string }; Returns: Json }
+      channel_authenticate: { Args: { p_hash: string }; Returns: Json }
+      channel_receive: { Args: { p_connection: string; p_event: string; p_external: string; p_payload: Json }; Returns: Json }
       service_save: {
         Args: { p_active: boolean; p_capacity: number; p_duration: number; p_kind: string; p_name: string; p_price: number; p_property: string; p_service: string; p_sort?: number }
         Returns: Json

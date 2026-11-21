@@ -42,6 +42,7 @@ const ENFORCED = [
   "loyalty",
   "staff_hr",
   "multi_currency",
+  "channel_manager",
 ];
 
 function PlanForm({ plan, admin }: { plan?: Plan; admin: boolean }) {

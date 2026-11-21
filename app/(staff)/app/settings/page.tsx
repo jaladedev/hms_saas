@@ -62,6 +62,11 @@ const SECTIONS = [
     text: "The hotel's currency and dated exchange rates entered by hand, for comparing hotels in different currencies. Bookings and bills never convert. Needs multi-currency in your hotel group's plan to use a currency other than NGN.",
   },
   {
+    href: "/app/channels",
+    title: "Channels",
+    text: "Bookings from Booking.com, Expedia, Airbnb or a channel manager arrive with a connection key, are matched to your room types and checked on a reconciliation screen. Nothing is pushed out yet. Needs the channel manager in your hotel group's plan.",
+  },
+  {
     href: "/app/settings/api",
     title: "API keys and webhooks",
     text: "Let your own website or another system read availability and bookings, and be told when a booking changes. Keys are shown once and can be revoked at once. Needs API access in your hotel group's plan.",

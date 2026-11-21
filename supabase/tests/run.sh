@@ -1067,4 +1067,8 @@ CC="$(psql -f "$HERE/168_company_credit.sql" 2>&1)" || { echo "$CC"; echo "COMPA
 echo "$CC" | grep -E 'PASS' || true
 if echo "$CC" | grep -qE 'FAIL|ERROR'; then echo "$CC"; echo "COMPANY CREDIT TESTS FAILED"; exit 1; fi
 
+CM="$(psql -f "$HERE/171_channel_manager.sql" 2>&1)" || { echo "$CM"; echo "CHANNEL MANAGER TESTS FAILED"; exit 1; }
+echo "$CM" | grep -E 'PASS' || true
+if echo "$CM" | grep -qE 'FAIL|ERROR'; then echo "$CM"; echo "CHANNEL MANAGER TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"
