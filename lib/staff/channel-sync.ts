@@ -21,7 +21,16 @@ export const BOOKING_STATUS_LABEL = {
 } as const;
 export type BookingStatus = keyof typeof BOOKING_STATUS_LABEL;
 
-export type ChannelErrorCode = "ch_forbidden" | "ch_off" | "ch_invalid" | "ch_too_many" | "ch_room_type" | "ch_state" | "ch_failed";
+export type ChannelErrorCode =
+  | "ch_forbidden"
+  | "ch_off"
+  | "ch_invalid"
+  | "ch_too_many"
+  | "ch_room_type"
+  | "ch_state"
+  | "ch_failed"
+  | "ch_mod_room"
+  | "ch_mod_discount";
 export const CHANNEL_ERROR_MESSAGES: Record<ChannelErrorCode, string> = {
   ch_forbidden: "You do not have permission to do that here. Channels are managed by the owner or general manager.",
   ch_off: "The channel manager is switched off for your hotel group. Nothing is imported until it is back on. Contact the platform.",
@@ -30,6 +39,8 @@ export const CHANNEL_ERROR_MESSAGES: Record<ChannelErrorCode, string> = {
   ch_room_type: "Choose one of this hotel's active room types.",
   ch_state: "That has already moved on, so that step is not possible. A revoked connection cannot come back; make a new one.",
   ch_failed: "That did not work. Reload the page and try again.",
+  ch_mod_room: "No room is free for the new dates. Nothing was changed; handle it by hand or ask the channel.",
+  ch_mod_discount: "This booking has a discount, so its dates cannot be changed here. Change it by hand.",
 };
 export const CHANNEL_OK_MESSAGES = {
   ch_status: "Connection updated.",
@@ -38,9 +49,17 @@ export const CHANNEL_OK_MESSAGES = {
   ch_retry_imported: "Imported.",
   ch_retry_failed: "Tried again; it still cannot be imported. The reason is shown on the booking.",
   ch_resolved: "Marked as handled.",
+  ch_mod_applied: "The change from the channel was applied to the booking.",
   ch_paid: "Payment recorded. The booking now shows what the channel paid.",
 } as const;
 export type ChannelOkCode = keyof typeof CHANNEL_OK_MESSAGES;
+
+/** Like classifyChannelError, plus the reasons the stay change itself can refuse an applied modification. */
+export function classifyModifyError(message: string): ChannelErrorCode {
+  if (/ROOM_UNAVAILABLE/.test(message)) return "ch_mod_room";
+  if (/POLICY_VIOLATION: discount/.test(message)) return "ch_mod_discount";
+  return classifyChannelError(message);
+}
 
 export function classifyChannelError(message: string): ChannelErrorCode {
   if (/NOT_FOUND/.test(message)) return "ch_forbidden";
@@ -111,6 +130,7 @@ export type ChannelBooking = {
   note: string | null;
   attempts: number;
   createdAt: string;
+  proposed: { arrival: string; departure: string; totalMinor: number | null } | null;
 };
 export function parseBookings(raw: unknown): ChannelBooking[] {
   return arr(raw).map((r) => ({
@@ -127,7 +147,14 @@ export function parseBookings(raw: unknown): ChannelBooking[] {
     note: strOrNull(r.note),
     attempts: num(r.attempts),
     createdAt: str(r.created_at),
+    proposed: parseProposed(r.proposed),
   }));
+}
+
+function parseProposed(v: unknown): ChannelBooking["proposed"] {
+  const p = rec(v);
+  if (!p || !strOrNull(p.arrival) || !strOrNull(p.departure)) return null;
+  return { arrival: str(p.arrival), departure: str(p.departure), totalMinor: p.total_minor == null ? null : num(p.total_minor) };
 }
 
 export type ChannelReport = {
@@ -216,6 +243,11 @@ export function parseUnmapForm(f: Record<string, unknown>): Parsed<{ connectionI
 export function parseBookingIdForm(f: Record<string, unknown>): Parsed<string> {
   const id = text(f.bookingId);
   return UUID.test(id) ? { ok: true, value: id } : bad;
+}
+export function parseApplyForm(f: Record<string, unknown>): Parsed<{ bookingId: string; key: string }> {
+  const bookingId = text(f.bookingId);
+  const key = text(f.idempotencyKey);
+  return UUID.test(bookingId) && key.length >= 8 && key.length <= 80 ? { ok: true, value: { bookingId, key } } : bad;
 }
 export function parseResolveForm(f: Record<string, unknown>): Parsed<{ bookingId: string; note: string }> {
   const bookingId = text(f.bookingId);

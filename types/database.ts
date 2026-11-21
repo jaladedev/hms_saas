@@ -3744,6 +3744,7 @@ export type Database = {
           arrival_date: string | null
           departure_date: string | null
           summary: Json
+          proposed: Json | null
           channel_total_minor: number | null
           reservation_id: string | null
           error: string | null
@@ -5019,6 +5020,7 @@ export type Database = {
       channel_retry: { Args: { p_id: string }; Returns: Json }
       channel_resolve: { Args: { p_id: string; p_note: string }; Returns: undefined }
       channel_sync_report: { Args: { p_property: string }; Returns: Json }
+      channel_modify_apply: { Args: { p_id: string; p_key: string }; Returns: Json }
       channel_record_payment: { Args: { p_id: string }; Returns: Json }
       channel_feed_auth: { Args: { p_hash: string }; Returns: Json }
       channel_feed: { Args: { p_connection: string; p_from: string; p_to: string }; Returns: Json }

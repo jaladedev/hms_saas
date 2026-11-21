@@ -28,6 +28,7 @@ import {
 } from "@/lib/staff/channel-sync";
 import { loadChannelsContext } from "@/lib/staff/channel-sync-access";
 import {
+  applyChannelChange,
   recordChannelPayment,
   removeMapping,
   resolveBooking,
@@ -67,7 +68,7 @@ export default async function ChannelsPage({ searchParams }: { searchParams: Pro
     supabase
       .from("channel_bookings")
       .select(
-        "id, connection_id, external_id, status, guest_label, arrival_date, departure_date, channel_total_minor, reservation_id, error, note, attempts, created_at",
+        "id, connection_id, external_id, status, guest_label, arrival_date, departure_date, channel_total_minor, reservation_id, error, note, attempts, created_at, proposed",
       )
       .eq("property_id", property.id)
       .order("created_at", { ascending: false })
@@ -181,6 +182,23 @@ export default async function ChannelsPage({ searchParams }: { searchParams: Pro
                 </div>
                 {b.error && <p className="text-sm text-red-800">{failureWords(b.error)}</p>}
                 {b.note && <p className="text-sm text-muted">{b.note}</p>}
+                {b.status === "attention" && b.proposed && b.reservationId && (
+                  <form action={applyChannelChange} className="mt-1 flex flex-wrap items-center gap-3 text-sm">
+                    <input type="hidden" name="bookingId" value={b.id} />
+                    <input type="hidden" name="idempotencyKey" value={crypto.randomUUID()} />
+                    <span>
+                      The channel now says{" "}
+                      <strong>
+                        {b.proposed.arrival} to {b.proposed.departure}
+                      </strong>
+                      {b.proposed.totalMinor !== null ? ` (channel total ${money(b.proposed.totalMinor)})` : ""}. Applying uses your own
+                      rates for the new nights.
+                    </span>
+                    <PendingButton className={buttonPrimary} pendingLabel="Applying...">
+                      Apply new dates
+                    </PendingButton>
+                  </form>
+                )}
                 <p className="text-xs text-muted">
                   Received {when(b.createdAt)}
                   {b.attempts > 1 ? ` · tried ${b.attempts} times` : ""}

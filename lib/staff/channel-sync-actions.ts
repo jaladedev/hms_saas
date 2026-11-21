@@ -5,6 +5,8 @@ import { back, staffClient } from "./action-helpers";
 import {
   CHANNEL_ERROR_MESSAGES,
   classifyChannelError,
+  classifyModifyError,
+  parseApplyForm,
   parseBookingIdForm,
   parseConnectionForm,
   parseMapForm,
@@ -91,6 +93,16 @@ export async function recordChannelPayment(formData: FormData) {
   const { error } = await supabase.rpc("channel_record_payment", { p_id: v.value });
   if (error) return fail(classifyChannelError(error.message));
   return done("ch_paid");
+}
+
+export async function applyChannelChange(formData: FormData) {
+  const v = parseApplyForm(Object.fromEntries(formData));
+  if (!v.ok) return fail(v.code);
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("channel_modify_apply", { p_id: v.value.bookingId, p_key: v.value.key });
+  if (error) return fail(classifyModifyError(error.message));
+  revalidatePath("/app/reservations");
+  return done("ch_mod_applied");
 }
 
 export async function resolveBooking(formData: FormData) {
