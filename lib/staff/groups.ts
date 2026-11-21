@@ -79,6 +79,8 @@ export const GROUP_OK_MESSAGES = {
   company_rate_removed: "Room type rate removed.",
   company_auto_on: "Company rate will now be applied when a booking is linked to the company's groups.",
   company_reminders_on: "Overdue invoice reminders are on for this company.",
+  company_sms_reminders_on: "Overdue invoice texts are on for this company.",
+  company_sms_reminders_off: "Overdue invoice texts are off for this company.",
   company_reminders_off: "Overdue invoice reminders are off for this company.",
   company_auto_off: "Company rate is no longer applied automatically.",
   group_booking_linked: "Booking linked to that name. It keeps its own bill and payments.",
@@ -694,6 +696,7 @@ export type CompanyAccount = {
   overdueMinor: number;
   autoApplyRate: boolean;
   remindOverdue: boolean;
+  remindSms: boolean;
   rates: { roomTypeId: string; roomTypeName: string; mode: "fixed" | "percent"; nightlyRateMinor: number | null; percent: number | null }[];
 };
 export function parseCompanies(data: unknown): CompanyAccount[] {
@@ -714,6 +717,7 @@ export function parseCompanies(data: unknown): CompanyAccount[] {
       overdueMinor: num(c.overdue_minor),
       autoApplyRate: c.auto_apply_rate === true,
       remindOverdue: c.remind_overdue === true,
+      remindSms: c.remind_sms === true,
       rates: arr(c.rates).map((r) => ({
         roomTypeId: str(r.room_type_id),
         roomTypeName: str(r.room_type_name),
@@ -805,23 +809,31 @@ export type ReminderInfo = {
   hasEmail: boolean;
   nextReminderDate: string | null;
   reminders: { no: number; outcome: ReminderOutcome; queuedAt: string; sentAt: string | null }[];
+  smsOn: boolean;
+  smsReminders: { no: number; outcome: ReminderOutcome; queuedAt: string; sentAt: string | null }[];
 };
 
 /** The reminder status of one group invoice (migration 167). Null when the data does not look right. */
 export function parseReminderInfo(data: unknown): ReminderInfo | null {
   const d = rec(data);
   if (!d) return null;
-  const reminders: ReminderInfo["reminders"] = [];
-  for (const r of arr(d.reminders)) {
-    const outcome = (["queued", "sending", "sent", "closed", "failed"] as const).find((o) => o === r.outcome);
-    if (!outcome) continue;
-    reminders.push({ no: num(r.no), outcome, queuedAt: str(r.queued_at), sentAt: typeof r.sent_at === "string" ? r.sent_at : null });
-  }
+  const readRows = (raw: unknown): ReminderInfo["reminders"] => {
+    const rows: ReminderInfo["reminders"] = [];
+    for (const r of arr(raw)) {
+      const outcome = (["queued", "sending", "sent", "closed", "failed"] as const).find((o) => o === r.outcome);
+      if (!outcome) continue;
+      rows.push({ no: num(r.no), outcome, queuedAt: str(r.queued_at), sentAt: typeof r.sent_at === "string" ? r.sent_at : null });
+    }
+    return rows;
+  };
+  const reminders = readRows(d.reminders);
   return {
     remindersOn: d.reminders_on === true,
     hasEmail: d.has_email === true,
     nextReminderDate: typeof d.next_reminder_date === "string" ? d.next_reminder_date : null,
     reminders,
+    smsOn: d.sms_on === true,
+    smsReminders: readRows(d.sms_reminders),
   };
 }
 

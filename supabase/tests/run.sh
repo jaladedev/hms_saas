@@ -1075,4 +1075,8 @@ AB="$(psql -f "$HERE/172_api_booking_create.sql" 2>&1)" || { echo "$AB"; echo "A
 echo "$AB" | grep -E 'PASS' || true
 if echo "$AB" | grep -qE 'FAIL|ERROR'; then echo "$AB"; echo "API BOOKING TESTS FAILED"; exit 1; fi
 
+GT="$(psql -f "$HERE/173_group_invoice_sms.sql" 2>&1)" || { echo "$GT"; echo "GROUP INVOICE SMS TESTS FAILED"; exit 1; }
+echo "$GT" | grep -E 'PASS' || true
+if echo "$GT" | grep -qE 'FAIL|ERROR'; then echo "$GT"; echo "GROUP INVOICE SMS TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

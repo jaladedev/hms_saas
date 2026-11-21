@@ -4895,6 +4895,10 @@ export type Database = {
       }
       company_list: { Args: { p_property: string }; Returns: Json }
       company_rate_set: { Args: { p_company: string; p_mode: string; p_room_type: string; p_value: number }; Returns: undefined }
+      company_set_sms_reminders: { Args: { p_company: string; p_on: boolean }; Returns: undefined }
+      queue_group_invoice_sms: { Args: { p_limit?: number }; Returns: number }
+      claim_group_invoice_sms: { Args: { p_limit?: number }; Returns: Json }
+      mark_group_invoice_sms_result: { Args: { p_error?: string; p_id: string; p_ok: boolean; p_permanent?: boolean }; Returns: undefined }
       company_set_reminders: { Args: { p_company: string; p_on: boolean }; Returns: undefined }
       company_set_auto_rate: { Args: { p_company: string; p_on: boolean }; Returns: undefined }
       company_rate_remove: { Args: { p_company: string; p_room_type: string }; Returns: undefined }

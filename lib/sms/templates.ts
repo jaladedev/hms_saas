@@ -34,13 +34,13 @@ export function smsParts(text: string): number {
   return text.length <= 160 ? 1 : Math.ceil(text.length / 153);
 }
 
-function shortDate(iso: string): string {
+export function shortDate(iso: string): string {
   const [y, m, d] = iso.split("-").map(Number);
   if (!y || !m || !d || m < 1 || m > 12) return iso;
   return `${d} ${MONTHS[m - 1]}`;
 }
 
-function cut(value: string, max: number): string {
+export function cut(value: string, max: number): string {
   return value.length <= max ? value : `${value.slice(0, max - 1).trimEnd()}.`;
 }
 

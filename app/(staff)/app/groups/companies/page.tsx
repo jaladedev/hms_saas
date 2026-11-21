@@ -20,6 +20,7 @@ import {
   removeCompanyRate,
   setCompanyAutoRate,
   setCompanyReminders,
+  setCompanySmsReminders,
   setCompanyRate,
   updateCompany,
 } from "@/lib/staff/group-actions";
@@ -270,6 +271,18 @@ export default async function CompaniesPage({ searchParams }: { searchParams: Pr
                       </span>
                       <PendingButton className={buttonQuiet} pendingLabel="Saving...">
                         {c.remindOverdue ? "Turn off" : "Turn on"}
+                      </PendingButton>
+                    </form>
+                    <form action={setCompanySmsReminders} className="mt-3 flex flex-wrap items-center gap-3">
+                      <input type="hidden" name="companyId" value={c.id} />
+                      <input type="hidden" name="on" value={c.remindSms ? "false" : "true"} />
+                      <span>
+                        Text overdue invoice reminders (up to 3, a week apart, to the billing phone
+                        {c.phone ? "" : ", which is not set yet"}; needs texting turned on for the hotel):{" "}
+                        <strong>{c.remindSms ? "on" : "off"}</strong>
+                      </span>
+                      <PendingButton className={buttonQuiet} pendingLabel="Saving...">
+                        {c.remindSms ? "Turn off" : "Turn on"}
                       </PendingButton>
                     </form>
                     <form action={setCompanyRate} className="mt-3 flex flex-wrap items-end gap-3">

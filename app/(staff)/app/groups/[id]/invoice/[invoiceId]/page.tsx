@@ -180,7 +180,7 @@ export default async function GroupInvoicePage({ params }: { params: Promise<{ i
         </div>
       </dl>
 
-      {reminder && (invoice.status === "issued" || reminder.reminders.length > 0) && (
+      {reminder && (invoice.status === "issued" || reminder.reminders.length > 0 || reminder.smsReminders.length > 0) && (
         <section className="mt-8 print:hidden" aria-label="Reminders">
           <h2 className="font-display text-lg">Overdue reminders</h2>
           <p className="mt-1 text-sm">{reminderSummary(reminder, formatDate)}.</p>
@@ -193,6 +193,21 @@ export default async function GroupInvoicePage({ params }: { params: Promise<{ i
                 </li>
               ))}
             </ul>
+          )}
+          {(reminder.smsOn || reminder.smsReminders.length > 0) && (
+            <>
+              <p className="mt-3 text-sm">Texts to the billing phone: {reminder.smsOn ? "on" : "off"}.</p>
+              {reminder.smsReminders.length > 0 && (
+                <ul className="mt-2 grid gap-1 text-sm">
+                  {reminder.smsReminders.map((r) => (
+                    <li key={r.no}>
+                      Text {r.no}: {REMINDER_OUTCOME_LABEL[r.outcome]}
+                      {r.outcome === "sent" && r.sentAt ? ` on ${formatDate(r.sentAt.slice(0, 10))}` : ""}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
           )}
         </section>
       )}

@@ -325,6 +325,16 @@ export async function removeCompanyRate(formData: FormData) {
   return done(COMPANIES, "company_rate_removed");
 }
 
+export async function setCompanySmsReminders(formData: FormData) {
+  const v = parseAutoRateForm(Object.fromEntries(formData));
+  if (!v.ok) return fail(COMPANIES, v.code);
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("company_set_sms_reminders", { p_company: v.value.companyId, p_on: v.value.on });
+  if (error) return fail(COMPANIES, error.message.includes("NOT_FOUND") ? "company_forbidden" : classifyGroupError(error.message));
+  revalidatePath(COMPANIES);
+  return done(COMPANIES, v.value.on ? "company_sms_reminders_on" : "company_sms_reminders_off");
+}
+
 export async function setCompanyReminders(formData: FormData) {
   const v = parseAutoRateForm(Object.fromEntries(formData));
   if (!v.ok) return fail(COMPANIES, v.code);
