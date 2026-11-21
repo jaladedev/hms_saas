@@ -34,6 +34,7 @@ const NAV: { label: string; href?: string; exact?: boolean; sub?: boolean }[] = 
   { label: "Guests", href: "/app/guests" },
   { label: "Housekeeping", href: "/app/housekeeping" },
   { label: "Maintenance", href: "/app/maintenance" },
+  { label: "Shifts & leave", href: "/app/hr" },
   { label: "Payments & Billing" },
   { label: "Payments to verify", href: "/app/payments", exact: true, sub: true },
   { label: "All payments", href: "/app/payments/all", sub: true },

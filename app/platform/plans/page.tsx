@@ -40,6 +40,7 @@ const ENFORCED = [
   "guest_services",
   "api_access",
   "loyalty",
+  "staff_hr",
 ];
 
 function PlanForm({ plan, admin }: { plan?: Plan; admin: boolean }) {

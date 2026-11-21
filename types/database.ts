@@ -3563,6 +3563,132 @@ export type Database = {
         }
         Relationships: []
       }
+      staff_attendance: {
+        Row: {
+          id: string
+          tenant_id: string
+          property_id: string
+          user_id: string
+          clock_in_at: string
+          clock_out_at: string | null
+          shift_id: string | null
+          corrected: boolean
+          note: string | null
+          created_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          id?: string
+          tenant_id: string
+          property_id: string
+          user_id: string
+          clock_in_at: string
+          clock_out_at?: string | null
+          shift_id?: string | null
+          corrected?: boolean
+          note?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          property_id?: string
+          user_id?: string
+          clock_in_at?: string
+          clock_out_at?: string | null
+          shift_id?: string | null
+          corrected?: boolean
+          note?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      staff_leave: {
+        Row: {
+          id: string
+          tenant_id: string
+          property_id: string
+          user_id: string
+          start_date: string
+          end_date: string
+          kind: string
+          status: string
+          note: string | null
+          decided_by: string | null
+          decided_at: string | null
+          created_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          id?: string
+          tenant_id: string
+          property_id: string
+          user_id: string
+          start_date: string
+          end_date: string
+          kind: string
+          status?: string
+          note?: string | null
+          decided_by?: string | null
+          decided_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          property_id?: string
+          user_id?: string
+          start_date?: string
+          end_date?: string
+          kind?: string
+          status?: string
+          note?: string | null
+          decided_by?: string | null
+          decided_at?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      staff_shifts: {
+        Row: {
+          id: string
+          tenant_id: string
+          property_id: string
+          user_id: string
+          starts_at: string
+          ends_at: string
+          label: string | null
+          note: string | null
+          created_by: string | null
+          created_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          id?: string
+          tenant_id: string
+          property_id: string
+          user_id: string
+          starts_at: string
+          ends_at: string
+          label?: string | null
+          note?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          property_id?: string
+          user_id?: string
+          starts_at?: string
+          ends_at?: string
+          label?: string | null
+          note?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       service_bookings: {
         Row: {
           id: string
@@ -4657,6 +4783,23 @@ export type Database = {
       }
       mark_webhook_delivery: { Args: { p_code: number; p_error: string; p_id: string; p_ok: boolean }; Returns: undefined }
       svc_can_read: { Args: { p_property: string }; Returns: boolean }
+      hr_is_staff: { Args: { p_property: string; p_user: string }; Returns: boolean }
+      hr_people: { Args: { p_property: string }; Returns: Json }
+      hr_hours_report: { Args: { p_from: string; p_property: string; p_to: string }; Returns: Json }
+      staff_shift_save: {
+        Args: { p_ends: string; p_label: string; p_note: string; p_property: string; p_shift: string; p_starts: string; p_user: string }
+        Returns: Json
+      }
+      staff_shift_remove: { Args: { p_shift: string }; Returns: undefined }
+      staff_clock_in: { Args: { p_property: string }; Returns: Json }
+      staff_clock_out: { Args: { p_property: string }; Returns: Json }
+      staff_attendance_save: {
+        Args: { p_attendance: string; p_in: string; p_note: string; p_out: string; p_property: string; p_user: string }
+        Returns: Json
+      }
+      staff_leave_request: { Args: { p_end: string; p_kind: string; p_note: string; p_property: string; p_start: string }; Returns: Json }
+      staff_leave_decide: { Args: { p_decision: string; p_leave: string }; Returns: Json }
+      staff_leave_cancel: { Args: { p_leave: string }; Returns: Json }
       service_save: {
         Args: { p_active: boolean; p_capacity: number; p_duration: number; p_kind: string; p_name: string; p_price: number; p_property: string; p_service: string; p_sort?: number }
         Returns: Json

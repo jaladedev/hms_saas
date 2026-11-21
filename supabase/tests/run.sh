@@ -1035,4 +1035,8 @@ VC="$(psql -f "$HERE/161_vouchers.sql" 2>&1)" || { echo "$VC"; echo "VOUCHERS TE
 echo "$VC" | grep -E 'PASS' || true
 if echo "$VC" | grep -qE 'FAIL|ERROR'; then echo "$VC"; echo "VOUCHERS TESTS FAILED"; exit 1; fi
 
+HR="$(psql -f "$HERE/162_staff_hr.sql" 2>&1)" || { echo "$HR"; echo "STAFF HR TESTS FAILED"; exit 1; }
+echo "$HR" | grep -E 'PASS' || true
+if echo "$HR" | grep -qE 'FAIL|ERROR'; then echo "$HR"; echo "STAFF HR TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"
