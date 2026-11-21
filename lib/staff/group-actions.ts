@@ -12,6 +12,7 @@ import {
   parseCompanyCreateForm,
   parseCompanyRateForm,
   parseAutoRateForm,
+  parseHoldForm,
   parseCompanyRateRemoveForm,
   parseCompanyUpdateForm,
   parseGroupPaymentForm,
@@ -323,6 +324,16 @@ export async function removeCompanyRate(formData: FormData) {
   if (error) return fail(COMPANIES, error.message.includes("NOT_FOUND") ? "company_forbidden" : classifyGroupError(error.message));
   revalidatePath(COMPANIES);
   return done(COMPANIES, "company_rate_removed");
+}
+
+export async function setCompanyHold(formData: FormData) {
+  const v = parseHoldForm(Object.fromEntries(formData));
+  if (!v.ok) return fail(COMPANIES, v.code);
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("company_set_hold", { p_company: v.value.companyId, p_days: v.value.days as number });
+  if (error) return fail(COMPANIES, error.message.includes("NOT_FOUND") ? "company_forbidden" : classifyGroupError(error.message));
+  revalidatePath(COMPANIES);
+  return done(COMPANIES, "company_hold_set");
 }
 
 export async function setCompanySmsReminders(formData: FormData) {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   classifyGroupError,
+  parseHoldForm,
   heldSummary,
   parseGroupStatement,
   parseGroupInvoices,
@@ -308,5 +309,19 @@ describe("step eleven: reminder status", () => {
     ]);
     expect(o?.reminder).toMatchObject({ remindersOn: true, hasEmail: true });
     expect(parseOverdue([{ invoice_id: "i2" }])[0]?.reminder).toBeNull();
+  });
+});
+
+describe("company hold", () => {
+  it("reads the hold form", () => {
+    const id = "11111111-1111-4111-8111-111111111111";
+    expect(parseHoldForm({ companyId: id, days: "30" })).toEqual({ ok: true, value: { companyId: id, days: 30 } });
+    expect(parseHoldForm({ companyId: id, days: "" })).toEqual({ ok: true, value: { companyId: id, days: null } });
+    for (const days of ["0", "366", "abc", "1.5", "-3"]) expect(parseHoldForm({ companyId: id, days }).ok).toBe(false);
+    expect(parseHoldForm({ companyId: "nope", days: "5" }).ok).toBe(false);
+  });
+  it("names the hold refusal before the generic company one", () => {
+    expect(classifyGroupError("POLICY_VIOLATION: company on hold")).toBe("group_company_hold");
+    expect(classifyGroupError("POLICY_VIOLATION: company")).toBe("group_company_missing");
   });
 });

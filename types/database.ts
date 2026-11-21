@@ -4895,6 +4895,7 @@ export type Database = {
       }
       company_list: { Args: { p_property: string }; Returns: Json }
       company_rate_set: { Args: { p_company: string; p_mode: string; p_room_type: string; p_value: number }; Returns: undefined }
+      company_set_hold: { Args: { p_company: string; p_days: number }; Returns: undefined }
       company_set_sms_reminders: { Args: { p_company: string; p_on: boolean }; Returns: undefined }
       queue_group_invoice_sms: { Args: { p_limit?: number }; Returns: number }
       claim_group_invoice_sms: { Args: { p_limit?: number }; Returns: Json }

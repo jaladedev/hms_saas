@@ -1079,4 +1079,8 @@ GT="$(psql -f "$HERE/173_group_invoice_sms.sql" 2>&1)" || { echo "$GT"; echo "GR
 echo "$GT" | grep -E 'PASS' || true
 if echo "$GT" | grep -qE 'FAIL|ERROR'; then echo "$GT"; echo "GROUP INVOICE SMS TESTS FAILED"; exit 1; fi
 
+GH="$(psql -f "$HERE/174_company_hold.sql" 2>&1)" || { echo "$GH"; echo "COMPANY HOLD TESTS FAILED"; exit 1; }
+echo "$GH" | grep -E 'PASS' || true
+if echo "$GH" | grep -qE 'FAIL|ERROR'; then echo "$GH"; echo "COMPANY HOLD TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

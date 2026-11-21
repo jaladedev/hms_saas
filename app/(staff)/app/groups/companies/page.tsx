@@ -19,6 +19,7 @@ import {
   withdrawCompanyCredit,
   removeCompanyRate,
   setCompanyAutoRate,
+  setCompanyHold,
   setCompanyReminders,
   setCompanySmsReminders,
   setCompanyRate,
@@ -271,6 +272,17 @@ export default async function CompaniesPage({ searchParams }: { searchParams: Pr
                       </span>
                       <PendingButton className={buttonQuiet} pendingLabel="Saving...">
                         {c.remindOverdue ? "Turn off" : "Turn on"}
+                      </PendingButton>
+                    </form>
+                    <form action={setCompanyHold} className="mt-3 flex flex-wrap items-end gap-3">
+                      <input type="hidden" name="companyId" value={c.id} />
+                      <label className="block">
+                        Hold new groups when an invoice is this many days overdue (blank = never)
+                        <input name="days" inputMode="numeric" defaultValue={c.holdAfterDays ?? ""} className={`${inputClass} mt-1 w-24`} />
+                      </label>
+                      {c.onHold && <strong>On hold now</strong>}
+                      <PendingButton className={buttonQuiet} pendingLabel="Saving...">
+                        Save
                       </PendingButton>
                     </form>
                     <form action={setCompanySmsReminders} className="mt-3 flex flex-wrap items-center gap-3">

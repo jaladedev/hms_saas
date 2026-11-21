@@ -47,6 +47,8 @@ export const GROUP_ERROR_MESSAGES = {
     "The shares do not add up, or a share is for a booking that is not linked to this group or cannot take payment. Nothing was recorded.",
   group_pay_reversed: "Every payment on that company payment is already reversed.",
   group_pay_refunds: "A payment on it has a refund, so it cannot be reversed here.",
+  group_company_hold:
+    "That company has invoices more overdue than its hold allows, so no new group can be linked to it. Collect payment first, or ask an owner or general manager to change the hold.",
   group_credit_limit:
     "That would take the company above its credit limit. Collect payment on its open invoices first, or ask an owner or general manager to raise the limit.",
   company_rate_invalid: "Check the rate: pick a room type, a fixed nightly price in naira, or a percent from 0.01 to 50.",
@@ -79,6 +81,7 @@ export const GROUP_OK_MESSAGES = {
   company_rate_removed: "Room type rate removed.",
   company_auto_on: "Company rate will now be applied when a booking is linked to the company's groups.",
   company_reminders_on: "Overdue invoice reminders are on for this company.",
+  company_hold_set: "The overdue hold for this company was saved.",
   company_sms_reminders_on: "Overdue invoice texts are on for this company.",
   company_sms_reminders_off: "Overdue invoice texts are off for this company.",
   company_reminders_off: "Overdue invoice reminders are off for this company.",
@@ -95,6 +98,7 @@ export function classifyGroupError(message: string): GroupErrorCode {
   if (/group bookings off/.test(message)) return "group_off";
   if (/ROOMS_UNAVAILABLE/.test(message)) return "group_unavailable";
   if (/POLICY_VIOLATION: name taken/.test(message)) return "company_taken";
+  if (/POLICY_VIOLATION: company on hold/.test(message)) return "group_company_hold";
   if (/POLICY_VIOLATION: company/.test(message)) return "group_company_missing";
   if (/POLICY_VIOLATION: no company rate/.test(message)) return "group_no_rate";
   if (/POLICY_VIOLATION: credit balance/.test(message)) return "credit_short";
@@ -374,6 +378,16 @@ export function parseAutoRateForm(raw: Raw): Parsed<{ companyId: string; on: boo
   const companyId = text(raw.companyId);
   if (!UUID.test(companyId) || (raw.on !== "true" && raw.on !== "false")) return bad;
   return { ok: true, value: { companyId, on: raw.on === "true" } };
+}
+
+/** The overdue hold form: a blank number clears the hold, otherwise 1 to 365 whole days. */
+export function parseHoldForm(raw: Raw): Parsed<{ companyId: string; days: number | null }> {
+  const companyId = text(raw.companyId);
+  const days = text(raw.days);
+  if (!UUID.test(companyId)) return bad;
+  if (days === "") return { ok: true, value: { companyId, days: null } };
+  if (!/^\d{1,3}$/.test(days) || Number(days) < 1 || Number(days) > 365) return bad;
+  return { ok: true, value: { companyId, days: Number(days) } };
 }
 
 export function parseSetCompanyForm(raw: Raw): Parsed<{ groupId: string; companyId: string | null }> {
@@ -697,6 +711,8 @@ export type CompanyAccount = {
   autoApplyRate: boolean;
   remindOverdue: boolean;
   remindSms: boolean;
+  holdAfterDays: number | null;
+  onHold: boolean;
   rates: { roomTypeId: string; roomTypeName: string; mode: "fixed" | "percent"; nightlyRateMinor: number | null; percent: number | null }[];
 };
 export function parseCompanies(data: unknown): CompanyAccount[] {
@@ -718,6 +734,8 @@ export function parseCompanies(data: unknown): CompanyAccount[] {
       autoApplyRate: c.auto_apply_rate === true,
       remindOverdue: c.remind_overdue === true,
       remindSms: c.remind_sms === true,
+      holdAfterDays: typeof c.hold_after_days === "number" ? c.hold_after_days : null,
+      onHold: c.on_hold === true,
       rates: arr(c.rates).map((r) => ({
         roomTypeId: str(r.room_type_id),
         roomTypeName: str(r.room_type_name),
