@@ -48,6 +48,7 @@ export const GROUP_ERROR_MESSAGES = {
   group_pay_refunds: "A payment on it has a refund, so it cannot be reversed here.",
   group_credit_limit:
     "That would take the company above its credit limit. Collect payment on its open invoices first, or ask an owner or general manager to raise the limit.",
+  company_rate_invalid: "Check the rate: pick a room type, a fixed nightly price in naira, or a percent from 0.01 to 50.",
   group_limit: "A rooming list holds at most 200 names.",
   group_reused: "That form was already sent with other details. Reload the page and try again.",
   group_failed: "That did not work. Reload the page and try again.",
@@ -70,6 +71,10 @@ export const GROUP_OK_MESSAGES = {
   group_rate_applied: "Company rate applied.",
   group_payment_recorded: "Company payment recorded and split across the bookings.",
   group_payment_reversed: "Company payment reversed on every booking.",
+  company_rate_saved: "Room type rate saved. Bookings that already have a discount are not changed.",
+  company_rate_removed: "Room type rate removed.",
+  company_auto_on: "Company rate will now be applied when a booking is linked to the company's groups.",
+  company_auto_off: "Company rate is no longer applied automatically.",
   group_booking_linked: "Booking linked to that name. It keeps its own bill and payments.",
   group_booking_unlinked: "Booking unlinked from that name. The booking itself is unchanged.",
 } as const;
@@ -329,6 +334,39 @@ export function parseCompanyUpdateForm(
   if (!UUID.test(companyId) || !f || (status !== "active" && status !== "archived")) return { ok: false, code: "company_invalid" };
   return { ok: true, value: { companyId, status, ...f } };
 }
+export function parseCompanyRateForm(
+  raw: Raw,
+):
+  | { ok: true; value: { companyId: string; roomTypeId: string; mode: "fixed" | "percent"; value: number } }
+  | { ok: false; code: GroupErrorCode } {
+  const companyId = text(raw.companyId);
+  const roomTypeId = text(raw.roomTypeId);
+  const mode = text(raw.mode);
+  const v = text(raw.value);
+  const badRate = { ok: false, code: "company_rate_invalid" } as const;
+  if (!UUID.test(companyId) || !UUID.test(roomTypeId) || (mode !== "fixed" && mode !== "percent")) return badRate;
+  if (mode === "fixed") {
+    const minor = parseAmountToMinor(v);
+    if (minor === null) return badRate;
+    return { ok: true, value: { companyId, roomTypeId, mode, value: minor } };
+  }
+  const pct = num2(v);
+  if (pct === null || pct <= 0 || pct > 50) return badRate;
+  return { ok: true, value: { companyId, roomTypeId, mode, value: pct } };
+}
+export function parseCompanyRateRemoveForm(raw: Raw): Parsed<{ companyId: string; roomTypeId: string }> {
+  const companyId = text(raw.companyId);
+  const roomTypeId = text(raw.roomTypeId);
+  if (!UUID.test(companyId) || !UUID.test(roomTypeId)) return bad;
+  return { ok: true, value: { companyId, roomTypeId } };
+}
+
+export function parseAutoRateForm(raw: Raw): Parsed<{ companyId: string; on: boolean }> {
+  const companyId = text(raw.companyId);
+  if (!UUID.test(companyId) || (raw.on !== "true" && raw.on !== "false")) return bad;
+  return { ok: true, value: { companyId, on: raw.on === "true" } };
+}
+
 export function parseSetCompanyForm(raw: Raw): Parsed<{ groupId: string; companyId: string | null }> {
   const groupId = text(raw.groupId);
   const companyId = text(raw.companyId);
@@ -647,6 +685,8 @@ export type CompanyAccount = {
   creditLimitMinor: number | null;
   exposureMinor: number;
   overdueMinor: number;
+  autoApplyRate: boolean;
+  rates: { roomTypeId: string; roomTypeName: string; mode: "fixed" | "percent"; nightlyRateMinor: number | null; percent: number | null }[];
 };
 export function parseCompanies(data: unknown): CompanyAccount[] {
   return arr(data)
@@ -664,6 +704,14 @@ export function parseCompanies(data: unknown): CompanyAccount[] {
       creditLimitMinor: c.credit_limit_minor === null || c.credit_limit_minor === undefined ? null : num(c.credit_limit_minor),
       exposureMinor: num(c.exposure_minor),
       overdueMinor: num(c.overdue_minor),
+      autoApplyRate: c.auto_apply_rate === true,
+      rates: arr(c.rates).map((r) => ({
+        roomTypeId: str(r.room_type_id),
+        roomTypeName: str(r.room_type_name),
+        mode: (r.mode === "percent" ? "percent" : "fixed") as "fixed" | "percent",
+        nightlyRateMinor: r.nightly_rate_minor === null || r.nightly_rate_minor === undefined ? null : num(r.nightly_rate_minor),
+        percent: r.percent === null || r.percent === undefined ? null : Number(r.percent) || 0,
+      })),
     }))
     .filter((c) => c.id !== "");
 }

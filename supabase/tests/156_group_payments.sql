@@ -6,7 +6,7 @@ create function t156_held(p uuid) returns bigint language sql security definer s
 do $$ declare v_g uuid; e jsonb; ra text; rb text; rc text; v_a uuid; v_b uuid; v_c uuid; ta bigint; tb bigint; tc bigint; gp jsonb; gp2 jsonb; s jsonb; v_n integer; l jsonb; v_pay_before integer; begin
   perform t_as('00000000-0000-0000-0000-00000000aa01');
   v_g := (t149_group('Pay Group', 3, 0, 800, 4, 790)::jsonb ->> 'group_id')::uuid;
-  ra := t150_ref(800, 802, 'g156-a'); rb := t150_ref(800, 803, 'g156-b'); rc := t150_ref(801, 803, 'g156-c');
+  ra := t150_ref(800, 802, 'g156-a'); rb := t150_ref(801, 803, 'g156-b'); rc := t150_ref(802, 804, 'g156-c');
   e := add_rooming_entry(v_g, 'A', null, null); perform link_rooming_reservation((e ->> 'entry_id')::uuid, ra);
   e := add_rooming_entry(v_g, 'B', null, null); perform link_rooming_reservation((e ->> 'entry_id')::uuid, rb);
   e := add_rooming_entry(v_g, 'C', null, null); perform link_rooming_reservation((e ->> 'entry_id')::uuid, rc);

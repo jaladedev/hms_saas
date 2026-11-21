@@ -10,6 +10,8 @@ import {
   parseCompanyCreateForm,
   parseGroupPayments,
   parseGroupPaymentForm,
+  parseCompanyRateForm,
+  parseAutoRateForm,
   parseLinkForm,
   parseOverdue,
   suggestedDueDate,
@@ -217,5 +219,40 @@ describe("step seven", () => {
     expect(parseCompanies([{ id: "c2", name: "H" }])[0]?.creditLimitMinor).toBeNull();
     const [o] = parseOverdue([{ invoice_id: "i1", invoice_number: "INV-X", group_name: "W", total_minor: 50, days_overdue: 4 }]);
     expect(o).toMatchObject({ daysOverdue: 4, totalMinor: 50 });
+  });
+});
+
+describe("step eight", () => {
+  it("reads a fixed price in naira or a percent", () => {
+    const f = parseCompanyRateForm({ companyId: P, roomTypeId: T1, mode: "fixed", value: "45,000" });
+    expect(f.ok && f.value).toMatchObject({ mode: "fixed", value: 4500000 });
+    const p = parseCompanyRateForm({ companyId: P, roomTypeId: T1, mode: "percent", value: "12.5" });
+    expect(p.ok && p.value.value).toBe(12.5);
+    expect(parseCompanyRateForm({ companyId: P, roomTypeId: T1, mode: "percent", value: "60" }).ok).toBe(false);
+    expect(parseCompanyRateForm({ companyId: P, roomTypeId: T1, mode: "fixed", value: "0" }).ok).toBe(false);
+    expect(parseCompanyRateForm({ companyId: P, roomTypeId: T1, mode: "other", value: "5" }).ok).toBe(false);
+  });
+  it("reads a company's rates", () => {
+    const [c] = parseCompanies([
+      {
+        id: "c1",
+        name: "G",
+        rates: [
+          { room_type_id: T1, room_type_name: "Standard", mode: "percent", percent: "10.00" },
+          { room_type_id: T2, mode: "fixed", nightly_rate_minor: 500000 },
+        ],
+      },
+    ]);
+    expect(c?.rates).toHaveLength(2);
+    expect(c?.rates[0]).toMatchObject({ mode: "percent", percent: 10 });
+    expect(c?.rates[1]).toMatchObject({ mode: "fixed", nightlyRateMinor: 500000 });
+  });
+
+  it("parses the auto-apply switch", () => {
+    expect(parseAutoRateForm({ companyId: P, on: "true" })).toEqual({ ok: true, value: { companyId: P, on: true } });
+    expect(parseAutoRateForm({ companyId: P, on: "false" })).toMatchObject({ ok: true, value: { on: false } });
+    expect(parseAutoRateForm({ companyId: P, on: "yes" }).ok).toBe(false);
+    expect(parseAutoRateForm({ companyId: "x", on: "true" }).ok).toBe(false);
+    expect(parseCompanies([{ id: P, name: "A", auto_apply_rate: true }])[0]?.autoApplyRate).toBe(true);
   });
 });

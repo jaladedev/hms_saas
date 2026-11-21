@@ -1043,4 +1043,11 @@ MC="$(psql -f "$HERE/163_multi_currency.sql" 2>&1)" || { echo "$MC"; echo "MULTI
 echo "$MC" | grep -E 'PASS' || true
 if echo "$MC" | grep -qE 'FAIL|ERROR'; then echo "$MC"; echo "MULTI CURRENCY TESTS FAILED"; exit 1; fi
 
+CR="$(psql -f "$HERE/164_company_room_rates.sql" 2>&1)" || { echo "$CR"; echo "COMPANY RATES TESTS FAILED"; exit 1; }
+echo "$CR" | grep -E 'PASS' || true
+if echo "$CR" | grep -qE 'FAIL|ERROR'; then echo "$CR"; echo "COMPANY RATES TESTS FAILED"; exit 1; fi
+CA="$(psql -f "$HERE/165_company_auto_rate.sql" 2>&1)" || { echo "$CA"; echo "COMPANY AUTO RATE TESTS FAILED"; exit 1; }
+echo "$CA" | grep -E 'PASS' || true
+if echo "$CA" | grep -qE 'FAIL|ERROR'; then echo "$CA"; echo "COMPANY AUTO RATE TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

@@ -9,6 +9,9 @@ import {
   parseIssueInvoiceForm,
   parseApplyRateForm,
   parseCompanyCreateForm,
+  parseCompanyRateForm,
+  parseAutoRateForm,
+  parseCompanyRateRemoveForm,
   parseCompanyUpdateForm,
   parseGroupPaymentForm,
   parseLinkForm,
@@ -286,4 +289,47 @@ export async function reverseGroupPayment(formData: FormData) {
   if (error) return fail(path, classifyGroupError(error.message));
   revalidatePath(path);
   return done(path, "group_payment_reversed");
+}
+
+export async function setCompanyRate(formData: FormData) {
+  const v = parseCompanyRateForm(Object.fromEntries(formData));
+  if (!v.ok) return fail(COMPANIES, v.code);
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("company_rate_set", {
+    p_company: v.value.companyId,
+    p_room_type: v.value.roomTypeId,
+    p_mode: v.value.mode,
+    p_value: v.value.value,
+  });
+  if (error)
+    return fail(
+      COMPANIES,
+      error.message.includes("NOT_FOUND")
+        ? "company_forbidden"
+        : error.message.includes("details")
+          ? "company_rate_invalid"
+          : classifyGroupError(error.message),
+    );
+  revalidatePath(COMPANIES);
+  return done(COMPANIES, "company_rate_saved");
+}
+
+export async function removeCompanyRate(formData: FormData) {
+  const v = parseCompanyRateRemoveForm(Object.fromEntries(formData));
+  if (!v.ok) return fail(COMPANIES, v.code);
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("company_rate_remove", { p_company: v.value.companyId, p_room_type: v.value.roomTypeId });
+  if (error) return fail(COMPANIES, error.message.includes("NOT_FOUND") ? "company_forbidden" : classifyGroupError(error.message));
+  revalidatePath(COMPANIES);
+  return done(COMPANIES, "company_rate_removed");
+}
+
+export async function setCompanyAutoRate(formData: FormData) {
+  const v = parseAutoRateForm(Object.fromEntries(formData));
+  if (!v.ok) return fail(COMPANIES, v.code);
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("company_set_auto_rate", { p_company: v.value.companyId, p_on: v.value.on });
+  if (error) return fail(COMPANIES, error.message.includes("NOT_FOUND") ? "company_forbidden" : classifyGroupError(error.message));
+  revalidatePath(COMPANIES);
+  return done(COMPANIES, v.value.on ? "company_auto_on" : "company_auto_off");
 }

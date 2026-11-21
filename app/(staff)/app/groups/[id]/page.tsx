@@ -262,12 +262,12 @@ export default async function GroupPage({
           Company accounts
         </Link>
       </form>
-      {company && company.percent > 0 && g.status !== "cancelled" && (
+      {company && (company.percent > 0 || company.rates.length > 0) && g.status !== "cancelled" && (
         <form action={applyCompanyRate} className="mt-3">
           <input type="hidden" name="groupId" value={g.id} />
           <input type="hidden" name="key" value={crypto.randomUUID()} />
           <PendingButton className={buttonQuiet} pendingLabel="Applying...">
-            Apply the {company.percent}% company rate to linked bookings
+            Apply the company rate{company.percent > 0 ? ` (${company.percent}% by default)` : ""} to linked bookings
           </PendingButton>
           <p className="mt-1 text-xs text-muted">
             Only confirmed bookings with no discount, payment or invoice yet. Others are skipped, never changed.
@@ -490,7 +490,7 @@ export default async function GroupPage({
               <input type="hidden" name="groupId" value={g.id} />
               <input type="hidden" name="key" value={crypto.randomUUID()} />
               <label className="block text-sm">
-                Amount (naira)
+                Amount ({st?.currency ?? "NGN"})
                 <input name="amount" inputMode="decimal" placeholder="Fills what is owed" className={`${inputClass} mt-1`} />
               </label>
               <label className="block text-sm">

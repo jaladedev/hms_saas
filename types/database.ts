@@ -4754,6 +4754,9 @@ export type Database = {
         Returns: undefined
       }
       company_list: { Args: { p_property: string }; Returns: Json }
+      company_rate_set: { Args: { p_company: string; p_mode: string; p_room_type: string; p_value: number }; Returns: undefined }
+      company_set_auto_rate: { Args: { p_company: string; p_on: boolean }; Returns: undefined }
+      company_rate_remove: { Args: { p_company: string; p_room_type: string }; Returns: undefined }
       group_invoice_overdue: { Args: { p_property: string }; Returns: Json }
       set_group_company: { Args: { p_company: string; p_group: string }; Returns: undefined }
       apply_company_rate_to_group: { Args: { p_group: string; p_key: string }; Returns: Json }
