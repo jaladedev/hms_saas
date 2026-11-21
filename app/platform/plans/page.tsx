@@ -41,6 +41,7 @@ const ENFORCED = [
   "api_access",
   "loyalty",
   "staff_hr",
+  "multi_currency",
 ];
 
 function PlanForm({ plan, admin }: { plan?: Plan; admin: boolean }) {

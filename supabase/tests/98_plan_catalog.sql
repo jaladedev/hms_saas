@@ -83,7 +83,7 @@ do $$ declare v_t uuid := (select id from tenants where slug = 't50-hotel'); r j
   perform t_sys();
   if (select plan_code from tenant_subscriptions where tenant_id = v_t) <> 'starter' then raise exception 'FAIL plan code not set'; end if;
   select count(*) into v_n from tenant_feature_entitlements where tenant_id = v_t and feature_key = any (plan_enforced_flags());
-  if v_n <> 20 then raise exception 'FAIL % of 20 flags set', v_n; end if;
+  if v_n <> 21 then raise exception 'FAIL % of 21 flags set', v_n; end if;
   if not (select enabled from tenant_feature_entitlements where tenant_id = v_t and feature_key = 'online_booking') then raise exception 'FAIL online_booking should be on'; end if;
   if (select enabled from tenant_feature_entitlements where tenant_id = v_t and feature_key = 'reports.export') then raise exception 'FAIL reports.export should be off on starter'; end if;
   if not (select enabled from tenant_feature_entitlements where tenant_id = v_t and feature_key = 'beta.thing') then raise exception 'FAIL an unrelated flag was touched'; end if;

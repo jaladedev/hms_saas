@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { isSupportedCurrency, PAYSTACK_COUNTRY } from "@/lib/currency";
 import { z } from "zod";
 
 /**
@@ -186,7 +187,8 @@ export async function listBanks(currency: string, secretKey: string, fetchFn: ty
   let cursor: string | null = null;
   for (let page = 0; page < 10; page++) {
     const params = new URLSearchParams({ currency, perPage: "100", use_cursor: "true" });
-    if (currency === "NGN") params.set("country", "nigeria");
+    const country = isSupportedCurrency(currency) ? PAYSTACK_COUNTRY[currency] : null;
+    if (country) params.set("country", country);
     if (cursor) params.set("next", cursor);
     const res = await fetchFn(`${paystackBaseUrl()}/bank?${params.toString()}`, {
       headers: { Authorization: `Bearer ${secretKey}` },

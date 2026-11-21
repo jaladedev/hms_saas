@@ -57,6 +57,11 @@ const SECTIONS = [
     text: "The rota, clock in and out, leave requests and an hours report as a CSV. Hours only; pay is worked out elsewhere. Needs shifts and leave in your hotel group's plan.",
   },
   {
+    href: "/app/settings/currency",
+    title: "Currency and exchange rates",
+    text: "The hotel's currency and dated exchange rates entered by hand, for comparing hotels in different currencies. Bookings and bills never convert. Needs multi-currency in your hotel group's plan to use a currency other than NGN.",
+  },
+  {
     href: "/app/settings/api",
     title: "API keys and webhooks",
     text: "Let your own website or another system read availability and bookings, and be told when a booking changes. Keys are shown once and can be revoked at once. Needs API access in your hotel group's plan.",

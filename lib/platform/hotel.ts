@@ -1,3 +1,4 @@
+import { isSupportedCurrency } from "@/lib/currency";
 /**
  * Rules and wording for platform administration. Pure functions, tested without a server. They mirror the checks in
  * migration 050 so a person gets a plain message, but the database decides: nothing here is a permission.
@@ -80,7 +81,7 @@ export function validateNewHotel(raw: Record<string, unknown>): { ok: true; valu
   const timezone = squash(raw.timezone) || "Africa/Lagos";
   if (!/^[A-Za-z0-9_+\-/]{1,64}$/.test(timezone)) return { ok: false, field: "timezone" };
   const currency = (squash(raw.currency) || "NGN").toUpperCase();
-  if (!/^[A-Z]{3}$/.test(currency)) return { ok: false, field: "currency" };
+  if (!isSupportedCurrency(currency)) return { ok: false, field: "currency" };
   const host = normalizeHost(typeof raw.host === "string" ? raw.host : "");
   if (host.length > 253 || !HOST.test(host)) return { ok: false, field: "host" };
   const ownerEmail = squash(raw.ownerEmail).toLowerCase();
@@ -120,7 +121,7 @@ export const FIELD_MESSAGES: Record<NewHotelField, string> = {
   property_name: "Enter the first property's name (up to 120 characters).",
   code: "The property code must be 2 to 12 capital letters, digits or hyphens. It cannot be changed later.",
   timezone: "Enter a time zone such as Africa/Lagos.",
-  currency: "Enter a three-letter currency such as NGN.",
+  currency: "Choose one of NGN, GHS, KES, ZAR or USD. Any currency except NGN needs multi-currency in the hotel group's plan.",
   host: "Enter the web address guests will use, such as book.example.com.",
   owner_email: "Enter the owner's email address.",
   secret_reference:
@@ -183,9 +184,10 @@ export function classifyPlatformError(err: { code?: string; message?: string } |
     case "host":
     case "timezone":
     case "currency":
+    case "multi_currency off":
     case "reason":
     case "status":
-      return v;
+      return v === "multi_currency off" ? "currency" : v;
     case "secret reference":
       return "secret_reference";
     case "payment mode":

@@ -3689,6 +3689,46 @@ export type Database = {
         }
         Relationships: []
       }
+      exchange_rates: {
+        Row: {
+          id: string
+          tenant_id: string
+          from_currency: string
+          to_currency: string
+          rate_date: string
+          rate: number
+          note: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          id?: string
+          tenant_id: string
+          from_currency: string
+          to_currency: string
+          rate_date: string
+          rate: number
+          note?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          from_currency?: string
+          to_currency?: string
+          rate_date?: string
+          rate?: number
+          note?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       service_bookings: {
         Row: {
           id: string
@@ -4800,6 +4840,9 @@ export type Database = {
       staff_leave_request: { Args: { p_end: string; p_kind: string; p_note: string; p_property: string; p_start: string }; Returns: Json }
       staff_leave_decide: { Args: { p_decision: string; p_leave: string }; Returns: Json }
       staff_leave_cancel: { Args: { p_leave: string }; Returns: Json }
+      supported_currencies: { Args: Record<PropertyKey, never>; Returns: string[] }
+      fx_rate_set: { Args: { p_date: string; p_from: string; p_note: string; p_property: string; p_rate: number; p_to: string }; Returns: Json }
+      fx_rate_get: { Args: { p_date: string; p_from: string; p_property: string; p_to: string }; Returns: Json }
       service_save: {
         Args: { p_active: boolean; p_capacity: number; p_duration: number; p_kind: string; p_name: string; p_price: number; p_property: string; p_service: string; p_sort?: number }
         Returns: Json

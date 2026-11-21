@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { buttonPrimary, inputClass, linkClass, PageIntro, PageTitle, SectionTitle } from "@/components/staff/ui";
+import { CURRENCY_LABEL, SUPPORTED_CURRENCIES } from "@/lib/currency";
 import { PlatformNotice } from "@/components/platform-notice";
 import { createHotel } from "@/lib/platform/actions";
 import { createClient } from "@/lib/supabase/server";
@@ -73,7 +74,13 @@ export default async function NewHotel({ searchParams }: { searchParams: Promise
               <input id="timezone" name="timezone" defaultValue="Africa/Lagos" required className={inputClass} />
             </Field>
             <Field id="currency" label="Currency">
-              <input id="currency" name="currency" defaultValue="NGN" required maxLength={3} className={inputClass} />
+              <select id="currency" name="currency" defaultValue="NGN" className={inputClass}>
+                {SUPPORTED_CURRENCIES.map((c) => (
+                  <option key={c} value={c}>
+                    {CURRENCY_LABEL[c]}
+                  </option>
+                ))}
+              </select>
             </Field>
           </div>
         </section>

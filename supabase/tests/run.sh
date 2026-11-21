@@ -1039,4 +1039,8 @@ HR="$(psql -f "$HERE/162_staff_hr.sql" 2>&1)" || { echo "$HR"; echo "STAFF HR TE
 echo "$HR" | grep -E 'PASS' || true
 if echo "$HR" | grep -qE 'FAIL|ERROR'; then echo "$HR"; echo "STAFF HR TESTS FAILED"; exit 1; fi
 
+MC="$(psql -f "$HERE/163_multi_currency.sql" 2>&1)" || { echo "$MC"; echo "MULTI CURRENCY TESTS FAILED"; exit 1; }
+echo "$MC" | grep -E 'PASS' || true
+if echo "$MC" | grep -qE 'FAIL|ERROR'; then echo "$MC"; echo "MULTI CURRENCY TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"
