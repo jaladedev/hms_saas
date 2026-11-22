@@ -1102,4 +1102,8 @@ AI="$(psql -f "$HERE/179_ai_reply_drafts.sql" 2>&1)" || { echo "$AI"; echo "AI D
 echo "$AI" | grep -E 'PASS' || true
 if echo "$AI" | grep -qE 'FAIL|ERROR'; then echo "$AI"; echo "AI DRAFT TESTS FAILED"; exit 1; fi
 
+DO="$(psql -f "$HERE/180_digest_occupancy.sql" 2>&1)" || { echo "$DO"; echo "DIGEST OCCUPANCY TESTS FAILED"; exit 1; }
+echo "$DO" | grep -E 'PASS' || true
+if echo "$DO" | grep -qE 'FAIL|ERROR'; then echo "$DO"; echo "DIGEST OCCUPANCY TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

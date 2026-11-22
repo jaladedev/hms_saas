@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { digestPayload, drainDigests, renderDigest } from "./digest";
+import { digestPayload, drainDigests, occupancyText, renderDigest } from "./digest";
 
 const payload = {
   hotel: "Hotel A <Ibadan>",
@@ -33,6 +33,21 @@ describe("renderDigest", () => {
       messages: 0,
       waiting: 0,
     });
+  });
+});
+
+describe("occupancy", () => {
+  it("writes occupancy as a share of the rooms in service", () => {
+    expect(occupancyText(12, 20)).toBe("12 of 20 (60%)");
+    expect(occupancyText(0, 20)).toBe("0 of 20 (0%)");
+    expect(occupancyText(25, 20)).toBe("20 of 20 (100%)");
+    expect(occupancyText(3, 0)).toBe("3");
+  });
+  it("puts it in the summary, and an old payload without it still renders", () => {
+    const r = renderDigest({ hotel: "H", date: "2026-11-23", rooms: 20, occupied_tonight: 12, occupied_tomorrow: 15 });
+    expect(r.text).toContain("Rooms occupied tonight: 12 of 20 (60%)");
+    expect(r.text).toContain("Rooms booked for tomorrow night: 15 of 20 (75%)");
+    expect(renderDigest({ hotel: "H" }).text).toContain("Rooms occupied tonight: 0");
   });
 });
 

@@ -12,6 +12,9 @@ export type DigestPayload = {
   holds: number;
   messages: number;
   waiting: number;
+  rooms: number;
+  occupied_tonight: number;
+  occupied_tomorrow: number;
 };
 export type ClaimedDigest = { id: string; to_email: string; payload: Record<string, unknown>; attempt: number };
 
@@ -28,17 +31,29 @@ export function digestPayload(raw: Record<string, unknown>): DigestPayload {
     holds: n("holds"),
     messages: n("messages"),
     waiting: n("waiting"),
+    rooms: n("rooms"),
+    occupied_tonight: n("occupied_tonight"),
+    occupied_tomorrow: n("occupied_tomorrow"),
   };
+}
+
+/** "12 of 20 (60%)", or "12" when the hotel has no rooms in service to compare with. */
+export function occupancyText(occupied: number, rooms: number): string {
+  if (rooms <= 0) return String(occupied);
+  const shown = Math.min(occupied, rooms);
+  return `${shown} of ${rooms} (${Math.round((shown / rooms) * 100)}%)`;
 }
 
 /** The morning summary: counts only, no guest names or money. */
 export function renderDigest(raw: Record<string, unknown>): RenderedEmail {
   const p = digestPayload(raw);
   const day = p.date ? formatDate(p.date) : "today";
-  const rows: [string, number][] = [
+  const rows: [string, number | string][] = [
     ["Arrivals still to come today", p.arrivals],
     ["Departures still to go today", p.departures],
     ["Guests in house", p.in_house],
+    ["Rooms occupied tonight", occupancyText(p.occupied_tonight, p.rooms)],
+    ["Rooms booked for tomorrow night", occupancyText(p.occupied_tomorrow, p.rooms)],
     ["Arrivals tomorrow", p.tomorrow],
     ["Holds waiting for payment", p.holds],
     ["Guest messages to answer", p.messages],
