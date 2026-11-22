@@ -1,10 +1,23 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ErrorBanner, linkClass, PageTitle, ReservationChip, SectionTitle } from "@/components/staff/ui";
+import {
+  buttonPrimary,
+  buttonQuiet,
+  ErrorBanner,
+  linkClass,
+  Notice,
+  PageTitle,
+  ReservationChip,
+  SectionTitle,
+} from "@/components/staff/ui";
+import { PendingButton } from "@/components/ui/pending-button";
 import { formatMoney } from "@/lib/guest-site/format";
 import { formatDateTime } from "@/lib/staff/format";
 import { invoiceStatusLabel, paymentMethodLabel, paymentSourceLabel, paymentStatusLabel, verificationLabel } from "@/lib/staff/money-lists";
+import { addPaymentReceipt, removePaymentReceipt } from "@/lib/staff/payment-receipt-actions";
+import { MAX_RECEIPTS, RECEIPT_ACCEPT, RECEIPT_BUCKET, RECEIPT_LINK_SECONDS, receiptLabel } from "@/lib/staff/payment-receipts";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 
 export const dynamic = "force-dynamic";
 
@@ -30,8 +43,15 @@ type Payment = {
   verification_note: string | null;
 };
 
-export default async function PaymentDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function PaymentDetailsPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { id } = await params;
+  const search = await searchParams;
   if (!UUID.test(id)) notFound();
   const supabase = await createClient();
 
@@ -81,6 +101,39 @@ export default async function PaymentDetailsPage({ params }: { params: Promise<{
   const staffNames = new Map(((namesQ.data ?? []) as { user_id: string; name: string }[]).map((n) => [n.user_id, n.name]));
   const who = (uid: string | null) => (uid ? (staffNames.get(uid) ?? "a member of staff") : null);
 
+  // Receipts: the rows come through row-level security (people who may see money), and each file is shown by a short-lived signed
+  // link made here, so the row's access rule is the file's access rule. The bucket is private; nobody reaches a file by address.
+  const [receiptQ, canRecordQ] = await Promise.all([
+    supabase
+      .from("payment_receipts")
+      .select("id, storage_path, content_type, size_bytes, created_at")
+      .eq("payment_id", p.id)
+      .order("created_at"),
+    supabase.rpc("has_permission", { p_property: p.property_id, p_permission: "payment.record" }),
+  ]);
+  const receipts = (receiptQ.data ?? []) as {
+    id: string;
+    storage_path: string;
+    content_type: string;
+    size_bytes: number;
+    created_at: string;
+  }[];
+  const canRecord = canRecordQ.data === true;
+  const receiptLinks = new Map<string, string>();
+  if (receipts.length > 0) {
+    try {
+      const { data: signed } = await createServiceClient()
+        .storage.from(RECEIPT_BUCKET)
+        .createSignedUrls(
+          receipts.map((r) => r.storage_path),
+          RECEIPT_LINK_SECONDS,
+        );
+      for (const s of signed ?? []) if (s.path && s.signedUrl && !s.error) receiptLinks.set(s.path, s.signedUrl);
+    } catch {
+      // Storage is unavailable: the list still shows, with "File unavailable" beside each receipt.
+    }
+  }
+
   const reversed = p.payment_status === "reversed";
   const online = p.payment_provider !== "manual";
   const allocated = allocs.reduce((n, a) => n + a.amount_minor, 0);
@@ -93,6 +146,9 @@ export default async function PaymentDetailsPage({ params }: { params: Promise<{
           All payments
         </Link>
       </p>
+      <div className="mt-4">
+        <Notice search={search} currency={p.currency} />
+      </div>
       <PageTitle className="mt-2">
         <span className={`tabular-nums ${reversed ? "text-muted line-through" : ""}`}>{formatMoney(p.amount_minor, p.currency)}</span>{" "}
         <span className="text-base font-normal text-muted">{paymentMethodLabel(p.payment_method)}</span>
@@ -216,6 +272,59 @@ export default async function PaymentDetailsPage({ params }: { params: Promise<{
           {allocs.length > 1 && <p className="mt-2 text-xs text-muted">Applied in total: {formatMoney(allocated, p.currency)}</p>}
         </>
       )}
+
+      <div className="mt-8">
+        <SectionTitle>Receipts</SectionTitle>
+      </div>
+      {receipts.length === 0 ? (
+        <p className="mt-2 text-sm text-muted">No receipt attached.</p>
+      ) : (
+        <ul className="mt-2 border-t border-line text-sm">
+          {receipts.map((r, i) => (
+            <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-line py-3">
+              <span>
+                {receiptLabel(i + 1, r.content_type, r.size_bytes)}
+                <span className="ml-2 text-xs text-muted">added {formatDateTime(r.created_at, tz)}</span>
+              </span>
+              <span className="flex items-center gap-3">
+                {receiptLinks.get(r.storage_path) ? (
+                  <a href={receiptLinks.get(r.storage_path)} target="_blank" rel="noopener noreferrer" className={linkClass}>
+                    View
+                  </a>
+                ) : (
+                  <span className="text-muted">File unavailable</span>
+                )}
+                {canRecord && (
+                  <form action={removePaymentReceipt}>
+                    <input type="hidden" name="receiptId" value={r.id} />
+                    <PendingButton className={buttonQuiet} pendingLabel="Removing…">
+                      Remove
+                    </PendingButton>
+                  </form>
+                )}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {canRecord && receipts.length < MAX_RECEIPTS && (
+        <form action={addPaymentReceipt} className="mt-3 flex flex-wrap items-end gap-3">
+          <input type="hidden" name="paymentId" value={p.id} />
+          <div>
+            <label htmlFor="receipt-file" className="block text-sm">
+              Add a receipt
+            </label>
+            <input id="receipt-file" name="receipt" type="file" required accept={RECEIPT_ACCEPT} className="mt-1 block text-sm" />
+          </div>
+          <PendingButton className={buttonPrimary} pendingLabel="Uploading…">
+            Add receipt
+          </PendingButton>
+        </form>
+      )}
+      <p className="mt-2 max-w-prose text-xs text-muted">
+        A bank slip, POS slip or cash receipt, as a picture or PDF up to 5 MB, three at most. Only people who handle payments can see them,
+        and a link opens for five minutes. A receipt is a document beside the payment: it changes no amount or status.
+      </p>
 
       <p className="mt-8 text-sm text-muted">
         To reverse a payment that never arrived, or refund one, open the booking&apos;s{" "}

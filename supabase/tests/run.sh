@@ -172,6 +172,9 @@ if echo "$PC" | grep -qE 'FAIL|ERROR'; then echo "$PC"; echo "PROVIDER CHECK TES
 AI="$(psql -f "$HERE/170_audit_client_ip.sql" 2>&1)" || { echo "$AI"; echo "AUDIT CLIENT IP TESTS FAILED"; exit 1; }
 echo "$AI" | grep -E 'PASS' || true
 if echo "$AI" | grep -qE 'FAIL|ERROR'; then echo "$AI"; echo "AUDIT CLIENT IP TESTS FAILED"; exit 1; fi
+PR="$(psql -f "$HERE/178_payment_receipts.sql" 2>&1)" || { echo "$PR"; echo "PAYMENT RECEIPT TESTS FAILED"; exit 1; }
+echo "$PR" | grep -E 'PASS' || true
+if echo "$PR" | grep -qE 'FAIL|ERROR'; then echo "$PR"; echo "PAYMENT RECEIPT TESTS FAILED"; exit 1; fi
 IP="$(psql -f "$HERE/43_idempotency_purge.sql" 2>&1)" || { echo "$IP"; echo "IDEMPOTENCY PURGE TESTS FAILED"; exit 1; }
 echo "$IP" | grep -E 'PASS' || true
 if echo "$IP" | grep -qE 'FAIL|ERROR'; then echo "$IP"; echo "IDEMPOTENCY PURGE TESTS FAILED"; exit 1; fi

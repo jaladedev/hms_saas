@@ -315,6 +315,11 @@ Signed in as the owner, go through Settings once, in this order, as a person set
 4. Setup history: every change above appears with your name, the old and new values, and the right unit (7.5%, naira).
 5. Staff: suspend the invited person, see them lose access, reinstate them, and see both changes in the setup history.
 
+6. Payment receipts (migration 178): record a bank-transfer payment on a booking, open it from Payments, and add a receipt
+   (a phone photo and a PDF). Check that **View** opens it, that the link stops working after about five minutes, that a
+   fourth file is refused, that **Remove** removes it, and that a signed-in person without payment permissions cannot see the
+   Receipts section's files. In the Supabase dashboard, Storage, the `payment-receipts` bucket must say **Private**.
+
 Write down anything that looks wrong, confusing or slow on a phone as well as a laptop.
 
 ## 12. Record the result and reset

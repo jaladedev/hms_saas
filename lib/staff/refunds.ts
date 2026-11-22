@@ -266,6 +266,10 @@ export type ErrorCode =
   | "rooms_none_selected"
   | "rooms_too_many"
   | "rooms_have_bookings"
+  | "receipt_file"
+  | "receipt_limit"
+  | "receipt_forbidden"
+  | "receipt_storage"
   | "photo_file"
   | "photo_limit"
   | "photo_upload"
@@ -522,6 +526,8 @@ export const OK_MESSAGES = {
   room_added: "Room added.",
   room_status_changed: "Room status updated.",
   rooms_status_changed: "The ticked rooms were updated.",
+  receipt_added: "Receipt added.",
+  receipt_removed: "Receipt removed.",
   guest_updated: "Guest details saved.",
   guest_profile_saved: "Notes and the VIP setting are saved.",
   profile_saved: "Your details and display setting are saved.",
@@ -794,6 +800,14 @@ export function errorMessage(code: string, refundable: number | null, formatMino
       return "The picture could not be saved. Try again.";
     case "room_has_bookings":
       return "That room has current or future bookings or blocks. Move the guests and release the blocks first.";
+    case "receipt_file":
+      return "Choose a JPEG, PNG or WebP picture, or a PDF, up to 5 MB.";
+    case "receipt_limit":
+      return "A payment can have up to 3 receipts. Remove one first.";
+    case "receipt_forbidden":
+      return "You do not have permission to add or remove receipts on this payment.";
+    case "receipt_storage":
+      return "The receipt file could not be saved or removed. Try again.";
     case "rooms_none_selected":
       return "Tick at least one room first.";
     case "rooms_too_many":

@@ -1626,6 +1626,51 @@ export type Database = {
           },
         ]
       }
+      payment_receipts: {
+        Row: {
+          content_type: string
+          created_at: string
+          id: string
+          payment_id: string
+          property_id: string
+          size_bytes: number
+          storage_path: string
+          tenant_id: string
+          uploaded_by: string | null
+        }
+        ComputedFields: never
+        Insert: {
+          content_type: string
+          created_at?: string
+          id?: string
+          payment_id: string
+          property_id: string
+          size_bytes: number
+          storage_path: string
+          tenant_id: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          content_type?: string
+          created_at?: string
+          id?: string
+          payment_id?: string
+          property_id?: string
+          size_bytes?: number
+          storage_path?: string
+          tenant_id?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_receipts_tenant_id_payment_id_fkey"
+            columns: ["tenant_id", "payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount_minor: number

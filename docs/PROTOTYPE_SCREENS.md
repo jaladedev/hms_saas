@@ -81,8 +81,8 @@ Status: **built**, **partial** (part of the job is done, or only another role ca
 | Prototype screen | Status | Where |
 | --- | --- | --- |
 | Payments Overview | built | `/app/payments/all`; the verify queue stays at `/app/payments` |
-| Payment Details | built | `/app/payments/[id]`, read-only; verify, reverse and refund stay where they were |
-| Record Manual Payment | built | on `/app/reservations/[id]` |
+| Payment Details | built | `/app/payments/[id]`; verify, reverse and refund stay where they were; up to 3 receipts (picture or PDF) can be added, viewed and removed here (2026-11-21, migration 178) |
+| Record Manual Payment | partial | on `/app/reservations/[id]`; a receipt is added afterwards from Payment Details, not on the recording form |
 | Invoice List | built | `/app/invoices`, booking invoices and invoices for extras; booking invoices show what is still owing; the invoice on the Documents page can be printed or saved as PDF and emailed to the guest (migration 095) |
 | Invoice Details | built | `/app/reservations/[id]/folio-invoice/[invoiceId]` |
 | Refund Management | built | `/app/refunds` |
