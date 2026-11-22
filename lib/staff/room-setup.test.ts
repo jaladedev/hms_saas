@@ -3,9 +3,11 @@ import {
   classifySetupError,
   isRoomStatus,
   isRoomTypeStatus,
+  MAX_BULK_ROOMS,
   nameClashes,
   parseAmenities,
   slugify,
+  validateBulkRoomStatus,
   validateRoom,
   validateRoomType,
   validateRoomTypeEdit,
@@ -126,6 +128,9 @@ describe("classifySetupError and wording", () => {
       "setup_duplicate_room",
       "setup_forbidden",
       "room_has_bookings",
+      "rooms_none_selected",
+      "rooms_too_many",
+      "rooms_have_bookings",
     ]) {
       expect(errorMessage(c, null, String), c).not.toMatch(/Nothing was changed|constraint|row-level/);
     }
@@ -268,5 +273,40 @@ describe("room type status and name clashes", () => {
     for (const c of ["room_type_updated", "room_type_deactivated", "room_type_activated"] as const)
       expect(OK_MESSAGES[c].length).toBeGreaterThan(10);
     expect(OK_MESSAGES.room_type_deactivated).toMatch(/Existing bookings are not affected/);
+  });
+});
+
+describe("validateBulkRoomStatus", () => {
+  const A = "11111111-1111-4111-8111-111111111111";
+  const B = "22222222-2222-4222-8222-222222222222";
+
+  it("accepts ticked rooms and a known status", () => {
+    expect(validateBulkRoomStatus([A, B], "out_of_service")).toEqual({ ok: true, ids: [A, B], status: "out_of_service" });
+    expect(validateBulkRoomStatus([A], "active")).toMatchObject({ ok: true, status: "active" });
+    expect(validateBulkRoomStatus([A], "retired")).toMatchObject({ ok: true, status: "retired" });
+  });
+
+  it("collapses repeats and ignores case and spaces round an id", () => {
+    expect(validateBulkRoomStatus([A, A.toUpperCase(), ` ${A} `], "active")).toEqual({ ok: true, ids: [A], status: "active" });
+  });
+
+  it("asks for at least one room", () => {
+    expect(validateBulkRoomStatus([], "active")).toEqual({ ok: false, code: "rooms_none_selected" });
+  });
+
+  it("refuses more than one batch can carry, and accepts exactly the limit", () => {
+    const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+    const many = (n: number) => Array.from({ length: n }, (_, i) => id(i + 1));
+    expect(validateBulkRoomStatus(many(MAX_BULK_ROOMS), "active")).toMatchObject({ ok: true });
+    expect(validateBulkRoomStatus(many(MAX_BULK_ROOMS + 1), "active")).toEqual({ ok: false, code: "rooms_too_many" });
+  });
+
+  it("refuses the whole form when one id is not a room id or the status is unknown, rather than skipping the odd one", () => {
+    for (const bad of ["", "not-an-id", "1", A + "x", null, undefined, 7, {}]) {
+      expect(validateBulkRoomStatus([A, bad], "active"), String(bad)).toEqual({ ok: false, code: "bad_request" });
+    }
+    for (const status of ["closed", "", "ACTIVE", null, undefined, ["active"]]) {
+      expect(validateBulkRoomStatus([A], status), String(status)).toEqual({ ok: false, code: "bad_request" });
+    }
   });
 });

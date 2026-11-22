@@ -5,10 +5,11 @@ import { compareRoomNumbers } from "@/lib/staff/room-board";
 import { addRoomPhoto, moveRoomPhoto, removeRoomPhoto, setRoomPhotoCaption } from "@/lib/staff/room-photo-actions";
 import { photoUrl } from "@/lib/staff/room-photos";
 import { AmenityPicker } from "@/components/staff/amenity-picker";
+import { SelectAllRooms } from "@/components/staff/select-all-rooms";
 import { PendingButton } from "@/components/ui/pending-button";
 import { PhotoFrame } from "@/components/ui/photo-frame";
 import { PhotoPicker } from "@/components/ui/photo-picker";
-import { addRoom, addRoomType, setRoomStatus, setRoomTypeStatus, updateRoomType } from "@/lib/staff/setup-actions";
+import { addRoom, addRoomType, setRoomsStatus, setRoomStatus, setRoomTypeStatus, updateRoomType } from "@/lib/staff/setup-actions";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -94,6 +95,34 @@ export default async function RoomSetupPage({ searchParams }: { searchParams: Pr
           <section key={p.id} className="mt-10 first:mt-0" aria-label={p.name}>
             {many && <h2 className="font-display text-2xl">{p.name}</h2>}
             {myTypes.length === 0 && <p className="mt-3 text-muted">No room types yet.{canEdit ? " Add the first one below." : ""}</p>}
+
+            {canEdit && rooms.some((r) => r.property_id === p.id) && (
+              <form
+                id={`bulk-${p.id}`}
+                action={setRoomsStatus}
+                className="mt-5 flex flex-wrap items-end gap-3 rounded border border-line bg-white p-4"
+              >
+                <div>
+                  <label htmlFor={`bs-${p.id}`} className="block text-sm">
+                    Set the ticked rooms to
+                  </label>
+                  <select id={`bs-${p.id}`} name="status" defaultValue="out_of_service" className={`${inputClass} w-auto`}>
+                    {ROOM_STATUSES.map((s) => (
+                      <option key={s.value} value={s.value}>
+                        {s.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <PendingButton className={buttonPrimary} pendingLabel="Applying…">
+                  Apply to ticked rooms
+                </PendingButton>
+                <p className="w-full text-sm text-muted">
+                  Tick rooms below, in any room type. Retiring is refused while a ticked room has bookings or blocks, and then no room is
+                  changed.
+                </p>
+              </form>
+            )}
 
             {myTypes.map((t) => {
               const mine = rooms.filter((r) => r.room_type_id === t.id).sort((a, b) => compareRoomNumbers(a.room_number, b.room_number));
@@ -325,14 +354,28 @@ export default async function RoomSetupPage({ searchParams }: { searchParams: Pr
                     </div>
                   )}
 
-                  <h4 className="mt-4 text-sm font-medium">Rooms ({mine.length})</h4>
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-1">
+                    <h4 className="text-sm font-medium">Rooms ({mine.length})</h4>
+                    {canEdit && mine.length > 1 && <SelectAllRooms group={t.id} />}
+                  </div>
                   {mine.length === 0 ? (
                     <p className="mt-1 text-sm text-muted">No rooms yet, so this type cannot be booked.</p>
                   ) : (
                     <ul className="mt-2 divide-y divide-line border-y border-line">
                       {mine.map((r) => (
                         <li key={r.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-2">
-                          <span>
+                          <span className="flex items-center">
+                            {canEdit && (
+                              <input
+                                type="checkbox"
+                                name="roomId"
+                                value={r.id}
+                                form={`bulk-${p.id}`}
+                                data-room-group={t.id}
+                                aria-label={`Tick room ${r.room_number}`}
+                                className="mr-3 h-4 w-4"
+                              />
+                            )}
                             <span className="font-medium">{r.room_number}</span>
                             {r.floor !== null && <span className="ml-3 text-sm text-muted">Floor {r.floor}</span>}
                           </span>

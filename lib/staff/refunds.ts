@@ -263,6 +263,9 @@ export type ErrorCode =
   | "setup_forbidden"
   | "digest_email"
   | "room_has_bookings"
+  | "rooms_none_selected"
+  | "rooms_too_many"
+  | "rooms_have_bookings"
   | "photo_file"
   | "photo_limit"
   | "photo_upload"
@@ -518,6 +521,7 @@ export const OK_MESSAGES = {
   photo_caption_saved: "Caption saved.",
   room_added: "Room added.",
   room_status_changed: "Room status updated.",
+  rooms_status_changed: "The ticked rooms were updated.",
   guest_updated: "Guest details saved.",
   guest_profile_saved: "Notes and the VIP setting are saved.",
   profile_saved: "Your details and display setting are saved.",
@@ -790,6 +794,12 @@ export function errorMessage(code: string, refundable: number | null, formatMino
       return "The picture could not be saved. Try again.";
     case "room_has_bookings":
       return "That room has current or future bookings or blocks. Move the guests and release the blocks first.";
+    case "rooms_none_selected":
+      return "Tick at least one room first.";
+    case "rooms_too_many":
+      return "Choose up to 100 rooms at a time.";
+    case "rooms_have_bookings":
+      return "Some of the ticked rooms have current or future bookings or blocks, so none of them were changed. Move the guests and release the blocks first, or set them out of service instead.";
     case "invoice_exists":
       return "This reservation already has an invoice. Void it first if it needs to be reissued.";
     case "invoice_has_payments":

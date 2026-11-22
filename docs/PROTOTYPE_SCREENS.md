@@ -54,7 +54,7 @@ Status: **built**, **partial** (part of the job is done, or only another role ca
 | --- | --- | --- |
 | Room Type List | built | `/app/settings/rooms` (one screen for all four room screens) |
 | Create Room Type | built | `/app/settings/rooms` |
-| Physical Rooms | built | `/app/settings/rooms` |
+| Physical Rooms | built | `/app/settings/rooms`, with tick boxes and one bulk status change per property (2026-11-21, no migration) |
 | Room Details (physical room) | built | `/app/rooms/[id]`, opened from the room number on `/app/rooms`; room type setup stays at `/app/settings/rooms` |
 | Availability Calendar | built | `/app/rooms/calendar` |
 | Blocks & Out-of-Service | built | block and unblock on `/app/rooms` and `/app/rooms/calendar` |

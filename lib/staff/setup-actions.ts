@@ -9,6 +9,7 @@ import {
   isRoomStatus,
   isRoomTypeStatus,
   nameClashes,
+  validateBulkRoomStatus,
   validateRoom,
   validateRoomType,
   validateRoomTypeEdit,
@@ -169,4 +170,52 @@ export async function setRoomStatus(formData: FormData) {
   if (error) return failWith(error);
   refresh();
   return ok(PAGE, "room_status_changed");
+}
+
+/**
+ * "Set the ticked rooms to ..." on the rooms list. The same rules as changing one room, applied to all of them or none:
+ * every ticked room must be one the person can see at a property where they may change the setup, and retiring is refused for
+ * the whole batch while any ticked room still has bookings or blocks (out of service stays allowed, as it is for one room).
+ * The change itself is one statement, so it lands for every room or for none. Rooms already at that status are left alone.
+ */
+export async function setRoomsStatus(formData: FormData) {
+  const v = validateBulkRoomStatus(formData.getAll("roomId"), formData.get("status"));
+  if (!v.ok) return back(PAGE, { err: v.code });
+  const { ids, status } = v;
+
+  const supabase = await staffClient();
+  const { data: found, error: findError } = await supabase.from("rooms").select("id, property_id").in("id", ids);
+  if (findError) return failWith(findError);
+  const rooms = found ?? [];
+  if (rooms.length !== ids.length) return back(PAGE, { err: "not_found" });
+  const propertyIds = [...new Set(rooms.map((r) => r.property_id))];
+
+  for (const pid of propertyIds) {
+    const { data: allowed } = await supabase.rpc("has_permission", { p_property: pid, p_permission: "property.configure" });
+    if (allowed !== true) return back(PAGE, { err: "setup_forbidden" });
+  }
+
+  if (status === "retired") {
+    const { data: props } = await supabase.from("properties").select("id, timezone").in("id", propertyIds);
+    const zone = new Map((props ?? []).map((p) => [p.id, p.timezone]));
+    const now = new Date();
+    for (const pid of propertyIds) {
+      const { count, error: claimError } = await supabase
+        .from("room_inventory_claims")
+        .select("id", { count: "exact", head: true })
+        .in(
+          "room_id",
+          rooms.filter((r) => r.property_id === pid).map((r) => r.id),
+        )
+        .eq("status", "active")
+        .gt("end_date", todayIn(zone.get(pid) ?? "UTC", now));
+      if (claimError) return back(PAGE, { err: classifyRpcError(claimError.message).code });
+      if ((count ?? 0) > 0) return back(PAGE, { err: "rooms_have_bookings" });
+    }
+  }
+
+  const { error } = await supabase.from("rooms").update({ operational_status: status }).in("id", ids).neq("operational_status", status);
+  if (error) return failWith(error);
+  refresh();
+  return ok(PAGE, "rooms_status_changed");
 }

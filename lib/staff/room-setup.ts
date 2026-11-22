@@ -170,6 +170,25 @@ export const ROOM_STATUSES = [
 export type RoomOperationalStatus = (typeof ROOM_STATUSES)[number]["value"];
 export const isRoomStatus = (v: unknown): v is RoomOperationalStatus => ROOM_STATUSES.some((s) => s.value === v);
 
+/** Most rooms one bulk change may name: a batch is one request and one all-or-nothing change, so it is kept to a size a person can review. */
+export const MAX_BULK_ROOMS = 100;
+
+/**
+ * Checks the "set the ticked rooms to ..." form: one status and the ticked room ids. Duplicates collapse to one. Anything that is
+ * not a room id, or a status we do not know, is refused outright rather than skipped, so a tampered form changes nothing.
+ */
+export function validateBulkRoomStatus(
+  ids: unknown[],
+  status: unknown,
+): { ok: true; ids: string[]; status: RoomOperationalStatus } | { ok: false; code: ErrorCode } {
+  if (!isRoomStatus(status)) return { ok: false, code: "bad_request" };
+  const unique = [...new Set(ids.map((v) => (typeof v === "string" ? v.trim().toLowerCase() : "")))];
+  if (unique.some((v) => !GUID.test(v))) return { ok: false, code: "bad_request" };
+  if (unique.length === 0) return { ok: false, code: "rooms_none_selected" };
+  if (unique.length > MAX_BULK_ROOMS) return { ok: false, code: "rooms_too_many" };
+  return { ok: true, ids: unique, status };
+}
+
 /** Turns a PostgREST error from an insert or update into one of our codes. Raw database text never reaches the page. */
 export function classifySetupError(err: { code?: string; message?: string }): ErrorCode {
   const msg = err.message ?? "";
