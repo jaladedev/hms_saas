@@ -5066,6 +5066,8 @@ export type Database = {
       channel_resolve: { Args: { p_id: string; p_note: string }; Returns: undefined }
       channel_sync_report: { Args: { p_property: string }; Returns: Json }
       channel_modify_apply: { Args: { p_id: string; p_key: string }; Returns: Json }
+      ai_helpers_on: { Args: { p_property: string }; Returns: boolean }
+      ai_reply_context: { Args: { p_message: string }; Returns: Json }
       channel_record_payment: { Args: { p_id: string }; Returns: Json }
       channel_feed_auth: { Args: { p_hash: string }; Returns: Json }
       channel_feed: { Args: { p_connection: string; p_from: string; p_to: string }; Returns: Json }

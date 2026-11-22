@@ -1,5 +1,7 @@
 import { buttonPrimary, buttonQuiet, EmptyState, ErrorBanner, Notice, PageIntro, PageTitle } from "@/components/staff/ui";
+import { ReplyDraft } from "@/components/staff/reply-draft";
 import { formatDate } from "@/lib/guest-site/format";
+import { draftReply } from "@/lib/staff/ai-draft-actions";
 import { setMessageStatus } from "@/lib/staff/contact-actions";
 import { newCount, parseContactMessages, sortMessages } from "@/lib/staff/contact-messages";
 import { createClient } from "@/lib/supabase/server";
@@ -12,6 +14,8 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
   const { data: props } = await supabase.from("properties").select("id, name").order("name");
   const properties = (props ?? []) as { id: string; name: string }[];
   const results = await Promise.all(properties.map((p) => supabase.rpc("contact_messages_list", { p_property: p.id })));
+  const aiOn = await Promise.all(properties.map(async (p) => (await supabase.rpc("ai_helpers_on", { p_property: p.id })).data === true));
+  const aiFor = new Set(properties.filter((_, i) => aiOn[i]).map((p) => p.id));
   // A hotel the person may not see messages for answers NOT_FOUND; that hotel is left out, any other failure is shown.
   const failed = results.some((r) => r.error && !/NOT_FOUND/.test(r.error.message));
   const many = properties.length > 1;
@@ -58,6 +62,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
                   </a>
                 </p>
                 <p className="mt-3 whitespace-pre-line break-words text-sm">{r.message}</p>
+                {aiFor.has(g.property.id) && <ReplyDraft messageId={r.id} action={draftReply} />}
                 <form action={setMessageStatus} className="mt-3 flex flex-wrap gap-2">
                   <input type="hidden" name="id" value={r.id} />
                   {r.status === "new" ? (

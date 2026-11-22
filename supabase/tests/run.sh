@@ -1098,4 +1098,8 @@ CMD="$(psql -f "$HERE/177_channel_modify.sql" 2>&1)" || { echo "$CMD"; echo "CHA
 echo "$CMD" | grep -E 'PASS' || true
 if echo "$CMD" | grep -qE 'FAIL|ERROR'; then echo "$CMD"; echo "CHANNEL MODIFY TESTS FAILED"; exit 1; fi
 
+AI="$(psql -f "$HERE/179_ai_reply_drafts.sql" 2>&1)" || { echo "$AI"; echo "AI DRAFT TESTS FAILED"; exit 1; }
+echo "$AI" | grep -E 'PASS' || true
+if echo "$AI" | grep -qE 'FAIL|ERROR'; then echo "$AI"; echo "AI DRAFT TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"
