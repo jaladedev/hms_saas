@@ -218,6 +218,10 @@ export type ErrorCode =
   | "theme_radius"
   | "theme_image_file"
   | "theme_no_draft"
+  | "guest_id_both"
+  | "guest_id_type"
+  | "guest_id_number"
+  | "guest_id_forbidden"
   | "offer_invalid"
   | "promo_invalid"
   | "promo_dates"
@@ -542,6 +546,8 @@ export const OK_MESSAGES = {
   hkphoto_added: "Photo added.",
   hkphoto_removed: "Photo removed.",
   guest_updated: "Guest details saved.",
+  guest_id_saved: "ID saved.",
+  guest_id_cleared: "ID removed.",
   guest_profile_saved: "Notes and the VIP setting are saved.",
   profile_saved: "Your details and display setting are saved.",
   password_changed: "Password changed. Your other sign-ins have been signed out.",
@@ -793,6 +799,14 @@ export function errorMessage(code: string, refundable: number | null, formatMino
       return "Choose a JPEG, PNG or WebP picture within the size limit shown under the box.";
     case "theme_no_draft":
       return "There is no draft to publish. Save the look as a draft first.";
+    case "guest_id_both":
+      return "Choose the ID type and enter the number, or leave both blank to remove the ID.";
+    case "guest_id_type":
+      return "Choose the ID type from the list.";
+    case "guest_id_number":
+      return "The ID number must be 6 to 40 letters, digits, spaces, slashes or hyphens.";
+    case "guest_id_forbidden":
+      return "You cannot change this guest's ID, or it could not be saved.";
     case "theme_font":
       return "Choose a heading font and a body font from the lists, or leave them as the look's own.";
     case "theme_contrast":

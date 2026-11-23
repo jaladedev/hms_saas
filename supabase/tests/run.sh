@@ -1113,4 +1113,8 @@ TE="$(psql -f "$HERE/182_theme_extras.sql" 2>&1)" || { echo "$TE"; echo "THEME E
 echo "$TE" | grep -E 'PASS' || true
 if echo "$TE" | grep -qE 'FAIL|ERROR'; then echo "$TE"; echo "THEME EXTRAS TESTS FAILED"; exit 1; fi
 
+GI="$(psql -f "$HERE/183_guest_id_documents.sql" 2>&1)" || { echo "$GI"; echo "GUEST ID TESTS FAILED"; exit 1; }
+echo "$GI" | grep -E 'PASS' || true
+if echo "$GI" | grep -qE 'FAIL|ERROR'; then echo "$GI"; echo "GUEST ID TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

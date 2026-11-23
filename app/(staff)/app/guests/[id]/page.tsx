@@ -3,7 +3,9 @@ import { notFound } from "next/navigation";
 import { z } from "zod";
 import { buttonPrimary, buttonQuiet, inputClass, Notice, linkClass, PageTitle, SectionTitle } from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
-import { saveGuestProfile, updateGuest } from "@/lib/staff/guest-actions";
+import { revealGuestId, saveGuestId, saveGuestProfile, updateGuest } from "@/lib/staff/guest-actions";
+import { RevealGuestId } from "@/components/staff/reveal-guest-id";
+import { GUEST_ID_TYPE_LABEL, GUEST_ID_TYPES, maskedGuestId } from "@/lib/staff/guest-id";
 import { saveGuestSmsOptOut } from "@/lib/staff/sms-actions";
 import { MAX_NOTES } from "@/lib/staff/guests";
 import { createClient } from "@/lib/supabase/server";
@@ -55,7 +57,7 @@ export default async function GuestPage({
   if (!data) notFound();
   const guest = data as Guest;
 
-  const [stayQ, canEditQ, propQ] = await Promise.all([
+  const [stayQ, canEditQ, propQ, idSummaryQ, canRevealQ] = await Promise.all([
     supabase
       .from("reservations")
       .select("id, property_id, booking_reference, reservation_status, arrival_date, departure_date, currency, total_minor")
@@ -64,7 +66,12 @@ export default async function GuestPage({
       .limit(100),
     supabase.rpc("has_tenant_permission", { p_tenant: guest.tenant_id, p_permission: "guest.manage" }),
     supabase.from("properties").select("id, name"),
+    supabase.rpc("guest_id_summary", { p_guest: id }),
+    supabase.rpc("has_tenant_permission", { p_tenant: guest.tenant_id, p_permission: "guest.id_view" }),
   ]);
+  // The ID on file, masked (migration 183). The full number is only fetched by the "Show full number" button, which is audited.
+  const idSummary = (idSummaryQ.data ?? null) as { id_type: string; last3: string } | null;
+  const canReveal = canRevealQ.data === true;
   const stays = (stayQ.data ?? []) as Stay[];
   const canEdit = canEditQ.data === true;
   const propName = new Map(((propQ.data ?? []) as { id: string; name: string }[]).map((p) => [p.id, p.name]));
@@ -86,6 +93,43 @@ export default async function GuestPage({
       <div className="mt-6">
         <Notice search={search} currency="NGN" />
       </div>
+
+      <section aria-labelledby="guest-id">
+        <SectionTitle id="guest-id">ID document</SectionTitle>
+        <p className="mt-1 max-w-prose text-xs text-muted">
+          Optional. Kept apart from the contact details, shown masked, and deleted automatically 90 days after the guest&apos;s last stay. Never put in
+          emails, exports or the guest website.
+        </p>
+        <p className="mt-2 text-sm">{idSummary ? maskedGuestId(idSummary) : "No ID on file."}</p>
+        {idSummary && canReveal && <RevealGuestId guestId={guest.id} reveal={revealGuestId} buttonClass={buttonQuiet} />}
+        {canEdit && (
+          <form action={saveGuestId} className="mt-3 flex max-w-xl flex-wrap items-end gap-3">
+            <input type="hidden" name="guestId" value={guest.id} />
+            <div>
+              <label htmlFor="id_type" className="block text-sm font-medium">
+                ID type
+              </label>
+              <select id="id_type" name="id_type" defaultValue={idSummary?.id_type ?? ""} className={inputClass}>
+                <option value="">None</option>
+                {GUEST_ID_TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {GUEST_ID_TYPE_LABEL[t]}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="id_number" className="block text-sm font-medium">
+                {idSummary ? "New number (leave the type as None to remove)" : "ID number"}
+              </label>
+              <input id="id_number" name="id_number" maxLength={60} autoComplete="off" spellCheck={false} className={inputClass} />
+            </div>
+            <PendingButton className={buttonPrimary} pendingLabel="Saving…">
+              Save ID
+            </PendingButton>
+          </form>
+        )}
+      </section>
 
       <section aria-labelledby="details">
         <SectionTitle id="details">Contact details</SectionTitle>

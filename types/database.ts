@@ -5414,6 +5414,9 @@ export type Database = {
       set_hotel_primary_color: { Args: { p_color: string; p_property: string }; Returns: undefined }
       set_hotel_radius: { Args: { p_property: string; p_radius: string }; Returns: undefined }
       set_hotel_theme: { Args: { p_property: string; p_theme: string }; Returns: undefined }
+      guest_id_reveal: { Args: { p_guest: string }; Returns: Json }
+      guest_id_summary: { Args: { p_guest: string }; Returns: Json }
+      set_guest_id: { Args: { p_guest: string; p_number: string; p_type: string }; Returns: undefined }
       theme_draft_discard: { Args: { p_property: string }; Returns: boolean }
       theme_draft_save: { Args: { p_font_body: string; p_font_display: string; p_primary: string; p_property: string; p_radius: string; p_theme: string }; Returns: undefined }
       theme_draft_set_image: { Args: { p_kind: string; p_path: string; p_property: string }; Returns: undefined }
