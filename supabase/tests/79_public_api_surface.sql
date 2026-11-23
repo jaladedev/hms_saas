@@ -25,6 +25,23 @@ do $$ declare v text; begin
   if v is distinct from 'has_permission(p_property uuid, p_permission text), has_tenant_permission(p_tenant uuid, p_permission text), my_tenant_ids()'
     then raise exception 'FAIL 4c functions anon can run: %', v; end if;
 
+  -- 4f. Trigger functions are closed to client roles (migration 187). They cannot be called over RPC, but they should not be in the API
+  -- surface at all, and the advisor (lint 0028) lists every one that anon can execute.
+  select string_agg(p.proname, ', ' order by p.proname) into v
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public' and p.prorettype = 'trigger'::regtype
+     and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')
+     and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'));
+  if v is not null then raise exception 'FAIL 4f trigger functions client roles can execute (revoke all on function ... from public, anon, authenticated): %', v; end if;
+
+  -- 4g. Every trigger function has a fixed search_path (advisor lint 0011), as migrations 135 and 187 set.
+  select string_agg(p.proname, ', ' order by p.proname) into v
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public' and p.prorettype = 'trigger'::regtype
+     and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')
+     and not exists (select 1 from unnest(coalesce(p.proconfig, '{}')) c where c like 'search_path=%');
+  if v is not null then raise exception 'FAIL 4g trigger functions without a fixed search_path (alter function ... set search_path = public): %', v; end if;
+
   -- 4d. The server-only functions are closed to both client roles
   select string_agg(p.proname, ', ' order by p.proname) into v
     from pg_proc p join pg_namespace n on n.oid = p.pronamespace
@@ -43,5 +60,5 @@ do $$ declare v text; begin
   -- a CHECK helper must stay usable by signed-in staff, or editing a room type would fail with "permission denied"
   if not has_function_privilege('authenticated', 'amenities_valid(text[])', 'execute')
     then raise exception 'FAIL authenticated lost EXECUTE on amenities_valid, which the room_types CHECK needs'; end if;
-  raise notice 'PASS the five STAGING.md security checks hold: RLS everywhere, no anon policies, three anon functions, server functions closed, no anon views';
+  raise notice 'PASS the STAGING.md security checks hold: RLS everywhere, no anon policies, three anon functions, server functions closed, no anon views, trigger functions closed with a fixed search_path';
 end $$;

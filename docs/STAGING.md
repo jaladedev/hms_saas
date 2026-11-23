@@ -107,6 +107,22 @@ select p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')' as f
    and has_function_privilege('anon', p.oid, 'execute')
  order by 1;
 
+-- 4f. Trigger functions must be closed to client roles (migration 187). Expect: no rows.
+select p.proname
+  from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+ where n.nspname = 'public' and p.prorettype = 'trigger'::regtype
+   and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')
+   and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))
+ order by 1;
+
+-- 4g. Trigger functions must have a fixed search_path. Expect: no rows.
+select p.proname
+  from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+ where n.nspname = 'public' and p.prorettype = 'trigger'::regtype
+   and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')
+   and not exists (select 1 from unnest(coalesce(p.proconfig, '{}')) c where c like 'search_path=%')
+ order by 1;
+
 -- 4d. The server-only functions must be closed to both client roles. Expect: no rows.
 select p.proname
   from pg_proc p join pg_namespace n on n.oid = p.pronamespace
