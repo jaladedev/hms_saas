@@ -17,7 +17,11 @@ describe("reportError", () => {
   it("posts an envelope with the key header when a DSN is set", async () => {
     const f = vi.fn().mockResolvedValue({ ok: true });
     vi.stubGlobal("fetch", f);
-    const sent = await reportError(new Error("unique-one"), { routePath: "/app/x" }, env({ ERROR_REPORT_DSN: "https://k1@t.example/5", ERROR_REPORT_ENV: "staging" }));
+    const sent = await reportError(
+      new Error("unique-one"),
+      { routePath: "/app/x" },
+      env({ ERROR_REPORT_DSN: "https://k1@t.example/5", ERROR_REPORT_ENV: "staging" }),
+    );
     expect(sent).toBe(true);
     const [url, init] = f.mock.calls[0]!;
     expect(url).toBe("https://t.example/api/5/envelope/");

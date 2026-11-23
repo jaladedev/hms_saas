@@ -79,7 +79,13 @@ export type ErrorEvent = {
   release?: string;
   environment?: string;
   server_name?: string;
-  exception: { values: { type: string; value: string; stacktrace?: { frames: { filename?: string; function?: string; lineno?: number; colno?: number }[] } }[] };
+  exception: {
+    values: {
+      type: string;
+      value: string;
+      stacktrace?: { frames: { filename?: string; function?: string; lineno?: number; colno?: number }[] };
+    }[];
+  };
   tags: Record<string, string>;
   request?: { method?: string; url: string };
 };
@@ -138,7 +144,11 @@ export function buildEvent(err: unknown, ctx: ErrorContext = {}, now: () => numb
 
 /** The three-line envelope body: header, item header, the event. */
 export function buildEnvelope(event: ErrorEvent, dsn: Dsn, sentAt: Date = new Date()): string {
-  const header = { event_id: event.event_id, sent_at: sentAt.toISOString(), dsn: `${dsn.protocol}://${dsn.publicKey}@${dsn.host}/${dsn.projectId}` };
+  const header = {
+    event_id: event.event_id,
+    sent_at: sentAt.toISOString(),
+    dsn: `${dsn.protocol}://${dsn.publicKey}@${dsn.host}/${dsn.projectId}`,
+  };
   const item = { type: "event" };
   return `${JSON.stringify(header)}\n${JSON.stringify(item)}\n${JSON.stringify(event)}\n`;
 }

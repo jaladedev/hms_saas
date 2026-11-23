@@ -11,7 +11,18 @@ describe("parseDsn", () => {
     expect(parseDsn("https://k@track.example.com/errors/7")?.envelopeUrl).toBe("https://track.example.com/errors/api/7/envelope/");
   });
   it("turns reporting off for blanks and bad values", () => {
-    for (const bad of [undefined, null, "", "   ", "not a url", "ftp://k@h/1", "https://h/1", "https://k@h/", "https://k@h/abc", "https://@h/1"]) {
+    for (const bad of [
+      undefined,
+      null,
+      "",
+      "   ",
+      "not a url",
+      "ftp://k@h/1",
+      "https://h/1",
+      "https://k@h/",
+      "https://k@h/abc",
+      "https://@h/1",
+    ]) {
       expect(parseDsn(bad as string)).toBeNull();
     }
   });
@@ -19,7 +30,9 @@ describe("parseDsn", () => {
 
 describe("scrubText", () => {
   it("replaces emails, uuids and long digit runs", () => {
-    const s = scrubText("duplicate key for ada@example.com id 11111111-2222-4333-8444-555555555555 card 4111 1111 1111 1111 phone +234 803 123 4567");
+    const s = scrubText(
+      "duplicate key for ada@example.com id 11111111-2222-4333-8444-555555555555 card 4111 1111 1111 1111 phone +234 803 123 4567",
+    );
     expect(s).not.toMatch(/ada@|4111|803|11111111-2222/);
     expect(s).toContain("[email]");
     expect(s).toContain("[id]");
@@ -55,7 +68,20 @@ describe("parseStack", () => {
 describe("buildEvent", () => {
   it("builds an event with a scrubbed message, the route pattern and tags, and nothing personal", () => {
     const err = new Error("could not find ada@example.com");
-    const ev = buildEvent(err, { routePath: "/app/guests/[id]", path: "/app/guests/11111111-2222-4333-8444-555555555555?secret=1", method: "POST", routeType: "action", digest: "d1", release: "r1", environment: "staging" }, () => 1_700_000_000_000, () => "a".repeat(32));
+    const ev = buildEvent(
+      err,
+      {
+        routePath: "/app/guests/[id]",
+        path: "/app/guests/11111111-2222-4333-8444-555555555555?secret=1",
+        method: "POST",
+        routeType: "action",
+        digest: "d1",
+        release: "r1",
+        environment: "staging",
+      },
+      () => 1_700_000_000_000,
+      () => "a".repeat(32),
+    );
     expect(ev.timestamp).toBe(1_700_000_000);
     expect(ev.exception.values[0]?.value).toBe("could not find [email]");
     expect(ev.tags).toMatchObject({ route: "/app/guests/[id]", route_type: "action", digest: "d1" });
@@ -73,10 +99,19 @@ describe("buildEvent", () => {
 describe("buildEnvelope and ids", () => {
   it("writes header, item header and event on three lines", () => {
     const dsn = parseDsn("https://key@host.example/9")!;
-    const ev = buildEvent(new Error("e"), {}, () => 0, () => "b".repeat(32));
+    const ev = buildEvent(
+      new Error("e"),
+      {},
+      () => 0,
+      () => "b".repeat(32),
+    );
     const lines = buildEnvelope(ev, dsn, new Date("2026-11-23T10:00:00Z")).trimEnd().split("\n");
     expect(lines).toHaveLength(3);
-    expect(JSON.parse(lines[0]!)).toEqual({ event_id: "b".repeat(32), sent_at: "2026-11-23T10:00:00.000Z", dsn: "https://key@host.example/9" });
+    expect(JSON.parse(lines[0]!)).toEqual({
+      event_id: "b".repeat(32),
+      sent_at: "2026-11-23T10:00:00.000Z",
+      dsn: "https://key@host.example/9",
+    });
     expect(JSON.parse(lines[1]!)).toEqual({ type: "event" });
     expect(JSON.parse(lines[2]!).event_id).toBe("b".repeat(32));
   });
