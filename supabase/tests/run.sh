@@ -1129,4 +1129,8 @@ PIR="$(psql -f "$HERE/186_platform_invoice_reminders.sql" 2>&1)" || { echo "$PIR
 echo "$PIR" | grep -E 'PASS' || true
 if echo "$PIR" | grep -qE 'FAIL|ERROR'; then echo "$PIR"; echo "PLATFORM INVOICE REMINDER TESTS FAILED"; exit 1; fi
 
+RN="$(psql -f "$HERE/188_reservation_staff_note.sql" 2>&1)" || { echo "$RN"; echo "RESERVATION STAFF NOTE TESTS FAILED"; exit 1; }
+echo "$RN" | grep -E 'PASS' || true
+if echo "$RN" | grep -qE 'FAIL|ERROR'; then echo "$RN"; echo "RESERVATION STAFF NOTE TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

@@ -53,6 +53,7 @@ import {
   transferRoom,
   voidInvoice,
   changeRoomType,
+  saveReservationNote,
 } from "@/lib/staff/reservation-actions";
 import {
   attentionText,
@@ -68,6 +69,7 @@ import { canChangeType, otherTypes, typeChangeWindow, type TypeOption } from "@/
 import { candidateRooms, canTransfer, transferWindow, type CandidateRoom, type ClaimSpan } from "@/lib/staff/transfer";
 import { createClient } from "@/lib/supabase/server";
 import { PendingButton } from "@/components/ui/pending-button";
+import { MAX_STAFF_NOTE } from "@/lib/staff/reservation-note";
 
 export const dynamic = "force-dynamic";
 
@@ -95,6 +97,7 @@ type Reservation = {
   no_show_at: string | null;
   attention_reason: string | null;
   guest_note: string | null;
+  staff_note: string | null;
   created_at: string;
 };
 type ResRoom = {
@@ -141,7 +144,7 @@ export default async function ReservationPage({
   const { data: resRow } = await supabase
     .from("reservations")
     .select(
-      "id, property_id, booking_reference, primary_guest_id, source, reservation_status, payment_status, arrival_date, departure_date, currency, subtotal_minor, tax_minor, discount_minor, discount_percent, discount_amount_minor, discount_reason, total_minor, cancellation_charge_minor, cancel_reason, cancelled_at, no_show_at, attention_reason, guest_note, created_at, policy_snapshot",
+      "id, property_id, booking_reference, primary_guest_id, source, reservation_status, payment_status, arrival_date, departure_date, currency, subtotal_minor, tax_minor, discount_minor, discount_percent, discount_amount_minor, discount_reason, total_minor, cancellation_charge_minor, cancel_reason, cancelled_at, no_show_at, attention_reason, guest_note, staff_note, created_at, policy_snapshot",
     )
     .eq("id", id)
     .maybeSingle();
@@ -200,6 +203,9 @@ export default async function ReservationPage({
     res.reservation_status === "confirmed" ? can("reservation.modify") : null,
     res.reservation_status === "confirmed" ? can("discount.apply") : null,
   ]);
+
+  // The staff note may be written in any status, so this is asked separately from the confirmed-only check above.
+  const canNote = (await can("reservation.modify")).data === true;
 
   const resRooms = (roomsQ.data ?? []) as ResRoom[];
   const roomIds = resRooms.map((r) => r.id);
@@ -486,6 +492,42 @@ export default async function ReservationPage({
         </dl>
         {stayView.kind !== "hidden" && (
           <StayEdit reservationId={res.id} arrival={res.arrival_date} departure={res.departure_date} today={today} rooms={stayRooms} />
+        )}
+      </section>
+
+      <section className="mt-10" aria-labelledby="staff-note">
+        <SectionTitle id="staff-note">Staff note</SectionTitle>
+        <p className="mt-1 max-w-prose text-sm text-muted">
+          For the hotel&apos;s staff only. It is not shown to the guest or put in any email or document. Not for payment details or identity numbers.
+        </p>
+        {canNote ? (
+          <form action={saveReservationNote} className="mt-3 grid max-w-xl gap-3">
+            <input type="hidden" name="reservationId" value={res.id} />
+            <div>
+              <label htmlFor="staff-note-field" className="block text-sm font-medium">
+                Note
+              </label>
+              <textarea
+                id="staff-note-field"
+                name="note"
+                rows={3}
+                maxLength={MAX_STAFF_NOTE + 200}
+                defaultValue={res.staff_note ?? ""}
+                aria-describedby="staff-note-limit"
+                className={inputClass}
+              />
+              <p id="staff-note-limit" className="mt-1 text-xs text-muted">
+                Up to {MAX_STAFF_NOTE} characters. Leave empty to remove the note.
+              </p>
+            </div>
+            <div>
+              <PendingButton className={buttonPrimary} pendingLabel="Saving…">
+                Save note
+              </PendingButton>
+            </div>
+          </form>
+        ) : (
+          <p className="mt-3 max-w-prose whitespace-pre-wrap break-words text-sm">{res.staff_note ?? "None"}</p>
         )}
       </section>
 

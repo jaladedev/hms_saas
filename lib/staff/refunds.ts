@@ -174,6 +174,7 @@ export type ErrorCode =
   | "guest_country"
   | "guest_field"
   | "guest_notes"
+  | "staff_note"
   | "profile_name"
   | "profile_phone"
   | "profile_density"
@@ -403,6 +404,7 @@ export function classifyRpcError(message: string): { code: ErrorCode; refundable
   if (/POLICY_VIOLATION: country/.test(message)) return { code: "guest_country" };
   if (/POLICY_VIOLATION: too long/.test(message)) return { code: "guest_field" };
   if (/POLICY_VIOLATION: notes/.test(message)) return { code: "guest_notes" };
+  if (/POLICY_VIOLATION: staff note/.test(message)) return { code: "staff_note" };
   if (/ROLE_ESCALATION/.test(message)) return { code: "role_escalation" };
   if (/SELF_CHANGE/.test(message)) return { code: "self_change" };
   if (/LAST_OWNER/.test(message)) return { code: "last_owner" };
@@ -548,6 +550,7 @@ export const OK_MESSAGES = {
   guest_updated: "Guest details saved.",
   guest_id_saved: "ID saved.",
   guest_id_cleared: "ID removed.",
+  reservation_note_saved: "Note saved.",
   guest_profile_saved: "Notes and the VIP setting are saved.",
   profile_saved: "Your details and display setting are saved.",
   password_changed: "Password changed. Your other sign-ins have been signed out.",
@@ -885,6 +888,8 @@ export function errorMessage(code: string, refundable: number | null, formatMino
       return "The phone number (40 characters) or address (500) is too long.";
     case "guest_notes":
       return "Notes can be up to 2000 characters.";
+    case "staff_note":
+      return "The note can be up to 1000 characters.";
     case "profile_name":
       return "A name is required (up to 200 characters).";
     case "profile_phone":

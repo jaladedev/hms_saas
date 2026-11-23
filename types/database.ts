@@ -2375,6 +2375,7 @@ export type Database = {
           arrival_date: string
           attention_reason: string | null
           guest_note: string | null
+          staff_note: string | null
           booking_reference: string
           cancel_reason: string | null
           cancellation_charge_minor: number
@@ -2408,6 +2409,7 @@ export type Database = {
           arrival_date: string
           attention_reason?: string | null
           guest_note?: string | null
+          staff_note?: string | null
           booking_reference: string
           cancel_reason?: string | null
           cancellation_charge_minor?: number
@@ -2440,6 +2442,7 @@ export type Database = {
           arrival_date?: string
           attention_reason?: string | null
           guest_note?: string | null
+          staff_note?: string | null
           booking_reference?: string
           cancel_reason?: string | null
           cancellation_charge_minor?: number
@@ -5414,6 +5417,7 @@ export type Database = {
       email_booking_invoice: { Args: { p_idempotency_key: string; p_invoice_id: string }; Returns: Json }
       record_heartbeat: { Args: { p_error?: string; p_job: string; p_ok: boolean }; Returns: undefined }
       ops_health: { Args: Record<string, never>; Returns: Json }
+      set_reservation_note: { Args: { p_note: string; p_reservation: string }; Returns: Json }
       set_guest_profile: { Args: { p_guest: string; p_notes: string; p_vip: boolean }; Returns: Json }
       set_hotel_extras: { Args: { p_facebook: string; p_facilities: string[]; p_instagram: string; p_property: string }; Returns: undefined }
       set_hotel_fonts: { Args: { p_body: string; p_display: string; p_property: string }; Returns: undefined }

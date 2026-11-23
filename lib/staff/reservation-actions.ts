@@ -8,6 +8,7 @@ import { classifyRpcError } from "./refunds";
 import { parseNoShowForm } from "./no-show";
 import { roomsPayload, validateNewReservation } from "./new-reservation";
 import { isPaymentMethod, parseIsoDate } from "./reservations";
+import { checkStaffNote } from "./reservation-note";
 import { typeChangeError } from "./room-type-change";
 
 /**
@@ -320,4 +321,23 @@ export async function changeRoomType(formData: FormData) {
   revalidatePath("/app/front-desk");
   const surplus = (data as { surplus_minor?: number } | null)?.surplus_minor ?? 0;
   return ok(page, surplus > 0 ? "type_changed_refund" : "type_changed");
+}
+
+/**
+ * Saves or clears the hotel's own note on a booking through set_reservation_note (migration 188): permission (reservation.modify),
+ * the 1000 character limit and the audit row are the database's. A blank note clears it. Works in any booking status.
+ */
+export async function saveReservationNote(formData: FormData) {
+  const parsed = z.object({ reservationId: uuid, note: z.string().max(4000) }).safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return back(LIST, { err: "bad_request" });
+  const { reservationId, note } = parsed.data;
+  const page = pageFor(reservationId);
+  const problem = checkStaffNote(note);
+  if (problem) return back(page, { err: problem });
+
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("set_reservation_note", { p_reservation: reservationId, p_note: note });
+  if (error) return fail(page, error.message);
+  refresh(reservationId);
+  return ok(page, "reservation_note_saved");
 }
