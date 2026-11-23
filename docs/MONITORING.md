@@ -46,4 +46,14 @@ Both functions and the `ops_heartbeats` table are service role only.
 
 - The scheduler and the monitor are not wired on staging (needs the staging project and a monitor account).
 - No alert channel is chosen (email, SMS, Slack). The monitor's own alerting is the plan.
-- Errors thrown inside the app are not collected (an error tracker such as Sentry is a separate choice).
+- Error tracking is built but off: set `ERROR_REPORT_DSN` (see below) once a tracker account exists. Browser-side errors are shown a friendly page with a reference, not sent to the tracker.
+
+## Error tracking
+
+Server errors (a page that fails to render, a route, a server action) go to the tracker named by `ERROR_REPORT_DSN`, through Next's `onRequestError` hook in `instrumentation.ts`. No vendor SDK is installed: `lib/observability/error-report.ts` builds the small event Sentry's envelope endpoint accepts, so Sentry, GlitchTip and Bugsink all work. With the variable empty or malformed nothing is sent and nothing changes.
+
+- Sent: error name and message (emails, uuids and runs of 9+ digits replaced), stack, the route pattern, method, kind of request, deploy and environment, and Next's digest.
+- Never sent: cookies, headers, bodies, query strings, who was signed in, IP addresses, database values.
+- Each error is sent at most once a minute; the send gives up after 2 seconds and never throws.
+- Browser errors show `app/error.tsx` / `app/global-error.tsx`: plain words plus the digest as a reference, which matches the server log and tracker entry. There is deliberately no public endpoint for browsers to post errors to (spam and abuse risk).
+- To switch on: create a project, copy its DSN into `ERROR_REPORT_DSN` (and optionally `ERROR_REPORT_ENV`), redeploy, and trigger a test error on staging.

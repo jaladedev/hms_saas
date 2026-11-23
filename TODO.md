@@ -119,7 +119,7 @@ Each migration ships with its RLS policies, grants and tests; do not merge one w
 - [ ] Hotel runs one full real day in staging with no spreadsheet fallback
 
 ## Phase 4: Hardening and launch
-- [ ] Monitoring and alerts (System Design 9.5): built and tested, not wired. `GET /api/health` (bearer `CRON_SECRET`; 200 ok or warn, 503 fail) reads `ops_health()` (migration 094, test 95) and judges it in `lib/ops-health.ts`; the maintenance route records a heartbeat. See `docs/MONITORING.md`. Left: point an uptime monitor at it on staging, choose the alert channel, add an error tracker
+- [ ] Monitoring and alerts (System Design 9.5): built and tested, not wired. `GET /api/health` (bearer `CRON_SECRET`; 200 ok or warn, 503 fail) reads `ops_health()` (migration 094, test 95) and judges it in `lib/ops-health.ts`; the maintenance route records a heartbeat. See `docs/MONITORING.md`. Left: point an uptime monitor at it on staging, choose the alert channel, create the error-tracker project and set `ERROR_REPORT_DSN` (the reporter, error pages and hook are built and off until then)
 - [x] Audit coverage review (`docs/AUDIT_COVERAGE.md`): built from the database's own triggers, grants and functions. Two gaps closed in migration 047 (`49_config_audit.sql`): platform configuration (tenants, properties, domains, provider accounts, subscriptions, entitlements, platform admins) is audited by trigger, and guests can only be changed through the audited `update_guest`. Open items are listed in the document: who can read which rows, no actor for service-role changes, `audit_logs` retention
 - [ ] Backup restore rehearsal; record the real recovery point and time for the plan
 - [ ] Tax and levy rules confirmed by a qualified Nigerian adviser
