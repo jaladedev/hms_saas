@@ -1117,4 +1117,8 @@ GI="$(psql -f "$HERE/183_guest_id_documents.sql" 2>&1)" || { echo "$GI"; echo "G
 echo "$GI" | grep -E 'PASS' || true
 if echo "$GI" | grep -qE 'FAIL|ERROR'; then echo "$GI"; echo "GUEST ID TESTS FAILED"; exit 1; fi
 
+DK="$(psql -f "$HERE/184_digest_outlook.sql" 2>&1)" || { echo "$DK"; echo "DIGEST OUTLOOK TESTS FAILED"; exit 1; }
+echo "$DK" | grep -E 'PASS' || true
+if echo "$DK" | grep -qE 'FAIL|ERROR'; then echo "$DK"; echo "DIGEST OUTLOOK TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"
