@@ -110,4 +110,6 @@ node "$ROOT/e2e/flow.mjs" || { echo "--- next log"; tail -30 /tmp/e2e-next.log; 
 # Optional: the same live app, in a real browser (see e2e/browser.mjs). Skipped unless CHROME_BIN points at a Chrome.
 if [ -n "${CHROME_BIN:-}" ]; then
   node "$ROOT/e2e/browser.mjs" || { echo "--- next log"; tail -30 /tmp/e2e-next.log; exit 1; }
+  # The staff service worker (public/sw.js) against a stand-in server; it needs no database.
+  node "$ROOT/e2e/offline.mjs" || exit 1
 fi

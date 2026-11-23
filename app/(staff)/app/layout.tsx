@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Breadcrumbs } from "@/components/staff/breadcrumbs";
@@ -5,12 +6,16 @@ import { NavMenu } from "@/components/staff/nav-menu";
 import { SidebarNav } from "@/components/staff/sidebar-nav";
 import { RouteProgress } from "@/components/ui/route-progress";
 import { signOut } from "@/lib/staff/auth-actions";
+import { OfflineSupport } from "@/components/offline/offline-support";
+import { SignOutForm } from "@/components/staff/sign-out-form";
 import { PropertySwitcher } from "@/components/staff/property-switcher";
 import { rememberedProperty } from "@/lib/staff/active-property";
 import { pickProperty } from "@/lib/staff/property-choice";
 import { parseDensity } from "@/lib/staff/profile";
 import { lookStyle, THEME_WRAPPER_CLASS } from "@/lib/theme";
 import { createClient } from "@/lib/supabase/server";
+
+export const metadata: Metadata = { manifest: "/manifest.webmanifest" };
 
 export const dynamic = "force-dynamic";
 
@@ -98,14 +103,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
                 {data.user.email}
                 <span className="sr-only">, your profile</span>
               </Link>
-              <form action={signOut} className="mt-2">
-                <button
-                  type="submit"
-                  className="text-white underline underline-offset-2 hover:text-white/80 focus-visible:outline-2 focus-visible:outline-white"
-                >
-                  Sign out
-                </button>
-              </form>
+              <SignOutForm action={signOut} />
             </>
           }
           brand={<div className="font-display text-xl">HMS</div>}
@@ -115,6 +113,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
         </NavMenu>
       </aside>
       <div data-density={density} className="min-w-0 flex-1 p-4 md:p-6 print:p-0">
+        <OfflineSupport />
         <Breadcrumbs />
         {children}
       </div>

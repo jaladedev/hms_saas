@@ -37,8 +37,13 @@ export default tseslint.config(
     languageOptions: { globals: globals.node },
   },
   {
+    // The service worker runs in a worker, and exports its pure helpers for the unit test when loaded as a module.
+    files: ["public/sw.js"],
+    languageOptions: { sourceType: "script", globals: { ...globals.serviceworker, ...globals.node } },
+  },
+  {
     // The functions this file hands to the page (page.evaluate) run in the browser, so it uses both sets of globals.
-    files: ["e2e/browser.mjs"],
+    files: ["e2e/browser.mjs", "e2e/offline.mjs"],
     languageOptions: { globals: { ...globals.node, ...globals.browser } },
   },
   {

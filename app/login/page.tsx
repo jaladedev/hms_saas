@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ClearOfflineData } from "@/components/offline/offline-support";
 import { PasswordField, SubmitButton } from "@/components/staff/login-bits";
 import { inputClass } from "@/components/staff/ui";
 import { guestHotel, requestHost } from "@/lib/guest-site/server";
@@ -43,6 +44,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<Re
         radius: hotel?.radius,
       })}
     >
+      <ClearOfflineData />
       <main className="mx-auto max-w-sm px-4 py-24">
         {brand ? (
           <div className="flex items-center gap-3 font-display text-xl">

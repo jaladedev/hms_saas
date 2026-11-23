@@ -1,4 +1,19 @@
 import type { Metadata } from "next";
+// The fonts are served from this app, not from Google: a slow or blocked fonts.googleapis.com used to hold up every page on a
+// poor connection, and a saved page could not draw in its own fonts offline. Same families and weights as before.
+import "@fontsource/inter/400.css";
+import "@fontsource/inter/500.css";
+import "@fontsource/inter/600.css";
+import "@fontsource/playfair-display/500.css";
+import "@fontsource/playfair-display/700.css";
+import "@fontsource/sora/500.css";
+import "@fontsource/sora/700.css";
+import "@fontsource/lora/500.css";
+import "@fontsource/lora/700.css";
+import "@fontsource/outfit/500.css";
+import "@fontsource/outfit/700.css";
+import "@fontsource/source-serif-4/400.css";
+import "@fontsource/source-serif-4/600.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -9,14 +24,6 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@500;700&family=Sora:wght@500;700&family=Lora:wght@500;700&family=Outfit:wght@500;700&family=Source+Serif+4:wght@400;600&display=swap"
-        />
-      </head>
       <body className="min-h-screen antialiased">{children}</body>
     </html>
   );
