@@ -1,16 +1,31 @@
 import { z } from "zod";
-import { MAX_NOTE, QUEUE_ACTIONS, replayItemSchema, type QueueAction, type ReplayReason, type ReplayResult } from "./replay";
+import { parseChargeForm, parsePaymentForm } from "@/lib/staff/folio";
+import {
+  FOLIO_FIELDS,
+  MAX_FOLIO_FIELD,
+  MAX_NOTE,
+  QUEUE_ACTIONS,
+  folioReplayItemSchema,
+  isFolioAction,
+  replayItemSchema,
+  type FolioAction,
+  type QueueAction,
+  type ReplayReason,
+  type ReplayResult,
+} from "./replay";
 
 /** A change made while offline, waiting to be sent. Pure rules only; the browser storage is in queue-store.ts. */
 export const MAX_QUEUE = 100;
 export const MAX_ATTEMPTS = 5;
 
-export const queuedItemSchema = replayItemSchema.extend({
-  label: z.string().max(120),
-  queuedAt: z.string().max(40),
-  attempts: z.number().int().min(0).max(100),
-});
+const waiting = { label: z.string().max(120), queuedAt: z.string().max(40), attempts: z.number().int().min(0).max(100) };
+/** A housekeeping step, or a folio change. Told apart by `action`, so what an older version stored (housekeeping only) still reads. */
+export const queuedItemSchema = z.union([replayItemSchema.extend(waiting), folioReplayItemSchema.extend(waiting)]);
 export type QueuedItem = z.infer<typeof queuedItemSchema>;
+export type HousekeepingQueuedItem = Extract<QueuedItem, { taskId: string }>;
+export type FolioQueuedItem = Extract<QueuedItem, { reservationId: string }>;
+export const isFolioItem = (i: QueuedItem): i is FolioQueuedItem => isFolioAction(i.action);
+export const isHousekeepingItem = (i: QueuedItem): i is HousekeepingQueuedItem => !isFolioItem(i);
 export type Problem = { id: string; label: string; reason: ReplayReason };
 
 const isAction = (v: unknown): v is QueueAction => (QUEUE_ACTIONS as readonly unknown[]).includes(v);
@@ -25,6 +40,7 @@ export function buildItem(input: {
   id: string;
   now: Date;
 }): QueuedItem | null {
+  if (isFolioAction(input.action)) return buildFolioItem({ ...input, action: input.action });
   if (!isAction(input.action)) return null;
   const taskId = input.fields.taskId ?? "";
   if (!UUID.test(taskId) || !UUID.test(input.userId)) return null;
@@ -42,6 +58,46 @@ export function buildItem(input: {
 }
 
 /**
+ * A folio change from its form. The fields are checked with the same parsers as the screen, so a form the database would refuse
+ * for its shape is refused here, while the person is still looking at it, not later from the banner. The item's id is made here
+ * and is the idempotency key: one per change, the same on every retry, never the key printed in the page.
+ */
+function buildFolioItem(input: {
+  action: FolioAction;
+  fields: Record<string, string>;
+  label: string | undefined;
+  userId: string;
+  id: string;
+  now: Date;
+}): QueuedItem | null {
+  const reservationId = input.fields.reservationId ?? "";
+  if (!UUID.test(reservationId) || !UUID.test(input.userId) || !UUID.test(input.id)) return null;
+  const fields: Record<string, string> = {};
+  for (const name of FOLIO_FIELDS[input.action]) {
+    const value = input.fields[name];
+    if (typeof value === "string" && value !== "") fields[name] = value.slice(0, MAX_FOLIO_FIELD);
+  }
+  const parsed = input.action === "folio_charge" ? parseChargeForm(fields) : parsePaymentForm(fields);
+  if (!parsed.ok) return null;
+  // The banner lists waiting changes by this words, so say what it is: what was charged, or how much was taken.
+  const what =
+    input.action === "folio_charge"
+      ? `Extra: ${(fields.description ?? "").trim()}${fields.quantity && fields.quantity.trim() !== "1" ? ` × ${fields.quantity.trim()}` : ""}`
+      : `Payment for extras: ${(fields.amount ?? "").trim()}`;
+  const fallback = what.slice(0, 120);
+  return {
+    id: input.id,
+    action: input.action,
+    userId: input.userId,
+    reservationId,
+    fields,
+    label: (input.label ?? fallback).slice(0, 120),
+    queuedAt: input.now.toISOString(),
+    attempts: 0,
+  };
+}
+
+/**
  * The time to send as "when this was made": the moment it was queued, as an ISO string with a zone, or undefined when the stored
  * text is not one (the database then uses the arrival time). Never later than `now`, so a clock that was ahead cannot send the future.
  */
@@ -51,10 +107,19 @@ export function madeAtOf(queuedAt: string, now: Date = new Date()): string | und
   return new Date(Math.min(ms, now.getTime())).toISOString();
 }
 
-/** Adds an item unless the same step on the same task is already waiting, or the queue is full. */
+/**
+ * Adds an item unless the queue is full or the same change is already waiting. For housekeeping that is the same step on the same
+ * task. A folio change has no such identity (two identical minibar charges are two charges), so only the very same item id is a
+ * duplicate; a form is locked while its change waits, which is what stops a double tap.
+ */
 export function addItem(queue: QueuedItem[], item: QueuedItem): { queue: QueuedItem[]; added: boolean } {
   if (queue.length >= MAX_QUEUE) return { queue, added: false };
-  if (queue.some((q) => q.taskId === item.taskId && q.action === item.action && q.userId === item.userId)) return { queue, added: false };
+  if (queue.some((q) => q.id === item.id)) return { queue, added: false };
+  if (
+    isHousekeepingItem(item) &&
+    queue.some((q) => isHousekeepingItem(q) && q.taskId === item.taskId && q.action === item.action && q.userId === item.userId)
+  )
+    return { queue, added: false };
   return { queue: [...queue, item], added: true };
 }
 

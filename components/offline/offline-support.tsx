@@ -50,12 +50,16 @@ function unmarkQueued(form: HTMLFormElement) {
   delete form.dataset.queuedId;
   form.querySelectorAll<HTMLElement>("[disabled]").forEach((el) => el.removeAttribute("disabled"));
   form.querySelectorAll("[data-queued-tag]").forEach((el) => el.remove());
+  // A folio form still shows what was just sent, and a second tap would record a second charge or payment. A housekeeping button
+  // has nothing typed in it, and the database ignores a repeated step, so only the folio forms are cleared.
+  if (form.dataset.queue?.startsWith("folio_")) form.reset();
 }
 
 /**
  * Staff pages only. Registers the service worker, keeps the front desk pages saved, watches the connection and says
  * plainly when the person is offline or looking at a saved copy. While offline, a form that may wait (housekeeping: take,
- * start, done) is saved on this computer and sent when the connection is back; every other form is stopped, because a change
+ * start, done; folio: a charge for extras, money taken for extras) is saved on this computer and sent when the connection is
+ * back; every other form is stopped, because a change
  * that cannot reach the server would only fail with a confusing error and look as if it had been saved.
  */
 export function OfflineSupport({ userId }: { userId: string }) {

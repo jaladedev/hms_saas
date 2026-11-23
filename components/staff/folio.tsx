@@ -395,7 +395,7 @@ export function FolioSection({
       {act.post && (
         <details className="mt-6" open={posted.length === 0}>
           <summary className="cursor-pointer text-sm font-medium text-primary-strong">Add a charge</summary>
-          <form action={postFolioCharge} className="mt-3 grid max-w-md gap-3">
+          <form action={postFolioCharge} data-queue="folio_charge" className="mt-3 grid max-w-md gap-3">
             <input type="hidden" name="reservationId" value={reservationId} />
             <input type="hidden" name="idempotencyKey" value={crypto.randomUUID()} />
             <div>
@@ -497,7 +497,7 @@ export function FolioSection({
       {act.recordPayment && (
         <details className="mt-4">
           <summary className="cursor-pointer text-sm font-medium text-primary-strong">Record money taken for extras</summary>
-          <form action={recordFolioPayment} className="mt-3 grid max-w-md gap-3">
+          <form action={recordFolioPayment} data-queue="folio_payment" className="mt-3 grid max-w-md gap-3">
             <input type="hidden" name="reservationId" value={reservationId} />
             <input type="hidden" name="idempotencyKey" value={crypto.randomUUID()} />
             <div>

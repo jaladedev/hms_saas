@@ -1,11 +1,23 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { addItem, applyResults, buildItem, keepOnlyUser, madeAtOf, parseStored, type Problem, type QueuedItem } from "./queue";
-import { replayBodySchema, type ReplayResult } from "./replay";
+import {
+  addItem,
+  applyResults,
+  buildItem,
+  isFolioItem,
+  isHousekeepingItem,
+  keepOnlyUser,
+  madeAtOf,
+  parseStored,
+  type Problem,
+  type QueuedItem,
+} from "./queue";
+import { MAX_REPLAY_ITEMS, folioReplayBodySchema, replayBodySchema, type ReplayResult } from "./replay";
 
 const KEY = "hms-offline-queue-v1";
-const ENDPOINT = "/api/staff/housekeeping/replay";
+const HOUSEKEEPING_ENDPOINT = "/api/staff/housekeeping/replay";
+const FOLIO_ENDPOINT = "/api/staff/folio/replay";
 
 export type QueueState = { items: QueuedItem[]; problems: Problem[]; sending: boolean; signedOut: boolean };
 const EMPTY: QueueState = { items: [], problems: [], sending: false, signedOut: false };
@@ -74,44 +86,85 @@ export function enqueueFromForm(form: HTMLFormElement, userId: string): string |
   return item.id;
 }
 
-/** Sends what is waiting. Resolves to how many changes were applied; one send runs at a time. */
+/** What one endpoint is sent: the body for its items, as the route's own schema reads it. */
+function housekeepingBody(items: QueuedItem[]) {
+  return replayBodySchema.parse({
+    items: items.filter(isHousekeepingItem).map(({ id, action, taskId, note, userId, queuedAt }) => ({
+      id,
+      action,
+      taskId,
+      note,
+      userId,
+      madeAt: madeAtOf(queuedAt),
+    })),
+  });
+}
+function folioBody(items: QueuedItem[]) {
+  return folioReplayBodySchema.parse({
+    items: items.filter(isFolioItem).map(({ id, action, userId, reservationId, fields, queuedAt }) => ({
+      id,
+      action,
+      userId,
+      reservationId,
+      fields,
+      madeAt: madeAtOf(queuedAt),
+    })),
+  });
+}
+
+type Sent = { results: ReplayResult[] } | "signed_out" | "failed";
+
+async function post(endpoint: string, body: unknown): Promise<Sent> {
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+    credentials: "same-origin",
+    cache: "no-store",
+  });
+  // A redirect to the sign-in page, or a 401, means the session ended: keep everything and ask them to sign in.
+  if (res.redirected || res.status === 401) return "signed_out";
+  if (!res.ok) return "failed";
+  const json = (await res.json()) as { results?: ReplayResult[] };
+  return { results: json.results ?? [] };
+}
+
+/**
+ * Sends what is waiting: housekeeping steps to their route, then folio changes to theirs, each in the order they were made (the
+ * two kinds do not depend on each other). Resolves to how many changes were applied; one send runs at a time. A group that fails
+ * leaves its items queued and the other group is still tried; a session that ended stops everything and keeps it all.
+ */
 export function flushQueue(userId: string): Promise<number> {
   if (inFlight) return inFlight;
   const items = keepOnlyUser(read(), userId);
   if (items.length === 0) return Promise.resolve(0);
   set({ sending: true, signedOut: false });
   inFlight = (async () => {
+    let applied = 0;
     try {
-      const body = replayBodySchema.parse({
-        items: items.slice(0, 50).map(({ id, action, taskId, note, userId: u, queuedAt }) => ({
-          id,
-          action,
-          taskId,
-          note,
-          userId: u,
-          madeAt: madeAtOf(queuedAt),
-        })),
-      });
-      const res = await fetch(ENDPOINT, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(body),
-        credentials: "same-origin",
-        cache: "no-store",
-      });
-      // A redirect to the sign-in page, or a 401, means the session ended: keep everything and ask them to sign in.
-      if (res.redirected || res.status === 401) {
-        set({ signedOut: true });
-        return 0;
+      const groups: { endpoint: string; items: QueuedItem[]; body: (i: QueuedItem[]) => unknown }[] = [
+        { endpoint: HOUSEKEEPING_ENDPOINT, items: items.filter(isHousekeepingItem).slice(0, MAX_REPLAY_ITEMS), body: housekeepingBody },
+        { endpoint: FOLIO_ENDPOINT, items: items.filter(isFolioItem).slice(0, MAX_REPLAY_ITEMS), body: folioBody },
+      ];
+      for (const group of groups) {
+        if (group.items.length === 0) continue;
+        let sent: Sent;
+        try {
+          sent = await post(group.endpoint, group.body(group.items));
+        } catch {
+          continue; // The connection dropped again: this group stays queued.
+        }
+        if (sent === "signed_out") {
+          set({ signedOut: true });
+          return applied;
+        }
+        if (sent === "failed") continue;
+        const result = applyResults(read(), sent.results);
+        persist(result.queue);
+        set({ items: keepOnlyUser(result.queue, userId), problems: [...state.problems, ...result.problems] });
+        applied += result.applied;
       }
-      if (!res.ok) return 0;
-      const json = (await res.json()) as { results?: ReplayResult[] };
-      const applied = applyResults(read(), json.results ?? []);
-      persist(applied.queue);
-      set({ items: keepOnlyUser(applied.queue, userId), problems: [...state.problems, ...applied.problems] });
-      return applied.applied;
-    } catch {
-      return 0; // The connection dropped again: everything stays queued.
+      return applied;
     } finally {
       inFlight = null;
       set({ sending: false });
