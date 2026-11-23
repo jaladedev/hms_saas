@@ -3026,6 +3026,25 @@ check("the audit trail records the needs-details outcome without the details", r
   );
   const fdB = await getPage(fdPath, OWNER_B_COOKIE);
   check("hotel B's owner sees none of hotel A's bookings", fdB.status === 200 && doesNotSee(fdB.text, moveRef ?? "BK-", "Ada Okafor"));
+  // the printable front desk sheet (the paper fallback for a dead screen or connection)
+  const sheetOwner = await getPage("/app/front-desk/sheet", OWNER_COOKIE);
+  check(
+    "the printable front desk sheet lists arrivals, in house and departures with a print button, and no prices",
+    sheetOwner.status === 200 &&
+      sees(sheetOwner.text, "Front desk sheet", "Arriving today", "In house", "Departing today", "Print") &&
+      doesNotSee(sheetOwner.text, "\u20a6"),
+    sheetOwner.text.slice(0, 300),
+  );
+  const sheetHk = await getPage("/app/front-desk/sheet", HK_COOKIE);
+  check(
+    "housekeeping sees no booking or guest on the sheet",
+    sheetHk.status === 200 && doesNotSee(sheetHk.text, moveRef ?? "BK-", "Ada Okafor"),
+  );
+  const sheetB = await getPage("/app/front-desk/sheet", OWNER_B_COOKIE);
+  check(
+    "hotel B's owner sees none of hotel A's bookings on the sheet",
+    sheetB.status === 200 && doesNotSee(sheetB.text, moveRef ?? "BK-", "Ada Okafor"),
+  );
   const fdEmpty = await getPage(`/app/front-desk/calendar?from=${plusDays(tonight, 300)}&days=7`, OWNER_COOKIE);
   check(
     "a week with nobody due says so",

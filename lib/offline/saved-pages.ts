@@ -5,7 +5,7 @@ export const CACHED_AT_HEADER = "x-hms-cached-at";
 export const MAX_PAGE_AGE_MS = 24 * 60 * 60 * 1000;
 
 /** The pages front desk needs most; fetched in the background so they are saved before the connection drops. */
-export const WARM_PATHS = ["/app/front-desk", "/app/rooms", "/app/rooms/calendar", "/app/housekeeping"] as const;
+export const WARM_PATHS = ["/app/front-desk", "/app/front-desk/sheet", "/app/rooms", "/app/rooms/calendar", "/app/housekeeping"] as const;
 /** Pages are refreshed at most this often by the background fetch (a visit to a page refreshes it anyway). */
 export const WARM_EVERY_MS = 10 * 60 * 1000;
 

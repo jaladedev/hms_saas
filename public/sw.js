@@ -27,6 +27,7 @@ const SAVABLE_EXACT = new Set([
   "/app",
   "/app/front-desk",
   "/app/front-desk/calendar",
+  "/app/front-desk/sheet",
   "/app/rooms",
   "/app/rooms/calendar",
   "/app/housekeeping",

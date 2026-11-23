@@ -31,7 +31,15 @@ const id = "0b9c1c0e-5d2a-4f7e-9a53-2f8b1a6c7d10";
 
 describe("service worker: which pages are saved", () => {
   it("saves the front desk pages and a booking, nothing with money or guest records", () => {
-    for (const p of ["/app", "/app/front-desk", "/app/front-desk/calendar", "/app/rooms", "/app/rooms/calendar", "/app/housekeeping"]) {
+    for (const p of [
+      "/app",
+      "/app/front-desk",
+      "/app/front-desk/calendar",
+      "/app/front-desk/sheet",
+      "/app/rooms",
+      "/app/rooms/calendar",
+      "/app/housekeeping",
+    ]) {
       expect(sw.exports.isSavablePage(p), p).toBe(true);
     }
     expect(sw.exports.isSavablePage(`/app/reservations/${id}`)).toBe(true);

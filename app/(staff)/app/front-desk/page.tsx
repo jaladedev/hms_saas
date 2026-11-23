@@ -95,6 +95,10 @@ export default async function FrontDeskPage() {
         <Link href="/app/front-desk/calendar" className={linkClass}>
           Arrivals and departures for the days ahead
         </Link>
+        {" · "}
+        <Link href="/app/front-desk/sheet" className={linkClass}>
+          Printable sheet for today
+        </Link>
       </p>
 
       {loadError && <ErrorBanner className="mt-6">The front desk list could not be loaded. Reload the page.</ErrorBanner>}

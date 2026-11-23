@@ -8,6 +8,7 @@ const LABEL: Record<string, string> = {
   app: "Overview",
   "front-desk": "Front Desk",
   calendar: "Calendar",
+  sheet: "Printable sheet",
   reservations: "Reservations",
   new: "New",
   documents: "Documents",

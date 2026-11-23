@@ -145,6 +145,7 @@ const staffPages = [
   "/app",
   "/app/front-desk",
   "/app/front-desk/calendar",
+  "/app/front-desk/sheet",
   "/app/reservations",
   "/app/reservations/new",
   "/app/rooms",
