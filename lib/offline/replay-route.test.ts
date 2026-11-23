@@ -58,9 +58,9 @@ describe("POST /api/staff/housekeeping/replay", () => {
     const res = await post({ items: [a, b, c] });
     expect(res.headers.get("cache-control")).toBe("no-store");
     expect(calls).toEqual([
-      { fn: "claim_housekeeping_task", args: { p_task_id: T1 } },
-      { fn: "start_housekeeping_task", args: { p_task_id: T1 } },
-      { fn: "complete_housekeeping_task", args: { p_task_id: T1, p_note: "done" } },
+      { fn: "claim_housekeeping_task", args: { p_task_id: T1, p_at: null } },
+      { fn: "start_housekeeping_task", args: { p_task_id: T1, p_at: null } },
+      { fn: "complete_housekeeping_task", args: { p_task_id: T1, p_note: "done", p_at: null } },
     ]);
     const { results } = await res.json();
     expect(results.map((r: { id: string; status: string }) => [r.id, r.status])).toEqual([
@@ -71,6 +71,31 @@ describe("POST /api/staff/housekeeping/replay", () => {
     expect(revalidated).toEqual(["/app/housekeeping", "/app/rooms"]);
   });
 
+  it("passes the time each change was made to its database function", async () => {
+    const t1 = "2026-11-23T10:42:00.000Z",
+      t2 = "2026-11-23T10:55:30+01:00";
+    await post({
+      items: [
+        it1({ action: "claim", madeAt: t1 }),
+        it1({ action: "start", madeAt: t1 }),
+        it1({ action: "complete", note: "ok", madeAt: t2 }),
+      ],
+    });
+    expect(calls).toEqual([
+      { fn: "claim_housekeeping_task", args: { p_task_id: T1, p_at: t1 } },
+      { fn: "start_housekeeping_task", args: { p_task_id: T1, p_at: t1 } },
+      { fn: "complete_housekeeping_task", args: { p_task_id: T1, p_note: "ok", p_at: t2 } },
+    ]);
+  });
+
+  it("refuses a made-at that is not a date, and sends no time when none was given", async () => {
+    expect((await post({ items: [it1({ madeAt: "yesterday" })] })).status).toBe(400);
+    expect((await post({ items: [it1({ madeAt: "2026-11-23" })] })).status).toBe(400);
+    expect(calls).toEqual([]);
+    await post({ items: [it1()] });
+    expect(calls[0]?.args.p_at).toBeNull();
+  });
+
   it("never runs a change that another person saved on this computer", async () => {
     const mine = it1(),
       theirs = it1({ userId: OTHER, taskId: T2 });
@@ -78,7 +103,7 @@ describe("POST /api/staff/housekeeping/replay", () => {
     expect(results[0]).toEqual({ id: theirs.id, status: "rejected", reason: "other_user" });
     expect(results[1].status).toBe("done");
     expect(calls).toHaveLength(1);
-    expect(calls[0]?.args).toEqual({ p_task_id: T1 });
+    expect(calls[0]?.args).toEqual({ p_task_id: T1, p_at: null });
   });
 
   it("reports each refusal separately and never shows database text", async () => {

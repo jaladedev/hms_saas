@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_ATTEMPTS, MAX_QUEUE, addItem, applyResults, buildItem, keepOnlyUser, parseStored, type QueuedItem } from "./queue";
+import { MAX_ATTEMPTS, MAX_QUEUE, addItem, applyResults, buildItem, keepOnlyUser, madeAtOf, parseStored, type QueuedItem } from "./queue";
 
 const A = "0b9c1c0e-5d2a-4f7e-9a53-2f8b1a6c7d10";
 const B = "7f3e2a10-1b4c-4d5e-8f60-a1b2c3d4e5f6";
@@ -99,5 +99,24 @@ describe("reading what was stored", () => {
     const bad = { ...item({ id: B }), action: "cancel" };
     const worse = { ...item({ id: T2 }), taskId: "'; drop table" };
     expect(parseStored(JSON.stringify([good, bad, worse, 7, null]))).toEqual([good]);
+  });
+});
+
+describe("the time a waiting change was made", () => {
+  it("is the moment it was queued, as an ISO time with a zone", () => {
+    const later = new Date("2026-11-23T11:20:00Z");
+    expect(madeAtOf("2026-11-23T10:42:00.000Z", later)).toBe("2026-11-23T10:42:00.000Z");
+    expect(madeAtOf("2026-11-23T11:42:00+01:00", later)).toBe("2026-11-23T10:42:00.000Z");
+  });
+  it("is never in the future, so a laptop clock that was ahead cannot send one", () => {
+    expect(madeAtOf("2026-11-24T10:42:00.000Z", new Date("2026-11-23T11:20:00Z"))).toBe("2026-11-23T11:20:00.000Z");
+  });
+  it("is left out when the stored text is not a time", () => {
+    expect(madeAtOf("", now)).toBeUndefined();
+    expect(madeAtOf("soon", now)).toBeUndefined();
+  });
+  it("is the item's own queuedAt for an item built from a form", () => {
+    const built = buildItem({ action: "start", fields: { taskId: T1 }, label: "Room 1", userId: A, id: B, now });
+    expect(built && madeAtOf(built.queuedAt, new Date("2026-11-23T12:00:00Z"))).toBe(now.toISOString());
   });
 });

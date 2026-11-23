@@ -18,6 +18,8 @@ export const replayItemSchema = z.object({
   taskId: uuid,
   note: z.string().max(MAX_NOTE).optional(),
   userId: uuid,
+  /** When the person made the change (the queue's `queuedAt`). The database keeps it inside its own bounds (migration 185). */
+  madeAt: z.iso.datetime({ offset: true }).optional(),
 });
 export const replayBodySchema = z.object({ items: z.array(replayItemSchema).max(MAX_REPLAY_ITEMS) });
 export type ReplayItem = z.infer<typeof replayItemSchema>;

@@ -41,6 +41,16 @@ export function buildItem(input: {
   };
 }
 
+/**
+ * The time to send as "when this was made": the moment it was queued, as an ISO string with a zone, or undefined when the stored
+ * text is not one (the database then uses the arrival time). Never later than `now`, so a clock that was ahead cannot send the future.
+ */
+export function madeAtOf(queuedAt: string, now: Date = new Date()): string | undefined {
+  const ms = Date.parse(queuedAt);
+  if (!Number.isFinite(ms)) return undefined;
+  return new Date(Math.min(ms, now.getTime())).toISOString();
+}
+
 /** Adds an item unless the same step on the same task is already waiting, or the queue is full. */
 export function addItem(queue: QueuedItem[], item: QueuedItem): { queue: QueuedItem[]; added: boolean } {
   if (queue.length >= MAX_QUEUE) return { queue, added: false };

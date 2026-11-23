@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { addItem, applyResults, buildItem, keepOnlyUser, parseStored, type Problem, type QueuedItem } from "./queue";
+import { addItem, applyResults, buildItem, keepOnlyUser, madeAtOf, parseStored, type Problem, type QueuedItem } from "./queue";
 import { replayBodySchema, type ReplayResult } from "./replay";
 
 const KEY = "hms-offline-queue-v1";
@@ -83,7 +83,14 @@ export function flushQueue(userId: string): Promise<number> {
   inFlight = (async () => {
     try {
       const body = replayBodySchema.parse({
-        items: items.slice(0, 50).map(({ id, action, taskId, note, userId: u }) => ({ id, action, taskId, note, userId: u })),
+        items: items.slice(0, 50).map(({ id, action, taskId, note, userId: u, queuedAt }) => ({
+          id,
+          action,
+          taskId,
+          note,
+          userId: u,
+          madeAt: madeAtOf(queuedAt),
+        })),
       });
       const res = await fetch(ENDPOINT, {
         method: "POST",

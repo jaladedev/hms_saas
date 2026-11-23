@@ -1121,4 +1121,8 @@ DK="$(psql -f "$HERE/184_digest_outlook.sql" 2>&1)" || { echo "$DK"; echo "DIGES
 echo "$DK" | grep -E 'PASS' || true
 if echo "$DK" | grep -qE 'FAIL|ERROR'; then echo "$DK"; echo "DIGEST OUTLOOK TESTS FAILED"; exit 1; fi
 
+HM="$(psql -f "$HERE/185_housekeeping_made_at.sql" 2>&1)" || { echo "$HM"; echo "HOUSEKEEPING MADE-AT TESTS FAILED"; exit 1; }
+echo "$HM" | grep -E 'PASS' || true
+if echo "$HM" | grep -qE 'FAIL|ERROR'; then echo "$HM"; echo "HOUSEKEEPING MADE-AT TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

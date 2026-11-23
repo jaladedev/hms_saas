@@ -4691,7 +4691,10 @@ export type Database = {
       }
       claim_emails: { Args: { p_limit?: number }; Returns: Json }
       claim_event_emails: { Args: { p_limit?: number }; Returns: Json }
-      claim_housekeeping_task: { Args: { p_task_id: string }; Returns: Json }
+      claim_housekeeping_task: {
+        Args: { p_at?: string; p_task_id: string }
+        Returns: Json
+      }
       claim_maintenance_request: {
         Args: { p_request_id: string }
         Returns: Json
@@ -4712,7 +4715,7 @@ export type Database = {
         Returns: string
       }
       complete_housekeeping_task: {
-        Args: { p_note?: string; p_task_id: string }
+        Args: { p_at?: string; p_note?: string; p_task_id: string }
         Returns: Json
       }
       confirm_payment: {
@@ -5828,7 +5831,10 @@ export type Database = {
         Args: { p_older_than_minutes?: number }
         Returns: Json
       }
-      start_housekeeping_task: { Args: { p_task_id: string }; Returns: Json }
+      start_housekeeping_task: {
+        Args: { p_at?: string; p_task_id: string }
+        Returns: Json
+      }
       start_maintenance_request: {
         Args: { p_request_id: string }
         Returns: Json
