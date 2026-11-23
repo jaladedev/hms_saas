@@ -730,6 +730,54 @@ export type Database = {
           },
         ]
       }
+      housekeeping_task_photos: {
+        Row: {
+          content_type: string
+          created_at: string
+          id: string
+          kind: string
+          property_id: string
+          size_bytes: number
+          storage_path: string
+          task_id: string
+          tenant_id: string
+          uploaded_by: string | null
+        }
+        ComputedFields: never
+        Insert: {
+          content_type: string
+          created_at?: string
+          id?: string
+          kind: string
+          property_id: string
+          size_bytes: number
+          storage_path: string
+          task_id: string
+          tenant_id: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          content_type?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          property_id?: string
+          size_bytes?: number
+          storage_path?: string
+          task_id?: string
+          tenant_id?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "housekeeping_task_photos_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "housekeeping_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       housekeeping_tasks: {
         Row: {
           assigned_to: string | null
@@ -5150,6 +5198,10 @@ export type Database = {
       guest_withdraw_change_request: {
         Args: { p_reservation_id: string }
         Returns: Json
+      }
+      hk_photo_allowed: {
+        Args: { p_adding: boolean; p_task: string }
+        Returns: boolean
       }
       has_permission: {
         Args: { p_permission: string; p_property: string }

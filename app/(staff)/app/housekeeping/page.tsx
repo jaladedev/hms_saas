@@ -4,6 +4,7 @@ import {
   buttonQuiet,
   cardClass,
   inputClass,
+  linkClass,
   Notice,
   ErrorBanner,
   PageIntro,
@@ -11,6 +12,7 @@ import {
   RoomCardHeader,
   SectionTitle,
 } from "@/components/staff/ui";
+import Link from "next/link";
 import { assignTask, cancelTask, claimTask, completeTask, createTask, startTask } from "@/lib/staff/housekeeping-actions";
 import {
   activityByRoom,
@@ -170,6 +172,11 @@ export default async function HousekeepingPage({ searchParams }: { searchParams:
         {due && <p className={`mt-1 text-xs ${due.overdue ? "font-medium text-critical" : "text-muted"}`}>{due.text}</p>}
         {t.notes && <p className="mt-1 text-sm">{t.notes}</p>}
         <p className="mt-1 text-xs text-muted">With: {whoHas(t)}</p>
+        <p className="mt-1 text-xs">
+          <Link href={`/app/housekeeping-task/${t.id}`} className={linkClass}>
+            Details and photos
+          </Link>
+        </p>
 
         {(a.claim || a.start || a.complete) && (
           <div className="mt-3 flex flex-wrap items-start gap-2">

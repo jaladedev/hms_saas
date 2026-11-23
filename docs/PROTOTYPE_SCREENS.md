@@ -72,7 +72,7 @@ Status: **built**, **partial** (part of the job is done, or only another role ca
 | Prototype screen | Status | Where |
 | --- | --- | --- |
 | Housekeeping Board | built | `/app/housekeeping` |
-| Housekeeping Task | built | one button per room on `/app/housekeeping` |
+| Housekeeping Task | built | one button per room on `/app/housekeeping`; each card links to a task page, `/app/housekeeping-task/[id]`, with up to 3 before and 3 after photos (2026-11-21, migration 181) |
 | Maintenance Board | built | `/app/maintenance` |
 | Maintenance Task | built | `/app/maintenance/[id]` |
 

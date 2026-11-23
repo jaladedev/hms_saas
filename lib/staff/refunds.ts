@@ -270,6 +270,10 @@ export type ErrorCode =
   | "receipt_limit"
   | "receipt_forbidden"
   | "receipt_storage"
+  | "hkphoto_file"
+  | "hkphoto_limit"
+  | "hkphoto_forbidden"
+  | "hkphoto_storage"
   | "photo_file"
   | "photo_limit"
   | "photo_upload"
@@ -528,6 +532,8 @@ export const OK_MESSAGES = {
   rooms_status_changed: "The ticked rooms were updated.",
   receipt_added: "Receipt added.",
   receipt_removed: "Receipt removed.",
+  hkphoto_added: "Photo added.",
+  hkphoto_removed: "Photo removed.",
   guest_updated: "Guest details saved.",
   guest_profile_saved: "Notes and the VIP setting are saved.",
   profile_saved: "Your details and display setting are saved.",
@@ -808,6 +814,14 @@ export function errorMessage(code: string, refundable: number | null, formatMino
       return "You do not have permission to add or remove receipts on this payment.";
     case "receipt_storage":
       return "The receipt file could not be saved or removed. Try again.";
+    case "hkphoto_file":
+      return "Choose a JPEG, PNG or WebP picture, up to 5 MB.";
+    case "hkphoto_limit":
+      return "A task can have up to 3 photos of each kind. Remove one first.";
+    case "hkphoto_forbidden":
+      return "You cannot add or remove photos on this task. It may be assigned to someone else, or cancelled.";
+    case "hkphoto_storage":
+      return "The photo could not be saved or removed. Try again.";
     case "rooms_none_selected":
       return "Tick at least one room first.";
     case "rooms_too_many":

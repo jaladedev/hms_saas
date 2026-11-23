@@ -319,6 +319,11 @@ Signed in as the owner, go through Settings once, in this order, as a person set
    (a phone photo and a PDF). Check that **View** opens it, that the link stops working after about five minutes, that a
    fourth file is refused, that **Remove** removes it, and that a signed-in person without payment permissions cannot see the
    Receipts section's files. In the Supabase dashboard, Storage, the `payment-receipts` bucket must say **Private**.
+7. Housekeeping photos (migration 181): on a phone, open Housekeeping, press **Details and photos** on a task, and add a before photo
+   with the camera and an after photo from the gallery. Check that the picture shows, that its link stops working after about five
+   minutes, that a fourth photo of one kind is refused, that **Remove** removes it, that a housekeeper cannot change a task
+   assigned to someone else, and that an accountant (no housekeeping access) cannot open the task page. In the Supabase dashboard,
+   Storage, the `housekeeping-photos` bucket must say **Private**.
 
 Write down anything that looks wrong, confusing or slow on a phone as well as a laptop.
 
