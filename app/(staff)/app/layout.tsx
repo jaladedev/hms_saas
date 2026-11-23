@@ -2,53 +2,17 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Breadcrumbs } from "@/components/staff/breadcrumbs";
 import { NavMenu } from "@/components/staff/nav-menu";
-import { NavLink } from "@/components/ui/nav-link";
+import { SidebarNav } from "@/components/staff/sidebar-nav";
 import { RouteProgress } from "@/components/ui/route-progress";
 import { signOut } from "@/lib/staff/auth-actions";
 import { PropertySwitcher } from "@/components/staff/property-switcher";
 import { rememberedProperty } from "@/lib/staff/active-property";
 import { pickProperty } from "@/lib/staff/property-choice";
-import { badgeText } from "@/lib/staff/notifications";
 import { parseDensity } from "@/lib/staff/profile";
 import { lookStyle, THEME_WRAPPER_CLASS } from "@/lib/theme";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
-
-// Items without an href are group headings. `sub` indents an item under its heading; `exact` stops a link lighting up
-// for the pages beneath it (Overview would otherwise be lit on every screen).
-const NAV: { label: string; href?: string; exact?: boolean; sub?: boolean }[] = [
-  { label: "Overview", href: "/app", exact: true },
-  { label: "Notifications", href: "/app/notifications" },
-  { label: "Front Desk", href: "/app/front-desk" },
-  { label: "Reservations", href: "/app/reservations" },
-  { label: "Guest requests", href: "/app/requests" },
-  { label: "Waiting list", href: "/app/waitlist" },
-  { label: "Guest messages", href: "/app/messages" },
-  { label: "Experiences", href: "/app/experiences" },
-  { label: "Restaurant & bar", href: "/app/pos" },
-  { label: "Stock", href: "/app/inventory" },
-  { label: "Spa, gym & laundry", href: "/app/services" },
-  { label: "Events", href: "/app/events" },
-  { label: "Room Management", href: "/app/rooms" },
-  { label: "Guests", href: "/app/guests" },
-  { label: "Housekeeping", href: "/app/housekeeping" },
-  { label: "Maintenance", href: "/app/maintenance" },
-  { label: "Shifts & leave", href: "/app/hr" },
-  { label: "Channels", href: "/app/channels" },
-  { label: "Payments & Billing" },
-  { label: "Payments to verify", href: "/app/payments", exact: true, sub: true },
-  { label: "All payments", href: "/app/payments/all", sub: true },
-  { label: "Invoices", href: "/app/invoices", sub: true },
-  { label: "Refunds", href: "/app/refunds", sub: true },
-  { label: "Reconcile payments", href: "/app/reconciliation", sub: true },
-  { label: "Guest emails", href: "/app/emails", sub: true },
-  { label: "Groups", href: "/app/groups" },
-  { label: "Night audit", href: "/app/night-audit" },
-  { label: "Reports", href: "/app/reports" },
-  { label: "Staff & Permissions", href: "/app/staff" },
-  { label: "Settings", href: "/app/settings" },
-];
 
 // Every /app route requires a signed-in user. Permission checks happen again in the
 // database (RLS and has_permission); this redirect is only the first layer.
@@ -97,6 +61,18 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   }[];
   const current = pickProperty(switchable, undefined, await rememberedProperty());
 
+  // The counts shown beside links (a closed section adds its own up), and the words a screen reader hears after each.
+  const badges: Record<string, number> = {
+    "/app/notifications": unread,
+    "/app/messages": newMessages,
+    "/app/maintenance": myRepairs,
+  };
+  const badgeNote: Record<string, string> = {
+    "/app/notifications": "unread",
+    "/app/messages": "new",
+    "/app/maintenance": "assigned to you",
+  };
+
   return (
     <div
       className={`flex min-h-screen flex-col md:flex-row print:block print:min-h-0 print:bg-white ${THEME_WRAPPER_CLASS}`}
@@ -111,6 +87,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
       <RouteProgress />
       <aside className="z-30 shrink-0 bg-navy-900 p-4 text-sm text-white max-md:sticky max-md:top-0 md:sticky md:top-0 md:h-screen md:w-60 print:hidden">
         <NavMenu
+          attention={unread + newMessages + myRepairs}
           footer={
             <>
               <Link
@@ -133,49 +110,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
           }
           brand={<div className="font-display text-xl">HMS</div>}
         >
-          <nav aria-label="Main" className="mt-4 text-white/80 md:mt-6">
-            {NAV.map((item) =>
-              item.href ? (
-                <NavLink
-                  key={item.label}
-                  href={item.href}
-                  exact={item.exact}
-                  className={`block rounded px-2 py-3 text-white hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-white md:py-1.5 ${item.sub ? "md:pl-5" : ""}`}
-                  activeClassName="bg-white/15 font-medium"
-                >
-                  {item.label}
-                  {item.href === "/app/notifications" && unread > 0 && (
-                    <>
-                      <span aria-hidden="true" className="ml-2 rounded-full bg-white/20 px-2 py-0.5 text-xs tabular-nums">
-                        {badgeText(unread)}
-                      </span>
-                      <span className="sr-only">, {unread} unread</span>
-                    </>
-                  )}
-                  {item.href === "/app/messages" && newMessages > 0 && (
-                    <>
-                      <span aria-hidden="true" className="ml-2 rounded-full bg-white/20 px-2 py-0.5 text-xs tabular-nums">
-                        {badgeText(newMessages)}
-                      </span>
-                      <span className="sr-only">, {newMessages} new</span>
-                    </>
-                  )}
-                  {item.href === "/app/maintenance" && myRepairs > 0 && (
-                    <>
-                      <span aria-hidden="true" className="ml-2 rounded-full bg-white/20 px-2 py-0.5 text-xs tabular-nums">
-                        {myRepairs}
-                      </span>
-                      <span className="sr-only">, {myRepairs} assigned to you</span>
-                    </>
-                  )}
-                </NavLink>
-              ) : (
-                <div key={item.label} className="px-2 pb-1 pt-4 text-xs uppercase tracking-wide text-white/50 md:pt-3">
-                  {item.label}
-                </div>
-              ),
-            )}
-          </nav>
+          <SidebarNav badges={badges} badgeNote={badgeNote} />
           {switchable.length > 1 && current && <PropertySwitcher properties={switchable} currentId={current.id} />}
         </NavMenu>
       </aside>

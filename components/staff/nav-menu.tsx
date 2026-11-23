@@ -15,7 +15,18 @@ import { useEffect, useState, type ReactNode } from "react";
  * The menu closes by itself when the person goes to another page: it remembers the page it was opened on, and is open
  * only while that is still the current page (so there is no effect to reset it).
  */
-export function NavMenu({ brand, children, footer }: { brand: ReactNode; children: ReactNode; footer?: ReactNode }) {
+export function NavMenu({
+  brand,
+  children,
+  footer,
+  attention = 0,
+}: {
+  brand: ReactNode;
+  children: ReactNode;
+  footer?: ReactNode;
+  /** How many things need attention across the menu; shown on the Menu button while the menu is closed, so a phone user sees it. */
+  attention?: number;
+}) {
   const here = usePathname() ?? "";
   const [openOn, setOpenOn] = useState<string | null>(null);
   const open = openOn !== null && openOn === here;
@@ -29,6 +40,17 @@ export function NavMenu({ brand, children, footer }: { brand: ReactNode; childre
     return () => document.removeEventListener("keydown", onKey);
   }, [open]);
 
+  // While the phone menu is open the page behind it does not scroll. Restored on close, on a page change and on unmount.
+  useEffect(() => {
+    if (!open) return;
+    if (!window.matchMedia("(max-width: 767px)").matches) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
+
   return (
     <div className="md:flex md:h-full md:flex-col">
       <div className="flex items-center justify-between">
@@ -38,7 +60,7 @@ export function NavMenu({ brand, children, footer }: { brand: ReactNode; childre
           aria-expanded={open}
           aria-controls="staff-menu"
           onClick={() => setOpenOn(open ? null : here)}
-          className="inline-flex items-center gap-2 rounded border border-white/40 px-3 py-1.5 text-white hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-white md:hidden print:hidden"
+          className="inline-flex min-h-11 items-center gap-2 rounded-md border border-white/40 px-4 py-2 text-white hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-white md:hidden print:hidden"
         >
           <svg
             aria-hidden="true"
@@ -52,13 +74,21 @@ export function NavMenu({ brand, children, footer }: { brand: ReactNode; childre
             {open ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M4 7h16M4 12h16M4 17h16" />}
           </svg>
           Menu
+          {!open && attention > 0 && (
+            <>
+              <span aria-hidden="true" className="rounded-full bg-white px-2 py-0.5 text-xs font-medium tabular-nums text-navy-900">
+                {attention > 99 ? "99+" : attention}
+              </span>
+              <span className="sr-only">, {attention} need attention</span>
+            </>
+          )}
         </button>
       </div>
       <div
         id="staff-menu"
-        className={`${open ? "flex max-md:max-h-[calc(100dvh-4.5rem)]" : "hidden"} flex-col md:flex md:min-h-0 md:flex-1`}
+        className={`${open ? "flex max-md:max-h-[calc(100dvh-5.5rem)]" : "hidden"} flex-col md:flex md:min-h-0 md:flex-1`}
       >
-        <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">{children}</div>
         {footer ? <div className="shrink-0 border-t border-white/15 pb-2 pt-4">{footer}</div> : null}
       </div>
     </div>
