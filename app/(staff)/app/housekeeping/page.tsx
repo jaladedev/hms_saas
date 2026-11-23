@@ -181,7 +181,7 @@ export default async function HousekeepingPage({ searchParams }: { searchParams:
         {(a.claim || a.start || a.complete) && (
           <div className="mt-3 flex flex-wrap items-start gap-2">
             {a.claim && (
-              <form action={claimTask}>
+              <form action={claimTask} data-queue="claim" data-queue-label={`Room ${room?.room_number ?? ""} · Take it`}>
                 <input type="hidden" name="taskId" value={t.id} />
                 <PendingButton className={buttonQuiet} pendingLabel="Saving…">
                   Take it
@@ -189,7 +189,7 @@ export default async function HousekeepingPage({ searchParams }: { searchParams:
               </form>
             )}
             {a.start && (
-              <form action={startTask}>
+              <form action={startTask} data-queue="start" data-queue-label={`Room ${room?.room_number ?? ""} · Start`}>
                 <input type="hidden" name="taskId" value={t.id} />
                 <PendingButton className={buttonQuiet} pendingLabel="Starting…">
                   Start
@@ -197,7 +197,12 @@ export default async function HousekeepingPage({ searchParams }: { searchParams:
               </form>
             )}
             {a.complete && (
-              <form action={completeTask} className="flex flex-wrap items-center gap-2">
+              <form
+                action={completeTask}
+                data-queue="complete"
+                data-queue-label={`Room ${room?.room_number ?? ""} · Done`}
+                className="flex flex-wrap items-center gap-2"
+              >
                 <input type="hidden" name="taskId" value={t.id} />
                 <input
                   name="note"

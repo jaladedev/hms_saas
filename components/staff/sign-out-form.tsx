@@ -3,13 +3,14 @@
 import { useRef, useState } from "react";
 import { clearOfflineData } from "@/lib/offline/client";
 import { isOffline } from "@/lib/offline/connection";
+import { discardQueue, flushQueue, pendingCount } from "@/lib/offline/queue-store";
 
 /**
  * The sign-out form. Saved pages are removed from this computer first, so the next person at a shared laptop cannot open
  * the last person's guests. Offline, signing out cannot reach the server, so the saved pages are removed but the person
  * is told they are still signed in rather than being sent to a page that cannot load.
  */
-export function SignOutForm({ action }: { action: () => Promise<void> }) {
+export function SignOutForm({ action, userId }: { action: () => Promise<void>; userId: string }) {
   const formRef = useRef<HTMLFormElement>(null);
   const cleared = useRef(false);
   const [offlineNote, setOfflineNote] = useState(false);
@@ -24,14 +25,25 @@ export function SignOutForm({ action }: { action: () => Promise<void> }) {
         if (cleared.current) return;
         e.preventDefault();
         const offline = isOffline();
-        void clearOfflineData().finally(() => {
+        void (async () => {
+          // Changes made offline belong to this person: send them first, and say so before throwing any away.
+          if (!offline) await flushQueue(userId);
+          const left = pendingCount();
+          if (
+            left > 0 &&
+            !offline &&
+            !window.confirm(`${left} ${left === 1 ? "change has" : "changes have"} not been sent and will be lost. Sign out anyway?`)
+          )
+            return;
+          await clearOfflineData();
           if (offline) {
             setOfflineNote(true);
             return;
           }
+          if (left > 0) discardQueue();
           cleared.current = true;
           formRef.current?.requestSubmit();
-        });
+        })();
       }}
     >
       <button

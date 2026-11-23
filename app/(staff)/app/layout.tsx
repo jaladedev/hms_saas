@@ -103,7 +103,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
                 {data.user.email}
                 <span className="sr-only">, your profile</span>
               </Link>
-              <SignOutForm action={signOut} />
+              <SignOutForm action={signOut} userId={data.user.id} />
             </>
           }
           brand={<div className="font-display text-xl">HMS</div>}
@@ -113,7 +113,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
         </NavMenu>
       </aside>
       <div data-density={density} className="min-w-0 flex-1 p-4 md:p-6 print:p-0">
-        <OfflineSupport />
+        <OfflineSupport userId={data.user.id} />
         <Breadcrumbs />
         {children}
       </div>
