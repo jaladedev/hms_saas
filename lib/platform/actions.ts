@@ -337,6 +337,25 @@ export async function markInvoicePaid(formData: FormData) {
   return done(page, (data as { changed?: boolean } | null)?.changed === false ? "unchanged" : "invoice_paid");
 }
 
+/** Sets the group's billing email and whether overdue invoice reminders are sent to it (migration 186). Admin only; audited. */
+export async function setBillingContact(formData: FormData) {
+  const p = z
+    .object({ tenantId: uuid, email: z.string().max(300), remind: z.union([z.literal("on"), z.literal("")]).optional() })
+    .safeParse(Object.fromEntries(formData));
+  if (!p.success) return fail(LIST, "bad_request");
+  const page = `/platform/${p.data.tenantId}`;
+  const supabase = await adminClient(page);
+  const { data, error } = await supabase.rpc("platform_set_billing_contact", {
+    p_tenant: p.data.tenantId,
+    p_email: p.data.email.trim(),
+    p_remind: p.data.remind === "on",
+  });
+  if (error) return fail(page, classifyPlatformError(error));
+  revalidatePath(page);
+  revalidatePath("/platform/invoices");
+  return done(page, (data as { changed?: boolean } | null)?.changed === false ? "unchanged" : "billing_saved");
+}
+
 export async function voidInvoice(formData: FormData) {
   const p = z.object({ tenantId: uuid, invoiceId: uuid, reason: z.string().max(600) }).safeParse(Object.fromEntries(formData));
   if (!p.success) return fail(LIST, "bad_request");

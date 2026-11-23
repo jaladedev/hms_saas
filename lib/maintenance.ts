@@ -28,6 +28,9 @@ export type MaintenanceDeps = {
   drainInvoiceSms(limit: number): Promise<unknown>;
   /** Tries failed channel bookings again, up to 5 attempts, waiting longer each time (migration 175). */
   retryChannelImports(): Promise<unknown>;
+  /** Queues the overdue reminders for the invoices the platform raised to hotel groups (migration 186), then sends the ones that are due. */
+  queuePlatformInvoiceReminders(): Promise<unknown>;
+  drainPlatformInvoiceReminders(limit: number): Promise<unknown>;
   /** Re-prices the next 60 nights for hotels with automatic pricing on, and switches it off where the plan lost the feature (migration 152). */
   applyDuePricing(): Promise<unknown>;
   /** Sends the webhooks that are due, with back-off between tries (migration 158). */
@@ -65,6 +68,10 @@ export async function runMaintenance(deps: MaintenanceDeps): Promise<Record<stri
     invoiceReminders: await step(async () => ({ queued: await deps.queueInvoiceReminders(), sent: await deps.drainInvoiceReminders(10) })),
     invoiceSms: await step(async () => ({ queued: await deps.queueInvoiceSms(), sent: await deps.drainInvoiceSms(10) })),
     channelRetries: await step(() => deps.retryChannelImports()),
+    platformInvoiceReminders: await step(async () => ({
+      queued: await deps.queuePlatformInvoiceReminders(),
+      sent: await deps.drainPlatformInvoiceReminders(10),
+    })),
     pricing: await step(() => deps.applyDuePricing()),
     webhooks: await step(() => deps.drainWebhooks(25)),
     purge: await step(() => deps.purgeOldData()),

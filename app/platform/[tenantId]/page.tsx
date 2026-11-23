@@ -26,11 +26,13 @@ import {
   testProviderConnection,
   setSubscription,
   setTenantStatus,
+  setBillingContact,
 } from "@/lib/platform/actions";
 import { shortDate } from "@/lib/platform/hotel";
 import { readReadiness, summarize, type Check } from "@/lib/platform/readiness";
 import { formatMoney } from "@/lib/guest-site/format";
 import { createClient } from "@/lib/supabase/server";
+import { PLATFORM_REMINDER_LABEL, platformReminderSummary, readBillingReminders } from "@/lib/platform/invoices";
 import { PendingButton } from "@/components/ui/pending-button";
 
 export const dynamic = "force-dynamic";
@@ -81,13 +83,15 @@ export default async function HotelDetail({
   if (!z.guid().safeParse(tenantId).success) notFound();
   const search = await searchParams;
   const supabase = await createClient();
-  const [{ data, error }, level, planList, invoiceList, readinessData] = await Promise.all([
+  const [{ data, error }, level, planList, invoiceList, readinessData, billingData] = await Promise.all([
     supabase.rpc("platform_tenant_detail", { p_tenant: tenantId }),
     supabase.rpc("platform_level"),
     supabase.rpc("platform_list_plans"),
     supabase.rpc("platform_list_invoices", { p_tenant: tenantId }),
     supabase.rpc("platform_hotel_readiness", { p_tenant: tenantId }),
+    supabase.rpc("platform_billing_reminders", { p_tenant: tenantId }),
   ]);
+  const billing = readBillingReminders(billingData.data);
   const readiness = readReadiness(readinessData.data);
   const ready = readiness ? summarize(readiness) : null;
   const invoices = (invoiceList.data ?? []) as unknown as Invoice[];
@@ -500,6 +504,61 @@ export default async function HotelDetail({
               </li>
             ))}
           </ul>
+        )}
+        {billing && (
+          <div className="mt-6" aria-label="Overdue reminders">
+            <h3 className="font-display text-lg">Overdue reminders</h3>
+            <p className="mt-1 max-w-prose text-sm text-muted">
+              When on, an unpaid invoice past its due date is emailed to the billing address: the first reminder the day after the due date,
+              then one every 7 days, 3 at most. Nothing is charged. It stops when the invoice is paid or voided, or when you switch it off.
+            </p>
+            {billing.invoices.filter((b) => b.info && (b.info.reminders.length > 0 || b.info.nextReminderDate)).length > 0 && (
+              <ul className="mt-2 grid gap-1 text-sm">
+                {billing.invoices
+                  .filter((b) => b.info && (b.info.reminders.length > 0 || b.info.nextReminderDate))
+                  .map((b) => (
+                    <li key={b.invoiceId}>
+                      <span className="font-medium">{b.number}</span>: {platformReminderSummary(b.info, shortDate)}
+                      {b.info?.reminders.map((r) => (
+                        <span key={r.no} className="block text-xs text-muted">
+                          Reminder {r.no}: {PLATFORM_REMINDER_LABEL[r.outcome]}
+                          {r.outcome === "sent" && r.sentAt ? ` on ${shortDate(r.sentAt)}` : ""}
+                        </span>
+                      ))}
+                    </li>
+                  ))}
+              </ul>
+            )}
+            {admin ? (
+              <form action={setBillingContact} className="mt-3 flex flex-wrap items-end gap-3">
+                <input type="hidden" name="tenantId" value={t.id} />
+                <div>
+                  <label htmlFor="billing-email" className="block text-sm">
+                    Billing email
+                  </label>
+                  <input
+                    id="billing-email"
+                    name="email"
+                    type="email"
+                    maxLength={200}
+                    defaultValue={billing.billingEmail ?? ""}
+                    placeholder="accounts@hotel.example"
+                    className={inputClass}
+                  />
+                </div>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" name="remind" value="on" defaultChecked={billing.remind} /> Send overdue reminders
+                </label>
+                <PendingButton className={buttonPrimary} pendingLabel="Saving…">
+                  Save billing contact
+                </PendingButton>
+              </form>
+            ) : (
+              <p className="mt-2 text-sm text-muted">
+                Billing email: {billing.billingEmail ?? "not set"}. Reminders are {billing.remind ? "on" : "off"}. An admin sets them.
+              </p>
+            )}
+          </div>
         )}
         {admin && (
           <form action={raiseInvoice} className="mt-4 flex flex-wrap items-end gap-3">

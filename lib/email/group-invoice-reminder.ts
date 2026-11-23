@@ -60,6 +60,8 @@ export type ReminderDeps = {
   claim(limit: number): Promise<ClaimedReminder[]>;
   mark(id: string, ok: boolean, error?: string): Promise<void>;
   mailer: Mailer;
+  /** Builds the email from a stored payload. Defaults to the group invoice reminder; the platform invoice reminders pass their own. */
+  render?(payload: Record<string, unknown>): RenderedEmail;
   log?(level: "info" | "warn" | "error", message: string, context?: Record<string, unknown>): void;
 };
 
@@ -72,7 +74,7 @@ export async function drainReminders(deps: ReminderDeps, limit: number): Promise
   for (const d of claimed) {
     let error: string | null = null;
     try {
-      await deps.mailer.send({ to: d.to_email, ...renderGroupInvoiceReminder(d.payload), idempotencyKey: d.id });
+      await deps.mailer.send({ to: d.to_email, ...(deps.render ?? renderGroupInvoiceReminder)(d.payload), idempotencyKey: d.id });
     } catch (e) {
       error = e instanceof Error ? e.message : "send failed";
     }

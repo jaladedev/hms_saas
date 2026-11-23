@@ -1,4 +1,11 @@
-import { drainDigestsNow, drainEventEmailsNow, drainInvoiceRemindersNow, drainNoticesNow, drainNow } from "@/lib/email/server";
+import {
+  drainDigestsNow,
+  drainEventEmailsNow,
+  drainInvoiceRemindersNow,
+  drainNoticesNow,
+  drainNow,
+  drainPlatformInvoiceRemindersNow,
+} from "@/lib/email/server";
 import { drainPhotoCleanup } from "@/lib/photo-cleanup";
 import { drainInvoiceSmsNow, drainSmsNow } from "@/lib/sms/server";
 import { drainWebhooks, type Delivery } from "@/lib/api/webhook-send";
@@ -76,6 +83,12 @@ async function handle(request: Request) {
       return data as number;
     },
     drainInvoiceSms: drainInvoiceSmsNow,
+    async queuePlatformInvoiceReminders() {
+      const { data, error } = await db.rpc("queue_platform_invoice_reminders", { p_limit: 100 });
+      if (error) throw new Error(error.message);
+      return data as number;
+    },
+    drainPlatformInvoiceReminders: drainPlatformInvoiceRemindersNow,
     async applyDuePricing() {
       const { data, error } = await db.rpc("apply_due_pricing");
       if (error) throw new Error(error.message);

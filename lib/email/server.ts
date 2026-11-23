@@ -6,6 +6,7 @@ import { createMailer } from "@/lib/email/mailer";
 import { drainDigests, type ClaimedDigest } from "@/lib/email/digest";
 import { drainNotices, type ClaimedNotice } from "@/lib/email/waitlist-notice";
 import { drainReminders, type ClaimedReminder } from "@/lib/email/group-invoice-reminder";
+import { renderPlatformInvoiceReminder } from "@/lib/email/platform-invoice-reminder";
 import { createEventToken } from "@/lib/event-token";
 import { drainEventEmails, type ClaimedEventEmail } from "@/lib/email/event-emails";
 import { drainOutbox, type ClaimedEmail, type DrainResult } from "@/lib/email/outbox";
@@ -55,6 +56,36 @@ export async function drainInvoiceRemindersNow(
         if (error) throw new Error(error.message);
       },
       mailer,
+      log: (level, message, context) => console[level === "info" ? "log" : level](`[email] ${message}`, context ?? {}),
+    },
+    limit,
+  );
+}
+
+/** Sends the platform invoice reminders that are due (migration 186). Same rules as drainNow: nothing is lost when email is not configured. */
+export async function drainPlatformInvoiceRemindersNow(
+  limit: number,
+): Promise<{ claimed: number; sent: number; failed: number } | { skipped: string }> {
+  const mailer = createMailer();
+  if (!mailer) return { skipped: "email not configured" };
+  const db = createServiceClient();
+  const options = {
+    supportEmail: process.env.PLATFORM_SUPPORT_EMAIL ?? "",
+    canPayOnline: Boolean(process.env.PLATFORM_PAYSTACK_SECRET_KEY),
+  };
+  return drainReminders(
+    {
+      async claim(n) {
+        const { data, error } = await db.rpc("claim_platform_invoice_reminders", { p_limit: n });
+        if (error) throw new Error(error.message);
+        return (data ?? []) as ClaimedReminder[];
+      },
+      async mark(id, ok, errorText) {
+        const { error } = await db.rpc("mark_platform_invoice_reminder_result", { p_id: id, p_ok: ok, p_error: errorText ?? null });
+        if (error) throw new Error(error.message);
+      },
+      mailer,
+      render: (payload) => renderPlatformInvoiceReminder(payload, options),
       log: (level, message, context) => console[level === "info" ? "log" : level](`[email] ${message}`, context ?? {}),
     },
     limit,

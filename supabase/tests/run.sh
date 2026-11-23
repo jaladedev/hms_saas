@@ -1125,4 +1125,8 @@ HM="$(psql -f "$HERE/185_housekeeping_made_at.sql" 2>&1)" || { echo "$HM"; echo 
 echo "$HM" | grep -E 'PASS' || true
 if echo "$HM" | grep -qE 'FAIL|ERROR'; then echo "$HM"; echo "HOUSEKEEPING MADE-AT TESTS FAILED"; exit 1; fi
 
+PIR="$(psql -f "$HERE/186_platform_invoice_reminders.sql" 2>&1)" || { echo "$PIR"; echo "PLATFORM INVOICE REMINDER TESTS FAILED"; exit 1; }
+echo "$PIR" | grep -E 'PASS' || true
+if echo "$PIR" | grep -qE 'FAIL|ERROR'; then echo "$PIR"; echo "PLATFORM INVOICE REMINDER TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

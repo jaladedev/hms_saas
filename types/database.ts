@@ -5201,6 +5201,9 @@ export type Database = {
       queue_group_invoice_reminders: { Args: { p_limit?: number }; Returns: number }
       claim_group_invoice_reminders: { Args: { p_limit?: number }; Returns: Json }
       mark_group_invoice_reminder_result: { Args: { p_error?: string; p_id: string; p_ok: boolean }; Returns: undefined }
+      queue_platform_invoice_reminders: { Args: { p_limit?: number }; Returns: number }
+      claim_platform_invoice_reminders: { Args: { p_limit?: number }; Returns: Json }
+      mark_platform_invoice_reminder_result: { Args: { p_error?: string; p_id: string; p_ok: boolean }; Returns: undefined }
       set_waitlist_email: { Args: { p_enabled: boolean; p_property: string }; Returns: undefined }
       queue_sms_messages: { Args: { p_limit?: number }; Returns: Json }
       claim_sms: { Args: { p_limit?: number }; Returns: Json }
@@ -5558,6 +5561,8 @@ export type Database = {
         Returns: Json
       }
       platform_list_invoices: { Args: { p_tenant: string }; Returns: Json }
+      platform_set_billing_contact: { Args: { p_email: string; p_remind: boolean; p_tenant: string }; Returns: Json }
+      platform_billing_reminders: { Args: { p_tenant: string }; Returns: Json }
       platform_mark_invoice_paid: { Args: { p_invoice: string; p_reference: string }; Returns: Json }
       platform_raise_invoice: {
         Args: { p_amount_minor: number; p_due_date: string; p_note: string; p_period_end: string; p_period_start: string; p_tenant: string }

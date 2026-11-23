@@ -140,6 +140,7 @@ export type PlatformCode =
   | "currency"
   | "secret_reference"
   | "payment_mode"
+  | "billing_email"
   | "owner_missing"
   | "slug_taken"
   | "host_taken"
@@ -198,6 +199,8 @@ export function classifyPlatformError(err: { code?: string; message?: string } |
       return "secret_reference";
     case "payment mode":
       return "payment_mode";
+    case "billing email":
+      return "billing_email";
     case "plan":
     case "plan code":
       return "plan";
@@ -254,6 +257,7 @@ export const ERROR_MESSAGES: Record<PlatformCode, string> = {
   currency: FIELD_MESSAGES.currency,
   secret_reference: FIELD_MESSAGES.secret_reference,
   payment_mode: FIELD_MESSAGES.payment_mode,
+  billing_email: "Enter a billing email address such as accounts@hotel.example. Reminders cannot be switched on without one.",
   owner_missing: "The owner's login could not be found or created. Nothing was set up.",
   slug_taken: "Another hotel group already uses that short name.",
   host_taken: "That web address is already in use.",
@@ -305,6 +309,7 @@ export type PlatformOk =
   | "invoice_raised"
   | "invoice_paid"
   | "invoice_voided"
+  | "billing_saved"
   | "ticket_opened"
   | "ticket_note_added"
   | "ticket_status_set"
@@ -328,6 +333,7 @@ export const OK_MESSAGES: Record<PlatformOk, string> = {
   invoice_raised: "Invoice raised.",
   invoice_paid: "Invoice marked paid.",
   invoice_voided: "Invoice voided.",
+  billing_saved: "Billing contact saved.",
   ticket_opened: "Ticket opened.",
   ticket_note_added: "Note added.",
   ticket_status_set: "Ticket status changed.",

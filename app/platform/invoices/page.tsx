@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { EmptyState, ErrorBanner, headRow, linkClass, PageIntro, PageTitle, thRowHead } from "@/components/staff/ui";
-import { formatMoney } from "@/lib/guest-site/format";
-import { daysLate, overdueInvoices, readOpenInvoices, totalsByCurrency } from "@/lib/platform/invoices";
+import { formatDate, formatMoney } from "@/lib/guest-site/format";
+import { daysLate, overdueInvoices, platformReminderSummary, readOpenInvoices, totalsByCurrency } from "@/lib/platform/invoices";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -21,8 +21,8 @@ export default async function PlatformInvoices() {
     <main className="max-w-5xl">
       <PageTitle>Unpaid invoices</PageTitle>
       <PageIntro>
-        Invoices raised and not yet paid, across all hotels, oldest due date first. To record a payment or void one, open the hotel. Nothing
-        is sent to the hotel from here.
+        Invoices raised and not yet paid, across all hotels, oldest due date first. To record a payment or void one, open the hotel.
+        Reminders are emailed to groups that have them switched on (set on the hotel's page); this list only shows what was sent.
       </PageIntro>
       {error && <ErrorBanner className="my-5">The list could not be loaded. Reload the page.</ErrorBanner>}
       {!error && list.length > 0 && (
@@ -67,6 +67,9 @@ export default async function PlatformInvoices() {
                 <th scope="col" className={thRowHead}>
                   Due
                 </th>
+                <th scope="col" className={thRowHead}>
+                  Reminders
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -90,6 +93,7 @@ export default async function PlatformInvoices() {
                     <td className={days > 0 ? "py-2 pr-3 font-medium text-critical" : "py-2 pr-3 text-muted"}>
                       {i.due_date ? (days > 0 ? `${i.due_date} (${days} day${days === 1 ? "" : "s"} late)` : i.due_date) : "No due date"}
                     </td>
+                    <td className="py-2 pr-3 text-muted">{platformReminderSummary(i.reminder, formatDate)}</td>
                   </tr>
                 );
               })}
