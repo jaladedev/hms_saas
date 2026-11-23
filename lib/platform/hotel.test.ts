@@ -5,6 +5,7 @@ import {
   filterProperties,
   monthlyCounts,
   readProperties,
+  DEFAULT_OFF_FLAGS,
   flagCell,
   gridKeys,
   readOverview,
@@ -294,6 +295,16 @@ describe("entitlement grid", () => {
     expect(flagCell(e, "api.access", enforced)).toBe("on");
     expect(flagCell(e, "reports.export", enforced)).toBe("default-on");
     expect(flagCell(e, "branding", enforced)).toBe("unset");
+  });
+  it("shows an opt-in flag without a row as off by default, never as on (a missing row means off for ai_helpers)", () => {
+    const withAi = [...enforced, "ai_helpers"];
+    expect(flagCell([], "ai_helpers", withAi)).toBe("default-off");
+    expect(flagCell([{ feature_key: "ai_helpers", enabled: true }], "ai_helpers", withAi)).toBe("on");
+    expect(flagCell([{ feature_key: "ai_helpers", enabled: false }], "ai_helpers", withAi)).toBe("off");
+    expect(flagCell([], "reports.export", withAi)).toBe("default-on");
+    // not an enforced flag at all: nothing is claimed about it
+    expect(flagCell([], "ai_helpers", enforced)).toBe("unset");
+    expect(DEFAULT_OFF_FLAGS).toEqual(["ai_helpers"]);
   });
   it("lists the enforced flags first, then every other key any hotel has, sorted and once", () => {
     const o = readOverview({

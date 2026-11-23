@@ -453,13 +453,24 @@ export type EntitlementOverview = {
   hotels: (HotelListRow & { entitlements: { feature_key: string; enabled: boolean }[] })[];
 };
 
-/** "on" or "off" is a row an admin set; "default-on" an enforced flag with no row (works); "unset" any other key with no row. */
-export type FlagCell = "on" | "off" | "default-on" | "unset";
+/**
+ * Enforced flags where a missing row means OFF, the opposite of every other flag. They are opt-in: a feature that sends data to a
+ * third party must be switched on on purpose (migration 179, `ai_helpers`). This list must name exactly those flags; when a new
+ * opt-in flag is added in SQL, add it here, or the grid will say "On (default)" for a feature that is off.
+ */
+export const DEFAULT_OFF_FLAGS: readonly string[] = ["ai_helpers"];
+
+/**
+ * "on" or "off" is a row an admin set. An enforced flag with no row is "default-on" (it works) or, for an opt-in flag,
+ * "default-off" (it does not). "unset" is any other key with no row.
+ */
+export type FlagCell = "on" | "off" | "default-on" | "default-off" | "unset";
 
 export function flagCell(entitlements: { feature_key: string; enabled: boolean }[], key: string, enforced: string[]): FlagCell {
   const row = entitlements.find((e) => e.feature_key === key);
   if (row) return row.enabled ? "on" : "off";
-  return enforced.includes(key) ? "default-on" : "unset";
+  if (!enforced.includes(key)) return "unset";
+  return DEFAULT_OFF_FLAGS.includes(key) ? "default-off" : "default-on";
 }
 
 /** The columns of the grid: the enforced flags first (in the platform's order), then any other key some hotel has, sorted. */

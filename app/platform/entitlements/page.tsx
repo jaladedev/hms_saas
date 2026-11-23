@@ -9,6 +9,7 @@ const CELL: Record<FlagCell, { text: string; className: string }> = {
   on: { text: "On", className: "text-ink" },
   off: { text: "Off", className: "font-medium text-critical" },
   "default-on": { text: "On (default)", className: "text-muted" },
+  "default-off": { text: "Off (default)", className: "text-muted" },
   unset: { text: "Not set", className: "text-muted" },
 };
 
