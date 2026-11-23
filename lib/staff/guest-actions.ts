@@ -103,7 +103,9 @@ export async function saveGuestProfile(formData: FormData) {
  * database and nowhere else: it is not put in the address, the audit trail or a log line. Permission (guest.manage) is the database's.
  */
 export async function saveGuestId(formData: FormData) {
-  const parsed = z.object({ guestId: z.guid(), id_type: z.string().max(40), id_number: z.string().max(120) }).safeParse(Object.fromEntries(formData));
+  const parsed = z
+    .object({ guestId: z.guid(), id_type: z.string().max(40), id_number: z.string().max(120) })
+    .safeParse(Object.fromEntries(formData));
   if (!parsed.success) return back("/app/guests", { err: "bad_request" });
   const { guestId, id_type, id_number } = parsed.data;
   const page = `/app/guests/${guestId}`;
@@ -112,8 +114,8 @@ export async function saveGuestId(formData: FormData) {
   const supabase = await staffClient();
   const { error } = await supabase.rpc("set_guest_id", { p_guest: guestId, p_type: id_type, p_number: id_number });
   if (error) {
-    const c = classifyGuestIdError(error);
-    return back(page, { err: c === "unknown" ? "guest_id_forbidden" : c });
+    // An unexpected failure keeps its own "unknown" message: calling it "no permission" would send someone looking in the wrong place.
+    return back(page, { err: classifyGuestIdError(error) });
   }
   revalidatePath(page);
   return ok(page, id_type.trim() === "" ? "guest_id_cleared" : "guest_id_saved");

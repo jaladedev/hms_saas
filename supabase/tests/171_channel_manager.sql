@@ -104,7 +104,8 @@ do $$ declare v_c uuid := t171('conn'); r jsonb; v_res uuid; v_g1 uuid; v_n inte
   insert into channel_room_map (connection_id, external_room_id, room_type_id) values (v_c, 'ONE', '00000000-0000-0000-0000-000000171001');
   r := channel_receive(v_c, 'booking', 'EXT-4', t171_pay(330, 1, 'Cy', 'cy@x.test', 5, '[{"external_room_id":"ONE","adults":1},{"external_room_id":"ONE","adults":1}]'));
   if r ->> 'status' <> 'failed' or (select reservation_id from channel_bookings where external_id = 'EXT-4') is not null or (select count(*) from reservations where source = 'partner') <> v_n then raise exception 'FAIL no room %', r; end if;
-  if exists (select 1 from reservations where arrival_date = current_date + 330) then raise exception 'FAIL half-made booking'; end if;
+  -- partner bookings only: other tests book at current_date + 30 + random() * 300 (128, 129), which is +330 about once in 150 runs
+  if exists (select 1 from reservations where source = 'partner' and arrival_date = current_date + 330) then raise exception 'FAIL half-made booking'; end if;
   -- bad input is refused outright and stores nothing
   perform t_expect(format('select channel_receive(%L, ''booking'', ''BAD'', %L)', v_c, jsonb_build_object('arrival', 'soon')), 'POLICY_VIOLATION: payload');
   perform t_expect(format('select channel_receive(%L, ''booking'', ''BAD'', %L)', v_c, t171_pay(300, 40, 'X', null, 1, v_rooms)), 'POLICY_VIOLATION: payload');

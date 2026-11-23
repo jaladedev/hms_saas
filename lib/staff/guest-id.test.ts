@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { checkGuestIdForm, classifyGuestIdError, isGuestIdType, maskedGuestId, normaliseGuestIdNumber } from "./guest-id";
 
@@ -49,5 +50,14 @@ describe("classifyGuestIdError", () => {
     expect(classifyGuestIdError({ message: "POLICY_VIOLATION: id number" })).toBe("guest_id_number");
     expect(classifyGuestIdError({ message: "NOT_FOUND" })).toBe("guest_id_forbidden");
     expect(classifyGuestIdError({ message: "boom" })).toBe("unknown");
+  });
+});
+
+describe("saveGuestId error handling", () => {
+  it("does not call an unexpected database failure a permission problem", () => {
+    const src = readFileSync("lib/staff/guest-actions.ts", "utf8");
+    const save = src.slice(src.indexOf("export async function saveGuestId"), src.indexOf("export type RevealedGuestId"));
+    expect(save).toContain("back(page, { err: classifyGuestIdError(error) })");
+    expect(save).not.toMatch(/=== "unknown" \?/);
   });
 });
