@@ -9,7 +9,8 @@ import { parseExperienceForm } from "./experiences";
 import { parsePlaceForm } from "./hotel-places";
 import { parseReminderForm } from "./arrival-reminders";
 import { parseExtrasForm } from "./hotel-extras";
-import { parseBasicsForm, parseProfileForm, parseThemeForm } from "./hotel-profile";
+import { parseBasicsForm, parseProfileForm, parseThemeForm, type ThemeForm } from "./hotel-profile";
+import { classifyThemeDraftError, isThemeImageKind, themeImagePath, validateThemeImage } from "./theme-images";
 import { extraPhotoPath, logoPath, PHOTO_BUCKET, validatePhoto } from "./room-photos";
 import { classifySetupError } from "./room-setup";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -202,33 +203,118 @@ export async function removeHotelLogo(formData: FormData) {
 }
 
 /**
- * Saves the hotel's look (migration 093): the guest website and the staff screens for this hotel follow it. Same permission as
- * the rest of this page. "Standard" clears the choice.
+ * The hotel's look is a DRAFT until it is published (migrations 093 to 118 set it live at once; migration 182 puts a draft between).
+ * Saving the form stores the theme, main colour, fonts and corners in the draft; nothing on the website or the staff screens reads a
+ * draft. "Save and publish" does both in one step. Same permission as the rest of this page, and the branding plan flag: the database
+ * answers NOT_FOUND to anyone else, which is shown as a permission refusal.
  */
-export async function saveHotelTheme(formData: FormData) {
+async function saveDraftFields(supabase: Awaited<ReturnType<typeof staffClient>>, v: ThemeForm) {
+  return supabase.rpc("theme_draft_save", {
+    p_property: v.propertyId,
+    p_theme: v.theme ?? "",
+    p_primary: v.primary ?? "",
+    p_font_display: v.fontDisplay ?? "",
+    p_font_body: v.fontBody ?? "",
+    p_radius: v.radius ?? "",
+  });
+}
+
+function themeFailure(error: { code?: string; message: string }) {
+  const c = classifyThemeDraftError(error);
+  return back(PAGE, { err: c === "unknown" ? classifySetupError(error) : c });
+}
+
+export async function saveThemeDraft(formData: FormData) {
   const v = parseThemeForm(Object.fromEntries(formData));
   if (!v.ok) return back(PAGE, { err: v.code });
   const supabase = await staffClient();
-  const themed = await supabase.rpc("set_hotel_theme", { p_property: v.value.propertyId, p_theme: v.value.theme ?? "" });
-  const colored = themed.error
-    ? themed
-    : await supabase.rpc("set_hotel_primary_color", { p_property: v.value.propertyId, p_color: v.value.primary ?? "" });
-  const fonted = colored.error
-    ? colored
-    : await supabase.rpc("set_hotel_fonts", {
-        p_property: v.value.propertyId,
-        p_display: v.value.fontDisplay ?? "",
-        p_body: v.value.fontBody ?? "",
-      });
-  const cornered = fonted.error
-    ? fonted
-    : await supabase.rpc("set_hotel_radius", { p_property: v.value.propertyId, p_radius: v.value.radius ?? "" });
-  const error = cornered.error;
-  if (error) return back(PAGE, { err: /NOT_FOUND/.test(error.message) ? "setup_forbidden" : classifySetupError(error) });
+  const { error } = await saveDraftFields(supabase, v.value);
+  if (error) return themeFailure(error);
+  revalidatePath(PAGE);
+  return ok(PAGE, "theme_draft_saved");
+}
+
+/** Saves the form into the draft and publishes the draft in one step (including any favicon or hero image already added to it). */
+export async function saveAndPublishTheme(formData: FormData) {
+  const v = parseThemeForm(Object.fromEntries(formData));
+  if (!v.ok) return back(PAGE, { err: v.code });
+  const supabase = await staffClient();
+  const saved = await saveDraftFields(supabase, v.value);
+  if (saved.error) return themeFailure(saved.error);
+  const { error } = await supabase.rpc("theme_publish", { p_property: v.value.propertyId });
+  if (error) return themeFailure(error);
   revalidatePath(PAGE);
   revalidatePath("/", "layout");
   revalidatePath("/app", "layout");
-  return ok(PAGE, "hotel_theme_saved");
+  return ok(PAGE, "theme_published");
+}
+
+/** Publishes the saved draft as it is. */
+export async function publishThemeDraft(formData: FormData) {
+  const id = parseProfileForm({ propertyId: formData.get("propertyId") });
+  if (!id.ok) return back(PAGE, { err: id.code });
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("theme_publish", { p_property: id.value.propertyId });
+  if (error) return themeFailure(error);
+  revalidatePath(PAGE);
+  revalidatePath("/", "layout");
+  revalidatePath("/app", "layout");
+  return ok(PAGE, "theme_published");
+}
+
+/** Throws the draft away; the published look is untouched. Files only the draft used are removed by the maintenance job. */
+export async function discardThemeDraft(formData: FormData) {
+  const id = parseProfileForm({ propertyId: formData.get("propertyId") });
+  if (!id.ok) return back(PAGE, { err: id.code });
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("theme_draft_discard", { p_property: id.value.propertyId });
+  if (error) return themeFailure(error);
+  revalidatePath(PAGE);
+  return ok(PAGE, "theme_draft_discarded");
+}
+
+/**
+ * A favicon or hero image for the draft (migration 182): checks the file, stores it with the service key in the hotel's own folder,
+ * then records its path in the draft as the signed-in person. If the database refuses, the stored file is removed again. A file the
+ * draft stops using is queued for removal by the database (unless the published look still uses it).
+ */
+export async function uploadThemeImage(formData: FormData) {
+  const id = parseProfileForm({ propertyId: formData.get("propertyId") });
+  const kind = formData.get("kind");
+  if (!id.ok || !isThemeImageKind(kind)) return back(PAGE, { err: "setup_invalid" });
+  const file = formData.get("image");
+  const check = validateThemeImage(kind, file instanceof File ? file : null);
+  if (!check.ok) return back(PAGE, { err: check.code });
+
+  const supabase = await staffClient();
+  const { data: prop } = await supabase.from("properties").select("tenant_id").eq("id", id.value.propertyId).maybeSingle();
+  if (!prop) return back(PAGE, { err: "setup_forbidden" });
+
+  const path = themeImagePath(kind, prop.tenant_id, id.value.propertyId, randomUUID(), check.ext);
+  const service = createServiceClient();
+  const { error: upErr } = await service.storage
+    .from(PHOTO_BUCKET)
+    .upload(path, await (file as File).arrayBuffer(), { contentType: check.contentType });
+  if (upErr) return back(PAGE, { err: "photo_upload" });
+  const { error } = await supabase.rpc("theme_draft_set_image", { p_property: id.value.propertyId, p_kind: kind, p_path: path });
+  if (error) {
+    await service.storage.from(PHOTO_BUCKET).remove([path]);
+    return themeFailure(error);
+  }
+  revalidatePath(PAGE);
+  return ok(PAGE, "theme_image_saved");
+}
+
+/** Takes the favicon or hero image out of the draft (the published look keeps its own until the draft is published). */
+export async function removeThemeImage(formData: FormData) {
+  const id = parseProfileForm({ propertyId: formData.get("propertyId") });
+  const kind = formData.get("kind");
+  if (!id.ok || !isThemeImageKind(kind)) return back(PAGE, { err: "setup_invalid" });
+  const supabase = await staffClient();
+  const { error } = await supabase.rpc("theme_draft_set_image", { p_property: id.value.propertyId, p_kind: kind, p_path: "" });
+  if (error) return themeFailure(error);
+  revalidatePath(PAGE);
+  return ok(PAGE, "theme_image_removed");
 }
 
 const OFFERS_PAGE = "/app/settings/offers";

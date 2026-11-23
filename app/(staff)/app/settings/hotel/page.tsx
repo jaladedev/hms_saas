@@ -1,4 +1,5 @@
 import { ThemePicker } from "@/components/staff/theme-picker";
+import type { ThemeDraftRow } from "@/lib/staff/theme-images";
 import { buttonPrimary, buttonQuiet, ErrorBanner, inputClass, Notice, PageIntro, PageTitle } from "@/components/staff/ui";
 import { REMINDER_DAY_CHOICES, reminderSummary } from "@/lib/staff/arrival-reminders";
 import { MAX_FACILITIES, MAX_FACILITY_LENGTH } from "@/lib/staff/hotel-extras";
@@ -32,9 +33,14 @@ export default async function HotelDetailsPage({ searchParams }: { searchParams:
   const propQ = await supabase
     .from("properties")
     .select(
-      "id, name, address, city, state, check_in_time, check_out_time, phone, contact_email, intro, logo_path, theme, theme_primary, theme_font_display, theme_font_body, theme_radius, facilities, social_instagram, social_facebook, arrival_reminder_days, review_request_enabled, digest_email, waitlist_email_enabled",
+      "id, name, address, city, state, check_in_time, check_out_time, phone, contact_email, intro, logo_path, theme, theme_primary, theme_font_display, theme_font_body, theme_radius, favicon_path, hero_path, facilities, social_instagram, social_facebook, arrival_reminder_days, review_request_enabled, digest_email, waitlist_email_enabled",
     )
     .order("name");
+  // Unpublished looks. Row-level security shows a draft only to people who may configure the hotel; nobody else's query returns any.
+  const draftQ = await supabase
+    .from("property_theme_drafts")
+    .select("property_id, theme, theme_primary, theme_font_display, theme_font_body, theme_radius, favicon_path, hero_path, updated_at");
+  const drafts = new Map(((draftQ.data ?? []) as ThemeDraftRow[]).map((d) => [d.property_id, d]));
   const properties = (propQ.data ?? []) as {
     id: string;
     name: string;
@@ -52,6 +58,8 @@ export default async function HotelDetailsPage({ searchParams }: { searchParams:
     theme_font_display: string | null;
     theme_font_body: string | null;
     theme_radius: string | null;
+    favicon_path: string | null;
+    hero_path: string | null;
     facilities: string[];
     social_instagram: string | null;
     social_facebook: string | null;
@@ -129,11 +137,17 @@ export default async function HotelDetailsPage({ searchParams }: { searchParams:
               <ThemePicker
                 propertyId={p.id}
                 name={p.name}
-                current={p.theme}
-                primary={p.theme_primary}
-                fontDisplay={p.theme_font_display}
-                fontBody={p.theme_font_body}
-                radius={p.theme_radius}
+                supabaseUrl={supabaseUrl}
+                draft={drafts.get(p.id) ?? null}
+                live={{
+                  theme: p.theme,
+                  theme_primary: p.theme_primary,
+                  theme_font_display: p.theme_font_display,
+                  theme_font_body: p.theme_font_body,
+                  theme_radius: p.theme_radius,
+                  favicon_path: p.favicon_path,
+                  hero_path: p.hero_path,
+                }}
               />
               <form action={saveArrivalReminder} className="mt-8 rounded border border-line bg-white p-4">
                 <input type="hidden" name="propertyId" value={p.id} />

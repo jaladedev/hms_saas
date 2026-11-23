@@ -90,6 +90,12 @@ export default async function GuestHome({ searchParams }: Props) {
 
   return (
     <main>
+      {hotel?.hero ? (
+        <div className="h-44 w-full overflow-hidden border-b border-line bg-white sm:h-60 lg:h-80">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={photoUrl(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "", hotel.hero)} alt="" className="h-full w-full object-cover" />
+        </div>
+      ) : null}
       <section className="mx-auto grid max-w-6xl gap-10 px-4 py-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:py-16">
         <div>
           {place ? (

@@ -57,11 +57,15 @@ const CHOICES: Choice[] = [
 
 /**
  * The hotel's look form with a live preview. Everything shown is computed from lib/theme.ts as the person changes the fields, and
- * nothing is saved until they press the button. The form fields are real, so with no script the form still posts. The server
- * action and the class names come in as props so this file imports only the pure theme rules.
+ * nothing is saved until they press a button: "Save draft" keeps the choices where only the editor sees them, "Save and publish" also
+ * puts them on the website and the staff screens (migration 182). The form fields are real, so with no script the form still posts
+ * (to the draft). The server actions and the class names come in as props so this file imports only the pure theme rules. The values
+ * it starts from are the draft when there is one, else the published look.
  */
 export function ThemeEditor({
   action,
+  publishAction,
+  hasDraft,
   propertyId,
   name,
   current,
@@ -70,9 +74,12 @@ export function ThemeEditor({
   fontBody,
   radius,
   buttonClass,
+  quietButtonClass,
   inputClass,
 }: {
   action: (formData: FormData) => void | Promise<void>;
+  publishAction: (formData: FormData) => void | Promise<void>;
+  hasDraft: boolean;
   propertyId: string;
   name: string;
   current: string | null;
@@ -81,6 +88,7 @@ export function ThemeEditor({
   fontBody?: string | null;
   radius?: string | null;
   buttonClass: string;
+  quietButtonClass: string;
   inputClass: string;
 }) {
   const group = `theme-${propertyId}`;
@@ -284,10 +292,25 @@ export function ThemeEditor({
         </div>
       </div>
 
-      <button type="submit" disabled={colorBad || failing} className={`${buttonClass} mt-4 disabled:opacity-50`}>
-        Save look
-      </button>
-      {dirty && <span className="ml-3 text-xs text-muted">Unsaved changes</span>}
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <button type="submit" disabled={colorBad || failing} className={`${quietButtonClass} disabled:opacity-50`}>
+          Save draft
+        </button>
+        <button
+          type="submit"
+          formAction={publishAction}
+          disabled={colorBad || failing}
+          className={`${buttonClass} disabled:opacity-50`}
+        >
+          Save and publish
+        </button>
+        {dirty && <span className="text-xs text-muted">Unsaved changes</span>}
+      </div>
+      <p className="mt-2 max-w-prose text-xs text-muted">
+        {hasDraft
+          ? "Saving updates your draft. The website and the staff screens keep the published look until you publish."
+          : "A draft is not shown to guests or staff. Save as many times as you like, then publish when it looks right."}
+      </p>
     </form>
   );
 }

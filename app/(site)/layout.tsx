@@ -21,7 +21,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const hotel = await loadHotel();
   if (!hotel) return {};
   const name = headerName(hotel);
-  return { title: { default: `${name}: book your stay`, template: `%s · ${name}` } };
+  const base = { title: { default: `${name}: book your stay`, template: `%s · ${name}` } };
+  // The hotel's own favicon (migration 182), from the public bucket. Without one the app's default icon is used.
+  return hotel.favicon ? { ...base, icons: { icon: photoUrl(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "", hotel.favicon) } } : base;
 }
 
 const linkTap = "max-md:inline-flex max-md:min-h-11 max-md:items-center";

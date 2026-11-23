@@ -1109,4 +1109,8 @@ DO="$(psql -f "$HERE/180_digest_occupancy.sql" 2>&1)" || { echo "$DO"; echo "DIG
 echo "$DO" | grep -E 'PASS' || true
 if echo "$DO" | grep -qE 'FAIL|ERROR'; then echo "$DO"; echo "DIGEST OCCUPANCY TESTS FAILED"; exit 1; fi
 
+TE="$(psql -f "$HERE/182_theme_extras.sql" 2>&1)" || { echo "$TE"; echo "THEME EXTRAS TESTS FAILED"; exit 1; }
+echo "$TE" | grep -E 'PASS' || true
+if echo "$TE" | grep -qE 'FAIL|ERROR'; then echo "$TE"; echo "THEME EXTRAS TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

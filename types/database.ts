@@ -1855,6 +1855,8 @@ export type Database = {
           currency: string
           id: string
           intro: string | null
+          favicon_path: string | null
+          hero_path: string | null
           logo_path: string | null
           name: string
           phone: string | null
@@ -1894,6 +1896,8 @@ export type Database = {
           currency?: string
           id?: string
           intro?: string | null
+          favicon_path?: string | null
+          hero_path?: string | null
           logo_path?: string | null
           name: string
           phone?: string | null
@@ -1932,6 +1936,8 @@ export type Database = {
           currency?: string
           id?: string
           intro?: string | null
+          favicon_path?: string | null
+          hero_path?: string | null
           logo_path?: string | null
           name?: string
           phone?: string | null
@@ -2005,6 +2011,60 @@ export type Database = {
             foreignKeyName: "property_policies_tenant_id_property_id_fkey"
             columns: ["tenant_id", "property_id"]
             isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      property_theme_drafts: {
+        Row: {
+          created_at: string
+          favicon_path: string | null
+          hero_path: string | null
+          property_id: string
+          saved_by: string | null
+          tenant_id: string
+          theme: string | null
+          theme_font_body: string | null
+          theme_font_display: string | null
+          theme_primary: string | null
+          theme_radius: string | null
+          updated_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          created_at?: string
+          favicon_path?: string | null
+          hero_path?: string | null
+          property_id: string
+          saved_by?: string | null
+          tenant_id: string
+          theme?: string | null
+          theme_font_body?: string | null
+          theme_font_display?: string | null
+          theme_primary?: string | null
+          theme_radius?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          favicon_path?: string | null
+          hero_path?: string | null
+          property_id?: string
+          saved_by?: string | null
+          tenant_id?: string
+          theme?: string | null
+          theme_font_body?: string | null
+          theme_font_display?: string | null
+          theme_primary?: string | null
+          theme_radius?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_theme_drafts_tenant_id_property_id_fkey"
+            columns: ["tenant_id", "property_id"]
+            isOneToOne: true
             referencedRelation: "properties"
             referencedColumns: ["tenant_id", "id"]
           },
@@ -5354,6 +5414,10 @@ export type Database = {
       set_hotel_primary_color: { Args: { p_color: string; p_property: string }; Returns: undefined }
       set_hotel_radius: { Args: { p_property: string; p_radius: string }; Returns: undefined }
       set_hotel_theme: { Args: { p_property: string; p_theme: string }; Returns: undefined }
+      theme_draft_discard: { Args: { p_property: string }; Returns: boolean }
+      theme_draft_save: { Args: { p_font_body: string; p_font_display: string; p_primary: string; p_property: string; p_radius: string; p_theme: string }; Returns: undefined }
+      theme_draft_set_image: { Args: { p_kind: string; p_path: string; p_property: string }; Returns: undefined }
+      theme_publish: { Args: { p_property: string }; Returns: undefined }
       lock_room_types: {
         Args: { p_property: string; p_types: string[] }
         Returns: undefined

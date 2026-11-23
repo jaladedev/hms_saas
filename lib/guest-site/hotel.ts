@@ -20,6 +20,8 @@ export type GuestHotel = {
   facilities?: string[] | null; // what the hotel as a whole offers: Pool, Restaurant (migration 105)
   instagram?: string | null; // https://instagram.com/<name>, or null
   facebook?: string | null; // https://facebook.com/<name>, or null
+  favicon?: string | null; // storage path in the room-photos bucket (migration 182)
+  hero?: string | null; // storage path of the banner above the home page (migration 182)
 };
 
 /** The name part of a hotel's social link, the same rules as the database checks (migration 105). */

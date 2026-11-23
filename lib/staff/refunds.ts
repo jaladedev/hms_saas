@@ -216,6 +216,8 @@ export type ErrorCode =
   | "theme_contrast"
   | "theme_font"
   | "theme_radius"
+  | "theme_image_file"
+  | "theme_no_draft"
   | "offer_invalid"
   | "promo_invalid"
   | "promo_dates"
@@ -525,6 +527,11 @@ export const OK_MESSAGES = {
   invoice_paid: "Payment received. The invoice is marked paid. Thank you.",
   invoice_pay_pending: "We have not received the payment yet. If you paid, it will show here shortly; otherwise try again.",
   hotel_theme_saved: "Look saved. Your website and the staff screens for this hotel now use it.",
+  theme_draft_saved: "Draft saved. Your website and the staff screens still show the published look until you publish.",
+  theme_published: "Published. Your website and the staff screens for this hotel now use the new look.",
+  theme_draft_discarded: "Draft discarded. The published look is unchanged.",
+  theme_image_saved: "Image added to the draft. Publish the draft to show it on your website.",
+  theme_image_removed: "Image removed from the draft. Publish the draft to take it off your website.",
   photo_moved: "Photo order saved.",
   photo_caption_saved: "Caption saved.",
   room_added: "Room added.",
@@ -782,6 +789,10 @@ export function errorMessage(code: string, refundable: number | null, formatMino
       return "A hotel can have up to 12 offers. Delete one you no longer need first.";
     case "theme_radius":
       return "Choose the corners from the list, or leave them as standard.";
+    case "theme_image_file":
+      return "Choose a JPEG, PNG or WebP picture within the size limit shown under the box.";
+    case "theme_no_draft":
+      return "There is no draft to publish. Save the look as a draft first.";
     case "theme_font":
       return "Choose a heading font and a body font from the lists, or leave them as the look's own.";
     case "theme_contrast":
