@@ -97,8 +97,8 @@ export default async function GuestPage({
       <section aria-labelledby="guest-id">
         <SectionTitle id="guest-id">ID document</SectionTitle>
         <p className="mt-1 max-w-prose text-xs text-muted">
-          Optional. Kept apart from the contact details, shown masked, and deleted automatically 90 days after the guest&apos;s last stay. Never put in
-          emails, exports or the guest website.
+          Optional. Kept apart from the contact details, shown masked, and deleted automatically 90 days after the guest&apos;s last stay.
+          Never put in emails, exports or the guest website.
         </p>
         <p className="mt-2 text-sm">{idSummary ? maskedGuestId(idSummary) : "No ID on file."}</p>
         {idSummary && canReveal && <RevealGuestId guestId={guest.id} reveal={revealGuestId} buttonClass={buttonQuiet} />}

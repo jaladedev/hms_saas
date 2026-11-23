@@ -43,7 +43,10 @@ export function maskedGuestId(s: { id_type: string; last3: string }): string {
 }
 
 /** Turns a database refusal into one of our codes. Raw database text never reaches the page. */
-export function classifyGuestIdError(err: { code?: string; message?: string }): "guest_id_both" | "guest_id_type" | "guest_id_number" | "guest_id_forbidden" | "unknown" {
+export function classifyGuestIdError(err: {
+  code?: string;
+  message?: string;
+}): "guest_id_both" | "guest_id_type" | "guest_id_number" | "guest_id_forbidden" | "unknown" {
   const msg = err.message ?? "";
   if (/id both/i.test(msg)) return "guest_id_both";
   if (/id type/i.test(msg)) return "guest_id_type";

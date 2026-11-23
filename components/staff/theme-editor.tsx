@@ -296,12 +296,7 @@ export function ThemeEditor({
         <button type="submit" disabled={colorBad || failing} className={`${quietButtonClass} disabled:opacity-50`}>
           Save draft
         </button>
-        <button
-          type="submit"
-          formAction={publishAction}
-          disabled={colorBad || failing}
-          className={`${buttonClass} disabled:opacity-50`}
-        >
+        <button type="submit" formAction={publishAction} disabled={colorBad || failing} className={`${buttonClass} disabled:opacity-50`}>
           Save and publish
         </button>
         {dirty && <span className="text-xs text-muted">Unsaved changes</span>}

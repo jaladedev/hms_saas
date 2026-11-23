@@ -34,7 +34,10 @@ describe("validateThemeImage", () => {
     }
   });
   it("holds a favicon to a smaller size than a hero image", () => {
-    expect(validateThemeImage("favicon", { type: "image/png", size: MAX_FAVICON_BYTES + 1 })).toEqual({ ok: false, code: "theme_image_file" });
+    expect(validateThemeImage("favicon", { type: "image/png", size: MAX_FAVICON_BYTES + 1 })).toEqual({
+      ok: false,
+      code: "theme_image_file",
+    });
     expect(validateThemeImage("hero", { type: "image/png", size: MAX_FAVICON_BYTES + 1 }).ok).toBe(true);
     expect(validateThemeImage("hero", { type: "image/png", size: MAX_HERO_BYTES + 1 })).toEqual({ ok: false, code: "theme_image_file" });
   });
@@ -64,13 +67,17 @@ describe("themeImagePath and isThemeImageKind", () => {
 describe("draftChanges and joinChanges", () => {
   it("lists exactly what differs, in a fixed order", () => {
     expect(draftChanges(look(), look())).toEqual([]);
-    expect(draftChanges(look(), look({ theme: "luxury", theme_primary: "#0f766e", hero_path: "a" }))).toEqual(["theme", "main colour", "hero image"]);
-    expect(draftChanges(look({ favicon_path: "x" }), look({ favicon_path: null, theme_radius: "round", theme_font_body: "inter", theme_font_display: "lora" }))).toEqual([
-      "heading font",
-      "body font",
-      "corners",
-      "favicon",
+    expect(draftChanges(look(), look({ theme: "luxury", theme_primary: "#0f766e", hero_path: "a" }))).toEqual([
+      "theme",
+      "main colour",
+      "hero image",
     ]);
+    expect(
+      draftChanges(
+        look({ favicon_path: "x" }),
+        look({ favicon_path: null, theme_radius: "round", theme_font_body: "inter", theme_font_display: "lora" }),
+      ),
+    ).toEqual(["heading font", "body font", "corners", "favicon"]);
   });
   it("reads a list in words", () => {
     expect(joinChanges([])).toBe("");

@@ -73,7 +73,9 @@ export function ThemePicker({
           </div>
         </div>
       ) : (
-        <p className="text-sm text-muted">No draft. Changes below are saved as a draft first, and nothing changes for guests until you publish.</p>
+        <p className="text-sm text-muted">
+          No draft. Changes below are saved as a draft first, and nothing changes for guests until you publish.
+        </p>
       )}
 
       <div className="mt-6 grid gap-6 sm:grid-cols-2">
@@ -90,7 +92,11 @@ export function ThemePicker({
                   <img
                     src={photoUrl(supabaseUrl, path)}
                     alt={`${name} ${THEME_IMAGE_LABEL[kind].toLowerCase()}${draft ? " (draft)" : ""}`}
-                    className={kind === "favicon" ? "h-10 w-10 rounded border border-line object-contain" : "h-20 max-w-48 rounded border border-line object-cover"}
+                    className={
+                      kind === "favicon"
+                        ? "h-10 w-10 rounded border border-line object-contain"
+                        : "h-20 max-w-48 rounded border border-line object-cover"
+                    }
                   />
                   <form action={removeThemeImage}>
                     <input type="hidden" name="propertyId" value={propertyId} />

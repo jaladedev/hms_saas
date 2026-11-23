@@ -19,9 +19,7 @@ export function isThemeImageKind(v: unknown): v is ThemeImageKind {
 export const THEME_IMAGE_LABEL: Record<ThemeImageKind, string> = { favicon: "Favicon", hero: "Hero image" };
 export const THEME_IMAGE_LIMIT_TEXT: Record<ThemeImageKind, string> = { favicon: "512 KB", hero: "2 MB" };
 
-export type ThemeImageCheck =
-  | { ok: true; contentType: string; ext: "jpg" | "png" | "webp" }
-  | { ok: false; code: "theme_image_file" };
+export type ThemeImageCheck = { ok: true; contentType: string; ext: "jpg" | "png" | "webp" } | { ok: false; code: "theme_image_file" };
 
 /** Checks the chosen file's type and size for its kind. The type is the one the browser reports; storage checks it again. */
 export function validateThemeImage(kind: ThemeImageKind, file: { type: string; size: number } | null | undefined): ThemeImageCheck {
@@ -69,7 +67,10 @@ export function joinChanges(changes: string[]): string {
 }
 
 /** Turns a database refusal on the draft into one of our codes. Raw database text never reaches the page. */
-export function classifyThemeDraftError(err: { code?: string; message?: string }): "theme_no_draft" | "setup_forbidden" | "theme_image_file" | "setup_invalid" | "unknown" {
+export function classifyThemeDraftError(err: {
+  code?: string;
+  message?: string;
+}): "theme_no_draft" | "setup_forbidden" | "theme_image_file" | "setup_invalid" | "unknown" {
   const msg = err.message ?? "";
   if (/INVALID_STATE: no draft/i.test(msg)) return "theme_no_draft";
   if (/NOT_FOUND/.test(msg) || err.code === "42501" || /row-level security/i.test(msg)) return "setup_forbidden";

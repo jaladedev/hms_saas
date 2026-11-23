@@ -31,7 +31,8 @@ export function RevealGuestId({
     <div className="mt-2">
       {shown ? (
         <p className="text-sm" role="status">
-          {isGuestIdType(shown.id_type) ? GUEST_ID_TYPE_LABEL[shown.id_type] : "ID"}: <span className="font-mono font-medium">{shown.id_number}</span>{" "}
+          {isGuestIdType(shown.id_type) ? GUEST_ID_TYPE_LABEL[shown.id_type] : "ID"}:{" "}
+          <span className="font-mono font-medium">{shown.id_number}</span>{" "}
           <button type="button" onClick={() => setShown(null)} className={`${buttonClass} ml-2`}>
             Hide
           </button>

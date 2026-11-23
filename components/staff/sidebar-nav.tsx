@@ -150,7 +150,10 @@ export function SidebarNav({ badges, badgeNote }: { badges: Record<string, numbe
                     {g.label}
                     {!isOpen && total > 0 && (
                       <>
-                        <span aria-hidden="true" className="ml-2 rounded-full bg-white px-2 py-0.5 align-middle text-[11px] font-medium normal-case tabular-nums text-navy-900">
+                        <span
+                          aria-hidden="true"
+                          className="ml-2 rounded-full bg-white px-2 py-0.5 align-middle text-[11px] font-medium normal-case tabular-nums text-navy-900"
+                        >
                           {badgeText(total)}
                         </span>
                         <span className="sr-only">, {total} need attention</span>
