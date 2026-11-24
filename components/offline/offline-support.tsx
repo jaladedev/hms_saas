@@ -235,12 +235,29 @@ export function OfflineSupport({ userId }: { userId: string }) {
         </div>
       )}
       {queue.problems.map((p) => (
-        <p key={p.id} className="mt-2 text-critical">
-          <strong>{p.label}</strong> was not applied: {REASON_TEXT[p.reason]}.{" "}
-          <button type="button" onClick={() => dismissProblem(p.id)} className="underline underline-offset-2">
-            Dismiss
-          </button>
-        </p>
+        <div key={p.id} className="mt-2">
+          <p className="text-critical">
+            <strong>{p.label}</strong> was not applied: {REASON_TEXT[p.reason]}.{" "}
+            <button type="button" onClick={() => dismissProblem(p.id)} className="underline underline-offset-2">
+              Dismiss
+            </button>
+          </p>
+          {p.kept !== undefined && (
+            <>
+              <label htmlFor={`kept-${p.id}`} className="mt-1 block text-xs text-muted">
+                What you wrote (kept here until you dismiss this). Copy it into the note if you still want it.
+              </label>
+              <textarea
+                id={`kept-${p.id}`}
+                readOnly
+                rows={3}
+                defaultValue={p.kept}
+                onFocus={(e) => e.currentTarget.select()}
+                className="mt-1 w-full max-w-xl rounded border border-line bg-white p-2 text-sm text-ink"
+              />
+            </>
+          )}
+        </div>
       ))}
       {notice && <p className={state === "none" && waiting === 0 && queue.problems.length === 0 ? "" : "mt-2"}>{notice}</p>}
     </div>

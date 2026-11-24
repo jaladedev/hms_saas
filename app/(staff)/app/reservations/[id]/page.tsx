@@ -498,11 +498,19 @@ export default async function ReservationPage({
       <section className="mt-10" aria-labelledby="staff-note">
         <SectionTitle id="staff-note">Staff note</SectionTitle>
         <p className="mt-1 max-w-prose text-sm text-muted">
-          For the hotel&apos;s staff only. It is not shown to the guest or put in any email or document. Not for payment details or identity numbers.
+          For the hotel&apos;s staff only. It is not shown to the guest or put in any email or document. Not for payment details or identity
+          numbers.
         </p>
         {canNote ? (
-          <form action={saveReservationNote} className="mt-3 grid max-w-xl gap-3">
+          <form
+            action={saveReservationNote}
+            data-queue="note_set"
+            data-queue-label={`Note on ${res.booking_reference}`}
+            className="mt-3 grid max-w-xl gap-3"
+          >
             <input type="hidden" name="reservationId" value={res.id} />
+            {/* What this page shows now. A note saved offline is applied only if the booking's note is still this text. */}
+            <input type="hidden" name="expected" value={res.staff_note ?? ""} />
             <div>
               <label htmlFor="staff-note-field" className="block text-sm font-medium">
                 Note

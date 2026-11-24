@@ -5418,6 +5418,7 @@ export type Database = {
       record_heartbeat: { Args: { p_error?: string; p_job: string; p_ok: boolean }; Returns: undefined }
       ops_health: { Args: Record<string, never>; Returns: Json }
       set_reservation_note: { Args: { p_note: string; p_reservation: string }; Returns: Json }
+      set_reservation_note_if_unchanged: { Args: { p_at?: string; p_expected: string; p_note: string; p_reservation: string }; Returns: Json }
       set_guest_profile: { Args: { p_guest: string; p_notes: string; p_vip: boolean }; Returns: Json }
       set_hotel_extras: { Args: { p_facebook: string; p_facilities: string[]; p_instagram: string; p_property: string }; Returns: undefined }
       set_hotel_fonts: { Args: { p_body: string; p_display: string; p_property: string }; Returns: undefined }

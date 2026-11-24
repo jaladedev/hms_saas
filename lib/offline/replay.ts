@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MAX_STAFF_NOTE } from "@/lib/staff/reservation-note";
 
 /**
  * Staff actions that can wait for the connection (see TODO.md "Unreliable internet"): taking, starting and finishing a housekeeping
@@ -46,7 +47,8 @@ export type ReplayReason =
   | "not_open"
   | "overpay"
   | "invalid"
-  | "no_access";
+  | "no_access"
+  | "changed";
 export type ReplayResult = { id: string; status: ReplayStatus; reason?: ReplayReason };
 
 /** What the person is told when a waiting change could not be applied. Fixed wording: database text never reaches the browser. */
@@ -61,6 +63,7 @@ export const REASON_TEXT: Record<ReplayReason, string> = {
   overpay: "it was more than is still owed for extras",
   invalid: "the details were not accepted",
   no_access: "the booking could not be found, or you no longer have access to it",
+  changed: "someone else changed the note first",
 };
 
 /** Turns a database refusal into what to do with the waiting change. Anything unrecognised is retried, a few times. */
@@ -134,4 +137,38 @@ export function offlinePaymentNote(note: string | null, madeAt: string | undefin
   const stamp = `Taken offline at ${new Date(Math.min(ms, now.getTime())).toISOString().slice(0, 16).replace("T", " ")} UTC`;
   const room = MAX_NOTE - stamp.length - 3;
   return own ? `${own.slice(0, room).trimEnd()} · ${stamp}` : stamp;
+}
+
+/**
+ * A staff note on a booking, saved while offline (migration 190). A note REPLACES the whole text, so it is not sent as a plain
+ * overwrite: it carries the text it replaced (`expected`, what the page showed when the person started typing) and the database
+ * applies it only if the booking's note is still that text. If someone else changed the note meanwhile it is refused and the app
+ * keeps what the person typed. Sending it twice is harmless: a note already saved as this text is a no-op.
+ */
+export const NOTE_ACTIONS = ["note_set"] as const;
+export type NoteAction = (typeof NOTE_ACTIONS)[number];
+export const isNoteAction = (v: unknown): v is NoteAction => (NOTE_ACTIONS as readonly unknown[]).includes(v);
+/** Room for stray spaces and line breaks around a note of the database's limit; the database counts the cleaned text. */
+export const MAX_NOTE_FIELD = MAX_STAFF_NOTE + 200;
+
+export const noteReplayItemSchema = z.object({
+  id: uuid,
+  action: z.literal("note_set"),
+  userId: uuid,
+  reservationId: uuid,
+  /** The text to save; empty clears the note. */
+  note: z.string().max(MAX_NOTE_FIELD),
+  /** The text the person replaced, as the page showed it; empty when there was no note. */
+  expected: z.string().max(MAX_NOTE_FIELD),
+  madeAt: z.iso.datetime({ offset: true }).optional(),
+});
+export const noteReplayBodySchema = z.object({ items: z.array(noteReplayItemSchema).max(MAX_REPLAY_ITEMS) });
+export type NoteReplayItem = z.infer<typeof noteReplayItemSchema>;
+
+/** Turns a database refusal of a waiting note into what to do with it. Anything unrecognised is retried, a few times. */
+export function classifyNoteReplayError(message: string): Pick<ReplayResult, "status" | "reason"> {
+  if (/CONFLICT/.test(message)) return { status: "rejected", reason: "changed" };
+  if (/POLICY_VIOLATION/.test(message)) return { status: "rejected", reason: "invalid" };
+  if (/NOT_FOUND|FORBIDDEN/.test(message)) return { status: "rejected", reason: "no_access" };
+  return { status: "retry" };
 }

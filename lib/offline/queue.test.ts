@@ -6,11 +6,16 @@ import {
   applyResults,
   buildItem,
   isFolioItem,
+  isHousekeepingItem,
+  isNoteItem,
   keepOnlyUser,
+  keptOnly,
   madeAtOf,
+  parseKept,
   parseStored,
   type FolioQueuedItem,
   type HousekeepingQueuedItem,
+  type NoteQueuedItem,
 } from "./queue";
 
 const A = "0b9c1c0e-5d2a-4f7e-9a53-2f8b1a6c7d10";
@@ -279,5 +284,111 @@ describe("reading stored folio changes", () => {
     const tooManyFields = { ...f, fields: Object.fromEntries(Array.from({ length: 13 }, (_, i) => [`f${i}`, "1"])) };
     const hugeValue = { ...f, fields: { description: "x".repeat(601) } };
     expect(parseStored(JSON.stringify([noBooking, wrongAction, tooManyFields, hugeValue]))).toEqual([]);
+  });
+});
+
+describe("a booking note waiting for the connection", () => {
+  const form = {
+    action: "note_set",
+    fields: { reservationId: T2, note: "Arrives late, will call", expected: "Paying by transfer" },
+    label: "Note on ABC123",
+    userId: A,
+    id: B,
+    now,
+  };
+  const note = (over: Partial<NoteQueuedItem> = {}): NoteQueuedItem =>
+    ({
+      id: crypto.randomUUID(),
+      action: "note_set",
+      userId: A,
+      reservationId: T2,
+      note: "new",
+      expected: "old",
+      label: "Note",
+      queuedAt: now.toISOString(),
+      attempts: 0,
+      ...over,
+    }) as NoteQueuedItem;
+
+  it("is built from the form with the text typed and the text it replaced", () => {
+    const built = buildItem(form)!;
+    expect(isNoteItem(built)).toBe(true);
+    expect(isHousekeepingItem(built) || isFolioItem(built)).toBe(false);
+    expect(built).toMatchObject({
+      action: "note_set",
+      reservationId: T2,
+      note: "Arrives late, will call",
+      expected: "Paying by transfer",
+      userId: A,
+      attempts: 0,
+    });
+  });
+  it("may clear the note, and may replace no note at all", () => {
+    expect(buildItem({ ...form, fields: { ...form.fields, note: "" } })).toMatchObject({ note: "" });
+    expect(buildItem({ ...form, fields: { reservationId: T2, note: "First note" } })).toMatchObject({ note: "First note", expected: "" });
+  });
+  it("is refused when the booking is not a booking, or the note is longer than the database allows", () => {
+    expect(buildItem({ ...form, fields: { ...form.fields, reservationId: "nope" } })).toBeNull();
+    expect(buildItem({ ...form, fields: { note: "x" } })).toBeNull();
+    expect(buildItem({ ...form, fields: { ...form.fields, note: "x".repeat(1001) } })).toBeNull();
+    expect(buildItem({ ...form, fields: { ...form.fields, note: "x".repeat(1000) } })).not.toBeNull();
+    expect(buildItem({ ...form, userId: "nope" })).toBeNull();
+  });
+  it("replaces an earlier waiting note on the same booking, and keeps the text that one expected", () => {
+    const first = note({ note: "one", expected: "what the database holds" });
+    const second = note({ note: "two", expected: "one (a copy of the page that was not refreshed)" });
+    const { queue, added } = addItem([first], second);
+    expect(added).toBe(true);
+    expect(queue).toHaveLength(1);
+    expect(queue[0]).toMatchObject({ id: second.id, note: "two", expected: "what the database holds" });
+  });
+  it("does not touch a note for another booking, another person, or any other kind of change", () => {
+    const other = note({ reservationId: T1 });
+    const mine = item();
+    const { queue } = addItem([other, mine], note({ note: "x" }));
+    expect(queue).toHaveLength(3);
+    expect(queue.map((q) => q.id)).toContain(other.id);
+    expect(addItem([note({ userId: B })], note()).queue).toHaveLength(2);
+  });
+  it("is taken out of the queue by the database's answer like any other, and a refused one keeps its text", () => {
+    const n = note({ note: "My offline note" });
+    expect(applyResults([n], [{ id: n.id, status: "done" }])).toMatchObject({ queue: [], problems: [], applied: 1 });
+    const refused = applyResults([n], [{ id: n.id, status: "rejected", reason: "changed" }]);
+    expect(refused.queue).toEqual([]);
+    expect(refused.problems).toEqual([{ id: n.id, label: n.label, reason: "changed", kept: "My offline note", userId: A }]);
+  });
+  it("keeps the text of a note that gave up after retries too, but not of a note that was only cleared", () => {
+    const n = note({ note: "kept text", attempts: MAX_ATTEMPTS - 1 });
+    expect(applyResults([n], [{ id: n.id, status: "retry" }]).problems[0]).toMatchObject({ reason: "error", kept: "kept text" });
+    const cleared = note({ note: "   " });
+    expect(applyResults([cleared], [{ id: cleared.id, status: "rejected", reason: "no_access" }]).problems[0]).not.toHaveProperty("kept");
+    const hk = item();
+    expect(applyResults([hk], [{ id: hk.id, status: "rejected", reason: "taken" }]).problems[0]).not.toHaveProperty("kept");
+  });
+  it("is stored and read back, and a hand-edited one is dropped", () => {
+    const n = note();
+    expect(parseStored(JSON.stringify([n]))).toEqual([n]);
+    expect(
+      parseStored(
+        JSON.stringify([
+          { ...n, reservationId: "nope" },
+          { ...n, action: "note_clear" },
+        ]),
+      ),
+    ).toEqual([]);
+  });
+});
+
+describe("refused notes kept on this computer", () => {
+  const p = { id: B, label: "Note on ABC123", reason: "changed" as const, kept: "My offline note", userId: A };
+  it("keeps only problems that carry text and say whose they are", () => {
+    expect(keptOnly([p, { id: T1, label: "x", reason: "taken" }, { ...p, kept: "" }, { ...p, userId: undefined }])).toEqual([p]);
+  });
+  it("reads back this person's notes and drops other people's, broken entries and unknown reasons", () => {
+    const raw = JSON.stringify([p, { ...p, id: T1, userId: B }, { ...p, id: T2, reason: "made_up" }, "junk", { id: 1 }]);
+    expect(parseKept(raw, A)).toEqual([p]);
+    expect(parseKept(null, A)).toEqual([]);
+    expect(parseKept("not json", A)).toEqual([]);
+    expect(parseKept('{"a":1}', A)).toEqual([]);
   });
 });

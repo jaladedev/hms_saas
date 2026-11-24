@@ -1129,6 +1129,10 @@ MM="$(psql -f "$HERE/189_maintenance_made_at.sql" 2>&1)" || { echo "$MM"; echo "
 echo "$MM" | grep -E 'PASS' || true
 if echo "$MM" | grep -qE 'FAIL|ERROR'; then echo "$MM"; echo "MAINTENANCE MADE-AT TESTS FAILED"; exit 1; fi
 
+NU="$(psql -f "$HERE/190_reservation_note_if_unchanged.sql" 2>&1)" || { echo "$NU"; echo "NOTE IF-UNCHANGED TESTS FAILED"; exit 1; }
+echo "$NU" | grep -E 'PASS' || true
+if echo "$NU" | grep -qE 'FAIL|ERROR'; then echo "$NU"; echo "NOTE IF-UNCHANGED TESTS FAILED"; exit 1; fi
+
 PIR="$(psql -f "$HERE/186_platform_invoice_reminders.sql" 2>&1)" || { echo "$PIR"; echo "PLATFORM INVOICE REMINDER TESTS FAILED"; exit 1; }
 echo "$PIR" | grep -E 'PASS' || true
 if echo "$PIR" | grep -qE 'FAIL|ERROR'; then echo "$PIR"; echo "PLATFORM INVOICE REMINDER TESTS FAILED"; exit 1; fi

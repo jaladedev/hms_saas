@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   classifyFolioReplayError,
+  classifyNoteReplayError,
   classifyReplayError,
   folioReplayBodySchema,
+  noteReplayBodySchema,
   offlinePaymentNote,
   replayBodySchema,
   REASON_TEXT,
@@ -141,5 +143,31 @@ describe("the note on a payment taken offline", () => {
     expect(offlinePaymentNote("paid", undefined, now)).toBe("paid");
     expect(offlinePaymentNote("paid", "soon", now)).toBe("paid");
     expect(offlinePaymentNote(null, undefined, now)).toBeNull();
+  });
+});
+
+describe("a booking note sent from offline", () => {
+  const note = { id, action: "note_set", userId: id, reservationId: id, note: "Arrives late", expected: "" };
+  it("accepts a note, a cleared note and the time it was made, and nothing else", () => {
+    expect(noteReplayBodySchema.safeParse({ items: [note] }).success).toBe(true);
+    expect(noteReplayBodySchema.safeParse({ items: [{ ...note, note: "" }] }).success).toBe(true);
+    expect(noteReplayBodySchema.safeParse({ items: [{ ...note, madeAt: "2026-11-23T10:42:00.000Z" }] }).success).toBe(true);
+    expect(noteReplayBodySchema.safeParse({ items: [{ ...note, madeAt: "yesterday" }] }).success).toBe(false);
+    expect(noteReplayBodySchema.safeParse({ items: [{ ...note, action: "note_clear" }] }).success).toBe(false);
+    expect(noteReplayBodySchema.safeParse({ items: [{ ...note, reservationId: "x" }] }).success).toBe(false);
+    expect(noteReplayBodySchema.safeParse({ items: [{ ...note, expected: undefined }] }).success).toBe(false);
+    expect(noteReplayBodySchema.safeParse({ items: [{ ...note, note: "x".repeat(1201) }] }).success).toBe(false);
+    expect(noteReplayBodySchema.safeParse({ items: Array.from({ length: 51 }, () => note) }).success).toBe(false);
+  });
+  it("is told apart from a housekeeping step", () => {
+    expect(replayBodySchema.safeParse({ items: [note] }).success).toBe(false);
+  });
+  it("says what to do with each refusal", () => {
+    expect(classifyNoteReplayError("CONFLICT: staff note changed")).toEqual({ status: "rejected", reason: "changed" });
+    expect(classifyNoteReplayError("POLICY_VIOLATION: staff note")).toEqual({ status: "rejected", reason: "invalid" });
+    expect(classifyNoteReplayError("NOT_FOUND")).toEqual({ status: "rejected", reason: "no_access" });
+    expect(classifyNoteReplayError("FORBIDDEN")).toEqual({ status: "rejected", reason: "no_access" });
+    expect(classifyNoteReplayError("connection reset")).toEqual({ status: "retry" });
+    expect(REASON_TEXT.changed).toMatch(/someone else changed the note/);
   });
 });
