@@ -44,7 +44,8 @@ Both functions and the `ops_heartbeats` table are service role only.
 
 ## Not done yet
 
-- The scheduler and the monitor are not wired on staging (needs the staging project and a monitor account).
+- The scheduler is written but not switched on: `.github/workflows/maintenance.yml` calls `/api/cron/maintenance` every 5 minutes once the repository secrets `MAINTENANCE_URL` and `CRON_SECRET` are set (until then it does nothing and does not fail). It has not run on GitHub yet. GitHub schedules are best effort (late or skipped runs, default branch only), which is why `/api/health` allows 30 minutes before it fails; if that proves too loose, call the route from the host's scheduler instead.
+- The uptime monitor is not wired on staging (needs a monitor account).
 - No alert channel is chosen (email, SMS, Slack). The monitor's own alerting is the plan.
 - Error tracking is built but off: set `ERROR_REPORT_DSN` (see below) once a tracker account exists. Browser-side errors are shown a friendly page with a reference, not sent to the tracker.
 

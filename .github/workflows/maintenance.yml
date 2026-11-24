@@ -1,0 +1,59 @@
+name: maintenance
+
+# Calls /api/cron/maintenance every 5 minutes: it expires unpaid holds, sends due emails and SMS, queues reminders and digests,
+# cleans old rows, and records the heartbeat that /api/health judges (docs/MONITORING.md, docs/STAGING.md step 9).
+#
+# Set two repository secrets (Settings, Secrets and variables, Actions):
+#   MAINTENANCE_URL  the site's base address with no trailing slash, for example https://staging.example.com
+#   CRON_SECRET      the same value the app runs with
+# Until both are set the job reports that and stops without failing, so a fork does not turn red.
+#
+# GitHub treats a schedule as best effort: a run can start several minutes late or be skipped when its queue is busy, and
+# schedules run only from the default branch. /api/health fails when there has been no good run for 30 minutes, which is how a
+# stalled schedule gets noticed. If that happens often, move the call to the host's own scheduler (Vercel Cron) or the uptime monitor.
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+# One run at a time: a slow run must not overlap the next, since both would drain the same queues.
+concurrency:
+  group: maintenance
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  call:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Call /api/cron/maintenance
+        env:
+          MAINTENANCE_URL: ${{ secrets.MAINTENANCE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$MAINTENANCE_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "::notice::MAINTENANCE_URL or CRON_SECRET is not set; nothing called."
+            exit 0
+          fi
+
+          status=$(curl -sS -X POST "${MAINTENANCE_URL%/}/api/cron/maintenance" \
+            -H "authorization: Bearer $CRON_SECRET" \
+            --max-time 120 --retry 2 --retry-delay 5 --retry-connrefused \
+            -o response.json -w "%{http_code}")
+
+          echo "HTTP $status"
+          if [ "$status" != "200" ]; then
+            echo "::error::maintenance answered HTTP $status"
+            exit 1
+          fi
+
+          # Each task in the body reports ok: true or ok: false with an error. The body holds counts and error text, never guest data.
+          failed=$(python3 -c 'import json; d = json.load(open("response.json")); print(", ".join(k for k, v in d.items() if isinstance(v, dict) and v.get("ok") is False))')
+          if [ -n "$failed" ]; then
+            echo "::error::maintenance steps failed: $failed"
+            python3 -m json.tool response.json
+            exit 1
+          fi
+          echo "all maintenance steps ok"

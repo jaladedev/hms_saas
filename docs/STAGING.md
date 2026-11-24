@@ -300,7 +300,7 @@ curl -s -X POST "https://<staging-host>/api/cron/maintenance" -H "authorization:
 
 Expect JSON in which each task reports `ok: true`; the same call without the header returns 401. Then schedule it
 with whatever the host offers (Vercel Cron, a Supabase `pg_cron` plus `pg_net` job, or an external scheduler such as
-a GitHub Actions schedule). Check the host's current limits on how often a job may run before relying on it, since
+a GitHub Actions schedule: `.github/workflows/maintenance.yml` does this every 5 minutes once the repository secrets `MAINTENANCE_URL` and `CRON_SECRET` are set, and fails its run on a non-200 answer or a step with `ok: false`; GitHub runs schedules on a best-effort basis, so a late or skipped run is possible). Check the host's current limits on how often a job may run before relying on it, since
 holds need it every few minutes. Confirm a run happens on its own by looking at the host's logs for
 `[maintenance]` lines.
 
