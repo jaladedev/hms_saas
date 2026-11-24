@@ -3,10 +3,11 @@ import { parseChargeForm, parsePaymentForm } from "@/lib/staff/folio";
 import {
   FOLIO_FIELDS,
   MAX_FOLIO_FIELD,
-  MAX_NOTE,
   QUEUE_ACTIONS,
   folioReplayItemSchema,
+  hasNote,
   isFolioAction,
+  noteLimit,
   replayItemSchema,
   type FolioAction,
   type QueueAction,
@@ -42,9 +43,10 @@ export function buildItem(input: {
 }): QueuedItem | null {
   if (isFolioAction(input.action)) return buildFolioItem({ ...input, action: input.action });
   if (!isAction(input.action)) return null;
-  const taskId = input.fields.taskId ?? "";
+  // A repair form names its target requestId, a housekeeping form taskId; either way it is the one id the change is for.
+  const taskId = (input.action.startsWith("maint_") ? input.fields.requestId : input.fields.taskId) ?? "";
   if (!UUID.test(taskId) || !UUID.test(input.userId)) return null;
-  const note = input.action === "complete" ? (input.fields.note ?? "").trim().slice(0, MAX_NOTE) : "";
+  const note = hasNote(input.action) ? (input.fields.note ?? "").trim().slice(0, noteLimit(input.action)) : "";
   return {
     id: input.id,
     action: input.action,

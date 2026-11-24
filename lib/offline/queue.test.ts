@@ -54,6 +54,36 @@ describe("building a waiting change from a form", () => {
   });
 });
 
+describe("building a waiting repair change from a form", () => {
+  // A repair form names its target requestId (a housekeeping form names taskId); the queue keeps it as the one target id.
+  const base = {
+    action: "maint_resolve",
+    fields: { requestId: T1, note: "  Replaced the tap washer  " },
+    label: "Room 204 · Fixed",
+    userId: A,
+    id: B,
+    now,
+  };
+  it("reads the target from requestId and keeps the note only for a resolve, up to 1000 characters", () => {
+    expect(buildItem(base)).toMatchObject({ action: "maint_resolve", taskId: T1, userId: A, note: "Replaced the tap washer", attempts: 0 });
+    expect(buildItem({ ...base, action: "maint_start" })).not.toHaveProperty("note");
+    expect(buildItem({ ...base, action: "maint_claim" })).not.toHaveProperty("note");
+    expect((buildItem({ ...base, fields: { requestId: T1, note: "x".repeat(1500) } }) as HousekeepingQueuedItem).note).toHaveLength(1000);
+  });
+  it("refuses a repair form without a valid request id, and does not read a taskId from it", () => {
+    expect(buildItem({ ...base, fields: { note: "x" } })).toBeNull();
+    expect(buildItem({ ...base, fields: { requestId: "nope" } })).toBeNull();
+    expect(buildItem({ ...base, fields: { taskId: T1 } })).toBeNull();
+  });
+  it("keeps a repair step apart from the same step on a housekeeping task with the same id", () => {
+    const hk = buildItem({ ...base, action: "start", fields: { taskId: T1 } })!;
+    const mt = buildItem({ ...base, action: "maint_start", id: "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d" })!;
+    const first = addItem([], hk);
+    expect(addItem(first.queue, mt).added).toBe(true);
+    expect(addItem(addItem([], mt).queue, mt).added).toBe(false);
+  });
+});
+
 describe("the queue", () => {
   it("does not queue the same step on the same task twice, or grow without limit", () => {
     const first = addItem([], item());

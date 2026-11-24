@@ -1,26 +1,36 @@
 import { z } from "zod";
 
 /**
- * Housekeeping actions that can wait for the connection (the first queued actions; see TODO.md "Unreliable internet").
- * They are safe to send twice: the database functions return the task unchanged when it is already claimed by you, already
- * started, or already done (migration 023). Shared by the page code that queues them and the route that replays them.
+ * Staff actions that can wait for the connection (see TODO.md "Unreliable internet"): taking, starting and finishing a housekeeping
+ * task (`claim`, `start`, `complete`) and a repair (`maint_claim`, `maint_start`, `maint_resolve`). They are safe to send twice: the
+ * database functions return the task or request unchanged when it is already claimed by you, already started, or already done
+ * (migrations 023 and 026). Shared by the page code that queues them and the route that replays them.
  */
-export const QUEUE_ACTIONS = ["claim", "start", "complete"] as const;
+export const QUEUE_ACTIONS = ["claim", "start", "complete", "maint_claim", "maint_start", "maint_resolve"] as const;
 export type QueueAction = (typeof QUEUE_ACTIONS)[number];
 export const MAX_REPLAY_ITEMS = 50;
+/** The longest note the database accepts: 500 characters on a housekeeping task, 1000 on a repair. */
 export const MAX_NOTE = 500;
+export const MAX_NOTE_MAINT = 1000;
+export const noteLimit = (action: QueueAction): number => (action === "maint_resolve" ? MAX_NOTE_MAINT : MAX_NOTE);
+/** Which actions carry a note. */
+export const hasNote = (action: QueueAction): boolean => action === "complete" || action === "maint_resolve";
 
 const uuid = z.guid();
 
-export const replayItemSchema = z.object({
-  id: uuid,
-  action: z.enum(QUEUE_ACTIONS),
-  taskId: uuid,
-  note: z.string().max(MAX_NOTE).optional(),
-  userId: uuid,
-  /** When the person made the change (the queue's `queuedAt`). The database keeps it inside its own bounds (migration 185). */
-  madeAt: z.iso.datetime({ offset: true }).optional(),
-});
+export const replayItemSchema = z
+  .object({
+    id: uuid,
+    action: z.enum(QUEUE_ACTIONS),
+    /** The housekeeping task, or the repair request, the change is for. */
+    taskId: uuid,
+    note: z.string().max(MAX_NOTE_MAINT).optional(),
+    userId: uuid,
+    /** When the person made the change (the queue's `queuedAt`). The database keeps it inside its own bounds (migration 185). */
+    madeAt: z.iso.datetime({ offset: true }).optional(),
+  })
+  // The limit depends on the action: 500 characters on a housekeeping note, 1000 on a repair, as in the database.
+  .refine((i) => (i.note ?? "").length <= noteLimit(i.action), { path: ["note"], message: "note too long" });
 export const replayBodySchema = z.object({ items: z.array(replayItemSchema).max(MAX_REPLAY_ITEMS) });
 export type ReplayItem = z.infer<typeof replayItemSchema>;
 
@@ -57,9 +67,9 @@ export const REASON_TEXT: Record<ReplayReason, string> = {
 export function classifyReplayError(_action: QueueAction, message: string): Pick<ReplayResult, "status" | "reason"> {
   if (/NOT_FOUND/.test(message)) return { status: "rejected", reason: "missing" };
   if (/FORBIDDEN: assigned to someone else/.test(message)) return { status: "rejected", reason: "taken" };
-  if (/INVALID_STATE: task cancelled/.test(message)) return { status: "rejected", reason: "cancelled" };
-  // Start or claim on a task that is already finished: the work is past that step, so there is nothing left to do.
-  if (/INVALID_STATE: task done/.test(message)) return { status: "already" };
+  if (/INVALID_STATE: (task|request) cancelled/.test(message)) return { status: "rejected", reason: "cancelled" };
+  // Start or claim on a task or repair that is already finished: the work is past that step, so there is nothing left to do.
+  if (/INVALID_STATE: (task done|request resolved)/.test(message)) return { status: "already" };
   if (/INVALID_STATE/.test(message)) return { status: "rejected", reason: "error" };
   if (/FORBIDDEN/.test(message)) return { status: "rejected", reason: "forbidden" };
   if (/POLICY_VIOLATION/.test(message)) return { status: "rejected", reason: "error" };

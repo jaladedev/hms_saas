@@ -1,5 +1,5 @@
 import { revalidatePath } from "next/cache";
-import { classifyReplayError, replayBodySchema, type ReplayResult } from "@/lib/offline/replay";
+import { classifyReplayError, replayBodySchema, type ReplayItem, type ReplayResult } from "@/lib/offline/replay";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +13,29 @@ const headers = { "cache-control": "no-store" };
  * was made (`madeAt`), which the database records for start and complete (migration 185); an item without one is recorded at the
  * time it arrives.
  */
+type Db = Awaited<ReturnType<typeof createClient>>;
+
+/** Runs one waiting change through the same database function as the button it replaces. */
+async function run(supabase: Db, item: ReplayItem) {
+  const note = item.note?.trim() || null;
+  switch (item.action) {
+    // Housekeeping carries the time the change was made; the database keeps it inside its bounds (migration 185).
+    case "claim":
+      return supabase.rpc("claim_housekeeping_task", { p_task_id: item.taskId, p_at: item.madeAt ?? null });
+    case "start":
+      return supabase.rpc("start_housekeeping_task", { p_task_id: item.taskId, p_at: item.madeAt ?? null });
+    case "complete":
+      return supabase.rpc("complete_housekeeping_task", { p_task_id: item.taskId, p_note: note, p_at: item.madeAt ?? null });
+    // Repairs record the time the change arrives: those functions have no made-at argument yet.
+    case "maint_claim":
+      return supabase.rpc("claim_maintenance_request", { p_request_id: item.taskId });
+    case "maint_start":
+      return supabase.rpc("start_maintenance_request", { p_request_id: item.taskId });
+    case "maint_resolve":
+      return supabase.rpc("resolve_maintenance_request", { p_request_id: item.taskId, p_note: note });
+  }
+}
+
 export async function POST(request: Request) {
   // A cross-site form cannot send JSON, and the session cookie is not sent cross-site anyway.
   if (!(request.headers.get("content-type") ?? "").includes("application/json")) {
@@ -31,20 +54,13 @@ export async function POST(request: Request) {
       results.push({ id: item.id, status: "rejected", reason: "other_user" });
       continue;
     }
-    // The time the change was made. The database moves it inside its bounds (not in the future, not older than two days, not
-    // before the task was started), so a wrong clock on the laptop cannot write a nonsense time.
-    const at = item.madeAt ?? null;
-    const { error } =
-      item.action === "claim"
-        ? await supabase.rpc("claim_housekeeping_task", { p_task_id: item.taskId, p_at: at })
-        : item.action === "start"
-          ? await supabase.rpc("start_housekeeping_task", { p_task_id: item.taskId, p_at: at })
-          : await supabase.rpc("complete_housekeeping_task", { p_task_id: item.taskId, p_note: item.note?.trim() || null, p_at: at });
+    const { error } = await run(supabase, item);
     results.push(error ? { id: item.id, ...classifyReplayError(item.action, error.message) } : { id: item.id, status: "done" });
   }
 
   if (results.some((r) => r.status === "done")) {
     revalidatePath("/app/housekeeping");
+    revalidatePath("/app/maintenance");
     revalidatePath("/app/rooms");
   }
   return Response.json({ results }, { headers });

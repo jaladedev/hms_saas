@@ -68,7 +68,7 @@ describe("POST /api/staff/housekeeping/replay", () => {
       [b.id, "done"],
       [c.id, "done"],
     ]);
-    expect(revalidated).toEqual(["/app/housekeeping", "/app/rooms"]);
+    expect(revalidated).toEqual(["/app/housekeeping", "/app/maintenance", "/app/rooms"]);
   });
 
   it("passes the time each change was made to its database function", async () => {
@@ -85,6 +85,22 @@ describe("POST /api/staff/housekeeping/replay", () => {
       { fn: "claim_housekeeping_task", args: { p_task_id: T1, p_at: t1 } },
       { fn: "start_housekeeping_task", args: { p_task_id: T1, p_at: t1 } },
       { fn: "complete_housekeeping_task", args: { p_task_id: T1, p_note: "ok", p_at: t2 } },
+    ]);
+  });
+
+  it("runs a repair step through its own database function, with no made-at time", async () => {
+    const t = "2026-11-23T10:42:00.000Z";
+    await post({
+      items: [
+        it1({ action: "maint_claim", madeAt: t }),
+        it1({ action: "maint_start", madeAt: t }),
+        it1({ action: "maint_resolve", note: "  replaced the tap  ", madeAt: t }),
+      ],
+    });
+    expect(calls).toEqual([
+      { fn: "claim_maintenance_request", args: { p_request_id: T1 } },
+      { fn: "start_maintenance_request", args: { p_request_id: T1 } },
+      { fn: "resolve_maintenance_request", args: { p_request_id: T1, p_note: "replaced the tap" } },
     ]);
   });
 

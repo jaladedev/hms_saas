@@ -12,8 +12,8 @@ const id = "0b9c1c0e-5d2a-4f7e-9a53-2f8b1a6c7d10";
 const item = { id, action: "start", taskId: id, userId: id };
 
 describe("replay body", () => {
-  it("accepts the three housekeeping steps and nothing else", () => {
-    for (const action of ["claim", "start", "complete"])
+  it("accepts the housekeeping and repair steps and nothing else", () => {
+    for (const action of ["claim", "start", "complete", "maint_claim", "maint_start", "maint_resolve"])
       expect(replayBodySchema.safeParse({ items: [{ ...item, action }] }).success).toBe(true);
     for (const action of ["cancel", "assign", "create", ""])
       expect(replayBodySchema.safeParse({ items: [{ ...item, action }] }).success).toBe(false);
@@ -23,6 +23,27 @@ describe("replay body", () => {
     expect(replayBodySchema.safeParse({ items: [{ ...item, action: "complete", note: "x".repeat(501) }] }).success).toBe(false);
     expect(replayBodySchema.safeParse({ items: Array.from({ length: 51 }, () => item) }).success).toBe(false);
     expect(replayBodySchema.safeParse({ items: [] }).success).toBe(true);
+  });
+});
+
+describe("notes on repairs", () => {
+  it("allow 1000 characters on a repair and 500 on a housekeeping task, as the database does", () => {
+    const ok = (action: string, n: number) => replayBodySchema.safeParse({ items: [{ ...item, action, note: "x".repeat(n) }] }).success;
+    expect(ok("maint_resolve", 1000)).toBe(true);
+    expect(ok("maint_resolve", 1001)).toBe(false);
+    expect(ok("complete", 500)).toBe(true);
+    expect(ok("complete", 501)).toBe(false);
+  });
+});
+
+describe("what to do with a database refusal for a repair", () => {
+  it("treats a repair already resolved as done, and one cancelled as a problem", () => {
+    expect(classifyReplayError("maint_start", "INVALID_STATE: request resolved")).toEqual({ status: "already" });
+    expect(classifyReplayError("maint_claim", "INVALID_STATE: request resolved")).toEqual({ status: "already" });
+    expect(classifyReplayError("maint_resolve", "INVALID_STATE: request cancelled")).toEqual({ status: "rejected", reason: "cancelled" });
+  });
+  it("treats a repair someone else took as a problem", () => {
+    expect(classifyReplayError("maint_claim", "FORBIDDEN: assigned to someone else")).toEqual({ status: "rejected", reason: "taken" });
   });
 });
 
