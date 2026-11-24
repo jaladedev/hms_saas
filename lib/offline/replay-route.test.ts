@@ -88,7 +88,7 @@ describe("POST /api/staff/housekeeping/replay", () => {
     ]);
   });
 
-  it("runs a repair step through its own database function, with no made-at time", async () => {
+  it("runs a repair step through its own database function, with the time it was made", async () => {
     const t = "2026-11-23T10:42:00.000Z";
     await post({
       items: [
@@ -98,9 +98,9 @@ describe("POST /api/staff/housekeeping/replay", () => {
       ],
     });
     expect(calls).toEqual([
-      { fn: "claim_maintenance_request", args: { p_request_id: T1 } },
-      { fn: "start_maintenance_request", args: { p_request_id: T1 } },
-      { fn: "resolve_maintenance_request", args: { p_request_id: T1, p_note: "replaced the tap" } },
+      { fn: "claim_maintenance_request", args: { p_request_id: T1, p_at: t } },
+      { fn: "start_maintenance_request", args: { p_request_id: T1, p_at: t } },
+      { fn: "resolve_maintenance_request", args: { p_request_id: T1, p_note: "replaced the tap", p_at: t } },
     ]);
   });
 

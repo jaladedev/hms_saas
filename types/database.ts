@@ -4699,7 +4699,7 @@ export type Database = {
         Returns: Json
       }
       claim_maintenance_request: {
-        Args: { p_request_id: string }
+        Args: { p_at?: string; p_request_id: string }
         Returns: Json
       }
       claim_room: {
@@ -5737,7 +5737,7 @@ export type Database = {
         }[]
       }
       resolve_maintenance_request: {
-        Args: { p_note?: string; p_request_id: string }
+        Args: { p_at?: string; p_note?: string; p_request_id: string }
         Returns: Json
       }
       resolve_rate: {
@@ -5845,7 +5845,7 @@ export type Database = {
         Returns: Json
       }
       start_maintenance_request: {
-        Args: { p_request_id: string }
+        Args: { p_at?: string; p_request_id: string }
         Returns: Json
       }
       start_refund_details_retry: {

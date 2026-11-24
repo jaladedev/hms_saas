@@ -26,13 +26,13 @@ async function run(supabase: Db, item: ReplayItem) {
       return supabase.rpc("start_housekeeping_task", { p_task_id: item.taskId, p_at: item.madeAt ?? null });
     case "complete":
       return supabase.rpc("complete_housekeeping_task", { p_task_id: item.taskId, p_note: note, p_at: item.madeAt ?? null });
-    // Repairs record the time the change arrives: those functions have no made-at argument yet.
+    // Repairs carry it too, kept inside the same bounds by the database (migration 189).
     case "maint_claim":
-      return supabase.rpc("claim_maintenance_request", { p_request_id: item.taskId });
+      return supabase.rpc("claim_maintenance_request", { p_request_id: item.taskId, p_at: item.madeAt ?? null });
     case "maint_start":
-      return supabase.rpc("start_maintenance_request", { p_request_id: item.taskId });
+      return supabase.rpc("start_maintenance_request", { p_request_id: item.taskId, p_at: item.madeAt ?? null });
     case "maint_resolve":
-      return supabase.rpc("resolve_maintenance_request", { p_request_id: item.taskId, p_note: note });
+      return supabase.rpc("resolve_maintenance_request", { p_request_id: item.taskId, p_note: note, p_at: item.madeAt ?? null });
   }
 }
 
