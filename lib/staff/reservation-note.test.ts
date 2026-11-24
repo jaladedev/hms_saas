@@ -42,7 +42,10 @@ describe("wiring", () => {
     expect(page).toMatch(/can\("reservation\.modify"\)/);
   });
   it("is never read by a document, a guest page or the guest site", () => {
-    for (const f of ["app/(staff)/app/reservations/[id]/documents/confirmation.pdf/route.ts", "app/(staff)/app/reservations/[id]/documents/invoice.pdf/route.ts"]) {
+    for (const f of [
+      "app/(staff)/app/reservations/[id]/documents/confirmation.pdf/route.ts",
+      "app/(staff)/app/reservations/[id]/documents/invoice.pdf/route.ts",
+    ]) {
       expect(readFileSync(f, "utf8")).not.toContain("staff_note");
     }
     expect(migration).toContain("set_reservation_note");

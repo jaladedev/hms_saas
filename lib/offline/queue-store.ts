@@ -16,6 +16,7 @@ import {
   type Problem,
   type QueuedItem,
 } from "./queue";
+import { INFLIGHT_KEY, isRecent, makeInflight, parseInflight, rescueId } from "./inflight";
 import { MAX_REPLAY_ITEMS, folioReplayBodySchema, noteReplayBodySchema, replayBodySchema, type ReplayResult } from "./replay";
 
 const KEY = "hms-offline-queue-v1";
@@ -99,13 +100,9 @@ export function followOtherTabs(userId: string): () => void {
 
 /** Puts a submitted form's change in the queue. Returns the waiting item's id, or null when the form may not wait or the queue is full. */
 export function enqueueFromForm(form: HTMLFormElement, userId: string): string | null {
-  const fields: Record<string, string> = {};
-  new FormData(form).forEach((v, k) => {
-    if (typeof v === "string") fields[k] = v;
-  });
   const item = buildItem({
     action: form.dataset.queue,
-    fields,
+    fields: fieldsOf(form),
     label: form.dataset.queueLabel,
     userId,
     id: crypto.randomUUID(),
@@ -117,6 +114,62 @@ export function enqueueFromForm(form: HTMLFormElement, userId: string): string |
   persist(queue);
   set({ items: keepOnlyUser(queue, userId) });
   return item.id;
+}
+
+/** The text fields of a form, as the queue reads them. */
+function fieldsOf(form: HTMLFormElement): Record<string, string> {
+  const fields: Record<string, string> = {};
+  new FormData(form).forEach((v, k) => {
+    if (typeof v === "string") fields[k] = v;
+  });
+  return fields;
+}
+
+/**
+ * Remembers, for a few seconds and in this tab only, a change that is being sent from a form that may wait. If the connection fails
+ * mid-send the error page calls rescueInflight, so what was typed becomes a waiting change instead of being lost.
+ */
+export function rememberInflight(form: HTMLFormElement, userId: string) {
+  const action = form.dataset.queue;
+  if (!action) return;
+  try {
+    sessionStorage.setItem(
+      INFLIGHT_KEY,
+      JSON.stringify(makeInflight({ action, fields: fieldsOf(form), label: form.dataset.queueLabel, userId, now: new Date() })),
+    );
+  } catch {
+    // Storage blocked: a failed send then shows the plain connection message, as before.
+  }
+}
+
+/**
+ * Called by the error page after a connection failure. Turns the change that was being sent into a waiting one, once, and returns its
+ * label (null when there was nothing recent to rescue). Sending it again later is safe: see lib/offline/inflight.ts.
+ */
+export function rescueInflight(now: Date = new Date()): string | null {
+  let raw: string | null = null;
+  try {
+    raw = sessionStorage.getItem(INFLIGHT_KEY);
+    sessionStorage.removeItem(INFLIGHT_KEY);
+  } catch {
+    return null;
+  }
+  const inflight = parseInflight(raw);
+  if (!inflight || !isRecent(inflight.at, now)) return null;
+  const item = buildItem({
+    action: inflight.action,
+    fields: inflight.fields,
+    label: inflight.label,
+    userId: inflight.userId,
+    id: rescueId(inflight, crypto.randomUUID()),
+    now: new Date(inflight.at),
+  });
+  if (!item) return null;
+  const { queue, added } = addItem(read(), item);
+  if (!added) return null;
+  persist(queue);
+  set({ items: keepOnlyUser(queue, inflight.userId) });
+  return item.label;
 }
 
 /** What one endpoint is sent: the body for its items, as the route's own schema reads it. */

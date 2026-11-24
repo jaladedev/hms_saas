@@ -16,3 +16,7 @@ export function isConnectionError(error: { name?: string; message?: string } | n
   const text = `${error.name ?? ""} ${error.message ?? ""}`.toLowerCase();
   return /failed to fetch|load failed|networkerror|network error|fetch failed|network request failed/.test(text);
 }
+
+/** Shown under the connection message when the change that was being sent was kept on this computer. */
+export const RESCUED_BODY =
+  "was kept on this computer and will be sent when the connection is back. Press Try again; there is no need to do it again.";

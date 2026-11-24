@@ -6,7 +6,15 @@ import { useEffect, useRef, useState } from "react";
 import { clearOfflineData, registerOffline, warmSavedPages } from "@/lib/offline/client";
 import { setOffline, useOffline } from "@/lib/offline/connection";
 import { REASON_TEXT } from "@/lib/offline/replay";
-import { dismissProblem, enqueueFromForm, flushQueue, followOtherTabs, initQueue, useQueue } from "@/lib/offline/queue-store";
+import {
+  dismissProblem,
+  enqueueFromForm,
+  flushQueue,
+  followOtherTabs,
+  initQueue,
+  rememberInflight,
+  useQueue,
+} from "@/lib/offline/queue-store";
 import { bannerState, savedAtLabel } from "@/lib/offline/saved-pages";
 
 declare global {
@@ -125,7 +133,13 @@ export function OfflineSupport({ userId }: { userId: string }) {
     // Capture on window so this runs before React sees the submit.
     const onSubmit = (e: Event) => {
       const form = e.target as HTMLFormElement | null;
-      if (!form || form.hasAttribute("data-allow-offline") || bypass.current.has(form)) return;
+      if (!form || form.hasAttribute("data-allow-offline")) return;
+      // The connection was confirmed just now and the form was sent again: let it through this once, so the next send is checked too.
+      if (bypass.current.has(form)) {
+        bypass.current.delete(form);
+        rememberInflight(form, userId);
+        return;
+      }
       const canWait = form.dataset.queue !== undefined;
       if (offlineRef.current) {
         e.preventDefault();
@@ -150,7 +164,10 @@ export function OfflineSupport({ userId }: { userId: string }) {
             wait(form);
           }
         });
+        return;
       }
+      // Online and checked a moment ago: it goes straight out. Keep a copy for a few seconds in case the connection fails mid-send.
+      if (canWait) rememberInflight(form, userId);
     };
     window.addEventListener("submit", onSubmit, true);
 
