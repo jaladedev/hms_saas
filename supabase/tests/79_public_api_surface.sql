@@ -42,6 +42,26 @@ do $$ declare v text; begin
      and not exists (select 1 from unnest(coalesce(p.proconfig, '{}')) c where c like 'search_path=%');
   if v is not null then raise exception 'FAIL 4g trigger functions without a fixed search_path (alter function ... set search_path = public): %', v; end if;
 
+  -- 4h. No table has two permissive policies for the same role and action (advisor lint 0006, migration 191). A FOR ALL policy counts
+  -- for all four actions, so a `_select` policy next to a FOR ALL `_write` policy is an overlap: both run on every read.
+  select string_agg(t || ' ' || a || ' ' || r, ', ' order by t, a, r) into v from (
+    select p.tablename t, c.a, r, count(*) n
+      from pg_policies p, unnest(p.roles) r,
+           unnest(case when p.cmd = 'ALL' then array['SELECT','INSERT','UPDATE','DELETE'] else array[p.cmd] end) c(a)
+     where p.schemaname = 'public' and p.permissive = 'PERMISSIVE'
+     group by 1, 2, 3 having count(*) > 1) x;
+  if v is not null then raise exception 'FAIL 4h tables with overlapping permissive policies (split the FOR ALL policy into insert, update and delete, and fold its rule into the select policy with or): %', v; end if;
+
+  -- 4i. Every foreign key on the tables that grow with use and are read through all day has a covering index (advisor lint 0001,
+  -- migration 191). Foreign keys to auth.users (created_by, voided_by and so on) are left out on purpose.
+  select string_agg(c.conrelid::regclass::text || '.' || c.conname, ', ' order by c.conrelid::regclass::text, c.conname) into v
+    from pg_constraint c
+   where c.contype = 'f' and c.connamespace = 'public'::regnamespace
+     and c.conrelid::regclass::text in ('reservation_rooms','reservations','folio_charges','folio_payments','folio_invoices','payments','invoices','refunds','pos_orders','pos_order_lines','housekeeping_tasks','maintenance_requests','service_bookings')
+     and c.confrelid::regclass::text <> 'auth.users'
+     and not exists (select 1 from pg_index i where i.indrelid = c.conrelid and (i.indkey::int2[])[0:(array_length(c.conkey,1)-1)] @> c.conkey);
+  if v is not null then raise exception 'FAIL 4i foreign keys without a covering index on the busy tables (create index ... on table (the foreign key columns)): %', v; end if;
+
   -- 4d. The server-only functions are closed to both client roles
   select string_agg(p.proname, ', ' order by p.proname) into v
     from pg_proc p join pg_namespace n on n.oid = p.pronamespace
@@ -60,5 +80,5 @@ do $$ declare v text; begin
   -- a CHECK helper must stay usable by signed-in staff, or editing a room type would fail with "permission denied"
   if not has_function_privilege('authenticated', 'amenities_valid(text[])', 'execute')
     then raise exception 'FAIL authenticated lost EXECUTE on amenities_valid, which the room_types CHECK needs'; end if;
-  raise notice 'PASS the STAGING.md security checks hold: RLS everywhere, no anon policies, three anon functions, server functions closed, no anon views, trigger functions closed with a fixed search_path';
+  raise notice 'PASS the STAGING.md security checks hold: RLS everywhere, no anon policies, three anon functions, server functions closed, no anon views, trigger functions closed with a fixed search_path, no overlapping policies, busy-table foreign keys indexed';
 end $$;

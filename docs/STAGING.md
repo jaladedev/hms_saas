@@ -123,6 +123,23 @@ select p.proname
    and not exists (select 1 from unnest(coalesce(p.proconfig, '{}')) c where c like 'search_path=%')
  order by 1;
 
+-- 4h. No table may have two permissive policies for the same role and action (a FOR ALL policy counts for all four). Expect: no rows.
+select p.tablename, c.a as action, r as role
+  from pg_policies p, unnest(p.roles) r,
+       unnest(case when p.cmd = 'ALL' then array['SELECT','INSERT','UPDATE','DELETE'] else array[p.cmd] end) c(a)
+ where p.schemaname = 'public' and p.permissive = 'PERMISSIVE'
+ group by 1, 2, 3 having count(*) > 1
+ order by 1, 2, 3;
+
+-- 4i. Foreign keys without a covering index on the busy tables (migration 191). Expect: no rows.
+select c.conrelid::regclass as tbl, c.conname
+  from pg_constraint c
+ where c.contype = 'f' and c.connamespace = 'public'::regnamespace
+   and c.conrelid::regclass::text in ('reservation_rooms','reservations','folio_charges','folio_payments','folio_invoices','payments','invoices','refunds','pos_orders','pos_order_lines','housekeeping_tasks','maintenance_requests','service_bookings')
+   and c.confrelid::regclass::text <> 'auth.users'
+   and not exists (select 1 from pg_index i where i.indrelid = c.conrelid and (i.indkey::int2[])[0:(array_length(c.conkey,1)-1)] @> c.conkey)
+ order by 1, 2;
+
 -- 4d. The server-only functions must be closed to both client roles. Expect: no rows.
 select p.proname
   from pg_proc p join pg_namespace n on n.oid = p.pronamespace
