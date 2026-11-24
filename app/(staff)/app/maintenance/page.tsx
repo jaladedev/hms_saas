@@ -136,7 +136,7 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
         {(a.claim || a.start || a.resolve) && (
           <div className="mt-3 flex flex-wrap items-start gap-2">
             {a.claim && (
-              <form action={claimRequest}>
+              <form action={claimRequest} data-queue="maint_claim" data-queue-label={`${place} · Take it`}>
                 <input type="hidden" name="requestId" value={r.id} />
                 <PendingButton className={buttonQuiet} pendingLabel="Saving…">
                   Take it
@@ -144,7 +144,7 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
               </form>
             )}
             {a.start && (
-              <form action={startRequest}>
+              <form action={startRequest} data-queue="maint_start" data-queue-label={`${place} · Start`}>
                 <input type="hidden" name="requestId" value={r.id} />
                 <PendingButton className={buttonQuiet} pendingLabel="Starting…">
                   Start
@@ -152,7 +152,12 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
               </form>
             )}
             {a.resolve && (
-              <form action={resolveRequest} className="flex flex-wrap items-center gap-2">
+              <form
+                action={resolveRequest}
+                data-queue="maint_resolve"
+                data-queue-label={`${place} · Fixed`}
+                className="flex flex-wrap items-center gap-2"
+              >
                 <input type="hidden" name="requestId" value={r.id} />
                 <input
                   name="note"

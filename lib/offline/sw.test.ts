@@ -39,6 +39,7 @@ describe("service worker: which pages are saved", () => {
       "/app/rooms",
       "/app/rooms/calendar",
       "/app/housekeeping",
+      "/app/maintenance",
     ]) {
       expect(sw.exports.isSavablePage(p), p).toBe(true);
     }

@@ -31,6 +31,7 @@ const SAVABLE_EXACT = new Set([
   "/app/rooms",
   "/app/rooms/calendar",
   "/app/housekeeping",
+  "/app/maintenance",
   "/app/reservations",
 ]);
 // A booking page and its printable documents. Money screens, reports, settings and guest records are never saved.
