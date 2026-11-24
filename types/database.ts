@@ -5624,6 +5624,7 @@ export type Database = {
       record_folio_payment: {
         Args: {
           p_amount_minor: number
+          p_at?: string
           p_idempotency_key: string
           p_method: string
           p_note: string

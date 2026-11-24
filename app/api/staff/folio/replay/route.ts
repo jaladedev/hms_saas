@@ -1,6 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { parseChargeForm, parsePaymentForm } from "@/lib/staff/folio";
-import { classifyFolioReplayError, folioReplayBodySchema, offlinePaymentNote, type ReplayResult } from "@/lib/offline/replay";
+import { classifyFolioReplayError, folioReplayBodySchema, type ReplayResult } from "@/lib/offline/replay";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +17,9 @@ const headers = { "cache-control": "no-store" };
  * the change is recorded once. A form is read with the same parsers as the screen; one that does not parse is refused, not guessed.
  *
  * Dates: a charge keeps the day the person chose on the form (the database refuses a day in the future or before arrival). A
- * payment is recorded when it arrives, and the time it was really taken is written into its note (`offlinePaymentNote`).
+ * payment is sent with the time it was really taken (`p_at`, migration 192) and the database decides what to do with it: it is kept
+ * inside bounds it trusts (never in the future, at most two days back, never before the booking), a closed day is never added to,
+ * and the note says when the money was taken. The note is the person's own words here; the time is not part of the idempotency hash.
  */
 export async function POST(request: Request) {
   // A cross-site form cannot send JSON, and the session cookie is not sent cross-site anyway.
@@ -69,7 +71,8 @@ export async function POST(request: Request) {
         p_amount_minor: p.amountMinor,
         p_method: p.method,
         p_reference: p.reference,
-        p_note: offlinePaymentNote(p.note, item.madeAt),
+        p_note: p.note,
+        p_at: item.madeAt,
         p_idempotency_key: item.id,
       }));
     }

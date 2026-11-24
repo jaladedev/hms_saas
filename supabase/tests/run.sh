@@ -1141,4 +1141,8 @@ RN="$(psql -f "$HERE/188_reservation_staff_note.sql" 2>&1)" || { echo "$RN"; ech
 echo "$RN" | grep -E 'PASS' || true
 if echo "$RN" | grep -qE 'FAIL|ERROR'; then echo "$RN"; echo "RESERVATION STAFF NOTE TESTS FAILED"; exit 1; fi
 
+FM="$(psql -f "$HERE/192_folio_payment_made_at.sql" 2>&1)" || { echo "$FM"; echo "FOLIO PAYMENT MADE-AT TESTS FAILED"; exit 1; }
+echo "$FM" | grep -E 'PASS' || true
+if echo "$FM" | grep -qE 'FAIL|ERROR'; then echo "$FM"; echo "FOLIO PAYMENT MADE-AT TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

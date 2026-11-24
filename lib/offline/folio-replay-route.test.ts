@@ -90,7 +90,7 @@ describe("POST /api/staff/folio/replay", () => {
     expect(revalidated).toEqual([`/app/reservations/${R1}`]);
   });
 
-  it("records a payment with the item's id as the key and the time it was really taken written into the note", async () => {
+  it("records a payment with the item's id as the key and sends the time it was really taken for the database to place", async () => {
     const p = payment();
     await post({ items: [p] });
     expect(calls).toEqual([
@@ -101,7 +101,8 @@ describe("POST /api/staff/folio/replay", () => {
           p_amount_minor: 300000,
           p_method: "cash",
           p_reference: "R-77",
-          p_note: "paid at desk · Taken offline at 2026-11-23 14:05 UTC",
+          p_note: "paid at desk",
+          p_at: "2026-11-23T14:05:44.000Z",
           p_idempotency_key: p.id,
         },
       },
@@ -179,8 +180,14 @@ describe("POST /api/staff/folio/replay", () => {
     expect((await (await post({ items: [c] })).json()).results).toEqual([{ id: c.id, status: "retry" }]);
   });
 
-  it("leaves the note alone when no time came with the payment", async () => {
+  it("sends the person's own note untouched, and no time when none came with the payment", async () => {
     await post({ items: [payment({ madeAt: undefined })] });
     expect(calls[0]?.args.p_note).toBe("paid at desk");
+    expect(calls[0]?.args.p_at).toBeUndefined();
+  });
+
+  it("passes the time through as given, because moving a wrong clock is the database's job", async () => {
+    await post({ items: [payment({ madeAt: "2026-11-23T15:05:00+01:00" })] });
+    expect(calls[0]?.args.p_at).toBe("2026-11-23T15:05:00+01:00");
   });
 });

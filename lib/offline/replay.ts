@@ -126,20 +126,6 @@ export function classifyFolioReplayError(message: string): Pick<ReplayResult, "s
 }
 
 /**
- * A payment made offline is recorded when it arrives (the database stamps the time itself, and money functions are not changed for
- * this). So the moment it was really taken goes in the note, in plain words and in UTC, where the accountant reads it next to the
- * payment. The person's own note is kept first and trimmed if needed to fit the database's 500 characters.
- */
-export function offlinePaymentNote(note: string | null, madeAt: string | undefined, now: Date = new Date()): string | null {
-  const ms = Date.parse(madeAt ?? "");
-  const own = (note ?? "").trim();
-  if (!Number.isFinite(ms)) return own || null;
-  const stamp = `Taken offline at ${new Date(Math.min(ms, now.getTime())).toISOString().slice(0, 16).replace("T", " ")} UTC`;
-  const room = MAX_NOTE - stamp.length - 3;
-  return own ? `${own.slice(0, room).trimEnd()} · ${stamp}` : stamp;
-}
-
-/**
  * A staff note on a booking, saved while offline (migration 190). A note REPLACES the whole text, so it is not sent as a plain
  * overwrite: it carries the text it replaced (`expected`, what the page showed when the person started typing) and the database
  * applies it only if the booking's note is still that text. If someone else changed the note meanwhile it is refused and the app

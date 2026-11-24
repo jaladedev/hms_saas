@@ -5,7 +5,6 @@ import {
   classifyReplayError,
   folioReplayBodySchema,
   noteReplayBodySchema,
-  offlinePaymentNote,
   replayBodySchema,
   REASON_TEXT,
 } from "./replay";
@@ -118,31 +117,6 @@ describe("what to do with a database refusal of a folio change", () => {
   it("retries anything it does not recognise", () => {
     expect(classifyFolioReplayError("connection terminated unexpectedly")).toEqual({ status: "retry" });
     expect(classifyFolioReplayError("")).toEqual({ status: "retry" });
-  });
-});
-
-describe("the note on a payment taken offline", () => {
-  const now = new Date("2026-11-23T15:00:00Z");
-  it("says when the money was really taken, in UTC, after the person's own note", () => {
-    expect(offlinePaymentNote("paid at desk", "2026-11-23T14:05:44.000Z", now)).toBe(
-      "paid at desk · Taken offline at 2026-11-23 14:05 UTC",
-    );
-    expect(offlinePaymentNote(null, "2026-11-23T14:05:44.000Z", now)).toBe("Taken offline at 2026-11-23 14:05 UTC");
-    expect(offlinePaymentNote("  ", "2026-11-23T14:05:44.000Z", now)).toBe("Taken offline at 2026-11-23 14:05 UTC");
-  });
-  it("converts a time with a zone, and never says a time in the future", () => {
-    expect(offlinePaymentNote(null, "2026-11-23T15:05:00+01:00", now)).toBe("Taken offline at 2026-11-23 14:05 UTC");
-    expect(offlinePaymentNote(null, "2026-11-24T09:00:00Z", now)).toBe("Taken offline at 2026-11-23 15:00 UTC");
-  });
-  it("trims a long note to stay inside the database's 500 characters, keeping the time", () => {
-    const out = offlinePaymentNote("n".repeat(500), "2026-11-23T14:05:00Z", now)!;
-    expect(out.length).toBeLessThanOrEqual(500);
-    expect(out.endsWith("Taken offline at 2026-11-23 14:05 UTC")).toBe(true);
-  });
-  it("is just the person's note when there is no usable time, and null when there is nothing", () => {
-    expect(offlinePaymentNote("paid", undefined, now)).toBe("paid");
-    expect(offlinePaymentNote("paid", "soon", now)).toBe("paid");
-    expect(offlinePaymentNote(null, undefined, now)).toBeNull();
   });
 });
 
