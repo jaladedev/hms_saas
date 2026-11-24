@@ -104,6 +104,12 @@ export const thNum = "px-2 py-2 text-right font-normal";
 export const tdNum = "px-2 py-2 text-right";
 /** The header cell that names its row (the first column). */
 export const thRowHead = "py-2 pr-3 text-left font-normal";
+/** The daily money report's column headings: roomier right padding, medium weight. A first column and a number column. */
+export const thWide = "py-2 pr-4 font-medium";
+export const thNumWide = "py-2 pr-4 text-right font-medium";
+/** The same table's row header (the date) and its number cells. */
+export const thRowWide = "py-2 pr-4 font-normal";
+export const tdNumWide = "py-2 pr-4 text-right";
 /** The row of column headings. */
 export const headRow = "border-b border-line text-left text-muted";
 /** The totals row at the foot of a table. */

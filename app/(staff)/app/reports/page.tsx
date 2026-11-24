@@ -1,7 +1,18 @@
 import Link from "next/link";
 import { PrintButton } from "@/components/staff/print-button";
 import { PrintHeader } from "@/components/staff/print-header";
-import { buttonPrimary, inputClass, linkClass, ErrorBanner, PageIntro, PageTitle } from "@/components/staff/ui";
+import {
+  buttonPrimary,
+  inputClass,
+  linkClass,
+  tdNumWide,
+  thNumWide,
+  thRowWide,
+  thWide,
+  ErrorBanner,
+  PageIntro,
+  PageTitle,
+} from "@/components/staff/ui";
 import { formatDate, formatMoney } from "@/lib/guest-site/format";
 import { dayOccupancy, parseRange, totals, type ReportDay } from "@/lib/staff/reports";
 import { todayIn } from "@/lib/staff/reservations";
@@ -146,22 +157,22 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
               </caption>
               <thead className="border-b border-line text-muted">
                 <tr>
-                  <th scope="col" className="py-2 pr-4 font-medium">
+                  <th scope="col" className={thWide}>
                     Date
                   </th>
-                  <th scope="col" className="py-2 pr-4 text-right font-medium">
+                  <th scope="col" className={thNumWide}>
                     Sold
                   </th>
-                  <th scope="col" className="py-2 pr-4 text-right font-medium">
+                  <th scope="col" className={thNumWide}>
                     Occupancy
                   </th>
-                  <th scope="col" className="py-2 pr-4 text-right font-medium">
+                  <th scope="col" className={thNumWide}>
                     Room revenue
                   </th>
-                  <th scope="col" className="py-2 pr-4 text-right font-medium">
+                  <th scope="col" className={thNumWide}>
                     Extras
                   </th>
-                  <th scope="col" className="py-2 pr-4 text-right font-medium">
+                  <th scope="col" className={thNumWide}>
                     Received
                   </th>
                   <th scope="col" className="py-2 text-right font-medium">
@@ -174,16 +185,16 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                   const occ = dayOccupancy(r);
                   return (
                     <tr key={r.day}>
-                      <th scope="row" className="py-2 pr-4 font-normal">
+                      <th scope="row" className={thRowWide}>
                         {formatDate(r.day)}
                       </th>
-                      <td className="py-2 pr-4 text-right">
+                      <td className={tdNumWide}>
                         {r.rooms_sold} of {r.rooms_available}
                       </td>
-                      <td className="py-2 pr-4 text-right">{occ === null ? "None" : `${occ}%`}</td>
-                      <td className="py-2 pr-4 text-right">{money(r.room_revenue_minor)}</td>
-                      <td className="py-2 pr-4 text-right">{money(r.extras_minor)}</td>
-                      <td className="py-2 pr-4 text-right">{money(r.cash_in_minor)}</td>
+                      <td className={tdNumWide}>{occ === null ? "None" : `${occ}%`}</td>
+                      <td className={tdNumWide}>{money(r.room_revenue_minor)}</td>
+                      <td className={tdNumWide}>{money(r.extras_minor)}</td>
+                      <td className={tdNumWide}>{money(r.cash_in_minor)}</td>
                       <td className="py-2 text-right">{money(r.refunds_paid_minor)}</td>
                     </tr>
                   );

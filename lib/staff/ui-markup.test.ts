@@ -13,7 +13,11 @@ import {
   SectionTitle,
   StatTile,
   tdNum,
+  tdNumWide,
   thNum,
+  thNumWide,
+  thRowWide,
+  thWide,
   thRowHead,
   totalRow,
 } from "@/components/staff/ui";
@@ -100,6 +104,11 @@ describe("shared staff UI pieces keep the markup they replaced", () => {
   it("table styles are the strings the report and calendar tables used", () => {
     expect(thNum).toBe("px-2 py-2 text-right font-normal");
     expect(tdNum).toBe("px-2 py-2 text-right");
+    // The daily money report's own widths (the class strings it had written out by hand).
+    expect(thWide).toBe("py-2 pr-4 font-medium");
+    expect(thNumWide).toBe("py-2 pr-4 text-right font-medium");
+    expect(thRowWide).toBe("py-2 pr-4 font-normal");
+    expect(tdNumWide).toBe("py-2 pr-4 text-right");
     expect(thRowHead).toBe("py-2 pr-3 text-left font-normal");
     expect(headRow).toBe("border-b border-line text-left text-muted");
     expect(totalRow).toBe("font-semibold tabular-nums");
