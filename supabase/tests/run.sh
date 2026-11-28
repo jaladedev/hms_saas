@@ -1145,4 +1145,8 @@ FM="$(psql -f "$HERE/192_folio_payment_made_at.sql" 2>&1)" || { echo "$FM"; echo
 echo "$FM" | grep -E 'PASS' || true
 if echo "$FM" | grep -qE 'FAIL|ERROR'; then echo "$FM"; echo "FOLIO PAYMENT MADE-AT TESTS FAILED"; exit 1; fi
 
+ML="$(psql -f "$HERE/193_money_ledger.sql" 2>&1)" || { echo "$ML"; echo "MONEY LEDGER TESTS FAILED"; exit 1; }
+echo "$ML" | grep -E 'PASS' || true
+if echo "$ML" | grep -qE 'FAIL|ERROR'; then echo "$ML"; echo "MONEY LEDGER TESTS FAILED"; exit 1; fi
+
 echo "ALL TESTS PASSED"

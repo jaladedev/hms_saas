@@ -32,7 +32,11 @@ do $$ declare
 begin
   rr := t_rr(t_book('00000000-0000-0000-0000-0000000000a3', t + 520, t + 524, 'tst-78-0002'));
   select room_id into cur from room_inventory_claims where reservation_room_id = rr and status = 'active';
-  select id into other from rooms where property_id = '00000000-0000-0000-0000-0000000000a2' and room_type_id = '00000000-0000-0000-0000-0000000000a3' and id <> cur order by room_number limit 1;
+  -- A room of the same type that is free for the nights of the move. Test 04 books fixed dates in April and May 2028, which
+  -- this test's window (today + 500 to today + 524) runs into on some days, so "the first other room" is not always free.
+  select id into other from rooms rm where rm.property_id = '00000000-0000-0000-0000-0000000000a2' and rm.room_type_id = '00000000-0000-0000-0000-0000000000a3' and rm.id <> cur
+     and not exists (select 1 from room_inventory_claims c where c.room_id = rm.id and c.status = 'active' and c.start_date < t + 524 and c.end_date > t + 522)
+   order by rm.room_number limit 1;
 
   perform t_as('00000000-0000-0000-0000-00000000aa04');
   r := transfer_room(rr, other, t + 522, 'quieter room', 'tst-78-k3');

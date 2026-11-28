@@ -66,6 +66,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const rows = (data ?? []) as ReportDay[];
   const t = totals(rows);
   const csvHref = `/api/staff/reports?property=${property.id}&from=${range.from}&to=${range.to}`;
+  const ledgerHref = `/api/staff/ledger?property=${property.id}&from=${range.from}&to=${range.to}`;
   const { data: mayExport } = await supabase.rpc("has_permission", { p_property: property.id, p_permission: "report.export" });
 
   return (
@@ -203,9 +204,15 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
             </table>
           </div>
           {mayExport === true && (
-            <p className="mt-4 print:hidden">
+            <p className="mt-4 flex flex-wrap gap-x-6 gap-y-2 print:hidden">
               <a href={csvHref} className="text-sm font-medium text-primary-strong focus-visible:outline-2 focus-visible:outline-primary">
                 Download as CSV
+              </a>
+              <a
+                href={ledgerHref}
+                className="text-sm font-medium text-primary-strong focus-visible:outline-2 focus-visible:outline-primary"
+              >
+                Download every payment and refund (CSV)
               </a>
             </p>
           )}

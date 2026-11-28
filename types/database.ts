@@ -4943,6 +4943,24 @@ export type Database = {
       contact_messages_list: { Args: { p_property: string }; Returns: Json }
       contact_message_set_status: { Args: { p_id: string; p_status: string }; Returns: Json }
       close_day: { Args: { p_day: string; p_idempotency_key: string; p_override_note: string; p_property: string }; Returns: Json }
+      money_ledger: {
+        Args: { p_from: string; p_property: string; p_to: string }
+        Returns: {
+          amount_minor: number
+          booking_reference: string
+          currency: string
+          entry_at: string
+          entry_day: string
+          group_reference: string
+          guest_name: string
+          internal_reference: string
+          kind: string
+          method: string
+          note: string
+          provider: string
+          provider_reference: string
+        }[]
+      }
       night_audit_days: { Args: { p_days?: number; p_property: string }; Returns: Json }
       night_audit_items: { Args: { p_day: string; p_property: string }; Returns: Json }
       night_audit_preview: { Args: { p_day?: string; p_property: string }; Returns: Json }
